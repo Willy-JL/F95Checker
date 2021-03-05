@@ -1,0 +1,39 @@
+name: Package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+jobs:
+
+  Build:
+
+    name: Build
+    runs-on: ubuntu-20.04
+    if: "contains(github.event.head_commit.message, '+ PACKAGE')"
+
+    steps:
+
+      - name: Clone Repo
+        uses: actions/checkout@v2
+
+      - name: Build Application
+        uses: Willy-JL/pyinstaller-action-windows@main
+        with:
+          path: ./
+
+      - name: Remove redundant libs
+        run: rm -rf dist/windows/F95Checker/api-ms-win-* dist/windows/F95Checker/ucrtbase.dll dist/windows/F95Checker/Include
+
+      - name: Move python files to dist folder
+        run: mv F95Checker.py dist/windows/F95Checker && mv F95Checker.sh dist/windows/F95Checker && mv requirements.txt dist/windows/F95Checker && mv update.py dist/windows/F95Checker && mv update.exe dist/windows/F95Checker && mv modules dist/windows/F95Checker 
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: F95Checker-latest
+          path: dist/windows/F95Checker
