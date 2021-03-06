@@ -52,8 +52,7 @@ async def id_to_name(code):
     try:
         title = html.select('h1[class="p-title-value"]')[0].get_text()
     except IndexError:
-        # tk.messagebox.showerror('Error!', 'Couldn\'t find \"' + code + '\"... make sure you entered it correctly!')
-        # FIXME: message boxes
+        await gui.WarningPopup.open(globals.gui, "Error!", "Couldn't find that game, make sure you pasted the right link!")
         return None
     while not title.find('[') == -1:
         title = title[0:title.find('[')] + title[title.find(']')+1:]
@@ -70,6 +69,8 @@ async def add_game(*kw):
     name = globals.gui.add_input.text()
     globals.gui.add_input.clear()
     if name:
+        globals.gui.add_input.setEnabled(False)
+        globals.gui.add_button.setEnabled(False)
         # Convert ids and links to names
         if name.isdigit():
             name = await id_to_name(name)
@@ -77,9 +78,13 @@ async def add_game(*kw):
             name = name[name.rfind('.')+1:name.rfind('/')]
             name = await id_to_name(name)
         if name is None:
+            globals.gui.add_input.setEnabled(True)
+            globals.gui.add_button.setEnabled(True)
             return
         # Config
         if name in globals.config["game_list"]:
+            globals.gui.add_input.setEnabled(True)
+            globals.gui.add_button.setEnabled(True)
             await gui.WarningPopup.open(globals.gui, 'Error!', f'{name} is already in your games list!')
             globals.gui.add_input.setFocus()
         else:
@@ -118,6 +123,8 @@ async def add_game(*kw):
             globals.gui.game_list[name].remove_button.setVisible(visible)
 
             # Set focus to input box and scroll to bottom
+            globals.gui.add_input.setEnabled(True)
+            globals.gui.add_button.setEnabled(True)
             globals.gui.add_input.setFocus()
             QtCore.QTimer.singleShot(100, lambda: globals.gui.games_section.verticalScrollBar().setSliderPosition(globals.gui.games_section.verticalScrollBar().maximum()))
 
