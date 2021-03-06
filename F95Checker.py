@@ -71,8 +71,11 @@ try:
             globals.config = json.load(f)
             config_utils.init_config()
         except json.JSONDecodeError:
-            # globals.log.error('Invalid config! Restoring default config...')
-            # FIXME: message boxes
+            root = tk.Tk()
+            root.withdraw()
+            tk.messagebox.showerror('Invalid config!', "Something went wrong with your config file, it might have gotten corrupted...\nClick ok to generate a new empty cconfig")
+            root.destroy()
+            del root
             globals.config = {}
             config_utils.init_config()
 except FileNotFoundError:

@@ -52,20 +52,10 @@ async def login():
                 "_xfToken": globals.token
             }) as login_req:
                 if login_req.ok is False:
-                    # tk.messagebox.showerror('Error!', f'Something went wrong...\nRequest Status: {login_req.status_code}')
-                    # FIXME: message boxes
-                    pass
-        except FileExistsError:
+                    await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
+        except:
             if retries >= globals.config["options"]["max_retries"]:
-                try:
-                    # tk.messagebox.showerror(
-                    #     'Error!', f'Something went wrong... Request Status: {login_req.status_code}')
-                    # FIXME: message boxes
-                    pass
-                except NameError:
-                    # tk.messagebox.showerror('Error!', f'Something went wrong... Request Status: Error!')
-                    # FIXME: message boxes
-                    pass
+                await gui.WarningPopup.open(globals.gui, "Error!", "Something went wrong...")
                 break
             retries = retries + 1
             continue
