@@ -348,7 +348,7 @@ QLabel#refresh_label {
     background: transparent
 }
 
-QFrame#game_container_frame_alt, QFrame#game_container_frame_alt QPushButton, QFrame#game_container_frame_alt QLabel#name, QFrame#game_container_frame_alt QLabel#version, QFrame#game_container_frame_alt QCheckBox, QFrame#game_container_frame_alt QCheckBox::indicator:unchecked {
+QFrame#game_container_frame_alt, QFrame#game_container_frame_alt QPushButton, QFrame#game_container_frame_alt QLabel#name, QFrame#game_container_frame_alt QLabel#version, QFrame#game_container_frame_alt QLabel#status, QFrame#game_container_frame_alt QCheckBox, QFrame#game_container_frame_alt QCheckBox::indicator:unchecked {
     background: """+style['alt']+""";
     color: """+font_alt+"""
 }
@@ -715,6 +715,14 @@ class GameContainer(QFrame):
         sizePolicy2.setHeightForWidth(self.name.sizePolicy().hasHeightForWidth())
         self.name.setSizePolicy(sizePolicy2)
 
+        self.status = QLabel(self)
+        self.status.setObjectName(u"status")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.status.sizePolicy().hasHeightForWidth())
+        self.status.setSizePolicy(sizePolicy3)
+
         self.version = QLabel(self)
         self.version.setObjectName(u"version")
         sizePolicy3 = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
@@ -747,6 +755,7 @@ class GameContainer(QFrame):
 
         self.game_container.addWidget(self.open_button)
         self.game_container.addWidget(self.name)
+        self.game_container.addWidget(self.status)
         self.game_container.addWidget(self.version)
         self.game_container.addWidget(self.played_button)
         self.game_container.addWidget(self.installed_button)
@@ -756,6 +765,7 @@ class GameContainer(QFrame):
         self.remove_button.setText(QCoreApplication.translate("F95Checker", u"", None))
         self.remove_button.setFont(globals.font_awesome)
         self.remove_button.setVisible(False)
+        self.status.setFont(globals.font_awesome)
         self.played_button.setText(QCoreApplication.translate("F95Checker", u"  ", None))
         self.played_button.setFont(globals.font_awesome)
         self.installed_button.setText(QCoreApplication.translate("F95Checker", u"  ", None))
@@ -772,23 +782,30 @@ class GameContainer(QFrame):
         self.view_button.setToolTip('Click this to open the game\'s webpage in your browser!')
         self.remove_button.setToolTip('Click this to remove this game from your list!')
 
-    def update_details(self, name: str = None, status: str = None, version: str = None, highlight: bool = None, alt: bool = None, link: str = None):
+    def update_details(self, name: str = None, version: str = None, status: str = None, highlight: bool = None, alt: bool = None, link: str = None):
         if alt is not None:
             self.setObjectName(u"game_container_frame" + u"_alt" if alt else u"")
             self.game_container.setObjectName(u"game_container" + u"_alt" if alt else u"")
             # Refresh style
             self.setStyleSheet("/* /")
-        if name is not None and status is not None:
-            new_text = name
-            if status == 'completed':
-                new_text += "  [COMPLETED]"
-            elif status == 'onhold':
-                new_text += "  [ON HOLD]"
-            elif status == 'abandoned':
-                new_text += "  [ABANDONED]"
-            self.name.setText(new_text)
-        if version:
+        if name is not None:
+            self.name.setText(name)
+        if version is not None:
             self.version.setText(version + "    ")
+        if status is not None:
+            if status == 'completed':
+                text = ""
+                self.status.setToolTip("Status: Completed!")
+            elif status == 'onhold':
+                text = ""
+                self.status.setToolTip("Status: On Hold...")
+            elif status == 'abandoned':
+                text = ""
+                self.status.setToolTip("Status: Abandoned D:")
+            else:
+                text = ""
+                self.status.setToolTip("")
+            self.status.setText(text)
         if highlight is not None:
             if not highlight:
                 self.name.setObjectName(u"name")
@@ -796,7 +813,7 @@ class GameContainer(QFrame):
                 self.name.setObjectName(u"highlighted")
             # Refresh style
             self.name.setStyleSheet("/* /")
-        if link:
+        if link is not None:
             try:
                 self.view_button.clicked.disconnect()
             except TypeError:
