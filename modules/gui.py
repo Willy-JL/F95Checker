@@ -804,6 +804,10 @@ class GameContainer(QFrame):
             self.name.setText(name)
         if version is not None:
             self.version.setText(version + "    ")
+            if version == "N/A":
+                self.version.setToolTip('This game does not have a properly formatted title, identifying the version was not possible!')
+            else:
+                self.version.setToolTip('This is the game\'s version!')
         if status is not None:
             if status == 'completed':
                 text = ""

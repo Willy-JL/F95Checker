@@ -264,16 +264,21 @@ async def check(name):
             if cur_version == globals.config["game_data"][name]["version"]:
                 return
             # Updated
-            globals.updated_games.append({'name': name, 'old_version': globals.config["game_data"][name]["version"], 'new_version': cur_version})
+            if cur_version != "N/A":
+                globals.updated_games.append({'name': name, 'old_version': globals.config["game_data"][name]["version"], 'new_version': cur_version})
             globals.config["game_data"][name]["link"] = cur_link
             globals.config["game_data"][name]["version"] = cur_version
-            globals.config["game_data"][name]["updated_time"] = time.time()
-            globals.config["game_data"][name]["installed"] = False
-            globals.config["game_data"][name]["played"] = False
-            globals.config["game_data"][name]["exe_path"] = ""
+            if cur_version != "N/A":
+                globals.config["game_data"][name]["updated_time"] = time.time()
+                globals.config["game_data"][name]["installed"] = False
+                globals.config["game_data"][name]["played"] = False
+                globals.config["game_data"][name]["exe_path"] = ""
             config_utils.save_config()
-            globals.gui.game_list[name].update_details(highlight=True,
-                                                       version=cur_version)
+            if cur_version != "N/A":
+                globals.gui.game_list[name].update_details(highlight=True,
+                                                           version=cur_version)
+            else:
+                globals.gui.game_list[name].update_details(version=cur_version)
             # Changelog Fetcher
             if not changelog_fetched:
                 try:
