@@ -239,7 +239,7 @@ def update_style(style_id=None):
     if style_id == 'radius':
         globals.config["style"][style_id] = globals.gui.style_gui.radius.value()
     elif style_id:
-        color = QtWidgets.QColorDialog.getColor()
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(globals.config["style"][style_id]))
         if color.isValid():
             globals.config["style"][style_id] = f'#{hex(color.rgb())[4:]}'
     config_utils.save_config()
