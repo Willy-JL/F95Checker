@@ -187,8 +187,7 @@ if __name__ == '__main__':
     # Make aiohttp global session
     async def make_aiohttp_session():
         globals.http = aiohttp.ClientSession(headers={"user-agent": globals.config["advanced"]["user_agent"]},
-                                             loop=globals.loop,
-                                             timeout=aiohttp.ClientTimeout(total=5.0))
+                                             loop=globals.loop)
     globals.loop.run_until_complete(make_aiohttp_session())
 
 
