@@ -244,8 +244,7 @@ async def check(name):
                         else:
                             globals.config["game_data"][name]["status"] = 'none'
                         config_utils.save_config()
-                        globals.gui.game_list[name].update_details(name=name,
-                                                                status=globals.config["game_data"][name]["status"])
+                        globals.gui.game_list[name].update_details(status=globals.config["game_data"][name]["status"])
                         try:
                             game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
                         except AttributeError:
@@ -291,7 +290,9 @@ async def check(name):
                 config_utils.save_config()
                 if cur_version != "N/A":
                     globals.gui.game_list[name].update_details(highlight=True,
-                                                            version=cur_version)
+                                                               installed=False,
+                                                               played=False,
+                                                               version=cur_version)
                 else:
                     globals.gui.game_list[name].update_details(version=cur_version)
                 # Changelog Fetcher
@@ -310,8 +311,7 @@ async def check(name):
                         else:
                             globals.config["game_data"][name]["status"] = 'none'
                         config_utils.save_config()
-                        globals.gui.game_list[name].update_details(name=name,
-                                                                status=globals.config["game_data"][name]["status"])
+                        globals.gui.game_list[name].update_details(status=globals.config["game_data"][name]["status"])
                         try:
                             game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
                         except AttributeError:
