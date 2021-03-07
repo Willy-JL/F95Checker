@@ -111,7 +111,7 @@ async def check_notifs():
 async def check_for_updates():
     if globals.checked_updates:
         return
-    if globals.version == 'tester':
+    if "tester" in globals.version or "dev" in globals.version:
         return
     try:
         async with globals.http.get('https://f95zone.to/forums/tools-tutorials.17/', params={'starter_id': '1276534'}) as check_req:

@@ -36,7 +36,7 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '6.9'
+globals.version = '7.0dev4'
 globals.login_url = "https://f95zone.to/login/login"
 globals.search_url = "https://f95zone.to/quicksearch"
 globals.logged_in = False
@@ -167,7 +167,7 @@ def setup_interface():
     globals.gui.background_button.clicked.connect(callbacks.toggle_edit_mode)
 
     # Watermark
-    if globals.version == 'tester':
+    if "tester" in globals.version:
         globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker Tester Build", None))
     else:
         globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker v{} by WillyJL".format(globals.version), None))
