@@ -348,6 +348,18 @@ QLabel#refresh_label {
     background: transparent
 }
 
+QLabel#status_completed {
+    color: #00D800
+}
+
+QLabel#status_onhold {
+    color: #0180F1
+}
+
+QLabel#status_abandoned {
+    color: #DD3333
+}
+
 QFrame#game_container_frame_alt, QFrame#game_container_frame_alt QPushButton, QFrame#game_container_frame_alt QLabel#name, QFrame#game_container_frame_alt QLabel#version, QFrame#game_container_frame_alt QLabel#status, QFrame#game_container_frame_alt QCheckBox, QFrame#game_container_frame_alt QCheckBox::indicator:unchecked {
     background: """+style['alt']+""";
     color: """+font_alt+"""
@@ -796,15 +808,19 @@ class GameContainer(QFrame):
             if status == 'completed':
                 text = ""
                 self.status.setToolTip("Status: Completed!")
+                self.status.setObjectName(u"status_completed")
             elif status == 'onhold':
                 text = ""
                 self.status.setToolTip("Status: On Hold...")
+                self.status.setObjectName(u"status_onhold")
             elif status == 'abandoned':
                 text = ""
                 self.status.setToolTip("Status: Abandoned D:")
+                self.status.setObjectName(u"status_abandoned")
             else:
                 text = ""
                 self.status.setToolTip("")
+                self.status.setObjectName(u"status")
             self.status.setText(text)
         if highlight is not None:
             if not highlight:
