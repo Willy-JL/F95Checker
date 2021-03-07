@@ -127,7 +127,7 @@ def detect_user_os_and_browsers():
             except FileNotFoundError:
                 pass
     else:
-        raise Exception()
+        raise OSError()
 
     for browser in user_browsers:
         if user_browsers[browser]["path"][0] == '"' and user_browsers[browser]["path"][-1] == '"':

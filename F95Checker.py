@@ -53,7 +53,7 @@ try:
         globals.config_path = os.path.expanduser("~/AppData/Roaming/f95checker")
     elif globals.user_os == "linux":
         globals.config_path = os.path.expanduser("~/.f95checker")
-except Exception:
+except OSError:
     root = tk.Tk()
     root.withdraw()
     tk.messagebox.showerror('Compatibility',

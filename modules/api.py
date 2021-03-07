@@ -1,5 +1,7 @@
+import sys
 import time
 import asyncio
+import traceback
 from bs4 import BeautifulSoup
 from modules import globals, config_utils, gui, browsers
 
@@ -59,7 +61,8 @@ async def login():
                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
         except:
             if retries >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, "Error!", "Something went wrong...")
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
                 break
             retries = retries + 1
             continue
@@ -105,7 +108,8 @@ async def check_notifs():
                         await browsers.open_webpage('https://f95zone.to/conversations/')
             except:
                 if retries >= globals.config["options"]["max_retries"]:
-                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...')
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...\n\n{exc}')
                     return
                 retries = retries + 1
                 continue
@@ -169,7 +173,7 @@ async def check_for_updates():
     # except requests.exceptions.ConnectionError:
     #     QtWidgets.QMessageBox.warning(gui, 'Connection Error', 'Please connect to the internet!')
     # TODO: connection error handling
-    except FileExistsError:
+    except:
         pass
 
 
@@ -335,7 +339,8 @@ async def check(name):
             # Retry Stuff
             except:
                 if retries >= globals.config["options"]["max_retries"]:
-                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...')
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...\n\n{exc}')
                     return
                 retries = retries + 1
                 continue
