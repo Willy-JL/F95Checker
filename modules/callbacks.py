@@ -32,7 +32,10 @@ async def exit_handler():
 
 @asyncSlot()
 async def remove_game(name, *kw):
-    globals.config["game_list"].remove(name)
+    count = 0
+    while name in globals.config["game_list"]:
+        globals.config["game_list"].remove(name)
+        count += 1
     if not globals.config["game_data"][name]["version"]:
         del globals.config["game_data"][name]
     config_utils.save_config()
@@ -41,6 +44,8 @@ async def remove_game(name, *kw):
     del globals.gui.game_list[name]
     for i, item in enumerate(globals.config["game_list"]):
         globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
+    if count > 1:
+        await sort_games()
 
 
 # Convert thread ids to names
@@ -201,8 +206,9 @@ async def sort_games():
     else:
         return
     config_utils.save_config()
-    for i, item in enumerate(globals.config["game_list"]):
+    for item in globals.gui.game_list:
         globals.gui.games_layout.removeWidget(globals.gui.game_list[item])
+    for i, item in enumerate(globals.config["game_list"]):
         globals.gui.games_layout.insertWidget(i, globals.gui.game_list[item])
         globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
 
