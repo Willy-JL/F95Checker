@@ -2,6 +2,7 @@ import os
 import sys
 import winreg
 import random
+import asyncio
 from subprocess import Popen
 from qasync import asyncSlot
 from bs4 import BeautifulSoup
@@ -142,6 +143,8 @@ async def open_webpage(link, *kw):
     if link[:4] != "http":
         link = "https://f95zone.to" + link
     if globals.config["options"]["open_html"]:
+        while globals.logging_in:
+            await asyncio.sleep(0.25)
         if not globals.logged_in:
             await api.login()
         html_id = ''.join((random.choice('0123456789') for _ in range(8)))

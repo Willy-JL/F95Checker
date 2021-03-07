@@ -40,6 +40,9 @@ globals.version = '6.9'
 globals.login_url = "https://f95zone.to/login/login"
 globals.search_url = "https://f95zone.to/quicksearch"
 globals.logged_in = False
+globals.logging_in = False
+globals.checked_updates = False
+globals.refreshing = False
 
 
 # OS Handling
@@ -199,11 +202,12 @@ if __name__ == '__main__':
     QtGui.QFontDatabase.addApplicationFont("resources/fonts/Font Awesome 5 Free-Solid-900.otf")
     globals.font_awesome = QtGui.QFont('Font Awesome 5 Free Solid', 11)
 
-    # # Queue async update checker task
-    globals.loop.create_task(api.check_for_updates())
-
     # Populate and configure interface items and callbacks
     setup_interface()
+
+    # Queue start refresh task
+    if globals.config["options"]["start_refresh"]:
+        globals.loop.create_task(callbacks.refresh_helper())
 
     # Finally show GUI
     globals.gui.show()

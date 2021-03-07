@@ -16,7 +16,7 @@ async def ask_creds():
     globals.gui.login_gui.show()
     globals.gui.login_gui.setFixedSize(globals.gui.login_gui.size())
     while globals.gui.login_gui.alive:
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.25)
     return globals.gui.login_gui.lineEdit.text(), globals.gui.login_gui.lineEdit_2.text()
 
 
@@ -28,11 +28,15 @@ async def check_f95zone_error(soup, warn=False):
 
 
 async def login():
+    if globals.logging_in:
+        return
+    globals.logging_in = True
     retries = 0
     if not globals.token:
         async with globals.http.get('https://f95zone.to/login/') as token_req:
             token_soup = BeautifulSoup(await token_req.read(), 'html.parser')
         if await check_f95zone_error(token_soup, warn=True):
+            globals.logging_in = False
             return
         globals.token = token_soup.select_one('input[name="_xfToken"]').get('value')
     while True:
@@ -67,6 +71,7 @@ async def login():
             config_utils.save_config()
             continue
         break
+    globals.logging_in = False
 
 
 async def check_notifs():
@@ -104,6 +109,8 @@ async def check_notifs():
 
 
 async def check_for_updates():
+    if globals.checked_updates:
+        return
     if globals.version == 'tester':
         return
     try:
@@ -116,9 +123,10 @@ async def check_for_updates():
         tool_current = tool_title[tool_title.find('[') + 1:tool_title.find(']', tool_title.find('[') + 1)]
         if not globals.version == tool_current:
             # Update found, log in and fetch changelog
+            while globals.logging_in:
+                await asyncio.sleep(0.25)
             if not globals.logged_in:
                 await login()
-            print('getting tool page')
             retries = 0
             while True:
                 try:
@@ -126,7 +134,6 @@ async def check_for_updates():
                         tool_soup = BeautifulSoup(await tool_req.read(), 'html.parser')
                     break
                 except:
-                    print('failed')
                     if retries >= globals.config["options"]["max_retries"]:
                         return
                     retries += 1
@@ -147,6 +154,7 @@ async def check_for_updates():
             except IndexError:
                 pass
             # Ask to update
+            globals.checked_updates = True
             if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{changes}"):
                 print("updating doesnt do anything for now")
                 latest_url = tool_soup.select_one('b:-soup-contains("Current Version:") + br + a').get('href')

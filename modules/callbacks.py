@@ -321,18 +321,22 @@ async def open_game(name, *kw):
 
 @asyncSlot()
 async def refresh(*kw):
+    if globals.refreshing:
+        return
+    globals.refreshing = True
     globals.updated_games = []
     globals.gui.refresh_bar.setVisible(True)
     globals.gui.refresh_label.setVisible(True)
-    globals.gui.refresh_bar.setMaximum(len(globals.config["game_list"])+2)
-    globals.gui.refresh_bar.setValue(0)
-    globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
+    while globals.logging_in:
+        await asyncio.sleep(0.25)
     if not globals.logged_in:
         await api.login()
     if globals.logged_in:
-        notifs_task = (api.check_notifs(),)
-        game_check_tasks = tuple(api.check(game) for game in globals.config["game_list"])
-        refresh_tasks = notifs_task + game_check_tasks
+        refresh_tasks = (api.check_notifs(),) + tuple(api.check(game) for game in globals.config["game_list"])
+        if not globals.checked_updates:
+            refresh_tasks = refresh_tasks + (api.check_for_updates(),)
+        globals.gui.refresh_bar.setMaximum(len(refresh_tasks))
+        globals.gui.refresh_bar.setValue(1)
         try:
             await asyncio.gather(*refresh_tasks)
         except:
@@ -351,3 +355,8 @@ async def refresh(*kw):
         if details:
             details = details[:-2]
             await gui.InfoPopup.open(globals.gui, 'Updates', f'{len(globals.updated_games)-ignored} game{"" if (len(globals.updated_games)-ignored) == 1 else "s"} {"has" if (len(globals.updated_games)-ignored) == 1 else "have"} been updated:\n\n{details}')
+    globals.refreshing = False
+
+
+async def refresh_helper():
+    await refresh()

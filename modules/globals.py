@@ -13,3 +13,6 @@ gui = None
 font_awesome = None
 app = None
 updated_games = None
+logging_in = None
+checked_updates = None
+refreshing = None
