@@ -41,10 +41,16 @@ def init_config():
 
     globals.config.setdefault("game_data", {})
 
+    # Cast to set and back to list to remove duplicates
+    globals.config["game_list"] = list(set(globals.config["game_list"]))
+
     save_config()
 
 
 def save_config():
+    # Cast to set and back to list to remove duplicates
+    globals.config["game_list"] = list(set(globals.config["game_list"]))
+
     pathlib.Path(globals.config_path).mkdir(parents=True, exist_ok=True)
     with open(f'{globals.config_path}/f95checker.json', 'w') as f:
         json.dump(globals.config, f, indent=4)
