@@ -103,7 +103,7 @@ def setup_interface():
                                                    version=globals.config["game_data"][game]["version"],
                                                    highlight=not globals.config["game_data"][game]["played"],
                                                    link=globals.config["game_data"][game]["link"])
-        globals.gui.game_list[game].open_button.clicked.connect(partial(callbacks.open_game, game))
+        globals.gui.game_list[game].open_button.mousePressEvent = partial(callbacks.open_game, game)
         globals.gui.game_list[game].name.mousePressEvent = partial(callbacks.invoke_changelog, game)
         globals.gui.game_list[game].installed_button.setChecked(globals.config["game_data"][game]["installed"])
         globals.gui.game_list[game].installed_button.stateChanged.connect(partial(callbacks.set_installed, game))

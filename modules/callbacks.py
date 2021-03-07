@@ -310,13 +310,17 @@ async def toggle_edit_mode(*kw):
         globals.gui.edit_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"Edit", None))
 
 
-@asyncSlot()
-async def open_game(name, *kw):
+def open_game(name, event):
     if not globals.config["game_data"][name]["exe_path"]:
         globals.config["game_data"][name]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {name}', filter="Game exe (*.exe *.py *.sh *.bat)")[0]
         config_utils.save_config()
     if globals.config["game_data"][name]["exe_path"]:
-        Popen([globals.config["game_data"][name]["exe_path"]])
+        if event.button() == QtCore.Qt.LeftButton:
+            Popen([globals.config["game_data"][name]["exe_path"]])
+        elif event.button() == QtCore.Qt.RightButton and globals.user_os == "windows":
+            path = globals.config["game_data"][name]["exe_path"]
+            path = path[:path.rfind("/")].replace("/", "\\")
+            Popen(["explorer.exe", path])
 
 
 @asyncSlot()
