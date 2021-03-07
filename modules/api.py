@@ -76,35 +76,40 @@ async def login():
 
 async def check_notifs():
     retries = 0
-    while True:
-        try:
-            async with globals.http.get(url='https://f95zone.to/forums/tools-tutorials.17/',
-                            params={'starter_id': '1276534'}) as notif_req:
-                notif_soup = BeautifulSoup(await notif_req.read(), 'html.parser')
-            if await check_f95zone_error(notif_soup, warn=True):
-                return
-            alerts = notif_soup.select_one(
-                'div[class="p-navgroup p-account p-navgroup--member"] > a[href="/account/alerts"]').get('data-badge')
-            inbox = notif_soup.select_one(
-                'div[class="p-navgroup p-account p-navgroup--member"] > a[href="/conversations/"]').get('data-badge')
-            globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-            if alerts != '0' and inbox != '0':
-                if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {int(alerts) + int(inbox)} unread notifications ({alerts} alert{"s" if int(alerts) > 1 else ""} and {inbox} conversation{"s" if int(inbox) > 1 else ""}).', "Do you want to view them?"):
-                    await browsers.open_webpage('https://f95zone.to/account/alerts')
-                    await browsers.open_webpage('https://f95zone.to/conversations/')
-            if alerts != '0' and inbox == '0':
-                if await gui.QuestionPopup.ask(globals.gui, 'Alerts', f'You have {alerts} unread alert{"s" if int(alerts) > 1 else ""}.', f'Do you want to view {"them" if int(alerts) > 1 else "it"}?'):
-                    await browsers.open_webpage('https://f95zone.to/account/alerts')
-            if alerts == '0' and inbox != '0':
-                if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if int(inbox) > 1 else ""}.', f'Do you want to view {"them" if int(inbox) > 1 else "it"}?'):
-                    await browsers.open_webpage('https://f95zone.to/conversations/')
-        except:
-            if retries >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...')
-                return
-            retries = retries + 1
-            continue
-        break
+    while globals.logging_in:
+        await asyncio.sleep(0.25)
+    if not globals.logged_in:
+        await login()
+    if globals.logged_in:
+        while True:
+            try:
+                async with globals.http.get(url='https://f95zone.to/forums/tools-tutorials.17/',
+                                params={'starter_id': '1276534'}) as notif_req:
+                    notif_soup = BeautifulSoup(await notif_req.read(), 'html.parser')
+                if await check_f95zone_error(notif_soup, warn=True):
+                    return
+                alerts = notif_soup.select_one(
+                    'div[class="p-navgroup p-account p-navgroup--member"] > a[href="/account/alerts"]').get('data-badge')
+                inbox = notif_soup.select_one(
+                    'div[class="p-navgroup p-account p-navgroup--member"] > a[href="/conversations/"]').get('data-badge')
+                globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
+                if alerts != '0' and inbox != '0':
+                    if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {int(alerts) + int(inbox)} unread notifications ({alerts} alert{"s" if int(alerts) > 1 else ""} and {inbox} conversation{"s" if int(inbox) > 1 else ""}).', "Do you want to view them?"):
+                        await browsers.open_webpage('https://f95zone.to/account/alerts')
+                        await browsers.open_webpage('https://f95zone.to/conversations/')
+                if alerts != '0' and inbox == '0':
+                    if await gui.QuestionPopup.ask(globals.gui, 'Alerts', f'You have {alerts} unread alert{"s" if int(alerts) > 1 else ""}.', f'Do you want to view {"them" if int(alerts) > 1 else "it"}?'):
+                        await browsers.open_webpage('https://f95zone.to/account/alerts')
+                if alerts == '0' and inbox != '0':
+                    if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if int(inbox) > 1 else ""}.', f'Do you want to view {"them" if int(inbox) > 1 else "it"}?'):
+                        await browsers.open_webpage('https://f95zone.to/conversations/')
+            except:
+                if retries >= globals.config["options"]["max_retries"]:
+                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...')
+                    return
+                retries = retries + 1
+                continue
+            break
 
 
 
@@ -127,39 +132,40 @@ async def check_for_updates():
                 await asyncio.sleep(0.25)
             if not globals.logged_in:
                 await login()
-            retries = 0
-            while True:
+            if globals.logged_in:
+                retries = 0
+                while True:
+                    try:
+                        async with globals.http.get('https://f95zone.to/threads/44173/') as tool_req:
+                            tool_soup = BeautifulSoup(await tool_req.read(), 'html.parser')
+                        break
+                    except:
+                        if retries >= globals.config["options"]["max_retries"]:
+                            return
+                        retries += 1
+                if await check_f95zone_error(tool_soup, warn=True):
+                    return
+                tool_changelog = tool_soup.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
+                changes = tool_changelog[tool_changelog.find(f'v{tool_current}'):tool_changelog.find(
+                    f'v{globals.version}', tool_changelog.find('\n', tool_changelog.find(f'v{tool_current}') + len(f'v{globals.version}')) + 1)]
+                changes = changes.replace('Spoiler', '')
                 try:
-                    async with globals.http.get('https://f95zone.to/threads/44173/') as tool_req:
-                        tool_soup = BeautifulSoup(await tool_req.read(), 'html.parser')
-                    break
-                except:
-                    if retries >= globals.config["options"]["max_retries"]:
-                        return
-                    retries += 1
-            if await check_f95zone_error(tool_soup, warn=True):
-                return
-            tool_changelog = tool_soup.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-            changes = tool_changelog[tool_changelog.find(f'v{tool_current}'):tool_changelog.find(
-                f'v{globals.version}', tool_changelog.find('\n', tool_changelog.find(f'v{tool_current}') + len(f'v{globals.version}')) + 1)]
-            changes = changes.replace('Spoiler', '')
-            try:
-                while changes[-1] == '\n':
-                    changes = changes[:-1]
-            except IndexError:
-                pass
-            try:
-                while changes[0] == '\n':
-                    changes = changes[1:]
-            except IndexError:
-                pass
-            # Ask to update
-            globals.checked_updates = True
-            if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{changes}"):
-                print("updating doesnt do anything for now")
-                latest_url = tool_soup.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
-                # TODO: Pass install job to auto_update
-                pass
+                    while changes[-1] == '\n':
+                        changes = changes[:-1]
+                except IndexError:
+                    pass
+                try:
+                    while changes[0] == '\n':
+                        changes = changes[1:]
+                except IndexError:
+                    pass
+                # Ask to update
+                globals.checked_updates = True
+                if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{changes}"):
+                    print("updating doesnt do anything for now")
+                    latest_url = tool_soup.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
+                    # TODO: Pass install job to auto_update
+                    pass
     # except requests.exceptions.ConnectionError:
     #     QtWidgets.QMessageBox.warning(gui, 'Connection Error', 'Please connect to the internet!')
     # TODO: connection error handling
@@ -169,163 +175,168 @@ async def check_for_updates():
 
 # Game Checking
 async def check(name):
-    retries = 0
-    while True:
-        try:
-            config_utils.ensure_game_data(name)
-            # Search Request
-            if name == 'Life':
-                search_term = "Fasder"
-            elif name == 'Big Bad Principal':
-                search_term = "Big Bad  Principal"
-            elif name == 'Life With a Slave -Teaching Feeling-':
-                search_term = "Life With a Slave  -Teaching Feeling-"
-            else:
-                search_term = name
-            async with globals.http.post(globals.search_url, data={"title": search_term, "_xfToken": globals.token}) as game_check_req:
-                result_html = BeautifulSoup(await game_check_req.read(), 'html.parser')
-            if await check_f95zone_error(result_html):
-                return
-            # Step Progress Bar
-            globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-            # Check number of search results
-            if len(result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")')) == 0:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')
-                return
-            found = False
-            thread_item = ''
-            title = ''
-            # Find right search result
-            for item in result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")'):
-                title = item.get_text()
-                result_name = title[0:title.find('[')]
-                if result_name[-1] == ' ':
-                    result_name = result_name[:-1]
-                if result_name == name:
-                    found = True
-                    thread_item = item
-                    break
+    while globals.logging_in:
+        await asyncio.sleep(0.25)
+    if not globals.logged_in:
+        await login()
+    if globals.logged_in:
+        retries = 0
+        while True:
+            try:
+                config_utils.ensure_game_data(name)
+                # Search Request
+                if name == 'Life':
+                    search_term = "Fasder"
+                elif name == 'Big Bad Principal':
+                    search_term = "Big Bad  Principal"
+                elif name == 'Life With a Slave -Teaching Feeling-':
+                    search_term = "Life With a Slave  -Teaching Feeling-"
                 else:
-                    pass
-            if not found:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')
-                return
-            cur_link = thread_item.get('href')
-            globals.gui.game_list[name].update_details(link=cur_link)
-            # Changelog fetcher
-            changelog_fetched = False
-            if globals.config["game_data"][name]["changelog"] == '' or globals.config["game_data"][name]["status"] == '':
-                try:
-                    async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
-                        page_html = BeautifulSoup(await changelog1_req.read(), 'html.parser')
-                    if await check_f95zone_error(page_html):
-                        return
-                    if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
-                        globals.config["game_data"][name]["status"] = 'completed'
-                    elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
-                        globals.config["game_data"][name]["status"] = 'onhold'
-                    elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
-                        globals.config["game_data"][name]["status"] = 'abandoned'
+                    search_term = name
+                async with globals.http.post(globals.search_url, data={"title": search_term, "_xfToken": globals.token}) as game_check_req:
+                    result_html = BeautifulSoup(await game_check_req.read(), 'html.parser')
+                if await check_f95zone_error(result_html):
+                    return
+                # Step Progress Bar
+                globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
+                # Check number of search results
+                if len(result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")')) == 0:
+                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')
+                    return
+                found = False
+                thread_item = ''
+                title = ''
+                # Find right search result
+                for item in result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")'):
+                    title = item.get_text()
+                    result_name = title[0:title.find('[')]
+                    if result_name[-1] == ' ':
+                        result_name = result_name[:-1]
+                    if result_name == name:
+                        found = True
+                        thread_item = item
+                        break
                     else:
-                        globals.config["game_data"][name]["status"] = 'none'
-                    config_utils.save_config()
-                    globals.gui.game_list[name].update_details(name=name,
-                                                               status=globals.config["game_data"][name]["status"])
+                        pass
+                if not found:
+                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')
+                    return
+                cur_link = thread_item.get('href')
+                globals.gui.game_list[name].update_details(link=cur_link)
+                # Changelog fetcher
+                changelog_fetched = False
+                if globals.config["game_data"][name]["changelog"] == '' or globals.config["game_data"][name]["status"] == '':
                     try:
-                        game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-                    except AttributeError:
-                        game_changelog = page_html.select_one('b:-soup-contains("Change-Log") + br + div > div').get_text()
-                    game_changelog = game_changelog.replace('Spoiler', '')
-                    game_changes = game_changelog[:game_changelog.replace('\n', '', 69).find('\n')]
-                    try:
-                        while game_changes[-1] == '\n':
-                            game_changes = game_changes[:-1]
+                        async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
+                            page_html = BeautifulSoup(await changelog1_req.read(), 'html.parser')
+                        if await check_f95zone_error(page_html):
+                            return
+                        if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
+                            globals.config["game_data"][name]["status"] = 'completed'
+                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
+                            globals.config["game_data"][name]["status"] = 'onhold'
+                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
+                            globals.config["game_data"][name]["status"] = 'abandoned'
+                        else:
+                            globals.config["game_data"][name]["status"] = 'none'
+                        config_utils.save_config()
+                        globals.gui.game_list[name].update_details(name=name,
+                                                                status=globals.config["game_data"][name]["status"])
+                        try:
+                            game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
+                        except AttributeError:
+                            game_changelog = page_html.select_one('b:-soup-contains("Change-Log") + br + div > div').get_text()
+                        game_changelog = game_changelog.replace('Spoiler', '')
+                        game_changes = game_changelog[:game_changelog.replace('\n', '', 69).find('\n')]
+                        try:
+                            while game_changes[-1] == '\n':
+                                game_changes = game_changes[:-1]
+                        except:
+                            pass
+                        try:
+                            while game_changes[0] == '\n':
+                                game_changes = game_changes[1:]
+                        except:
+                            pass
+                        changelog = game_changes
+                        while changelog.__contains__('\n\n\n'):
+                            changelog = changelog.replace('\n\n\n', '\n\n')
+                        globals.config["game_data"][name]["changelog"] = changelog
+                        config_utils.save_config()
+                        changelog_fetched = True
                     except:
                         pass
+                # Version Management
+                if title.count('[') < 2 or title.count(']') < 2:
+                    cur_version = "N/A"
+                else:
+                    cur_version = title[title.find('[') + 1:title.find(']', title.find('[') + 1)].strip()
+                # Not Updated
+                if cur_version == globals.config["game_data"][name]["version"]:
+                    return
+                # Updated
+                if cur_version != "N/A":
+                    globals.updated_games.append({'name': name, 'old_version': globals.config["game_data"][name]["version"], 'new_version': cur_version})
+                globals.config["game_data"][name]["link"] = cur_link
+                globals.config["game_data"][name]["version"] = cur_version
+                if cur_version != "N/A":
+                    globals.config["game_data"][name]["updated_time"] = time.time()
+                    globals.config["game_data"][name]["installed"] = False
+                    globals.config["game_data"][name]["played"] = False
+                    globals.config["game_data"][name]["exe_path"] = ""
+                config_utils.save_config()
+                if cur_version != "N/A":
+                    globals.gui.game_list[name].update_details(highlight=True,
+                                                            version=cur_version)
+                else:
+                    globals.gui.game_list[name].update_details(version=cur_version)
+                # Changelog Fetcher
+                if not changelog_fetched:
                     try:
-                        while game_changes[0] == '\n':
-                            game_changes = game_changes[1:]
+                        async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
+                            page_html = BeautifulSoup(await changelog1_req.read(), 'html.parser')
+                        if await check_f95zone_error(page_html):
+                            return
+                        if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
+                            globals.config["game_data"][name]["status"] = 'completed'
+                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
+                            globals.config["game_data"][name]["status"] = 'onhold'
+                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
+                            globals.config["game_data"][name]["status"] = 'abandoned'
+                        else:
+                            globals.config["game_data"][name]["status"] = 'none'
+                        config_utils.save_config()
+                        globals.gui.game_list[name].update_details(name=name,
+                                                                status=globals.config["game_data"][name]["status"])
+                        try:
+                            game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
+                        except AttributeError:
+                            game_changelog = page_html.select_one('b:-soup-contains("Change-Log") + br + div > div').get_text()
+                        game_changelog = game_changelog.replace('Spoiler', '')
+                        game_changes = game_changelog[:game_changelog.replace('\n', '', 69).find('\n')]
+                        try:
+                            while game_changes[-1] == '\n':
+                                game_changes = game_changes[:-1]
+                        except:
+                            pass
+                        try:
+                            while game_changes[0] == '\n':
+                                game_changes = game_changes[1:]
+                        except:
+                            pass
+                        changelog = game_changes
+                        while changelog.__contains__('\n\n\n'):
+                            changelog = changelog.replace('\n\n\n', '\n\n')
+                        globals.config["game_data"][name]["changelog"] = changelog
+                        config_utils.save_config()
+                        changelog_fetched = True
                     except:
                         pass
-                    changelog = game_changes
-                    while changelog.__contains__('\n\n\n'):
-                        changelog = changelog.replace('\n\n\n', '\n\n')
-                    globals.config["game_data"][name]["changelog"] = changelog
-                    config_utils.save_config()
-                    changelog_fetched = True
-                except:
-                    pass
-            # Version Management
-            if title.count('[') < 2 or title.count(']') < 2:
-                cur_version = "N/A"
-            else:
-                cur_version = title[title.find('[') + 1:title.find(']', title.find('[') + 1)].strip()
-            # Not Updated
-            if cur_version == globals.config["game_data"][name]["version"]:
-                return
-            # Updated
-            if cur_version != "N/A":
-                globals.updated_games.append({'name': name, 'old_version': globals.config["game_data"][name]["version"], 'new_version': cur_version})
-            globals.config["game_data"][name]["link"] = cur_link
-            globals.config["game_data"][name]["version"] = cur_version
-            if cur_version != "N/A":
-                globals.config["game_data"][name]["updated_time"] = time.time()
-                globals.config["game_data"][name]["installed"] = False
-                globals.config["game_data"][name]["played"] = False
-                globals.config["game_data"][name]["exe_path"] = ""
-            config_utils.save_config()
-            if cur_version != "N/A":
-                globals.gui.game_list[name].update_details(highlight=True,
-                                                           version=cur_version)
-            else:
-                globals.gui.game_list[name].update_details(version=cur_version)
-            # Changelog Fetcher
-            if not changelog_fetched:
-                try:
-                    async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
-                        page_html = BeautifulSoup(await changelog1_req.read(), 'html.parser')
-                    if await check_f95zone_error(page_html):
-                        return
-                    if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
-                        globals.config["game_data"][name]["status"] = 'completed'
-                    elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
-                        globals.config["game_data"][name]["status"] = 'onhold'
-                    elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
-                        globals.config["game_data"][name]["status"] = 'abandoned'
-                    else:
-                        globals.config["game_data"][name]["status"] = 'none'
-                    config_utils.save_config()
-                    globals.gui.game_list[name].update_details(name=name,
-                                                               status=globals.config["game_data"][name]["status"])
-                    try:
-                        game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-                    except AttributeError:
-                        game_changelog = page_html.select_one('b:-soup-contains("Change-Log") + br + div > div').get_text()
-                    game_changelog = game_changelog.replace('Spoiler', '')
-                    game_changes = game_changelog[:game_changelog.replace('\n', '', 69).find('\n')]
-                    try:
-                        while game_changes[-1] == '\n':
-                            game_changes = game_changes[:-1]
-                    except:
-                        pass
-                    try:
-                        while game_changes[0] == '\n':
-                            game_changes = game_changes[1:]
-                    except:
-                        pass
-                    changelog = game_changes
-                    while changelog.__contains__('\n\n\n'):
-                        changelog = changelog.replace('\n\n\n', '\n\n')
-                    globals.config["game_data"][name]["changelog"] = changelog
-                    config_utils.save_config()
-                    changelog_fetched = True
-                except:
-                    pass
-        # Retry Stuff
-        except:
-            if retries >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...')
-                return
-            retries = retries + 1
-            continue
-        break
+            # Retry Stuff
+            except:
+                if retries >= globals.config["options"]["max_retries"]:
+                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...')
+                    return
+                retries = retries + 1
+                continue
+            break

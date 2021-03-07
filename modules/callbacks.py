@@ -337,20 +337,17 @@ async def refresh(*kw):
     globals.updated_games = []
     globals.gui.refresh_bar.setVisible(True)
     globals.gui.refresh_label.setVisible(True)
-    while globals.logging_in:
-        await asyncio.sleep(0.25)
-    if not globals.logged_in:
-        await api.login()
-    if globals.logged_in:
-        refresh_tasks = (api.check_notifs(),) + tuple(api.check(game) for game in globals.config["game_list"])
-        if not globals.checked_updates:
-            refresh_tasks = refresh_tasks + (api.check_for_updates(),)
-        globals.gui.refresh_bar.setMaximum(len(refresh_tasks))
-        globals.gui.refresh_bar.setValue(1)
-        try:
-            await asyncio.gather(*refresh_tasks)
-        except:
-            pass
+
+    refresh_tasks =  tuple(api.check(game) for game in globals.config["game_list"]) + (api.check_notifs(),)
+    if not globals.checked_updates:
+        refresh_tasks = refresh_tasks + (api.check_for_updates(),)
+    globals.gui.refresh_bar.setMaximum(len(refresh_tasks))
+    globals.gui.refresh_bar.setValue(1)
+    try:
+        await asyncio.gather(*refresh_tasks)
+    except:
+        pass
+
     globals.gui.refresh_bar.setVisible(False)
     globals.gui.refresh_label.setVisible(False)
     await sort_games()
