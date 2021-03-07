@@ -309,6 +309,27 @@ class F95Checker_GUI(QMainWindow):
         self.bg_refresh_label.setText(QCoreApplication.translate("F95Checker", u"   BG Refresh Delay (mins):", None))
         self.background_label.setText(QCoreApplication.translate("F95Checker", u"   Switch  to  Background:", None))
         self.background_button.setText(QCoreApplication.translate("F95Checker", u"Switch", None))
+        self.refresh_button.setToolTip('Click this to check\nfor game updates!')
+        for browser in self.browser_buttons:
+            self.browser_buttons[browser].setToolTip('Click this to select the\nbrowser to use to open links!')
+        self.private_button.setToolTip('This toggles whether links should be\nopened in incognito / private mode!')
+        self.saved_html_button.setToolTip('This toggles whether links should be opened as a local HTML,\nallowing you to see links and spoilers without logging in!')
+        self.start_refresh_button.setToolTip('This toggles whether the tool should\nrefresh automatically when you open it!')
+        self.sort_input.setToolTip('This changes how\ngames get sorted!')
+        self.sort_label.setToolTip('This changes how\ngames get sorted!')
+        self.retries_input.setToolTip('This changes how many times a\nfailed request will be retried!')
+        self.retries_label.setToolTip('This changes how many times a\nfailed request will be retried!')
+        self.color_button.setToolTip('Here you can change\nhow the tool looks!')
+        self.color_label.setToolTip('Here you can change\nhow the tool looks!')
+        self.edit_button.setToolTip('With this you can remove\ngames from the list!')
+        self.edit_label.setToolTip('With this you can remove\ngames from the list!')
+        self.bg_refresh_input.setToolTip('This changes how often (in minutes)\nthe list refreshes in background mode!')
+        self.bg_refresh_label.setToolTip('This changes how often (in minutes)\nthe list refreshes in background mode!')
+        self.background_button.setToolTip('With this you can turn\non background mode!')
+        self.background_label.setToolTip('With this you can turn\non background mode!')
+        self.watermark.setToolTip('You can click this to view the thread\non F95Zone! Go and rate my tool :D')
+        self.add_input.setToolTip('Here you can paste a link to a F95Zone\nthread to add that game to the list!')
+        self.add_button.setToolTip('Click this to add the game\nyou pasted on the left!')
 
     @asyncClose
     async def closeEvent(self, event):
@@ -786,15 +807,15 @@ class GameContainer(QFrame):
         self.open_button.setFont(globals.font_awesome)
         self.view_button.setText(QCoreApplication.translate("F95Checker", u"", None))
         self.view_button.setFont(globals.font_awesome)
-        self.name.setToolTip('Click on the name to see the game\'s changelog!')
+        self.name.setToolTip('Click on the name to see\nthe game\'s changelog!')
         self.open_button.setToolTip('Click this to play the game!')
         self.version.setToolTip('This is the game\'s version!')
-        self.played_button.setToolTip('This checkbox indicates whether you fully played this update')
-        self.installed_button.setToolTip('This checkbox indicates whether you installed this update')
-        self.view_button.setToolTip('Click this to open the game\'s webpage in your browser!')
+        self.played_button.setToolTip('This checkbox indicates whether\nyou fully played this update')
+        self.installed_button.setToolTip('This checkbox indicates whether\nyou installed this update')
+        self.view_button.setToolTip('Click this to open the game\'s\nwebpage in your browser!')
         self.remove_button.setToolTip('Click this to remove this game from your list!')
 
-    def update_details(self, name: str = None, version: str = None, status: str = None, highlight: bool = None, alt: bool = None, link: str = None):
+    def update_details(self, name: str = None, version: str = None, status: str = None, highlight: bool = None, installed: bool = None, played: bool = None, alt: bool = None, link: str = None):
         if alt is not None:
             self.setObjectName(u"game_container_frame" + u"_alt" if alt else u"")
             self.game_container.setObjectName(u"game_container" + u"_alt" if alt else u"")
@@ -805,7 +826,7 @@ class GameContainer(QFrame):
         if version is not None:
             self.version.setText(version + "    ")
             if version == "N/A":
-                self.version.setToolTip('This game does not have a properly formatted title, identifying the version was not possible!')
+                self.version.setToolTip('This game does not have a properly formatted\ntitle,identifying the version was not possible!')
             else:
                 self.version.setToolTip('This is the game\'s version!')
         if status is not None:
@@ -833,6 +854,10 @@ class GameContainer(QFrame):
                 self.name.setObjectName(u"highlighted")
             # Refresh style
             self.name.setStyleSheet("/* /")
+        if installed is not None:
+            self.installed_button.setChecked(installed)
+        if played is not None:
+            self.played_button.setChecked(played)
         if link is not None:
             try:
                 self.view_button.clicked.disconnect()
