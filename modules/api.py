@@ -256,7 +256,10 @@ async def check(name):
                 except:
                     pass
             # Version Management
-            cur_version = title[title.find('[') + 1:title.find(']', title.find('[') + 1)].strip()
+            if title.count('[') < 2 or title.count(']') < 2:
+                cur_version = "N/A"
+            else:
+                cur_version = title[title.find('[') + 1:title.find(']', title.find('[') + 1)].strip()
             # Not Updated
             if cur_version == globals.config["game_data"][name]["version"]:
                 return
