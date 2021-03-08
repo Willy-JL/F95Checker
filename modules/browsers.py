@@ -149,7 +149,9 @@ async def open_webpage(link, *kw):
             await api.login()
         html_id = ''.join((random.choice('0123456789') for _ in range(8)))
         async with globals.http.get(link) as req:
-            soup = BeautifulSoup(await req.read(), 'html.parser')
+            text = await req.text()
+        assert text.startswith("<!DOCTYPE html>")
+        soup = BeautifulSoup(text, 'html.parser')
         if await api.check_f95zone_error(soup, warn=True):
             return
         for tag in soup.select('link[rel="stylesheet"][href*="/css.php?css=public"]'):
@@ -161,7 +163,9 @@ async def open_webpage(link, *kw):
                     compressed_link = tag['href']
                     compressed_code = compressed_link[compressed_link.rfind('/'):].replace('/', '#')
                     async with globals.http.get(compressed_link) as req:
-                        compressed_soup = BeautifulSoup(await req.read(), 'html.parser')
+                        text = await req.text()
+                    assert text.startswith("<!DOCTYPE html>")
+                    compressed_soup = BeautifulSoup(text, 'html.parser')
                     if await api.check_f95zone_error(compressed_soup, warn=True):
                         return
                     for compressed_tag in compressed_soup.select('link[rel="stylesheet"][href*="/css.php?css=public"]'):

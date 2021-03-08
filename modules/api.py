@@ -1,4 +1,5 @@
 import sys
+import json
 import time
 import asyncio
 import traceback
@@ -35,12 +36,25 @@ async def login():
     globals.logging_in = True
     retries = 0
     if not globals.token:
-        async with globals.http.get('https://f95zone.to/login/') as token_req:
-            token_soup = BeautifulSoup(await token_req.read(), 'html.parser')
-        if await check_f95zone_error(token_soup, warn=True):
-            globals.logging_in = False
-            return
-        globals.token = token_soup.select_one('input[name="_xfToken"]').get('value')
+        while True:
+            try:
+                async with globals.http.get('https://f95zone.to/login/') as token_req:
+                    text = await token_req.text()
+                assert text.startswith("<!DOCTYPE html>")
+                token_soup = BeautifulSoup(text, 'html.parser')
+                if await check_f95zone_error(token_soup, warn=True):
+                    globals.logging_in = False
+                    return
+                globals.token = token_soup.select_one('input[name="_xfToken"]').get('value')
+                break
+            except:
+                if retries >= globals.config["options"]["max_retries"]:
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
+                    globals.logging_in = False
+                    return
+                retries += 1
+    retries = 0
     while True:
         try:
             if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
@@ -64,7 +78,7 @@ async def login():
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
                 break
-            retries = retries + 1
+            retries += 1
             continue
         if get_cookie('xf_session') is not None:
             globals.logged_in = True
@@ -86,27 +100,30 @@ async def check_notifs():
     if globals.logged_in:
         while True:
             try:
-                async with globals.http.get(url='https://f95zone.to/forums/tools-tutorials.17/',
-                                params={'starter_id': '1276534'}) as notif_req:
-                    notif_soup = BeautifulSoup(await notif_req.read(), 'html.parser')
-                if await check_f95zone_error(notif_soup, warn=True):
-                    return
-                alerts = notif_soup.select_one(
-                    'div[class="p-navgroup p-account p-navgroup--member"] > a[href="/account/alerts"]').get('data-badge')
-                inbox = notif_soup.select_one(
-                    'div[class="p-navgroup p-account p-navgroup--member"] > a[href="/conversations/"]').get('data-badge')
+                retries = 0
+                while True:
+                    try:
+                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
+                            notif_json = await notif_req.json()
+                        break
+                    except ArithmeticError:
+                        if retries >= globals.config["options"]["max_retries"]:
+                            return
+                        retries += 1
+                alerts = int(notif_json["visitor"]["alerts_unread"])
+                inbox = int(notif_json["visitor"]["conversations_unread"])
                 globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-                if alerts != '0' and inbox != '0':
+                if alerts != 0 and inbox != 0:
                     if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {int(alerts) + int(inbox)} unread notifications ({alerts} alert{"s" if int(alerts) > 1 else ""} and {inbox} conversation{"s" if int(inbox) > 1 else ""}).', "Do you want to view them?"):
                         await browsers.open_webpage('https://f95zone.to/account/alerts')
                         await browsers.open_webpage('https://f95zone.to/conversations/')
-                if alerts != '0' and inbox == '0':
+                if alerts != 0 and inbox == 0:
                     if await gui.QuestionPopup.ask(globals.gui, 'Alerts', f'You have {alerts} unread alert{"s" if int(alerts) > 1 else ""}.', f'Do you want to view {"them" if int(alerts) > 1 else "it"}?'):
                         await browsers.open_webpage('https://f95zone.to/account/alerts')
-                if alerts == '0' and inbox != '0':
+                if alerts == 0 and inbox != 0:
                     if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if int(inbox) > 1 else ""}.', f'Do you want to view {"them" if int(inbox) > 1 else "it"}?'):
                         await browsers.open_webpage('https://f95zone.to/conversations/')
-            except:
+            except ArithmeticError:
                 if retries >= globals.config["options"]["max_retries"]:
                     exc = "".join(traceback.format_exception(*sys.exc_info()))
                     await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...\n\n{exc}')
@@ -123,8 +140,18 @@ async def check_for_updates():
     if "tester" in globals.version or "dev" in globals.version:
         return
     try:
-        async with globals.http.get('https://f95zone.to/forums/tools-tutorials.17/', params={'starter_id': '1276534'}) as check_req:
-            check_soup = BeautifulSoup(await check_req.read(), 'html.parser')
+        retries = 0
+        while True:
+            try:
+                async with globals.http.get('https://f95zone.to/forums/tools-tutorials.17/', params={'starter_id': '1276534'}) as check_req:
+                    text = await check_req.text()
+                assert text.startswith("<!DOCTYPE html>")
+                check_soup = BeautifulSoup(text, 'html.parser')
+                break
+            except:
+                if retries >= globals.config["options"]["max_retries"]:
+                    return
+                retries += 1
         if await check_f95zone_error(check_soup, warn=True):
             return
         tool_thread = check_soup.select_one('div[class="structItemContainer-group js-threadList"] > div > div[class="structItem-cell structItem-cell--main"] > div[class="structItem-title"] > a[data-tp-primary="on"]')
@@ -141,7 +168,9 @@ async def check_for_updates():
                 while True:
                     try:
                         async with globals.http.get('https://f95zone.to/threads/44173/') as tool_req:
-                            tool_soup = BeautifulSoup(await tool_req.read(), 'html.parser')
+                            text = await tool_req.text()
+                        assert text.startswith("<!DOCTYPE html>")
+                        tool_soup = BeautifulSoup(text, 'html.parser')
                         break
                     except:
                         if retries >= globals.config["options"]["max_retries"]:
@@ -198,7 +227,9 @@ async def check(name):
                 else:
                     search_term = name
                 async with globals.http.post(globals.search_url, data={"title": search_term, "_xfToken": globals.token}) as game_check_req:
-                    result_html = BeautifulSoup(await game_check_req.read(), 'html.parser')
+                    text = await game_check_req.text()
+                assert text.startswith("<!DOCTYPE html>")
+                result_html = BeautifulSoup(text, 'html.parser')
                 if await check_f95zone_error(result_html):
                     return
                 # Step Progress Bar
@@ -232,7 +263,9 @@ async def check(name):
                 if globals.config["game_data"][name]["changelog"] == '' or globals.config["game_data"][name]["status"] == '':
                     try:
                         async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
-                            page_html = BeautifulSoup(await changelog1_req.read(), 'html.parser')
+                            text = await changelog1_req.text()
+                        assert text.startswith("<!DOCTYPE html>")
+                        page_html = BeautifulSoup(text, 'html.parser')
                         if await check_f95zone_error(page_html):
                             return
                         if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
@@ -298,8 +331,10 @@ async def check(name):
                 # Changelog Fetcher
                 if not changelog_fetched:
                     try:
-                        async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
-                            page_html = BeautifulSoup(await changelog1_req.read(), 'html.parser')
+                        async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog2_req:
+                            text = await changelog2_req.text()
+                        assert text.startswith("<!DOCTYPE html>")
+                        page_html = BeautifulSoup(text, 'html.parser')
                         if await check_f95zone_error(page_html):
                             return
                         if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
