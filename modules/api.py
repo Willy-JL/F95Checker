@@ -110,7 +110,7 @@ async def login():
 
 
 async def check_notifs():
-    retries = 0
+    retries_a = 0
     while globals.logging_in:
         await asyncio.sleep(0.25)
     if not globals.logged_in:
@@ -118,7 +118,7 @@ async def check_notifs():
     if globals.logged_in:
         while True:
             try:
-                retries = 0
+                retries_b = 0
                 while True:
                     try:
                         try:
@@ -129,9 +129,9 @@ async def check_notifs():
                             return
                         break
                     except ArithmeticError:
-                        if retries >= globals.config["options"]["max_retries"]:
+                        if retries_b >= globals.config["options"]["max_retries"]:
                             return
-                        retries += 1
+                        retries_b += 1
                 alerts = int(notif_json["visitor"]["alerts_unread"])
                 inbox = int(notif_json["visitor"]["conversations_unread"])
                 globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
@@ -146,11 +146,11 @@ async def check_notifs():
                     if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if int(inbox) > 1 else ""}.', f'Do you want to view {"them" if int(inbox) > 1 else "it"}?'):
                         await browsers.open_webpage('https://f95zone.to/conversations/')
             except ArithmeticError:
-                if retries >= globals.config["options"]["max_retries"]:
+                if retries_a >= globals.config["options"]["max_retries"]:
                     exc = "".join(traceback.format_exception(*sys.exc_info()))
                     await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...\n\n{exc}')
                     return
-                retries = retries + 1
+                retries_a += 1
                 continue
             break
 
@@ -422,6 +422,6 @@ async def check(name):
                     exc = "".join(traceback.format_exception(*sys.exc_info()))
                     await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...\n\n{exc}')
                     return
-                retries = retries + 1
+                retries += 1
                 continue
             break
