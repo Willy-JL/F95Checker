@@ -341,12 +341,8 @@ async def refresh(*kw):
     refresh_tasks = tuple(api.check(game) for game in globals.config["game_list"]) + (api.check_notifs(),)
     if not globals.checked_updates:
         refresh_tasks = refresh_tasks + (api.check_for_updates(),)
-    globals.gui.refresh_bar.setMaximum(len(refresh_tasks)+1)
+    globals.gui.refresh_bar.setMaximum(len(refresh_tasks))
     globals.gui.refresh_bar.setValue(1)
-
-    if not globals.logged_in:
-        await api.login()
-    globals.gui.refresh_bar.setValue(2)
 
     try:
         await asyncio.gather(*refresh_tasks)
