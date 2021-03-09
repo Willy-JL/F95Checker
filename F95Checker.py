@@ -36,7 +36,7 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '7.0dev8'
+globals.version = '7.0'
 globals.login_url = "https://f95zone.to/login/login"
 globals.search_url = "https://f95zone.to/quicksearch"
 globals.notif_url = "https://f95zone.to/conversations/popup"
