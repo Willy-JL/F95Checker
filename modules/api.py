@@ -1,8 +1,9 @@
+import os
 import sys
-import json
 import time
 import asyncio
 import traceback
+from subprocess import Popen
 from bs4 import BeautifulSoup
 from modules import globals, config_utils, gui, browsers
 
@@ -195,10 +196,19 @@ async def check_for_updates():
                 # Ask to update
                 globals.checked_updates = True
                 if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{changes}"):
-                    print("updating doesnt do anything for now")
                     latest_url = tool_soup.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
-                    # TODO: Pass install job to auto_update
-                    pass
+                    if globals.exec_type == "exe":
+                        Popen(["update.exe", latest_url, "F95Checker.exe"])
+                    elif globals.exec_type == "python" and globals.user_os == "windows":
+                        os.system(f'start "" update.py "{latest_url}" "F95Checker.exe"')
+                    elif globals.exec_type == "python" and globals.user_os == "linux":
+                        Popen(["python3", "update.py", latest_url, "F95Checker.sh"])
+                    else:
+                        return
+                    globals.loop.stop()
+                    globals.loop.close()
+                    sys.exit(0)
+                    return
     # except requests.exceptions.ConnectionError:
     #     QtWidgets.QMessageBox.warning(gui, 'Connection Error', 'Please connect to the internet!')
     # TODO: connection error handling
