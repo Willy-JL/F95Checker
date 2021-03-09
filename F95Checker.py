@@ -165,7 +165,9 @@ def setup_interface():
 
     globals.gui.edit_button.clicked.connect(callbacks.toggle_edit_mode)
 
-    globals.gui.background_button.clicked.connect(callbacks.toggle_edit_mode)
+    # globals.gui.background_button.clicked.connect()
+    globals.gui.background_button.setEnabled(False)
+    globals.gui.background_button.setToolTip("Coming soon...")
 
     # Watermark
     if "tester" in globals.version:
