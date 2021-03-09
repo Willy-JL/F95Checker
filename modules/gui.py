@@ -333,11 +333,7 @@ class F95Checker_GUI(QMainWindow):
 
     @asyncClose
     async def closeEvent(self, event):
-        callbacks.exit_handler()
-        try:
-            await globals.http.close()
-        except:
-            pass
+        await callbacks.exit_handler()
 
     def get_stylesheet(self, style):
         if ((int(style['back'][1:2], 16) * 299) + (int(style['back'][3:5], 16) * 587) + (int(style['back'][5:7], 16) * 114)) / 1000 >= 100:

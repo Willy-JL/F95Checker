@@ -12,7 +12,7 @@ from modules import globals, config_utils, gui, browsers, api
 
 
 # Cleanup, save window size and exit
-def exit_handler():
+async def exit_handler():
     file_list = glob.glob('temp/f95checker*.html')
     for item in file_list:
         try:
@@ -27,6 +27,11 @@ def exit_handler():
     globals.config["options"]["width"] = globals.gui.size().width()
     globals.config["options"]["height"] = globals.gui.size().height()
     config_utils.save_config()
+
+    try:
+        await globals.http.close()
+    except:
+        pass
 
 
 @asyncSlot()
