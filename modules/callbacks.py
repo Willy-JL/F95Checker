@@ -227,6 +227,12 @@ async def set_max_retries(*kw):
 
 
 @asyncSlot()
+async def set_refresh_threads(*kw):
+    globals.config["options"]["refresh_threads"] = globals.gui.threads_input.value()
+    config_utils.save_config()
+
+
+@asyncSlot()
 async def restore_default_style(*kw):
     globals.config["style"] = {
         'back': '#181818',
@@ -347,14 +353,22 @@ async def refresh(*kw):
     globals.gui.refresh_label.setVisible(True)
     if globals.gui.edit_button.text() == "Done":
         await toggle_edit_mode()
+    globals.gui.edit_button.setEnabled(False)
     globals.gui.add_input.setEnabled(False)
     globals.gui.add_button.setEnabled(False)
 
-    refresh_tasks = tuple(api.check(game) for game in globals.config["game_list"]) + (api.check_notifs(),)
+    refresh_tasks = asyncio.Queue()
+    for game in globals.config["game_list"]:
+        refresh_tasks.put_nowait(api.check(game))
+    refresh_tasks.put_nowait(api.check_notifs())
     if not globals.checked_updates:
-        refresh_tasks = refresh_tasks + (api.check_for_updates(),)
-    globals.gui.refresh_bar.setMaximum(len(refresh_tasks)+1)
+        refresh_tasks.put_nowait(api.check_for_updates())
+    globals.gui.refresh_bar.setMaximum(len(globals.config["game_list"])+1)
     globals.gui.refresh_bar.setValue(1)
+
+    async def worker():
+        while not refresh_tasks.empty():
+            await refresh_tasks.get_nowait()
 
     if not globals.logged_in:
         await api.login()
@@ -362,12 +376,13 @@ async def refresh(*kw):
 
     if globals.logged_in:
         try:
-            await asyncio.gather(*refresh_tasks)
+            await asyncio.gather(*[worker() for _ in range(globals.config["options"]["refresh_threads"])])
         except:
             pass
 
     globals.gui.refresh_bar.setVisible(False)
     globals.gui.refresh_label.setVisible(False)
+    globals.gui.edit_button.setEnabled(True)
     globals.gui.add_input.setEnabled(True)
     globals.gui.add_button.setEnabled(True)
     await sort_games()

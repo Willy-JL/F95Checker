@@ -36,7 +36,7 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '7.0'
+globals.version = '7.1dev1'
 globals.login_url = "https://f95zone.to/login/login"
 globals.search_url = "https://f95zone.to/quicksearch"
 globals.notif_url = "https://f95zone.to/conversations/popup"
@@ -156,6 +156,9 @@ def setup_interface():
     # Spin Boxes
     globals.gui.retries_input.setValue(globals.config["options"]["max_retries"])
     globals.gui.retries_input.valueChanged.connect(callbacks.set_max_retries)
+
+    globals.gui.threads_input.setValue(globals.config["options"]["refresh_threads"])
+    globals.gui.threads_input.valueChanged.connect(callbacks.set_refresh_threads)
 
     globals.gui.bg_refresh_input.setValue(globals.config["options"]["bg_mode_delay_mins"])
     globals.gui.bg_refresh_input.valueChanged.connect(callbacks.set_delay)

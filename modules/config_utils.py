@@ -19,6 +19,7 @@ def init_config():
         globals.config["options"].setdefault("start_refresh", False)
         globals.config["options"].setdefault("auto_sort", "none")
         globals.config["options"].setdefault("max_retries", 3)
+        globals.config["options"].setdefault("refresh_threads", 5)
         globals.config["options"].setdefault("bg_mode_delay_mins", 15)
         globals.config["options"].setdefault("width", 960)
         globals.config["options"].setdefault("height", 480)

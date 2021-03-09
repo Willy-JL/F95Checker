@@ -214,6 +214,18 @@ class F95Checker_GUI(QMainWindow):
 
         self.gridLayout_2.addWidget(self.retries_input, 8, 2, 1, 1)
 
+        self.threads_label = QLabel(self.options_section)
+        self.threads_label.setObjectName(u"threads_label")
+
+        self.gridLayout_2.addWidget(self.threads_label, 9, 0, 1, 2)
+
+        self.threads_input = QSpinBox(self.options_section)
+        self.threads_input.setObjectName(u"threads_input")
+        self.threads_input.setMinimumSize(QSize(64, 26))
+        self.threads_input.setMinimum(1)
+
+        self.gridLayout_2.addWidget(self.threads_input, 9, 2, 1, 1)
+
         self.color_label = QLabel(self.options_section)
         self.color_label.setObjectName(u"color_label")
 
@@ -302,6 +314,7 @@ class F95Checker_GUI(QMainWindow):
         self.sort_input.setItemText(2, QCoreApplication.translate("F95Checker", u"First Added", None))
         self.sort_input.setItemText(3, QCoreApplication.translate("F95Checker", u"Alphabetical", None))
         self.retries_label.setText(QCoreApplication.translate("F95Checker", u"   Max Retries per Request:", None))
+        self.threads_label.setText(QCoreApplication.translate("F95Checker", u"   Max Threads for Refresh:", None))
         self.color_label.setText(QCoreApplication.translate("F95Checker", u"   Change  GUI  Colors:", None))
         self.color_button.setText(QCoreApplication.translate("F95Checker", u"Picker", None))
         self.edit_label.setText(QCoreApplication.translate("F95Checker", u"   Remove   Games:", None))
@@ -319,6 +332,8 @@ class F95Checker_GUI(QMainWindow):
         self.sort_label.setToolTip('This changes how\ngames get sorted!')
         self.retries_input.setToolTip('This changes how many times a\nfailed request will be retried!')
         self.retries_label.setToolTip('This changes how many times a\nfailed request will be retried!')
+        self.threads_input.setToolTip('This changes how many threads will\nbe used for the refresh process!')
+        self.threads_label.setToolTip('This changes how many threads will\nbe used for the refresh process!')
         self.color_button.setToolTip('Here you can change\nhow the tool looks!')
         self.color_label.setToolTip('Here you can change\nhow the tool looks!')
         self.edit_button.setToolTip('With this you can remove\ngames from the list!')
