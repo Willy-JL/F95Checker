@@ -1,6 +1,8 @@
+from glob import glob
 import os
 import sys
 import time
+import aiohttp
 import asyncio
 import traceback
 from subprocess import Popen
@@ -31,6 +33,12 @@ async def check_f95zone_error(soup, warn=False):
         return True
 
 
+async def handle_no_internet():
+    if not globals.warned_connection:
+        globals.warned_connection = True
+        await gui.WarningPopup.open(globals.gui, "Can't connect!", "There was an error connecting to F95Zone, please check your internet connection!")
+
+
 async def login():
     if globals.logging_in:
         return
@@ -39,8 +47,13 @@ async def login():
     if not globals.token:
         while True:
             try:
-                async with globals.http.get('https://f95zone.to/login/') as token_req:
-                    text = await token_req.text()
+                try:
+                    async with globals.http.get('https://f95zone.to/login/') as token_req:
+                        text = await token_req.text()
+                except aiohttp.ClientConnectorError:
+                    await handle_no_internet()
+                    globals.logging_in = False
+                    return
                 assert text.startswith("<!DOCTYPE html>")
                 token_soup = BeautifulSoup(text, 'html.parser')
                 if await check_f95zone_error(token_soup, warn=True):
@@ -61,19 +74,24 @@ async def login():
             if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
                 globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
                 config_utils.save_config()
-            async with globals.http.post(globals.login_url, data={
-                "login": globals.config["credentials"]["username"],
-                "url": "",
-                "password": globals.config["credentials"]["password"],
-                "password_confirm": "",
-                "additional_security": "",
-                "remember": "1",
-                "_xfRedirect": "https://f95zone.to/",
-                "website_code": "",
-                "_xfToken": globals.token
-            }) as login_req:
-                if login_req.ok is False:
-                    await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
+            try:
+                async with globals.http.post(globals.login_url, data={
+                    "login": globals.config["credentials"]["username"],
+                    "url": "",
+                    "password": globals.config["credentials"]["password"],
+                    "password_confirm": "",
+                    "additional_security": "",
+                    "remember": "1",
+                    "_xfRedirect": "https://f95zone.to/",
+                    "website_code": "",
+                    "_xfToken": globals.token
+                }) as login_req:
+                    if login_req.ok is False:
+                        await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                globals.logging_in = False
+                return
         except:
             if retries >= globals.config["options"]["max_retries"]:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
@@ -104,8 +122,12 @@ async def check_notifs():
                 retries = 0
                 while True:
                     try:
-                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
-                            notif_json = await notif_req.json()
+                        try:
+                            async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
+                                notif_json = await notif_req.json()
+                        except aiohttp.ClientConnectorError:
+                            await handle_no_internet()
+                            return
                         break
                     except ArithmeticError:
                         if retries >= globals.config["options"]["max_retries"]:
@@ -140,80 +162,82 @@ async def check_for_updates():
         return
     if "tester" in globals.version or "dev" in globals.version:
         return
-    try:
-        retries = 0
-        while True:
+    retries = 0
+    while True:
+        try:
             try:
                 async with globals.http.get('https://f95zone.to/forums/tools-tutorials.17/', params={'starter_id': '1276534'}) as check_req:
                     text = await check_req.text()
-                assert text.startswith("<!DOCTYPE html>")
-                check_soup = BeautifulSoup(text, 'html.parser')
-                break
-            except:
-                if retries >= globals.config["options"]["max_retries"]:
-                    return
-                retries += 1
-        if await check_f95zone_error(check_soup, warn=True):
-            return
-        tool_thread = check_soup.select_one('div[class="structItemContainer-group js-threadList"] > div > div[class="structItem-cell structItem-cell--main"] > div[class="structItem-title"] > a[data-tp-primary="on"]')
-        tool_title = tool_thread.get_text()
-        tool_current = tool_title[tool_title.find('[') + 1:tool_title.find(']', tool_title.find('[') + 1)]
-        if not globals.version == tool_current:
-            # Update found, log in and fetch changelog
-            while globals.logging_in:
-                await asyncio.sleep(0.25)
-            if not globals.logged_in:
-                await login()
-            if globals.logged_in:
-                retries = 0
-                while True:
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                return
+            assert text.startswith("<!DOCTYPE html>")
+            check_soup = BeautifulSoup(text, 'html.parser')
+            break
+        except:
+            if retries >= globals.config["options"]["max_retries"]:
+                return
+            retries += 1
+    if await check_f95zone_error(check_soup, warn=True):
+        return
+    tool_thread = check_soup.select_one('div[class="structItemContainer-group js-threadList"] > div > div[class="structItem-cell structItem-cell--main"] > div[class="structItem-title"] > a[data-tp-primary="on"]')
+    tool_title = tool_thread.get_text()
+    tool_current = tool_title[tool_title.find('[') + 1:tool_title.find(']', tool_title.find('[') + 1)]
+    if not globals.version == tool_current:
+        # Update found, log in and fetch changelog
+        while globals.logging_in:
+            await asyncio.sleep(0.25)
+        if not globals.logged_in:
+            await login()
+        if globals.logged_in:
+            retries = 0
+            while True:
+                try:
                     try:
                         async with globals.http.get('https://f95zone.to/threads/44173/') as tool_req:
                             text = await tool_req.text()
-                        assert text.startswith("<!DOCTYPE html>")
-                        tool_soup = BeautifulSoup(text, 'html.parser')
-                        break
-                    except:
-                        if retries >= globals.config["options"]["max_retries"]:
-                            return
-                        retries += 1
-                if await check_f95zone_error(tool_soup, warn=True):
-                    return
-                tool_changelog = tool_soup.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-                changes = tool_changelog[tool_changelog.find(f'v{tool_current}'):tool_changelog.find(
-                    f'v{globals.version}', tool_changelog.find('\n', tool_changelog.find(f'v{tool_current}') + len(f'v{globals.version}')) + 1)]
-                changes = changes.replace('Spoiler', '')
-                try:
-                    while changes[-1] == '\n':
-                        changes = changes[:-1]
-                except IndexError:
-                    pass
-                try:
-                    while changes[0] == '\n':
-                        changes = changes[1:]
-                except IndexError:
-                    pass
-                # Ask to update
-                globals.checked_updates = True
-                if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{changes}"):
-                    latest_url = tool_soup.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
-                    if globals.exec_type == "exe":
-                        Popen(["update.exe", latest_url, "F95Checker.exe"])
-                    elif globals.exec_type == "python" and globals.user_os == "windows":
-                        os.system(f'start "" update.py "{latest_url}" "F95Checker.exe"')
-                    elif globals.exec_type == "python" and globals.user_os == "linux":
-                        Popen(["python3", "update.py", latest_url, "F95Checker.sh"])
-                    else:
+                    except aiohttp.ClientConnectorError:
+                        await handle_no_internet()
                         return
-                    globals.loop.stop()
-                    globals.loop.close()
-                    sys.exit(0)
+                    assert text.startswith("<!DOCTYPE html>")
+                    tool_soup = BeautifulSoup(text, 'html.parser')
+                    break
+                except:
+                    if retries >= globals.config["options"]["max_retries"]:
+                        return
+                    retries += 1
+            if await check_f95zone_error(tool_soup, warn=True):
+                return
+            tool_changelog = tool_soup.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
+            changes = tool_changelog[tool_changelog.find(f'v{tool_current}'):tool_changelog.find(
+                f'v{globals.version}', tool_changelog.find('\n', tool_changelog.find(f'v{tool_current}') + len(f'v{globals.version}')) + 1)]
+            changes = changes.replace('Spoiler', '')
+            try:
+                while changes[-1] == '\n':
+                    changes = changes[:-1]
+            except IndexError:
+                pass
+            try:
+                while changes[0] == '\n':
+                    changes = changes[1:]
+            except IndexError:
+                pass
+            # Ask to update
+            globals.checked_updates = True
+            if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{changes}"):
+                latest_url = tool_soup.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
+                if globals.exec_type == "exe":
+                    Popen(["update.exe", latest_url, "F95Checker.exe"])
+                elif globals.exec_type == "python" and globals.user_os == "windows":
+                    os.system(f'start "" update.py "{latest_url}" "F95Checker.exe"')
+                elif globals.exec_type == "python" and globals.user_os == "linux":
+                    Popen(["python3", "update.py", latest_url, "F95Checker.sh"])
+                else:
                     return
-    # except requests.exceptions.ConnectionError:
-    #     QtWidgets.QMessageBox.warning(gui, 'Connection Error', 'Please connect to the internet!')
-    # TODO: connection error handling
-    except:
-        pass
+                globals.loop.stop()
+                globals.loop.close()
+                sys.exit(0)
+                return
 
 
 # Game Checking
@@ -236,8 +260,12 @@ async def check(name):
                     search_term = "Life With a Slave  -Teaching Feeling-"
                 else:
                     search_term = name
-                async with globals.http.post(globals.search_url, data={"title": search_term, "_xfToken": globals.token}) as game_check_req:
-                    text = await game_check_req.text()
+                try:
+                    async with globals.http.post(globals.search_url, data={"title": search_term, "_xfToken": globals.token}) as game_check_req:
+                        text = await game_check_req.text()
+                except aiohttp.ClientConnectorError:
+                    await handle_no_internet()
+                    return
                 assert text.startswith("<!DOCTYPE html>")
                 result_html = BeautifulSoup(text, 'html.parser')
                 if await check_f95zone_error(result_html):
@@ -272,8 +300,12 @@ async def check(name):
                 changelog_fetched = False
                 if globals.config["game_data"][name]["changelog"] == '' or globals.config["game_data"][name]["status"] == '':
                     try:
-                        async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
-                            text = await changelog1_req.text()
+                        try:
+                            async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
+                                text = await changelog1_req.text()
+                        except aiohttp.ClientConnectorError:
+                            await handle_no_internet()
+                            return
                         assert text.startswith("<!DOCTYPE html>")
                         page_html = BeautifulSoup(text, 'html.parser')
                         if await check_f95zone_error(page_html):
@@ -341,8 +373,12 @@ async def check(name):
                 # Changelog Fetcher
                 if not changelog_fetched:
                     try:
-                        async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog2_req:
-                            text = await changelog2_req.text()
+                        try:
+                            async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog2_req:
+                                text = await changelog2_req.text()
+                        except aiohttp.ClientConnectorError:
+                            await handle_no_internet()
+                            return
                         assert text.startswith("<!DOCTYPE html>")
                         page_html = BeautifulSoup(text, 'html.parser')
                         if await check_f95zone_error(page_html):

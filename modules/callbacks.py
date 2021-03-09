@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import aiohttp
 import asyncio
 from subprocess import Popen
 from bs4 import BeautifulSoup
@@ -50,10 +51,14 @@ async def remove_game(name, *kw):
 
 # Convert thread ids to names
 async def id_to_name(code):
-    async with globals.http.get(f'https://f95zone.to/threads/{code}/') as req:
-        html = BeautifulSoup(await req.read(), 'html.parser')
+    try:
+        async with globals.http.get(f'https://f95zone.to/threads/{code}/') as req:
+            html = BeautifulSoup(await req.read(), 'html.parser')
+    except aiohttp.ClientConnectorError:
+        await gui.WarningPopup.open(globals.gui, "Can't connect!", "There was an error connecting to F95Zone, please check your internet connection!")
+        return None
     if await api.check_f95zone_error(html, warn=True):
-        return
+        return None
     try:
         title = html.select('h1[class="p-title-value"]')[0].get_text()
     except IndexError:
@@ -72,7 +77,6 @@ async def id_to_name(code):
 async def add_game(*kw):
     # Grab input text
     name = globals.gui.add_input.text()
-    globals.gui.add_input.clear()
     if name:
         globals.gui.add_input.setEnabled(False)
         globals.gui.add_button.setEnabled(False)
@@ -86,6 +90,7 @@ async def add_game(*kw):
             globals.gui.add_input.setEnabled(True)
             globals.gui.add_button.setEnabled(True)
             return
+        globals.gui.add_input.clear()
         # Config
         if name in globals.config["game_list"]:
             globals.gui.add_input.setEnabled(True)
@@ -334,6 +339,7 @@ async def refresh(*kw):
     if globals.refreshing:
         return
     globals.refreshing = True
+    globals.warned_connection = False
     globals.updated_games = []
     globals.gui.refresh_bar.setVisible(True)
     globals.gui.refresh_label.setVisible(True)
@@ -348,10 +354,11 @@ async def refresh(*kw):
         await api.login()
     globals.gui.refresh_bar.setValue(2)
 
-    try:
-        await asyncio.gather(*refresh_tasks)
-    except:
-        pass
+    if globals.logged_in:
+        try:
+            await asyncio.gather(*refresh_tasks)
+        except:
+            pass
 
     globals.gui.refresh_bar.setVisible(False)
     globals.gui.refresh_label.setVisible(False)

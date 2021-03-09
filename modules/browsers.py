@@ -3,6 +3,7 @@ import sys
 import winreg
 import random
 import asyncio
+import aiohttp
 from subprocess import Popen
 from qasync import asyncSlot
 from bs4 import BeautifulSoup
@@ -153,8 +154,12 @@ async def open_webpage(link, *kw):
         if not globals.logged_in:
             await api.login()
         html_id = ''.join((random.choice('0123456789') for _ in range(8)))
-        async with globals.http.get(link) as req:
-            text = await req.text()
+        try:
+            async with globals.http.get(link) as req:
+                text = await req.text()
+        except aiohttp.ClientConnectorError:
+            await api.handle_no_internet()
+            return
         assert text.startswith("<!DOCTYPE html>")
         soup = BeautifulSoup(text, 'html.parser')
         if await api.check_f95zone_error(soup, warn=True):
@@ -167,8 +172,12 @@ async def open_webpage(link, *kw):
                 if first_compressed:
                     compressed_link = tag['href']
                     compressed_code = compressed_link[compressed_link.rfind('/'):].replace('/', '#')
-                    async with globals.http.get(compressed_link) as req:
-                        text = await req.text()
+                    try:
+                        async with globals.http.get(compressed_link) as req:
+                            text = await req.text()
+                    except aiohttp.ClientConnectorError:
+                        await api.handle_no_internet()
+                        return
                     assert text.startswith("<!DOCTYPE html>")
                     compressed_soup = BeautifulSoup(text, 'html.parser')
                     if await api.check_f95zone_error(compressed_soup, warn=True):
