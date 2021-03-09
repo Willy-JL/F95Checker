@@ -21,7 +21,7 @@ def init_config():
         globals.config["options"].setdefault("max_retries", 3)
         globals.config["options"].setdefault("bg_mode_delay_mins", 15)
         globals.config["options"].setdefault("width", 960)
-        globals.config["options"].setdefault("height", 460)
+        globals.config["options"].setdefault("height", 480)
 
     globals.config.setdefault("style", {})
     if True:

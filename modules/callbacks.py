@@ -12,23 +12,21 @@ from modules import globals, config_utils, gui, browsers, api
 
 
 # Cleanup, save window size and exit
-@asyncClose
-async def exit_handler():
-    await globals.http.close()
+def exit_handler():
     file_list = glob.glob('temp/f95checker*.html')
     for item in file_list:
-        os.remove(item)
+        try:
+            os.remove(item)
+        except:
+            pass
     try:
         os.rmdir('temp')
-    except OSError:
+    except:
         pass
 
-    # if not bg:
-    #     config.set('options', 'height', str(globals.gui.size().height()))
-    #     config.set('options', 'width', str(globals.gui.size().width()))
-    # FIXME: background mode
+    globals.config["options"]["width"] = globals.gui.size().width()
+    globals.config["options"]["height"] = globals.gui.size().height()
     config_utils.save_config()
-    sys.exit()
 
 
 @asyncSlot()

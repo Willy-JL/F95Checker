@@ -12,7 +12,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from qasync import asyncClose
 from functools import partial
-from modules import globals, browsers
+from modules import globals, browsers, callbacks
 
 
 class F95Checker_GUI(QMainWindow):
@@ -333,6 +333,7 @@ class F95Checker_GUI(QMainWindow):
 
     @asyncClose
     async def closeEvent(self, event):
+        callbacks.exit_handler()
         try:
             await globals.http.close()
         except:
