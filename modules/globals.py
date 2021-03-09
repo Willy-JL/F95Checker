@@ -17,3 +17,4 @@ logging_in = None
 checked_updates = None
 refreshing = None
 notif_url = None
+exec_type = None

@@ -30,6 +30,11 @@ BROWSER_PRIVATE_CLI_COMMANDS = {
 def detect_user_os_and_browsers():
     user_browsers = {}
 
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        exec_type = "exe"
+    else:
+        exec_type = "python"
+
     if sys.platform.startswith("linux"):
         user_os = "linux"
         if find_executable("google-chrome"):
@@ -133,7 +138,7 @@ def detect_user_os_and_browsers():
         if user_browsers[browser]["path"][0] == '"' and user_browsers[browser]["path"][-1] == '"':
             user_browsers[browser]["path"] = user_browsers[browser]["path"][1:-1]
 
-    return user_os, user_browsers
+    return exec_type, user_os, user_browsers
 
 
 async def open_webpage(link, *kw):

@@ -49,7 +49,7 @@ globals.refreshing = False
 # OS Handling
 from modules import browsers
 try:
-    globals.user_os, globals.user_browsers = browsers.detect_user_os_and_browsers()
+    globals.exec_type, globals.user_os, globals.user_browsers = browsers.detect_user_os_and_browsers()
     if globals.user_os == "windows":
         globals.config_path = os.path.expanduser("~/AppData/Roaming/f95checker")
     elif globals.user_os == "linux":
