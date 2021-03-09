@@ -345,6 +345,10 @@ async def refresh(*kw):
     globals.updated_games = []
     globals.gui.refresh_bar.setVisible(True)
     globals.gui.refresh_label.setVisible(True)
+    if globals.gui.edit_button.text() == "Done":
+        await toggle_edit_mode()
+    globals.gui.add_input.setEnabled(False)
+    globals.gui.add_button.setEnabled(False)
 
     refresh_tasks = tuple(api.check(game) for game in globals.config["game_list"]) + (api.check_notifs(),)
     if not globals.checked_updates:
@@ -364,6 +368,8 @@ async def refresh(*kw):
 
     globals.gui.refresh_bar.setVisible(False)
     globals.gui.refresh_label.setVisible(False)
+    globals.gui.add_input.setEnabled(True)
+    globals.gui.add_button.setEnabled(True)
     await sort_games()
     if globals.updated_games:
         details = ''
