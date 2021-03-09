@@ -1,12 +1,11 @@
 import os
-import sys
 import glob
 import aiohttp
 import asyncio
+from qasync import asyncSlot
 from subprocess import Popen
 from bs4 import BeautifulSoup
 from functools import partial
-from qasync import asyncSlot, asyncClose
 from PyQt5 import QtWidgets, QtCore, QtGui
 from modules import globals, config_utils, gui, browsers, api
 
