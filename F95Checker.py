@@ -201,7 +201,6 @@ if __name__ == '__main__':
     # Setup main GUI
     globals.gui = gui.F95Checker_GUI()
     globals.app.setStyleSheet(globals.gui.get_stylesheet(globals.config["style"]))
-    globals.gui.setWindowIcon(QtGui.QIcon('resources/icons/icon.ico' if globals.user_os == "windows" else 'resources/icons/icon.png'))
     globals.gui.resize(globals.config["options"]["width"], globals.config["options"]["height"])
 
     # Setup font awesome for icons

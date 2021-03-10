@@ -265,7 +265,6 @@ def update_style(style_id=None):
 @asyncSlot()
 async def invoke_styler(*kw):
     globals.gui.style_gui = gui.StyleGUI()
-    globals.gui.style_gui.setWindowIcon(QtGui.QIcon('resources/icons/icon.ico' if globals.user_os == "windows" else 'resources/icons/icon.png'))
     globals.gui.style_gui.radius.setValue(globals.config["style"]["radius"])
     # Assign click actions
     globals.gui.style_gui.background.clicked.connect(partial(update_style, 'back'))
@@ -288,7 +287,6 @@ async def set_delay(*kw):
 
 def invoke_changelog(name, *kw):
     globals.gui.changelog_gui = gui.ChangelogGUI()
-    globals.gui.changelog_gui.setWindowIcon(QtGui.QIcon('resources/icons/icon.ico' if globals.user_os == "windows" else 'resources/icons/icon.png'))
     globals.gui.changelog_gui.setWindowTitle(QtCore.QCoreApplication.translate("Form", u"Changelog for {}".format(name), None))
     globals.gui.changelog_gui.text.setPlainText(globals.config["game_data"][name]["changelog"])
     globals.gui.changelog_gui.show()

@@ -18,11 +18,11 @@ from modules import globals, browsers, callbacks
 class F95Checker_GUI(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowFlags())
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
         self.setupUi()
 
     def setupUi(self):
-        self.questions = {}
         if not self.objectName():
             self.setObjectName(u"F95Checker")
         self.main = QWidget(self)
@@ -880,7 +880,8 @@ class GameContainer(QFrame):
 
 class StyleGUI(QWidget):
     def __init__(self):
-        QWidget.__init__(self)
+        super().__init__()
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
         self.setupUi()
 
@@ -1007,7 +1008,8 @@ class StyleGUI(QWidget):
 
 class ChangelogGUI(QWidget):
     def __init__(self):
-        QWidget.__init__(self)
+        super().__init__()
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
         self.setupUi()
 
@@ -1117,7 +1119,7 @@ class QuestionPopup(QMessageBox):
     def __init__(self, parent, title, message, extra_message=None, details=None):
         self.alive = True
         super().__init__(parent)
-        self.setWindowIcon(QIcon('resources/icons/icon.ico' if globals.user_os == "windows" else 'resoures/icons/icon.png'))
+        self.setWindowIcon(QIcon('resoures/icons/icon.png'))
         self.setWindowTitle(title)
         self.setIcon(QMessageBox.Question)
         self.setText(message)
@@ -1151,7 +1153,7 @@ class WarningPopup(QMessageBox):
     def __init__(self, parent, title, message):
         self.alive = True
         super().__init__(parent)
-        self.setWindowIcon(QIcon('resources/icons/icon.ico' if globals.user_os == "windows" else 'resoures/icons/icon.png'))
+        self.setWindowIcon(QIcon('resoures/icons/icon.png'))
         self.setWindowTitle(title)
         self.setIcon(QMessageBox.Warning)
         self.setText(message)
@@ -1175,7 +1177,7 @@ class InfoPopup(QMessageBox):
     def __init__(self, parent, title, message):
         self.alive = True
         super().__init__(parent)
-        self.setWindowIcon(QIcon('resources/icons/icon.ico' if globals.user_os == "windows" else 'resoures/icons/icon.png'))
+        self.setWindowIcon(QIcon('resoures/icons/icon.png'))
         self.setWindowTitle(title)
         self.setIcon(QMessageBox.Information)
         self.setText(message)
