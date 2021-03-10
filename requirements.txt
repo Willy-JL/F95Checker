@@ -1,3 +1,4 @@
+clint
 qasync
 aiohttp
 PyQt5==5.15.2
