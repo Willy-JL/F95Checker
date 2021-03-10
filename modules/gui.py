@@ -728,6 +728,14 @@ QProgressBar {
 QProgressBar::chunk {
     background-color: """+style['accent']+"""
 }
+
+QMenu::item:selected {
+    color: """+style['accent']+"""
+}
+
+QMenu::item:disabled {
+    color: """+font_disabled+"""
+}
 """
         return qss
 
@@ -1195,3 +1203,105 @@ class InfoPopup(QMessageBox):
         while msg.alive:
             await asyncio.sleep(0.25)
         return True
+
+
+class F95Checker_Tray(QSystemTrayIcon):
+    def __init__(self, parent=None):
+        self.idle_icon = QIcon('resources/icons/icon.png')
+        self.paused_icon = QIcon('resources/icons/icon-disabled.png')
+        self.refresh_icon = QIcon('resources/icons/refreshing.png')
+        QSystemTrayIcon.__init__(self, self.idle_icon, parent)
+
+        # menu = QMenu(parent)
+        # exitAction = menu.addAction("Exit")
+        # self.setContextMenu(menu)
+
+        self.idle_menu = QMenu(parent)
+        self.paused_menu = QMenu(parent)
+        self.refresh_menu = QMenu(parent)
+        self.paused_refresh_menu = QMenu(parent)
+
+        # Watermark item
+        self.watermark = QAction(f"F95Checker v{globals.version}")
+        self.watermark.triggered.connect(partial(browsers.open_webpage_sync_helper, 'https://f95zone.to/threads/44173/'))
+        self.idle_menu.addAction(self.watermark)
+        self.paused_menu.addAction(self.watermark)
+        self.refresh_menu.addAction(self.watermark)
+        self.paused_refresh_menu.addAction(self.watermark)
+
+        # View alerts item
+        self.view_alerts = QAction(f"View Alerts")
+        self.view_alerts.triggered.connect(partial(browsers.open_webpage_sync_helper, 'https://f95zone.to/account/alerts'))
+        self.idle_menu.addAction(self.view_alerts)
+        self.paused_menu.addAction(self.view_alerts)
+        self.refresh_menu.addAction(self.view_alerts)
+        self.paused_refresh_menu.addAction(self.view_alerts)
+
+        # View inbox item
+        self.view_inbox = QAction(f"View Inbox")
+        self.view_inbox.triggered.connect(partial(browsers.open_webpage_sync_helper, 'https://f95zone.to/conversations/'))
+        self.idle_menu.addAction(self.view_inbox)
+        self.paused_menu.addAction(self.view_inbox)
+        self.refresh_menu.addAction(self.view_inbox)
+        self.paused_refresh_menu.addAction(self.view_inbox)
+
+        # Refresh status item
+        self.next_refresh = QAction(f"Next Refresh: N/A")
+        self.next_refresh.setEnabled(False)
+        self.idle_menu.addAction(self.next_refresh)
+
+        self.next_refresh_paused = QAction(f"Next Refresh: Paused")
+        self.next_refresh_paused.setEnabled(False)
+        self.paused_menu.addAction(self.next_refresh_paused)
+
+        self.refreshing = QAction(f"Refreshing...")
+        self.refreshing.setEnabled(False)
+        self.refresh_menu.addAction(self.refreshing)
+        self.paused_refresh_menu.addAction(self.refreshing)
+
+        # Refresh item
+        self.refresh = QAction(f"Refresh Now!")
+        self.refresh.triggered.connect(callbacks.refresh)
+        self.idle_menu.addAction(self.refresh)
+        self.paused_menu.addAction(self.refresh)
+
+        self.refresh_paused = QAction(f"Refresh Now!")
+        self.refresh_paused.setEnabled(False)
+        self.refresh_menu.addAction(self.refresh_paused)
+        self.paused_refresh_menu.addAction(self.refresh_paused)
+
+        # Pause item
+        self.pause = QAction(f"Pause Auto Refresh")
+        self.pause.triggered.connect(callbacks.bg_toggle_pause)
+        self.idle_menu.addAction(self.pause)
+
+        self.unpause = QAction(f"Unpause Auto Refresh")
+        self.pause.triggered.connect(callbacks.bg_toggle_pause)
+        self.paused_menu.addAction(self.unpause)
+
+        self.pause_disabled = QAction(f"Pause Auto Refresh")
+        self.pause_disabled.setEnabled(False)
+        self.refresh_menu.addAction(self.pause_disabled)
+
+        self.unpause_disabled = QAction(f"Unpause Auto Refresh")
+        self.unpause_disabled.setEnabled(False)
+        self.paused_refresh_menu.addAction(self.unpause_disabled)
+
+        # Switch item
+        self.switch = QAction("Switch to GUI")
+        self.switch.triggered.connect(callbacks.toggle_background)
+        self.idle_menu.addAction(self.switch)
+        self.paused_menu.addAction(self.switch)
+        self.refresh_menu.addAction(self.switch)
+        self.paused_refresh_menu.addAction(self.switch)
+
+        # Exit item
+        self.exit = QAction("Exit")
+        self.exit.triggered.connect(globals.gui.close)
+        self.idle_menu.addAction(self.exit)
+        self.paused_menu.addAction(self.exit)
+        self.refresh_menu.addAction(self.exit)
+        self.paused_refresh_menu.addAction(self.exit)
+
+        # Apply context menu
+        self.setContextMenu(self.paused_refresh_menu)

@@ -168,9 +168,7 @@ def setup_interface():
 
     globals.gui.edit_button.clicked.connect(callbacks.toggle_edit_mode)
 
-    # globals.gui.background_button.clicked.connect()
-    globals.gui.background_button.setEnabled(False)
-    globals.gui.background_button.setToolTip("Coming soon...")
+    globals.gui.background_button.clicked.connect(callbacks.toggle_background)
 
     # Watermark
     if "tester" in globals.version:
@@ -198,10 +196,12 @@ if __name__ == '__main__':
     globals.loop.run_until_complete(make_aiohttp_session())
 
 
-    # Setup main GUI
+    # Setup GUIs
     globals.gui = gui.F95Checker_GUI()
     globals.app.setStyleSheet(globals.gui.get_stylesheet(globals.config["style"]))
     globals.gui.resize(globals.config["options"]["width"], globals.config["options"]["height"])
+    globals.tray = gui.F95Checker_Tray(globals.gui)
+    globals.mode = "gui"
 
     # Setup font awesome for icons
     QtGui.QFontDatabase.addApplicationFont("resources/fonts/Font Awesome 5 Free-Solid-900.otf")
