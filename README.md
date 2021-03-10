@@ -36,7 +36,7 @@ The tool comes bundled with both windows EXE and python scripts, so you have two
 ## Download:
 Versions newer than 7.0 are hosted here on GitHub, in the [releases section](https://github.com/Willy-JL/f95checker/releases)
 
-Older versions are available on the [F95Zone thread](f95zone.to/threads/44173/)
+Older versions are available on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 ## How to use:
 
