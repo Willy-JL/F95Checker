@@ -1,6 +1,5 @@
 import os
 import sys
-import winreg
 import random
 import asyncio
 import aiohttp
@@ -49,6 +48,7 @@ def detect_user_os_and_browsers():
         # Currently (as of Sept 14 2020) OperaGX and Edge are not supported on linux
     elif sys.platform.startswith("win"):
         user_os = "windows"
+        import winreg
         HKEY_LOCAL_MACHINE = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
         HKEY_CURRENT_USER = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
         StartMenuInternet = f"SOFTWARE\\Clients\\StartMenuInternet\\"
