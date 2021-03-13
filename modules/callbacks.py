@@ -327,21 +327,57 @@ async def toggle_edit_mode(*kw):
         globals.gui.edit_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"Edit", None))
 
 
+def hide_all_context_menus():
+    globals.tray.idle_menu.hide()
+    globals.tray.paused_menu.hide()
+    globals.tray.refresh_menu.hide()
+    globals.tray.paused_refresh_menu.hide()
+
+
 @asyncSlot()
 async def toggle_background(*kw):
     if globals.mode == 'gui':
         globals.gui.hide()
         globals.tray.show()
         globals.mode = 'tray'
+        globals.bg_paused = False
+        globals.tray.bg_loop_task = asyncio.create_task(bg_loop())
     else:
+        if globals.tray.bg_loop_task:
+            globals.tray.bg_loop_task.cancel()
+            globals.tray.bg_loop_task = None
         globals.gui.show()
         globals.tray.hide()
         globals.mode = 'gui'
 
 
+async def bg_loop():
+    while True:
+        hide_all_context_menus()
+        globals.tray.setContextMenu(globals.tray.refresh_menu)
+        globals.tray.setIcon(globals.tray.refresh_icon)
+        await refresh()
+        hide_all_context_menus()
+        globals.tray.setContextMenu(globals.tray.idle_menu)
+        globals.tray.setIcon(globals.tray.idle_icon)
+        await asyncio.sleep(30)
+
+
 @asyncSlot()
 async def bg_toggle_pause(*kw):
-    pass # TODO: pausing bg mode
+    if globals.bg_paused:
+        globals.bg_paused = False
+        globals.tray.bg_loop_task = asyncio.create_task(bg_loop())
+        hide_all_context_menus()
+        globals.tray.setContextMenu(globals.tray.idle_menu)
+        globals.tray.setIcon(globals.tray.idle_icon)
+    else:
+        globals.bg_paused = True
+        globals.tray.bg_loop_task.cancel()
+        globals.tray.bg_loop_task = None
+        hide_all_context_menus()
+        globals.tray.setContextMenu(globals.tray.paused_menu)
+        globals.tray.setIcon(globals.tray.paused_icon)
 
 
 def open_game(name, event):

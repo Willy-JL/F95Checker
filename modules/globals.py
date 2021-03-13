@@ -21,3 +21,4 @@ exec_type = None
 warned_connection = None
 tray = None
 mode = None
+bg_paused = None

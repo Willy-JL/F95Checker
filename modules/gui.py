@@ -1207,15 +1207,13 @@ class InfoPopup(QMessageBox):
 
 class F95Checker_Tray(QSystemTrayIcon):
     def __init__(self, parent=None):
+        self.bg_loop_task = None
         self.idle_icon = QIcon('resources/icons/icon.png')
         self.paused_icon = QIcon('resources/icons/icon-disabled.png')
         self.refresh_icon = QIcon('resources/icons/refreshing.png')
         QSystemTrayIcon.__init__(self, self.idle_icon, parent)
 
-        # menu = QMenu(parent)
-        # exitAction = menu.addAction("Exit")
-        # self.setContextMenu(menu)
-
+        # Menu presets
         self.idle_menu = QMenu(parent)
         self.paused_menu = QMenu(parent)
         self.refresh_menu = QMenu(parent)
@@ -1276,7 +1274,7 @@ class F95Checker_Tray(QSystemTrayIcon):
         self.idle_menu.addAction(self.pause)
 
         self.unpause = QAction(f"Unpause Auto Refresh")
-        self.pause.triggered.connect(callbacks.bg_toggle_pause)
+        self.unpause.triggered.connect(callbacks.bg_toggle_pause)
         self.paused_menu.addAction(self.unpause)
 
         self.pause_disabled = QAction(f"Pause Auto Refresh")
@@ -1304,4 +1302,4 @@ class F95Checker_Tray(QSystemTrayIcon):
         self.paused_refresh_menu.addAction(self.exit)
 
         # Apply context menu
-        self.setContextMenu(self.paused_refresh_menu)
+        self.setContextMenu(self.idle_menu)
