@@ -360,7 +360,7 @@ async def bg_loop():
         hide_all_context_menus()
         globals.tray.setContextMenu(globals.tray.idle_menu)
         globals.tray.setIcon(globals.tray.idle_icon)
-        await asyncio.sleep(30)
+        await asyncio.sleep(globals.config["options"]["bg_mode_delay_mins"] * 60)
 
 
 @asyncSlot()
@@ -395,6 +395,10 @@ def open_game(name, event):
 
 @asyncSlot()
 async def refresh(*kw):
+    if globals.refreshing and globals.mode == 'tray':
+        while globals.refreshing:
+            await asyncio.sleep(0.25)
+        return
     if globals.refreshing:
         return
     globals.refreshing = True
