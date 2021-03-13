@@ -1125,6 +1125,11 @@ class LoginUI(QDialog):
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Password", None))
     # retranslateUi
 
+    @asyncClose
+    async def closeEvent(self, event=None):
+        self.alive = False
+        self.accept()
+
 
 class QuestionPopup(QMessageBox):
     def __init__(self, parent, title, message, extra_message=None, details=None):
