@@ -1259,7 +1259,7 @@ class F95Checker_Tray(QSystemTrayIcon):
 
         # Refresh item
         self.refresh = QAction(f"Refresh Now!")
-        self.refresh.triggered.connect(callbacks.refresh)
+        self.refresh.triggered.connect(callbacks.manual_refresh)
         self.idle_menu.addAction(self.refresh)
         self.paused_menu.addAction(self.refresh)
 

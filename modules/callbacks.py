@@ -2,6 +2,7 @@ import os
 import glob
 import aiohttp
 import asyncio
+import datetime
 from qasync import asyncSlot
 from subprocess import Popen
 from bs4 import BeautifulSoup
@@ -358,9 +359,30 @@ async def bg_loop():
         globals.tray.setIcon(globals.tray.refresh_icon)
         await refresh()
         hide_all_context_menus()
+        globals.tray.next_refresh.setText(f'Next Refresh: {(datetime.datetime.now()+datetime.timedelta(minutes=globals.config["options"]["bg_mode_delay_mins"])).strftime("%H:%M")}')
         globals.tray.setContextMenu(globals.tray.idle_menu)
         globals.tray.setIcon(globals.tray.idle_icon)
         await asyncio.sleep(globals.config["options"]["bg_mode_delay_mins"] * 60)
+
+
+@asyncSlot()
+async def manual_refresh(*kw):
+    hide_all_context_menus()
+    if globals.bg_paused:
+        globals.tray.setContextMenu(globals.tray.paused_refresh_menu)
+        globals.tray.setIcon(globals.tray.refresh_icon)
+    else:
+        globals.tray.setContextMenu(globals.tray.refresh_menu)
+        globals.tray.setIcon(globals.tray.refresh_icon)
+    await refresh()
+    hide_all_context_menus()
+    if globals.bg_paused:
+        globals.tray.setContextMenu(globals.tray.paused_menu)
+        globals.tray.setIcon(globals.tray.paused_icon)
+    else:
+        globals.tray.next_refresh.setText(f'Next Refresh: {(datetime.datetime.now()+datetime.timedelta(minutes=globals.config["options"]["bg_mode_delay_mins"])).strftime("%H:%M")}')
+        globals.tray.setContextMenu(globals.tray.idle_menu)
+        globals.tray.setIcon(globals.tray.idle_icon)
 
 
 @asyncSlot()
@@ -369,6 +391,7 @@ async def bg_toggle_pause(*kw):
         globals.bg_paused = False
         globals.tray.bg_loop_task = asyncio.create_task(bg_loop())
         hide_all_context_menus()
+        globals.tray.next_refresh.setText(f'Next Refresh: {(datetime.datetime.now()+datetime.timedelta(minutes=globals.config["options"]["bg_mode_delay_mins"])).strftime("%H:%M")}')
         globals.tray.setContextMenu(globals.tray.idle_menu)
         globals.tray.setIcon(globals.tray.idle_icon)
     else:
