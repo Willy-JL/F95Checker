@@ -36,7 +36,7 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '7.1dev1'
+globals.version = '7.1dev2'
 globals.login_url = "https://f95zone.to/login/login"
 globals.search_url = "https://f95zone.to/quicksearch"
 globals.notif_url = "https://f95zone.to/conversations/popup"
@@ -182,6 +182,7 @@ if __name__ == '__main__':
 
     # Create App
     globals.app = QtWidgets.QApplication(sys.argv)
+    globals.app.setQuitOnLastWindowClosed(False)
 
     # Configure asyncio loop to work with PyQt
     loop = QEventLoop(globals.app)

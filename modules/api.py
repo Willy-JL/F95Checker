@@ -20,7 +20,7 @@ async def ask_creds():
     globals.gui.login_gui = gui.LoginUI(globals.gui)
     globals.gui.login_gui.show()
     globals.gui.login_gui.setFixedSize(globals.gui.login_gui.size())
-    while globals.gui.login_gui.alive:
+    while globals.gui.login_gui.isVisible():
         await asyncio.sleep(0.25)
     return globals.gui.login_gui.lineEdit.text(), globals.gui.login_gui.lineEdit_2.text()
 
@@ -73,6 +73,9 @@ async def login():
             if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
                 globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
                 config_utils.save_config()
+                if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
+                    globals.logging_in = False
+                    return
             try:
                 async with globals.http.post(globals.login_url, data={
                     "login": globals.config["credentials"]["username"],
@@ -104,6 +107,9 @@ async def login():
             globals.logged_in = False
             globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
             config_utils.save_config()
+            if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
+                globals.logging_in = False
+                return
             continue
         break
     globals.logging_in = False
@@ -135,6 +141,7 @@ async def check_notifs():
                 alerts = int(notif_json["visitor"]["alerts_unread"])
                 inbox = int(notif_json["visitor"]["conversations_unread"])
                 globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
+                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
                 if alerts != 0 and inbox != 0:
                     if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {int(alerts) + int(inbox)} unread notifications ({alerts} alert{"s" if int(alerts) > 1 else ""} and {inbox} conversation{"s" if int(inbox) > 1 else ""}).', "Do you want to view them?"):
                         await browsers.open_webpage('https://f95zone.to/account/alerts')
@@ -271,6 +278,7 @@ async def check(name):
                     return
                 # Step Progress Bar
                 globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
+                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
                 # Check number of search results
                 if len(result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")')) == 0:
                     await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')

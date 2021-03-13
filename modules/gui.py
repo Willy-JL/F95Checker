@@ -6,10 +6,12 @@
 ## Created by: Qt User Interface Compiler version 5.15.1
 ################################################################################
 
-import asyncio
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+from PyQt5.QtWinExtras import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+
+import asyncio
 from qasync import asyncClose
 from functools import partial
 from modules import globals, browsers, callbacks
@@ -21,6 +23,12 @@ class F95Checker_GUI(QMainWindow):
         self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
         self.setupUi()
+
+    def showEvent(self, event):
+        self.taskbar_icon = QWinTaskbarButton()
+        self.taskbar_icon.setWindow(self.windowHandle())
+        self.icon_progress = self.taskbar_icon.progress()
+        event.accept()
 
     def setupUi(self):
         if not self.objectName():
@@ -1056,8 +1064,8 @@ class ChangelogGUI(QWidget):
 
 class LoginUI(QDialog):
     def __init__(self, parent):
-        self.alive = True
         super().__init__(parent)
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
         self.setupUi(self)
 
     def setupUi(self, Dialog):
@@ -1117,17 +1125,11 @@ class LoginUI(QDialog):
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Password", None))
     # retranslateUi
 
-    @asyncClose
-    async def closeEvent(self, event=None):
-        self.alive = False
-        self.accept()
-
 
 class QuestionPopup(QMessageBox):
     def __init__(self, parent, title, message, extra_message=None, details=None):
-        self.alive = True
         super().__init__(parent)
-        self.setWindowIcon(QIcon('resoures/icons/icon.png'))
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
         self.setWindowTitle(title)
         self.setIcon(QMessageBox.Question)
         self.setText(message)
@@ -1140,7 +1142,6 @@ class QuestionPopup(QMessageBox):
 
     @asyncClose
     async def closeEvent(self, event=None):
-        self.alive = False
         if event == 16384:
             self.result = True
         elif event == 65536:
@@ -1152,55 +1153,43 @@ class QuestionPopup(QMessageBox):
     async def ask(parent, title, message, extra_message=None, details=None):
         msg = QuestionPopup(parent, title, message, extra_message, details)
         msg.show()
-        while msg.alive:
+        while msg.isVisible():
             await asyncio.sleep(0.25)
         return msg.result
 
 
 class WarningPopup(QMessageBox):
     def __init__(self, parent, title, message):
-        self.alive = True
         super().__init__(parent)
-        self.setWindowIcon(QIcon('resoures/icons/icon.png'))
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
         self.setWindowTitle(title)
         self.setIcon(QMessageBox.Warning)
         self.setText(message)
         self.setStandardButtons(QMessageBox.Ok)
-        self.finished.connect(self.closeEvent)
-
-    @asyncClose
-    async def closeEvent(self, event=None):
-        self.alive = False
 
     @staticmethod
     async def open(parent, title, message):
         msg = WarningPopup(parent, title, message)
         msg.show()
-        while msg.alive:
+        while msg.isVisible():
             await asyncio.sleep(0.25)
         return True
 
 
 class InfoPopup(QMessageBox):
     def __init__(self, parent, title, message):
-        self.alive = True
         super().__init__(parent)
-        self.setWindowIcon(QIcon('resoures/icons/icon.png'))
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
         self.setWindowTitle(title)
         self.setIcon(QMessageBox.Information)
         self.setText(message)
         self.setStandardButtons(QMessageBox.Ok)
-        self.finished.connect(self.closeEvent)
-
-    @asyncClose
-    async def closeEvent(self, event=None):
-        self.alive = False
 
     @staticmethod
     async def open(parent, title, message):
         msg = InfoPopup(parent, title, message)
         msg.show()
-        while msg.alive:
+        while msg.isVisible():
             await asyncio.sleep(0.25)
         return True
 
