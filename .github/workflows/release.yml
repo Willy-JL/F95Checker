@@ -13,6 +13,9 @@ jobs:
 
     steps:
 
+      - name: Install zip
+        uses: montudor/action-zip@v0.1.1
+
       - name: Clone Repo
         uses: actions/checkout@v2
 
@@ -43,14 +46,12 @@ jobs:
           keep_minimum_runs: 0
 
       - name: Zip Binaries
-        uses: papeloto/action-zip@v1
-        with:
-          files: dist/windows/F95Checker/*
-          dest: F95CheckerV$GITHUB_REF.zip
+        run: zip -qq -r F95CheckerV$GITHUB_REF.zip *
+        working-directory: dist/windows/F95Checker
 
       - name: Upload Binaries
         uses: skx/github-action-publish-binaries@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: 'F95CheckerV*.zip'
+          args: 'dist/windows/F95Checker/F95CheckerV*.zip'
