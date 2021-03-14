@@ -42,9 +42,15 @@ jobs:
           retain_days: 0
           keep_minimum_runs: 0
 
+      - name: Zip Binaries
+        uses: papeloto/action-zip@v1
+        with:
+          files: dist/windows/F95Checker/*
+          dest: F95CheckerV${process.env.GITHUB_REF}.zip
+
       - name: Upload Binaries
         uses: skx/github-action-publish-binaries@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: 'dist/windows/F95Checker/*'
+          args: 'F95CheckerV*.zip'
