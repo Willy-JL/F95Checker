@@ -1156,11 +1156,15 @@ class QuestionPopup(QMessageBox):
 
     @staticmethod
     async def ask(parent, title, message, extra_message=None, details=None):
-        msg = QuestionPopup(parent, title, message, extra_message, details)
-        msg.show()
-        while msg.isVisible():
-            await asyncio.sleep(0.25)
-        return msg.result
+        if globals.mode == "gui":
+            msg = QuestionPopup(parent, title, message, extra_message, details)
+            msg.show()
+            while msg.isVisible():
+                await asyncio.sleep(0.25)
+            return msg.result
+        else:
+            globals.tray.showMessage(title, message)
+            return None
 
 
 class WarningPopup(QMessageBox):
@@ -1174,11 +1178,15 @@ class WarningPopup(QMessageBox):
 
     @staticmethod
     async def open(parent, title, message):
-        msg = WarningPopup(parent, title, message)
-        msg.show()
-        while msg.isVisible():
-            await asyncio.sleep(0.25)
-        return True
+        if globals.mode == "gui":
+            msg = WarningPopup(parent, title, message)
+            msg.show()
+            while msg.isVisible():
+                await asyncio.sleep(0.25)
+            return True
+        else:
+            globals.tray.showMessage(title, message, QSystemTrayIcon.Warning)
+            return True
 
 
 class InfoPopup(QMessageBox):
@@ -1192,11 +1200,15 @@ class InfoPopup(QMessageBox):
 
     @staticmethod
     async def open(parent, title, message):
-        msg = InfoPopup(parent, title, message)
-        msg.show()
-        while msg.isVisible():
-            await asyncio.sleep(0.25)
-        return True
+        if globals.mode == "gui":
+            msg = InfoPopup(parent, title, message)
+            msg.show()
+            while msg.isVisible():
+                await asyncio.sleep(0.25)
+            return True
+        else:
+            globals.tray.showMessage(title, message)
+            return True
 
 
 class F95Checker_Tray(QSystemTrayIcon):
@@ -1297,3 +1309,13 @@ class F95Checker_Tray(QSystemTrayIcon):
 
         # Apply context menu
         self.setContextMenu(self.idle_menu)
+
+        self.activated.connect(self.double_click_show_gui)
+        self.messageClicked.connect(callbacks.toggle_background)
+
+    def double_click_show_gui(self, reason):
+        if reason == QSystemTrayIcon.DoubleClick:
+            async def toggle_background_helper():
+                await callbacks.toggle_background()
+
+            globals.loop.create_task(toggle_background_helper())
