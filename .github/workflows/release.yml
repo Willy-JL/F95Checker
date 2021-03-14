@@ -1,10 +1,8 @@
-name: Package
+name: Build Release Binaries
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [created]
 
 jobs:
 
@@ -12,7 +10,6 @@ jobs:
 
     name: Build
     runs-on: ubuntu-20.04
-    if: "contains(github.event.head_commit.message, '+ PACKAGE')"
 
     steps:
 
@@ -39,8 +36,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           expire-in: 0
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
+      - name: Delete skipped workflow runs
+        uses: Willy-JL/delete-skipped-workflow-runs@main
         with:
-          name: F95Checker-latest
-          path: dist/windows/F95Checker
+          retain_days: 0
+          keep_minimum_runs: 0
+
+      - name: Upload Binaries
+        uses: skx/github-action-publish-binaries@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: 'dist/windows/F95Checker/*'
