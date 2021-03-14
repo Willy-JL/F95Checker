@@ -31,10 +31,27 @@ jobs:
         run: mkdir dist/windows/F95Checker/lib && mv dist/windows/F95Checker/aiohttp dist/windows/F95Checker/lib && mv dist/windows/F95Checker/multidict dist/windows/F95Checker/lib && mv dist/windows/F95Checker/tcl8 dist/windows/F95Checker/lib && mv dist/windows/F95Checker/yarl dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_asyncio.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_ctypes.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_hashlib.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_overlapped.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_queue.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_socket.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_ssl.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/_tkinter.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/d3dcompiler_47.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/libcrypto-1_1.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/libEGL.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/libffi-7.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/libGLESv2.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/libssl-1_1.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/MSVCP140.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/MSVCP140_1.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/opengl32sw.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/python3.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/select.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/tcl86t.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/tk86t.dll dist/windows/F95Checker/lib && mv dist/windows/F95Checker/unicodedata.pyd dist/windows/F95Checker/lib && mv dist/windows/F95Checker/VCRUNTIME140.dll dist/windows/F95Checker/lib
 
       - name: Move python files to dist folder
-        run: mv F95Checker.py dist/windows/F95Checker && mv F95Checker.sh dist/windows/F95Checker && mv requirements.txt dist/windows/F95Checker && mv update.py dist/windows/F95Checker && mv update.exe dist/windows/F95Checker && mv modules dist/windows/F95Checker 
+        run: mv F95Checker.py dist/windows/F95Checker && mv F95Checker.sh dist/windows/F95Checker && mv requirements.txt dist/windows/F95Checker && mv update.py dist/windows/F95Checker && mv update.exe dist/windows/F95Checker && mv modules dist/windows/F95Checker
+
+      - name: Purge old artifacts
+        uses: kolpav/purge-artifacts-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          expire-in: 0
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: F95Checker-latest
           path: dist/windows/F95Checker
+
+  Remove Skipped:
+
+    name: Remove Skipped
+    runs-on: ubuntu-20.04
+    if: "!contains(github.event.head_commit.message, '+ PACKAGE')"
+
+    steps:
+
+      - name: Delete workflow run
+        uses: Willy-JL/delete-current-workflow-run@main
