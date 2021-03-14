@@ -45,9 +45,9 @@ jobs:
           name: F95Checker-latest
           path: dist/windows/F95Checker
 
-  Remove Skipped:
+  Remove:
 
-    name: Remove Skipped
+    name: Remove
     runs-on: ubuntu-20.04
     if: "!contains(github.event.head_commit.message, '+ PACKAGE')"
 
