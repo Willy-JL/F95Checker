@@ -37,6 +37,14 @@ def init_config():
     globals.config.setdefault("advanced", {})
     if True:
         globals.config["advanced"].setdefault("user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36")
+        globals.config["advanced"].setdefault("search_term_replacers", {})
+        if True:
+            globals.config["advanced"]["search_term_replacers"].setdefault("Life", "Fasder")
+            globals.config["advanced"]["search_term_replacers"].setdefault("Big Bad Principal", "Big Bad  Principal")
+            globals.config["advanced"]["search_term_replacers"].setdefault("Life With a Slave -Teaching Feeling-", "Life With a Slave  -Teaching Feeling-")
+            globals.config["advanced"]["search_term_replacers"].setdefault("Halfway House - Music/Audio addon/Cheating/Walkthrough", "Halfway House -  Music/Audio addon/Cheating/Walkthrough")
+            globals.config["advanced"]["search_term_replacers"].setdefault("A.O.A. Academy - Walkthrough/Cheat/Gallery Mod", "A.O.A. Academy  - Walkthrough/Cheat/Gallery Mod")
+            globals.config["advanced"]["search_term_replacers"].setdefault("Lust Is Stranger", "Lust Is  Stranger")
 
     globals.config.setdefault("game_list", [])
 

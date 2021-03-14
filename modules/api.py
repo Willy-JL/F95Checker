@@ -258,12 +258,8 @@ async def check(name):
             try:
                 config_utils.ensure_game_data(name)
                 # Search Request
-                if name == 'Life':
-                    search_term = "Fasder"
-                elif name == 'Big Bad Principal':
-                    search_term = "Big Bad  Principal"
-                elif name == 'Life With a Slave -Teaching Feeling-':
-                    search_term = "Life With a Slave  -Teaching Feeling-"
+                if name in globals.config["advanced"]["search_term_replacers"]:
+                    search_term = globals.config["advanced"]["search_term_replacers"][name]
                 else:
                     search_term = name
                 try:
