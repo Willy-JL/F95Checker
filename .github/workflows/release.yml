@@ -46,7 +46,7 @@ jobs:
         uses: papeloto/action-zip@v1
         with:
           files: dist/windows/F95Checker/*
-          dest: F95CheckerV${process.env.GITHUB_REF}.zip
+          dest: F95CheckerV$GITHUB_REF.zip
 
       - name: Upload Binaries
         uses: skx/github-action-publish-binaries@master
