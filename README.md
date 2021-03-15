@@ -501,3 +501,7 @@ I know you might be skeptical about inserting your account credentials into some
 
 ## Contributing:
 Please do! I poured my heart and soul into this tool and hearing suggestions or getting help or pointer with the code really helps!
+
+
+## Thanks:
+**Huge thanks to [AtotehZ](https://f95zone.to/members/840616/), [GrammerCop](https://f95zone.to/members/2114990/), [abada25](https://f95zone.to/members/1679118/), [d_pedestrian](https://f95zone.to/members/2616862/), [yohudood](https://f95zone.to/members/26049/), [SmurfyBlue](https://f95zone.to/members/671/), [bitogno](https://f95zone.to/members/605466/), [MillenniumEarl](https://f95zone.to/members/1470797/), [unroot](https://f95zone.to/members/1585550/) and [DarK x Duke](https://f95zone.to/members/1852502/) for the continued support and suggestions!**
