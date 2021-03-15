@@ -6,7 +6,6 @@
 ## Created by: Qt User Interface Compiler version 5.15.1
 ################################################################################
 
-from PyQt5.QtWinExtras import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -25,9 +24,16 @@ class F95Checker_GUI(QMainWindow):
         self.setupUi()
 
     def showEvent(self, event):
-        self.taskbar_icon = QWinTaskbarButton()
-        self.taskbar_icon.setWindow(self.windowHandle())
-        self.icon_progress = self.taskbar_icon.progress()
+        if globals.user_os == "windows":
+            try:
+                from PyQt5.QtWinExtras import QWinTaskbarButton
+                self.taskbar_icon = QWinTaskbarButton()
+                self.taskbar_icon.setWindow(self.windowHandle())
+                self.icon_progress = self.taskbar_icon.progress()
+            except:
+                self.icon_progress = None
+        else:
+            self.icon_progress = None
         event.accept()
 
     def setupUi(self):

@@ -431,7 +431,8 @@ async def refresh(*kw):
     globals.updated_games = []
     globals.gui.refresh_bar.setVisible(True)
     globals.gui.refresh_label.setVisible(True)
-    globals.gui.icon_progress.show()
+    if globals.gui.icon_progress:
+        globals.gui.icon_progress.show()
     if globals.gui.edit_button.text() == "Done":
         await toggle_edit_mode()
     globals.gui.edit_button.setEnabled(False)
@@ -439,14 +440,17 @@ async def refresh(*kw):
     globals.gui.add_button.setEnabled(False)
 
     globals.gui.refresh_bar.setMaximum(len(globals.config["game_list"])+1)
-    globals.gui.icon_progress.setMaximum(len(globals.config["game_list"])+1)
+    if globals.gui.icon_progress:
+        globals.gui.icon_progress.setMaximum(len(globals.config["game_list"])+1)
     globals.gui.refresh_bar.setValue(1)
-    globals.gui.icon_progress.setValue(1)
+    if globals.gui.icon_progress:
+        globals.gui.icon_progress.setValue(1)
 
     if not globals.logged_in:
         await api.login()
     globals.gui.refresh_bar.setValue(2)
-    globals.gui.icon_progress.setValue(2)
+    if globals.gui.icon_progress:
+        globals.gui.icon_progress.setValue(2)
 
     if globals.logged_in:
 
@@ -468,7 +472,8 @@ async def refresh(*kw):
 
     globals.gui.refresh_bar.setVisible(False)
     globals.gui.refresh_label.setVisible(False)
-    globals.gui.icon_progress.hide()
+    if globals.gui.icon_progress:
+        globals.gui.icon_progress.hide()
     globals.gui.edit_button.setEnabled(True)
     globals.gui.add_input.setEnabled(True)
     globals.gui.add_button.setEnabled(True)

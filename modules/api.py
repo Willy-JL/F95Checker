@@ -141,7 +141,8 @@ async def check_notifs():
                 alerts = int(notif_json["visitor"]["alerts_unread"])
                 inbox = int(notif_json["visitor"]["conversations_unread"])
                 globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
+                if globals.gui.icon_progress:
+                    globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
                 if alerts != 0 and inbox != 0:
                     if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {int(alerts) + int(inbox)} unread notifications ({alerts} alert{"s" if int(alerts) > 1 else ""} and {inbox} conversation{"s" if int(inbox) > 1 else ""}).', "Do you want to view them?"):
                         await browsers.open_webpage('https://f95zone.to/account/alerts')
@@ -274,7 +275,8 @@ async def check(name):
                     return
                 # Step Progress Bar
                 globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
+                if globals.gui.icon_progress:
+                    globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
                 # Check number of search results
                 if len(result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")')) == 0:
                     await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')
