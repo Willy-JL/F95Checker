@@ -44,12 +44,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**7.1**: [Download v7.1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.1/F95CheckerV7.1.zip)
+**7.1h1**: [Download v7.1h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.1h1/F95CheckerV7.1h1.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**7.1**: [Download v7.1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.1/F95CheckerV7.1.zip)
 
 **7.0**: [Download v7.0 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.0/F95CheckerV7.0.zip)
 
@@ -179,6 +181,11 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v7.1h1</summary>
+
+   - FIXED: bad import (QtWinExtras) on Linux
+</details>
 <details>
   <summary>v7.1</summary>
 
