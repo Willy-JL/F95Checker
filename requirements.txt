@@ -1,8 +1,8 @@
 clint
-fcntl
+#fcntl
 qasync
 aiohttp
-#pywin32
+pywin32
 PyQt5==5.15.2
 soupsieve>=2.1
 beautifulsoup4
