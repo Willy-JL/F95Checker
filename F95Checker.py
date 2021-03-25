@@ -66,6 +66,19 @@ except OSError:
     sys.exit()
 
 
+from modules import singleton
+try:
+    globals.singleton = singleton.Singleton("F95Checker")
+except RuntimeError as exc:
+    print(exc)
+    root = tk.Tk()
+    root.withdraw()
+    tk.messagebox.showerror('Already running!', str(exc))
+    root.destroy()
+    del root
+    sys.exit()
+
+
 # Handle config
 from modules import config_utils
 pathlib.Path(globals.config_path).mkdir(parents=True, exist_ok=True)
