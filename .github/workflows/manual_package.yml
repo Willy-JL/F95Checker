@@ -79,6 +79,12 @@ jobs:
           mv update.exe dist/windows/F95Checker
           mv modules dist/windows/F95Checker
 
+      - name: Purge old artifacts
+        uses: kolpav/purge-artifacts-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          expire-in: 0
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
