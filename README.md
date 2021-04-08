@@ -34,7 +34,7 @@ The tool comes bundled with both windows EXE and python scripts, so you have two
 #### Python script (Linux):
  - Install Python ( 3.8.8 preferably )from the official [Python website](https://www.python.org/downloads/)
  - Download below and extract
- - Install requirements (`pip install --upgrade -r requirements.txt`)
+ - Install requirements (`pip3 install --upgrade -r requirements.txt`)
  - Run "F95Checker.py" with Python (`python3 F95Checker.py`) or use `F95Checker.sh`
 
 
