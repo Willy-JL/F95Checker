@@ -17,11 +17,11 @@ async def exit_handler():
     for item in file_list:
         try:
             os.remove(item)
-        except:
+        except Exception:
             pass
     try:
         os.rmdir('temp')
-    except:
+    except Exception:
         pass
 
     globals.config["options"]["width"] = globals.gui.size().width()
@@ -30,7 +30,7 @@ async def exit_handler():
 
     try:
         await globals.http.close()
-    except:
+    except Exception:
         pass
 
     globals.app.exit()
@@ -467,7 +467,7 @@ async def refresh(*kw):
 
         try:
             await asyncio.gather(*[worker() for _ in range(globals.config["options"]["refresh_threads"])])
-        except:
+        except Exception:
             pass
 
     globals.gui.refresh_bar.setVisible(False)

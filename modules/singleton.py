@@ -29,5 +29,5 @@ class Singleton:
                     win32api.CloseHandle(self.lock)
                 else:
                     os.close(self.lock)
-            except:
+            except Exception:
                 pass

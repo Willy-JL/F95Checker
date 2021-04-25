@@ -60,7 +60,7 @@ async def login():
                     return
                 globals.token = token_soup.select_one('input[name="_xfToken"]').get('value')
                 break
-            except:
+            except Exception:
                 if retries >= globals.config["options"]["max_retries"]:
                     exc = "".join(traceback.format_exception(*sys.exc_info()))
                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
@@ -94,7 +94,7 @@ async def login():
                 await handle_no_internet()
                 globals.logging_in = False
                 return
-        except:
+        except Exception:
             if retries >= globals.config["options"]["max_retries"]:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
@@ -181,7 +181,7 @@ async def check_for_updates():
             assert text.startswith("<!DOCTYPE html>")
             check_soup = BeautifulSoup(text, 'html.parser')
             break
-        except:
+        except Exception:
             if retries >= globals.config["options"]["max_retries"]:
                 return
             retries += 1
@@ -209,7 +209,7 @@ async def check_for_updates():
                     assert text.startswith("<!DOCTYPE html>")
                     tool_soup = BeautifulSoup(text, 'html.parser')
                     break
-                except:
+                except Exception:
                     if retries >= globals.config["options"]["max_retries"]:
                         return
                     retries += 1
@@ -334,12 +334,12 @@ async def check(name):
                         try:
                             while game_changes[-1] == '\n':
                                 game_changes = game_changes[:-1]
-                        except:
+                        except Exception:
                             pass
                         try:
                             while game_changes[0] == '\n':
                                 game_changes = game_changes[1:]
-                        except:
+                        except Exception:
                             pass
                         changelog = game_changes
                         while changelog.__contains__('\n\n\n'):
@@ -347,7 +347,7 @@ async def check(name):
                         globals.config["game_data"][name]["changelog"] = changelog
                         config_utils.save_config()
                         changelog_fetched = True
-                    except:
+                    except Exception:
                         pass
                 # Version Management
                 if title.count('[') < 2 or title.count(']') < 2:
@@ -407,12 +407,12 @@ async def check(name):
                         try:
                             while game_changes[-1] == '\n':
                                 game_changes = game_changes[:-1]
-                        except:
+                        except Exception:
                             pass
                         try:
                             while game_changes[0] == '\n':
                                 game_changes = game_changes[1:]
-                        except:
+                        except Exception:
                             pass
                         changelog = game_changes
                         while changelog.__contains__('\n\n\n'):
@@ -420,10 +420,10 @@ async def check(name):
                         globals.config["game_data"][name]["changelog"] = changelog
                         config_utils.save_config()
                         changelog_fetched = True
-                    except:
+                    except Exception:
                         pass
             # Retry Stuff
-            except:
+            except Exception:
                 if retries >= globals.config["options"]["max_retries"]:
                     exc = "".join(traceback.format_exception(*sys.exc_info()))
                     await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...\n\n{exc}')

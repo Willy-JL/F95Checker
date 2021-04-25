@@ -30,7 +30,7 @@ class F95Checker_GUI(QMainWindow):
                 self.taskbar_icon = QWinTaskbarButton()
                 self.taskbar_icon.setWindow(self.windowHandle())
                 self.icon_progress = self.taskbar_icon.progress()
-            except:
+            except Exception:
                 self.icon_progress = None
         else:
             self.icon_progress = None
