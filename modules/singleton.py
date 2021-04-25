@@ -18,7 +18,7 @@ class Singleton:
                 self.running = False
             except IOError:
                 self.running = True
-        
+
         if self.running:
             raise RuntimeError(f"Another instance of {app_id} is already running!")
 
