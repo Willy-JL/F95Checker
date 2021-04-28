@@ -229,6 +229,15 @@ async def check_notifs():
                     if retries_b >= globals.config["options"]["max_retries"]:
                         return
                     retries_b += 1
+            if notif_json.get("visitor") is None:
+                while globals.logging_in:
+                    await asyncio.sleep(0.25)
+                globals.logged_in = False
+                await login()
+                if globals.logged_in:
+                    continue
+                else:
+                    return
             alerts = int(notif_json["visitor"]["alerts_unread"])
             inbox  = int(notif_json["visitor"]["conversations_unread"])
             globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
