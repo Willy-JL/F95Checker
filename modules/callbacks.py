@@ -1,14 +1,12 @@
-import os
-import glob
-import aiohttp
-import asyncio
-import datetime
-from qasync import asyncSlot
-from subprocess import Popen
-from bs4 import BeautifulSoup
-from functools import partial
-from PyQt5 import QtWidgets, QtCore, QtGui
 from modules import globals, config_utils, gui, browsers, api
+from PyQt5 import QtWidgets, QtCore, QtGui
+from functools import partial
+from subprocess import Popen
+from qasync import asyncSlot
+import datetime
+import asyncio
+import glob
+import os
 
 
 # Cleanup, save window size and exit
@@ -24,8 +22,7 @@ async def exit_handler():
     except Exception:
         pass
 
-    globals.config["options"]["width"] = globals.gui.size().width()
-    globals.config["options"]["height"] = globals.gui.size().height()
+    globals.gui.save_geometry()
     config_utils.save_config()
 
     try:
@@ -37,111 +34,96 @@ async def exit_handler():
 
 
 @asyncSlot()
-async def remove_game(name, *kw):
-    count = 0
-    while name in globals.config["game_list"]:
-        globals.config["game_list"].remove(name)
-        count += 1
-    if not globals.config["game_data"][name]["version"]:
-        del globals.config["game_data"][name]
+async def remove_game(game_id, *kw):
+    del globals.config["games"][game_id]
     config_utils.save_config()
-    globals.gui.games_layout.removeWidget(globals.gui.game_list[name])
-    globals.gui.game_list[name].setVisible(False)
-    del globals.gui.game_list[name]
-    for i, item in enumerate(globals.config["game_list"]):
+    globals.gui.games_layout.removeWidget(globals.gui.game_list[game_id])
+    globals.gui.game_list[game_id].setVisible(False)
+    del globals.gui.game_list[game_id]
+    for i, item in enumerate(globals.config["games"]):
         globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
-    if count > 1:
-        await sort_games()
-
-
-# Convert thread ids to names
-async def id_to_name(code):
-    try:
-        async with globals.http.get(f'https://f95zone.to/threads/{code}/') as req:
-            html = BeautifulSoup(await req.read(), 'html.parser')
-    except aiohttp.ClientConnectorError:
-        await gui.WarningPopup.open(globals.gui, "Can't connect!", "There was an error connecting to F95Zone, please check your internet connection!")
-        return None
-    if await api.check_f95zone_error(html, warn=True):
-        return None
-    try:
-        title = html.select('h1[class="p-title-value"]')[0].get_text()
-    except IndexError:
-        await gui.WarningPopup.open(globals.gui, "Error!", "Couldn't find that game, make sure you pasted the right link!")
-        return None
-    while not title.find('[') == -1:
-        title = title[0:title.find('[')] + title[title.find(']')+1:]
-    while title[0] == ' ' or title[0] == ' ':
-        title = title[1:]
-    while title[-1] == ' ' or title[-1] == ' ':
-        title = title[:-1]
-    return title
+    await sort_games()
 
 
 @asyncSlot()
 async def add_game(*kw):
     # Grab input text
-    name = globals.gui.add_input.text()
-    if name:
-        globals.gui.add_input.setEnabled(False)
-        globals.gui.add_button.setEnabled(False)
-        # Convert ids and links to names
-        if name.isdigit():
-            name = await id_to_name(name)
-        if name[0:27] == 'https://f95zone.to/threads/':
-            name = name[name.rfind('.')+1:name.rfind('/')]
-            name = await id_to_name(name)
-        if name is None:
-            globals.gui.add_input.setEnabled(True)
-            globals.gui.add_button.setEnabled(True)
-            return
-        globals.gui.add_input.clear()
-        # Config
-        if name in globals.config["game_list"]:
-            globals.gui.add_input.setEnabled(True)
-            globals.gui.add_button.setEnabled(True)
-            await gui.WarningPopup.open(globals.gui, 'Error!', f'{name} is already in your games list!')
-            globals.gui.add_input.setFocus()
-        else:
-            globals.config["game_list"].append(name)
+    link = globals.gui.add_input.text().strip()
+    if not link:
+        return
+    globals.gui.add_input.setEnabled(False)
+    globals.gui.add_button.setEnabled(False)
+    # Only add if correct thread link
+    if not link.startswith(globals.domain + '/threads/'):
+        globals.gui.add_input.setEnabled(True)
+        globals.gui.add_button.setEnabled(True)
+        await gui.WarningPopup.open(globals.gui, 'Error!', 'Only valid thread links are supported!')
+        globals.gui.add_input.setFocus()
+        return
 
-            config_utils.ensure_game_data(name)
+    game_id = link[link.rfind('.')+1:link.rfind('/')]
 
-            # Create and configure gui container
-            globals.gui.game_list[name] = gui.GameContainer(alt=True if (len(globals.config["game_list"]) % 2) == 1 else False)
-            globals.gui.games_layout.addWidget(globals.gui.game_list[name])
-            globals.gui.game_list[name].update_details(name=name,
-                                                       status=globals.config["game_data"][name]["status"],
-                                                       version=globals.config["game_data"][name]["version"],
-                                                       highlight=not globals.config["game_data"][name]["played"],
-                                                       link=globals.config["game_data"][name]["link"])
-            globals.gui.game_list[name].open_button.clicked.connect(partial(open_game, name))
-            globals.gui.game_list[name].name.mousePressEvent = partial(invoke_changelog, name)
-            globals.gui.game_list[name].installed_button.setChecked(globals.config["game_data"][name]["installed"])
-            globals.gui.game_list[name].installed_button.stateChanged.connect(partial(set_installed, name))
-            globals.gui.game_list[name].played_button.setChecked(globals.config["game_data"][name]["played"])
-            globals.gui.game_list[name].played_button.stateChanged.connect(partial(set_played, name))
-            globals.gui.game_list[name].remove_button.clicked.connect(partial(remove_game, name))
-            if not globals.config["game_data"][name]["installed"]:
-                globals.config["game_data"][name]["played"] = False
-                globals.config["game_data"][name]["exe_path"] = ''
-                globals.gui.game_list[name].played_button.setChecked(False)
-                globals.gui.game_list[name].played_button.setEnabled(False)
-                globals.gui.game_list[name].open_button.setEnabled(False)
-                globals.gui.game_list[name].update_details(highlight=True)
-            else:
-                globals.gui.game_list[name].played_button.setEnabled(True)
-                globals.gui.game_list[name].open_button.setEnabled(True)
-            config_utils.save_config()
+    # Config
+    if game_id in globals.config["games"]:
+        globals.gui.add_input.setEnabled(True)
+        globals.gui.add_button.setEnabled(True)
+        await gui.WarningPopup.open(globals.gui, 'Error!', f'{globals.config["games"][game_id]["name"]} is already in your games list!')
+        globals.gui.add_input.setFocus()
+        return
 
-            visible = globals.gui.edit_button.text() == "Done"
-            globals.gui.game_list[name].remove_button.setVisible(visible)
+    game_data = await api.get_game_data(link)
+    if not game_data:
+        globals.gui.add_input.setEnabled(True)
+        globals.gui.add_button.setEnabled(True)
+        await gui.WarningPopup.open(globals.gui, 'Error!', 'Couldn\'t add this game!')
+        globals.gui.add_input.setFocus()
+        return
+    globals.gui.add_input.clear()
+    globals.config["games"][game_id] = {}
+    config_utils.ensure_game_attributes(game_id)
 
-            # Set focus to input box and scroll to bottom
-            globals.gui.add_input.setEnabled(True)
-            globals.gui.add_button.setEnabled(True)
-            globals.gui.add_input.setFocus()
-            QtCore.QTimer.singleShot(100, lambda: globals.gui.games_section.verticalScrollBar().setSliderPosition(globals.gui.games_section.verticalScrollBar().maximum()))
+    globals.config["games"][game_id]["name"]      = game_data["name"]
+    globals.config["games"][game_id]["version"]   = game_data["version"]
+    globals.config["games"][game_id]["status"]    = game_data["status"]
+    globals.config["games"][game_id]["link"]      = game_data["link"]
+    globals.config["games"][game_id]["changelog"] = game_data["changelog"]
+    config_utils.save_config()
+
+    # Create and configure gui container
+    globals.gui.game_list[game_id] = gui.GameContainer(alt=True if (len(globals.config["games"]) % 2) == 1 else False)
+    globals.gui.games_layout.addWidget(globals.gui.game_list[game_id])
+    globals.gui.game_list[game_id].update_details(name     =    globals.config["games"][game_id]["name"],
+                                                  status   =    globals.config["games"][game_id]["status"],
+                                                  version  =    globals.config["games"][game_id]["version"],
+                                                  highlight=not globals.config["games"][game_id]["played"],
+                                                  link     =    globals.config["games"][game_id]["link"])
+    globals.gui.game_list[game_id].open_button.mousePressEvent = partial(open_game, game_id)
+    globals.gui.game_list[game_id].name.mousePressEvent = partial(invoke_changelog, game_id)
+    globals.gui.game_list[game_id].installed_button.setChecked(globals.config["games"][game_id]["installed"])
+    globals.gui.game_list[game_id].installed_button.stateChanged.connect(partial(set_installed, game_id))
+    globals.gui.game_list[game_id].played_button.setChecked(globals.config["games"][game_id]["played"])
+    globals.gui.game_list[game_id].played_button.stateChanged.connect(partial(set_played, game_id))
+    globals.gui.game_list[game_id].remove_button.clicked.connect(partial(remove_game, game_id))
+    if not globals.config["games"][game_id]["installed"]:
+        globals.config["games"][game_id]["played"] = False
+        globals.config["games"][game_id]["exe_path"] = ''
+        globals.gui.game_list[game_id].played_button.setChecked(False)
+        globals.gui.game_list[game_id].played_button.setEnabled(False)
+        globals.gui.game_list[game_id].open_button.setEnabled(False)
+        globals.gui.game_list[game_id].update_details(highlight=True)
+    else:
+        globals.gui.game_list[game_id].played_button.setEnabled(True)
+        globals.gui.game_list[game_id].open_button.setEnabled(True)
+    config_utils.save_config()
+
+    visible = globals.gui.edit_button.text() == "Done"
+    globals.gui.game_list[game_id].remove_button.setVisible(visible)
+
+    # Set focus to input box and scroll to bottom
+    globals.gui.add_input.setEnabled(True)
+    globals.gui.add_button.setEnabled(True)
+    globals.gui.add_input.setFocus()
+    QtCore.QTimer.singleShot(100, lambda: globals.gui.games_section.verticalScrollBar().setSliderPosition(globals.gui.games_section.verticalScrollBar().maximum()))
 
 
 @asyncSlot()
@@ -190,35 +172,41 @@ async def set_sorting(*kw):
 # Sort game view and config
 async def sort_games():
     if globals.config["options"]["auto_sort"] == 'last_updated':
-        sorting = []
-        for item in globals.config["game_list"]:
-            sorting.append(item)
-        sorting.sort(key=lambda x: globals.config["game_data"][x]["updated_time"], reverse=True)
-        globals.config["game_list"] = []
-        for item in sorting:
-            globals.config["game_list"].append(item)
+        keys = []
+        for item in globals.config["games"]:
+            keys.append(item)
+        keys.sort(key=lambda x: globals.config["games"][x]["updated_time"], reverse=True)
+        globals.config["sorting"] = globals.config["games"]
+        globals.config["games"] = {}
+        for item in keys:
+            globals.config["games"][item] = globals.config["sorting"][item]
+        del globals.config["sorting"]
     elif globals.config["options"]["auto_sort"] == 'first_added':
-        sorting = []
-        for item in globals.config["game_list"]:
-            sorting.append(item)
-        sorting.sort(key=lambda x: globals.config["game_data"][x]["updated_time"])
-        globals.config["game_list"] = []
-        for item in sorting:
-            globals.config["game_list"].append(item)
+        keys = []
+        for item in globals.config["games"]:
+            keys.append(item)
+        keys.sort(key=lambda x: globals.config["games"][x]["updated_time"])
+        globals.config["sorting"] = globals.config["games"]
+        globals.config["games"] = {}
+        for item in keys:
+            globals.config["games"][item] = globals.config["sorting"][item]
+        del globals.config["sorting"]
     elif globals.config["options"]["auto_sort"] == 'alphabetical':
-        sorting = []
-        for item in globals.config["game_list"]:
-            sorting.append(item)
-        sorting.sort()
-        globals.config["game_list"] = []
-        for item in sorting:
-            globals.config["game_list"].append(item)
+        keys = []
+        for item in globals.config["games"]:
+            keys.append(item)
+        keys.sort()
+        globals.config["sorting"] = globals.config["games"]
+        globals.config["games"] = {}
+        for item in keys:
+            globals.config["games"][item] = globals.config["sorting"][item]
+        del globals.config["sorting"]
     else:
         return
     config_utils.save_config()
     for item in globals.gui.game_list:
         globals.gui.games_layout.removeWidget(globals.gui.game_list[item])
-    for i, item in enumerate(globals.config["game_list"]):
+    for i, item in enumerate(globals.config["games"]):
         globals.gui.games_layout.insertWidget(i, globals.gui.game_list[item])
         globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
 
@@ -270,14 +258,14 @@ async def invoke_styler(*kw):
     globals.gui.style_gui = gui.StyleGUI()
     globals.gui.style_gui.radius.setValue(globals.config["style"]["radius"])
     # Assign click actions
-    globals.gui.style_gui.background.clicked.connect(partial(update_style, 'back'))
-    globals.gui.style_gui.alternate.clicked.connect(partial(update_style, 'alt'))
-    globals.gui.style_gui.accent.clicked.connect(partial(update_style, 'accent'))
-    globals.gui.style_gui.border.clicked.connect(partial(update_style, 'border'))
-    globals.gui.style_gui.hover.clicked.connect(partial(update_style, 'hover'))
-    globals.gui.style_gui.disabled.clicked.connect(partial(update_style, 'disabled'))
-    globals.gui.style_gui.radius.valueChanged.connect(partial(update_style, 'radius'))
-    globals.gui.style_gui.restore.clicked.connect(restore_default_style)
+    globals.gui.style_gui.background.clicked     .connect(partial(update_style, 'back')    )
+    globals.gui.style_gui.alternate .clicked     .connect(partial(update_style, 'alt')     )
+    globals.gui.style_gui.accent    .clicked     .connect(partial(update_style, 'accent')  )
+    globals.gui.style_gui.border    .clicked     .connect(partial(update_style, 'border')  )
+    globals.gui.style_gui.hover     .clicked     .connect(partial(update_style, 'hover')   )
+    globals.gui.style_gui.disabled  .clicked     .connect(partial(update_style, 'disabled'))
+    globals.gui.style_gui.radius    .valueChanged.connect(partial(update_style, 'radius')  )
+    globals.gui.style_gui.restore   .clicked     .connect(restore_default_style            )
     # Show window
     globals.gui.style_gui.show()
 
@@ -288,35 +276,33 @@ async def set_delay(*kw):
     config_utils.save_config()
 
 
-def invoke_changelog(name, *kw):
-    globals.gui.changelog_gui = gui.ChangelogGUI()
-    globals.gui.changelog_gui.setWindowTitle(QtCore.QCoreApplication.translate("Form", u"Changelog for {}".format(name), None))
-    globals.gui.changelog_gui.text.setPlainText(globals.config["game_data"][name]["changelog"])
+def invoke_changelog(game_id, *kw):
+    globals.gui.changelog_gui = gui.ChangelogGUI(game_id)
     globals.gui.changelog_gui.show()
 
 
 @asyncSlot()
-async def set_installed(name, *kw):
-    globals.config["game_data"][name]["installed"] = globals.gui.game_list[name].installed_button.isChecked()
-    if not globals.config["game_data"][name]["installed"]:
-        globals.config["game_data"][name]["played"] = False
-        globals.config["game_data"][name]["exe_path"] = ''
-        globals.gui.game_list[name].played_button.setChecked(False)
-        globals.gui.game_list[name].played_button.setEnabled(False)
-        globals.gui.game_list[name].open_button.setEnabled(False)
-        globals.gui.game_list[name].update_details(highlight=True)
+async def set_installed(game_id, *kw):
+    globals.config["games"][game_id]["installed"] = globals.gui.game_list[game_id].installed_button.isChecked()
+    if not globals.config["games"][game_id]["installed"]:
+        globals.config["games"][game_id]["played"] = False
+        globals.config["games"][game_id]["exe_path"] = ''
+        globals.gui.game_list[game_id].played_button.setChecked(False)
+        globals.gui.game_list[game_id].played_button.setEnabled(False)
+        globals.gui.game_list[game_id].open_button.setEnabled(False)
+        globals.gui.game_list[game_id].update_details(highlight=True)
     else:
-        globals.gui.game_list[name].played_button.setEnabled(True)
-        globals.gui.game_list[name].open_button.setEnabled(True)
+        globals.gui.game_list[game_id].played_button.setEnabled(True)
+        globals.gui.game_list[game_id].open_button.setEnabled(True)
     config_utils.save_config()
-    globals.gui.game_list[name].update_details(highlight=not globals.config["game_data"][name]["played"])
+    globals.gui.game_list[game_id].update_details(highlight=not globals.config["games"][game_id]["played"])
 
 
 @asyncSlot()
-async def set_played(name, *kw):
-    globals.config["game_data"][name]["played"] = globals.gui.game_list[name].played_button.isChecked()
+async def set_played(game_id, *kw):
+    globals.config["games"][game_id]["played"] = globals.gui.game_list[game_id].played_button.isChecked()
     config_utils.save_config()
-    globals.gui.game_list[name].update_details(highlight=not globals.config["game_data"][name]["played"])
+    globals.gui.game_list[game_id].update_details(highlight=not globals.config["games"][game_id]["played"])
 
 
 @asyncSlot()
@@ -405,15 +391,15 @@ async def bg_toggle_pause(*kw):
         globals.tray.setIcon(globals.tray.paused_icon)
 
 
-def open_game(name, event):
-    if not globals.config["game_data"][name]["exe_path"]:
-        globals.config["game_data"][name]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {name}', filter="Game exe (*.exe *.py *.sh *.bat)")[0]
+def open_game(game_id, event):
+    if not globals.config["games"][game_id]["exe_path"]:
+        globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', filter="Game exe (*.exe *.py *.sh *.bat)")[0]
         config_utils.save_config()
-    if globals.config["game_data"][name]["exe_path"]:
+    if globals.config["games"][game_id]["exe_path"]:
         if event.button() == QtCore.Qt.LeftButton:
-            Popen([globals.config["game_data"][name]["exe_path"]])
+            Popen([globals.config["games"][game_id]["exe_path"]])
         elif event.button() == QtCore.Qt.RightButton and globals.user_os == "windows":
-            path = globals.config["game_data"][name]["exe_path"]
+            path = globals.config["games"][game_id]["exe_path"]
             path = path[:path.rfind("/")].replace("/", "\\")
             Popen(["explorer.exe", path])
 
@@ -439,9 +425,9 @@ async def refresh(*kw):
     globals.gui.add_input.setEnabled(False)
     globals.gui.add_button.setEnabled(False)
 
-    globals.gui.refresh_bar.setMaximum(len(globals.config["game_list"])+1)
+    globals.gui.refresh_bar.setMaximum(len(globals.config["games"])+1)
     if globals.gui.icon_progress:
-        globals.gui.icon_progress.setMaximum(len(globals.config["game_list"])+1)
+        globals.gui.icon_progress.setMaximum(len(globals.config["games"])+1)
     globals.gui.refresh_bar.setValue(1)
     if globals.gui.icon_progress:
         globals.gui.icon_progress.setValue(1)
@@ -452,6 +438,9 @@ async def refresh(*kw):
     if globals.gui.icon_progress:
         globals.gui.icon_progress.setValue(2)
 
+    if globals.config["options"]["refresh_threads"] >= 100 and len(globals.config["games"]) >= 100:
+        globals.gui.threads_input.setValue(len(globals.config["games"]))
+
     if globals.logged_in:
 
         async def worker():
@@ -459,7 +448,7 @@ async def refresh(*kw):
                 await refresh_tasks.get_nowait()
 
         refresh_tasks = asyncio.Queue()
-        for game in globals.config["game_list"]:
+        for game in globals.config["games"]:
             refresh_tasks.put_nowait(api.check(game))
         refresh_tasks.put_nowait(api.check_notifs())
         if not globals.checked_updates:

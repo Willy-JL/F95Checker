@@ -13,7 +13,16 @@ from PyQt5.QtGui import *
 import asyncio
 from qasync import asyncClose
 from functools import partial
-from modules import globals, browsers, callbacks
+from modules import globals, browsers, callbacks, config_utils
+
+
+def wrap_number(value, mod, maximum):
+    result = value + mod
+    while result > maximum:
+        result = -1 + (result - maximum)
+    while result < 0:
+        result = (maximum + 1) + result
+    return result
 
 
 class F95Checker_GUI(QMainWindow):
@@ -21,22 +30,6 @@ class F95Checker_GUI(QMainWindow):
         super().__init__(parent, Qt.WindowFlags())
         self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
-        self.setupUi()
-
-    def showEvent(self, event):
-        if globals.user_os == "windows":
-            try:
-                from PyQt5.QtWinExtras import QWinTaskbarButton
-                self.taskbar_icon = QWinTaskbarButton()
-                self.taskbar_icon.setWindow(self.windowHandle())
-                self.icon_progress = self.taskbar_icon.progress()
-            except Exception:
-                self.icon_progress = None
-        else:
-            self.icon_progress = None
-        event.accept()
-
-    def setupUi(self):
         if not self.objectName():
             self.setObjectName(u"F95Checker")
         self.main = QWidget(self)
@@ -83,6 +76,7 @@ class F95Checker_GUI(QMainWindow):
         self.horizontalLayout_2.setContentsMargins(3, 0, 3, 3)
         self.add_input = QLineEdit(self.add_section)
         self.add_input.setObjectName(u"add_input")
+        self.add_input.setPlaceholderText("Paste links to game threads in here!")
 
         self.horizontalLayout_2.addWidget(self.add_input)
 
@@ -237,6 +231,7 @@ class F95Checker_GUI(QMainWindow):
         self.threads_input.setObjectName(u"threads_input")
         self.threads_input.setMinimumSize(QSize(64, 26))
         self.threads_input.setMinimum(1)
+        self.threads_input.setMaximum(999)
 
         self.gridLayout_2.addWidget(self.threads_input, 9, 2, 1, 1)
 
@@ -360,9 +355,35 @@ class F95Checker_GUI(QMainWindow):
         self.add_input.setToolTip('Here you can paste a link to a F95Zone\nthread to add that game to the list!')
         self.add_button.setToolTip('Click this to add the game\nyou pasted on the left!')
 
+        if globals.settings.value("geometry"):
+            self.restoreGeometry(globals.settings.value("geometry"))
+        else:
+            self.resize(960, 480)
+        if globals.settings.value("windowState"):
+            self.restoreState(globals.settings.value("windowState"))
+
+    def showEvent(self, event):
+        if globals.user_os == "windows":
+            try:
+                from PyQt5.QtWinExtras import QWinTaskbarButton
+                self.taskbar_icon = QWinTaskbarButton()
+                self.taskbar_icon.setWindow(self.windowHandle())
+                self.icon_progress = self.taskbar_icon.progress()
+            except Exception:
+                self.icon_progress = None
+        else:
+            self.icon_progress = None
+        event.accept()
+        self.activateWindow()
+        self.raise_()
+
     @asyncClose
     async def closeEvent(self, event):
         await callbacks.exit_handler()
+
+    def save_geometry(self):
+        globals.settings.setValue("geometry", self.saveGeometry())
+        globals.settings.setValue("windowState", self.saveState())
 
     def get_stylesheet(self, style):
         if ((int(style['back'][1:2], 16) * 299) + (int(style['back'][3:5], 16) * 587) + (int(style['back'][5:7], 16) * 114)) / 1000 >= 100:
@@ -623,7 +644,10 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
 QLineEdit {
     border: 1px solid """+style['border']+""";
     border-radius: """+str(style['radius'])+"""px;
-    min-height: 18px
+    padding-left: 4px;
+    min-height: 18px;
+    selection-color: """+style['accent']+""";
+    selection-background-color: rgba(0, 0, 0, 30%)
 }
 
 QLineEdit:disabled {
@@ -743,12 +767,13 @@ QProgressBar::chunk {
     background-color: """+style['accent']+"""
 }
 
-QMenu::item:selected {
-    color: """+style['accent']+"""
+QMenu::item {
+    padding: 2px 10px 2px 5px
 }
 
-QMenu::item:disabled {
-    color: """+font_disabled+"""
+QMenu::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 """+f'#{hex(QColor.fromHsl(wrap_number(QColor(style["accent"]).getHsl()[0], -10, 359), QColor(style["accent"]).getHsl()[1], QColor(style["accent"]).getHsl()[2]).rgb())[4:]}'+""", stop:1 """+f'#{hex(QColor.fromHsl(wrap_number(QColor(style["accent"]).getHsl()[0], +10, 359), QColor(style["accent"]).getHsl()[1], QColor(style["accent"]).getHsl()[2]).rgb())[4:]}'+""");
+    color: rgb(255, 255, 255)
 }
 """
         return qss
@@ -860,27 +885,27 @@ class GameContainer(QFrame):
         if version is not None:
             self.version.setText(version + "    ")
             if version == "N/A":
-                self.version.setToolTip('This game does not have a properly formatted\ntitle, identifying the version was not possible!')
+                self.version.setToolTip('This game does not have a properly formatted\thread, identifying the version was not possible!')
             else:
                 self.version.setToolTip('This is the game\'s version!')
         if status is not None:
             if status == 'completed':
-                text = ""
+                icon = ""
                 self.status.setToolTip("Status: Completed!")
                 self.status.setObjectName(u"status_completed")
             elif status == 'onhold':
-                text = ""
+                icon = ""
                 self.status.setToolTip("Status: On Hold...")
                 self.status.setObjectName(u"status_onhold")
             elif status == 'abandoned':
-                text = ""
+                icon = ""
                 self.status.setToolTip("Status: Abandoned D:")
                 self.status.setObjectName(u"status_abandoned")
             else:
-                text = ""
+                icon = ""
                 self.status.setToolTip("")
                 self.status.setObjectName(u"status")
-            self.status.setText(text)
+            self.status.setText(icon)
         if highlight is not None:
             if not highlight:
                 self.name.setObjectName(u"name")
@@ -905,9 +930,6 @@ class StyleGUI(QWidget):
         super().__init__()
         self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
-        self.setupUi()
-
-    def setupUi(self):
         if not self.objectName():
             self.setObjectName(u"StyleGUI")
         self.resize(280, 150)
@@ -1029,43 +1051,53 @@ class StyleGUI(QWidget):
 
 
 class ChangelogGUI(QWidget):
-    def __init__(self):
+    def __init__(self, game_id):
+        self.game_id = game_id
         super().__init__()
         self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
-        self.setupUi()
-
-    def setupUi(self):
         if not self.objectName():
             self.setObjectName(u"Form")
         self.resize(600, 690)
-        self.gridLayout = QGridLayout(self)
-        self.gridLayout.setSpacing(0)
-        self.gridLayout.setObjectName(u"gridLayout")
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.scrollArea = QScrollArea(self)
-        self.scrollArea.setObjectName(u"scrollArea")
-        self.scrollArea.setFrameShape(QFrame.NoFrame)
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollAreaWidgetContents_2 = QWidget()
-        self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
-        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 799, 770))
-        self.gridLayout_2 = QGridLayout(self.scrollAreaWidgetContents_2)
-        self.gridLayout_2.setSpacing(0)
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.gridLayout_2.setContentsMargins(9, 9, 9, 9)
-        self.text = QPlainTextEdit(self.scrollAreaWidgetContents_2)
-        self.text.setObjectName(u"plainTextEdit")
-        self.text.setFrameShape(QFrame.NoFrame)
-        self.text.setReadOnly(True)
+        self.layout = QVBoxLayout(self)
+        self.layout.setSpacing(0)
+        self.layout.setObjectName(u"layout")
+        self.layout.setContentsMargins(9, 9, 9, 9)
 
-        self.gridLayout_2.addWidget(self.text, 0, 0, 1, 1)
+        self.changelog = QPlainTextEdit(self)
+        self.changelog.setObjectName(u"changelog")
+        self.changelog.setFrameShape(QFrame.NoFrame)
+        self.changelog.setPlaceholderText("Uh oh, looks like this game has a badly formatted thread...\nWe didn't manage to grab the changelog for this one :/")
+        self.changelog.setReadOnly(True)
 
-        self.scrollArea.setWidget(self.scrollAreaWidgetContents_2)
+        self.layout.addWidget(self.changelog, 3)
 
-        self.gridLayout.addWidget(self.scrollArea, 0, 0, 1, 1)
+        self.notes = QPlainTextEdit(self)
+        self.notes.setObjectName(u"notes")
+        self.notes.setPlaceholderText("Here you can write some notes about this game!\nWhat it's about, why you play it, where you got to, secret codes, it's up to you really!")
+
+        self.layout.addWidget(self.notes, 1)
+
+        self.setWindowTitle(QCoreApplication.translate("Form", u"Changelog for {}".format(globals.config["games"][self.game_id]["name"]), None))
+        self.changelog.setPlainText(globals.config["games"][self.game_id]["changelog"])
+        self.notes.setPlainText(globals.config["games"][self.game_id]["notes"])
+
+        self.save_loop_task = globals.loop.create_task(self.save_notes_loop())
 
         QMetaObject.connectSlotsByName(self)
+
+    async def save_notes_loop(self):
+        while True:
+            globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
+            config_utils.save_config()
+            await asyncio.sleep(1)
+
+    def closeEvent(self, event):
+        globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
+        config_utils.save_config()
+        self.save_loop_task.cancel()
+        self.save_loop_task = None
+        event.accept()
 
 
 class LoginUI(QDialog):
@@ -1233,7 +1265,7 @@ class F95Checker_Tray(QSystemTrayIcon):
 
         # Watermark item
         self.watermark = QAction(f"F95Checker v{globals.version}")
-        self.watermark.triggered.connect(partial(browsers.open_webpage_sync_helper, 'https://f95zone.to/threads/44173/'))
+        self.watermark.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.tool_thread))
         self.idle_menu.addAction(self.watermark)
         self.paused_menu.addAction(self.watermark)
         self.refresh_menu.addAction(self.watermark)
@@ -1241,7 +1273,7 @@ class F95Checker_Tray(QSystemTrayIcon):
 
         # View alerts item
         self.view_alerts = QAction(f"View Alerts")
-        self.view_alerts.triggered.connect(partial(browsers.open_webpage_sync_helper, 'https://f95zone.to/account/alerts'))
+        self.view_alerts.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.alerts_page))
         self.idle_menu.addAction(self.view_alerts)
         self.paused_menu.addAction(self.view_alerts)
         self.refresh_menu.addAction(self.view_alerts)
@@ -1249,7 +1281,7 @@ class F95Checker_Tray(QSystemTrayIcon):
 
         # View inbox item
         self.view_inbox = QAction(f"View Inbox")
-        self.view_inbox.triggered.connect(partial(browsers.open_webpage_sync_helper, 'https://f95zone.to/conversations/'))
+        self.view_inbox.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.inbox_page))
         self.idle_menu.addAction(self.view_inbox)
         self.paused_menu.addAction(self.view_inbox)
         self.refresh_menu.addAction(self.view_inbox)

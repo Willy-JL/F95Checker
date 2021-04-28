@@ -1,13 +1,14 @@
-import os
-import sys
-import random
-import asyncio
-import aiohttp
-from subprocess import Popen
-from qasync import asyncSlot
-from bs4 import BeautifulSoup
-from modules import globals, api, gui
 from distutils.spawn import find_executable
+from modules import globals, api, gui
+from bs4 import BeautifulSoup
+from qasync import asyncSlot
+from subprocess import Popen
+import aiohttp
+import asyncio
+import random
+import sys
+import os
+
 
 BROWSER_LIST = [
     "chrome",
@@ -146,8 +147,8 @@ async def open_webpage(link, *kw):
     if not globals.config["options"]["browser"]:
         await gui.WarningPopup.open(globals.gui, "Browser", "Please select a browser before opening a webpage!")
         return
-    if link[:4] != "http":
-        link = "https://f95zone.to" + link
+    if not link.startswith(globals.domain):
+        link = globals.domain + link
     if globals.config["options"]["open_html"]:
         while globals.logging_in:
             await asyncio.sleep(0.25)
@@ -165,7 +166,7 @@ async def open_webpage(link, *kw):
         if await api.check_f95zone_error(soup, warn=True):
             return
         for tag in soup.select('link[rel="stylesheet"][href*="/css.php?css=public"]'):
-            tag['href'] = 'https://f95zone.to' + tag['href']
+            tag['href'] = globals.domain + tag['href']
         first_compressed = True
         for tag in soup.select('[href]'):
             if 'compressed' in str.lower(tag.text):
@@ -183,10 +184,10 @@ async def open_webpage(link, *kw):
                     if await api.check_f95zone_error(compressed_soup, warn=True):
                         return
                     for compressed_tag in compressed_soup.select('link[rel="stylesheet"][href*="/css.php?css=public"]'):
-                        compressed_tag['href'] = 'https://f95zone.to' + compressed_tag['href']
+                        compressed_tag['href'] = globals.domain + compressed_tag['href']
                     for compressed_tag in compressed_soup.select('[href]'):
                         if compressed_tag['href'][0] == '/':
-                            compressed_tag['href'] = 'https://f95zone.to' + compressed_tag['href']
+                            compressed_tag['href'] = globals.domain + compressed_tag['href']
                     if not os.path.isdir('temp'):
                         os.mkdir('temp')
                     with open(f'temp/f95checkercompressed{html_id}.html', 'wb') as out:
@@ -194,7 +195,7 @@ async def open_webpage(link, *kw):
                     tag['href'] = f'f95checkercompressed{html_id}.html{compressed_code}'
                     first_compressed = False
             elif tag['href'][0] == '/':
-                tag['href'] = 'https://f95zone.to' + tag['href']
+                tag['href'] = globals.domain + tag['href']
         if not os.path.isdir('temp'):
             os.mkdir('temp')
         with open(f'temp/f95checker{html_id}.html', 'wb') as out:

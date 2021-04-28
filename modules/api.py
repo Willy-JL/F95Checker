@@ -1,12 +1,13 @@
-import os
-import sys
-import time
-import aiohttp
-import asyncio
-import traceback
-from subprocess import Popen
-from bs4 import BeautifulSoup
 from modules import globals, config_utils, gui, browsers
+from bs4.element import NavigableString
+from bs4 import BeautifulSoup
+from subprocess import Popen
+import traceback
+import asyncio
+import aiohttp
+import time
+import sys
+import os
 
 
 def get_cookie(key: str):
@@ -47,7 +48,7 @@ async def login():
         while True:
             try:
                 try:
-                    async with globals.http.get('https://f95zone.to/login/') as token_req:
+                    async with globals.http.get(globals.login_home) as token_req:
                         text = await token_req.text()
                 except aiohttp.ClientConnectorError:
                     await handle_no_internet()
@@ -84,7 +85,7 @@ async def login():
                     "password_confirm": "",
                     "additional_security": "",
                     "remember": "1",
-                    "_xfRedirect": "https://f95zone.to/",
+                    "_xfRedirect": globals.domain + "/",
                     "website_code": "",
                     "_xfToken": globals.token
                 }) as login_req:
@@ -121,46 +122,47 @@ async def check_notifs():
         await asyncio.sleep(0.25)
     if not globals.logged_in:
         await login()
-    if globals.logged_in:
-        while True:
-            try:
-                retries_b = 0
-                while True:
+    if not globals.logged_in:
+        return
+    while True:
+        try:
+            retries_b = 0
+            while True:
+                try:
                     try:
-                        try:
-                            async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
-                                notif_json = await notif_req.json()
-                        except aiohttp.ClientConnectorError:
-                            await handle_no_internet()
-                            return
-                        break
-                    except ArithmeticError:
-                        if retries_b >= globals.config["options"]["max_retries"]:
-                            return
-                        retries_b += 1
-                alerts = int(notif_json["visitor"]["alerts_unread"])
-                inbox = int(notif_json["visitor"]["conversations_unread"])
-                globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-                if globals.gui.icon_progress:
-                    globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
-                if alerts != 0 and inbox != 0:
-                    if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {int(alerts) + int(inbox)} unread notifications ({alerts} alert{"s" if int(alerts) > 1 else ""} and {inbox} conversation{"s" if int(inbox) > 1 else ""}).', "Do you want to view them?"):
-                        await browsers.open_webpage('https://f95zone.to/account/alerts')
-                        await browsers.open_webpage('https://f95zone.to/conversations/')
-                if alerts != 0 and inbox == 0:
-                    if await gui.QuestionPopup.ask(globals.gui, 'Alerts', f'You have {alerts} unread alert{"s" if int(alerts) > 1 else ""}.', f'Do you want to view {"them" if int(alerts) > 1 else "it"}?'):
-                        await browsers.open_webpage('https://f95zone.to/account/alerts')
-                if alerts == 0 and inbox != 0:
-                    if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if int(inbox) > 1 else ""}.', f'Do you want to view {"them" if int(inbox) > 1 else "it"}?'):
-                        await browsers.open_webpage('https://f95zone.to/conversations/')
-            except ArithmeticError:
-                if retries_a >= globals.config["options"]["max_retries"]:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...\n\n{exc}')
-                    return
-                retries_a += 1
-                continue
-            break
+                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
+                            notif_json = await notif_req.json()
+                    except aiohttp.ClientConnectorError:
+                        await handle_no_internet()
+                        return
+                    break
+                except Exception:
+                    if retries_b >= globals.config["options"]["max_retries"]:
+                        return
+                    retries_b += 1
+            alerts = int(notif_json["visitor"]["alerts_unread"])
+            inbox  = int(notif_json["visitor"]["conversations_unread"])
+            globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
+            if globals.gui.icon_progress:
+                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
+            if alerts != 0 and inbox != 0:
+                if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {alerts + inbox} unread notifications ({alerts} alert{"s" if alerts > 1 else ""} and {inbox} conversation{"s" if inbox > 1 else ""}).', "Do you want to view them?"):
+                    await browsers.open_webpage(globals.alerts_page)
+                    await browsers.open_webpage(globals.inbox_page )
+            if alerts != 0 and inbox == 0:
+                if await gui.QuestionPopup.ask(globals.gui, 'Alerts', f'You have {alerts} unread alert{"s" if alerts > 1 else ""}.', f'Do you want to view {"them" if alerts > 1 else "it"}?'):
+                    await browsers.open_webpage(globals.alerts_page)
+            if alerts == 0 and inbox != 0:
+                if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if inbox > 1 else ""}.', f'Do you want to view {"them" if inbox > 1 else "it"}?'):
+                    await browsers.open_webpage(globals.inbox_page )
+        except Exception:
+            if retries_a >= globals.config["options"]["max_retries"]:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...\n\n{exc}')
+                return
+            retries_a += 1
+            continue
+        break
 
 
 
@@ -173,261 +175,205 @@ async def check_for_updates():
     while True:
         try:
             try:
-                async with globals.http.get('https://f95zone.to/forums/tools-tutorials.17/', params={'starter_id': '1276534'}) as check_req:
-                    text = await check_req.text()
+                async with globals.http.head(globals.tool_thread) as check_req:
+                    tool_url = check_req.headers.get("location")
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
                 return
-            assert text.startswith("<!DOCTYPE html>")
-            check_soup = BeautifulSoup(text, 'html.parser')
             break
         except Exception:
             if retries >= globals.config["options"]["max_retries"]:
                 return
             retries += 1
-    if await check_f95zone_error(check_soup, warn=True):
+    tool_version_flag = globals.version.replace(".", "-") + "-willyjl."
+    if tool_version_flag in tool_url:
+        # No update found
         return
-    tool_thread = check_soup.select_one('div[class="structItemContainer-group js-threadList"] > div > div[class="structItem-cell structItem-cell--main"] > div[class="structItem-title"] > a[data-tp-primary="on"]')
-    tool_title = tool_thread.get_text()
-    tool_current = tool_title[tool_title.find('[') + 1:tool_title.find(']', tool_title.find('[') + 1)]
-    if not globals.version == tool_current:
-        # Update found, log in and fetch changelog
-        while globals.logging_in:
-            await asyncio.sleep(0.25)
-        if not globals.logged_in:
-            await login()
-        if globals.logged_in:
-            retries = 0
-            while True:
-                try:
-                    try:
-                        async with globals.http.get('https://f95zone.to/threads/44173/') as tool_req:
-                            text = await tool_req.text()
-                    except aiohttp.ClientConnectorError:
-                        await handle_no_internet()
-                        return
-                    assert text.startswith("<!DOCTYPE html>")
-                    tool_soup = BeautifulSoup(text, 'html.parser')
-                    break
-                except Exception:
-                    if retries >= globals.config["options"]["max_retries"]:
-                        return
-                    retries += 1
-            if await check_f95zone_error(tool_soup, warn=True):
-                return
-            tool_changelog = tool_soup.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-            changes = tool_changelog[tool_changelog.find(f'v{tool_current}'):tool_changelog.find(
-                f'v{globals.version}', tool_changelog.find('\n', tool_changelog.find(f'v{tool_current}') + len(f'v{globals.version}')) + 1)]
-            changes = changes.replace('Spoiler', '')
-            try:
-                while changes[-1] == '\n':
-                    changes = changes[:-1]
-            except IndexError:
-                pass
-            try:
-                while changes[0] == '\n':
-                    changes = changes[1:]
-            except IndexError:
-                pass
-            # Ask to update
-            globals.checked_updates = True
-            if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{changes}"):
-                latest_url = tool_soup.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
-                if globals.exec_type == "exe":
-                    Popen(["update.exe", latest_url, "F95Checker.exe"])
-                elif globals.exec_type == "python" and globals.user_os == "windows":
-                    os.system(f'start "" update.py "{latest_url}" "F95Checker.exe"')
-                elif globals.exec_type == "python" and globals.user_os == "linux":
-                    Popen(["python3", "update.py", latest_url, "F95Checker.sh"])
-                else:
-                    return
-                globals.loop.stop()
-                globals.loop.close()
-                sys.exit(0)
-                return
 
-
-# Game Checking
-async def check(name):
+    # Update found, log in and fetch changelog
     while globals.logging_in:
         await asyncio.sleep(0.25)
     if not globals.logged_in:
         await login()
-    if globals.logged_in:
-        retries = 0
-        while True:
+    if not globals.logged_in:
+        return
+    retries = 0
+    while True:
+        try:
             try:
-                config_utils.ensure_game_data(name)
-                # Search Request
-                if name in globals.config["advanced"]["search_term_replacers"]:
-                    search_term = globals.config["advanced"]["search_term_replacers"][name]
-                else:
-                    search_term = name
-                try:
-                    async with globals.http.post(globals.search_url, data={"title": search_term, "_xfToken": globals.token}) as game_check_req:
-                        text = await game_check_req.text()
-                except aiohttp.ClientConnectorError:
-                    await handle_no_internet()
-                    return
-                assert text.startswith("<!DOCTYPE html>")
-                result_html = BeautifulSoup(text, 'html.parser')
-                if await check_f95zone_error(result_html):
-                    return
-                # Step Progress Bar
-                globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-                if globals.gui.icon_progress:
-                    globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
-                # Check number of search results
-                if len(result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")')) == 0:
-                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')
-                    return
-                found = False
-                thread_item = ''
-                title = ''
-                # Find right search result
-                for item in result_html.select(f'div[class="quicksearch-wrapper-wide"] > div > div > div > div[data-xf-init="responsive-data-list"] > table > tr[class="dataList-row dataList-row--noHover"] > td[class="dataList-cell"] > span > a:-soup-contains("{name}")'):
-                    title = item.get_text()
-                    result_name = title[0:title.find('[')]
-                    if result_name[-1] == ' ':
-                        result_name = result_name[:-1]
-                    if result_name == name:
-                        found = True
-                        thread_item = item
-                        break
-                    else:
-                        pass
-                if not found:
-                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find \"{name}\"...')
-                    return
-                cur_link = thread_item.get('href')
-                globals.gui.game_list[name].update_details(link=cur_link)
-                # Changelog fetcher
-                changelog_fetched = False
-                if globals.config["game_data"][name]["changelog"] == '' or globals.config["game_data"][name]["status"] == '':
-                    try:
-                        try:
-                            async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog1_req:
-                                text = await changelog1_req.text()
-                        except aiohttp.ClientConnectorError:
-                            await handle_no_internet()
-                            return
-                        assert text.startswith("<!DOCTYPE html>")
-                        page_html = BeautifulSoup(text, 'html.parser')
-                        if await check_f95zone_error(page_html):
-                            return
-                        if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
-                            globals.config["game_data"][name]["status"] = 'completed'
-                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
-                            globals.config["game_data"][name]["status"] = 'onhold'
-                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
-                            globals.config["game_data"][name]["status"] = 'abandoned'
-                        else:
-                            globals.config["game_data"][name]["status"] = 'none'
-                        config_utils.save_config()
-                        globals.gui.game_list[name].update_details(status=globals.config["game_data"][name]["status"])
-                        try:
-                            game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-                        except AttributeError:
-                            game_changelog = page_html.select_one('b:-soup-contains("Change-Log") + br + div > div').get_text()
-                        game_changelog = game_changelog.replace('Spoiler', '')
-                        game_changes = game_changelog[:game_changelog.replace('\n', '', 69).find('\n')]
-                        try:
-                            while game_changes[-1] == '\n':
-                                game_changes = game_changes[:-1]
-                        except Exception:
-                            pass
-                        try:
-                            while game_changes[0] == '\n':
-                                game_changes = game_changes[1:]
-                        except Exception:
-                            pass
-                        changelog = game_changes
-                        while changelog.__contains__('\n\n\n'):
-                            changelog = changelog.replace('\n\n\n', '\n\n')
-                        globals.config["game_data"][name]["changelog"] = changelog
-                        config_utils.save_config()
-                        changelog_fetched = True
-                    except Exception:
-                        pass
-                # Version Management
-                if title.count('[') < 2 or title.count(']') < 2:
-                    cur_version = "N/A"
-                else:
-                    cur_version = title[title.find('[') + 1:title.find(']', title.find('[') + 1)].strip()
-                # Not Updated
-                if cur_version == globals.config["game_data"][name]["version"]:
-                    return
-                # Updated
-                if cur_version != "N/A":
-                    globals.updated_games.append({'name': name, 'old_version': globals.config["game_data"][name]["version"], 'new_version': cur_version})
-                globals.config["game_data"][name]["link"] = cur_link
-                globals.config["game_data"][name]["version"] = cur_version
-                if cur_version != "N/A":
-                    globals.config["game_data"][name]["updated_time"] = time.time()
-                    globals.config["game_data"][name]["installed"] = False
-                    globals.config["game_data"][name]["played"] = False
-                    globals.config["game_data"][name]["exe_path"] = ""
-                config_utils.save_config()
-                if cur_version != "N/A":
-                    globals.gui.game_list[name].update_details(highlight=True,
-                                                               installed=False,
-                                                               played=False,
-                                                               version=cur_version)
-                else:
-                    globals.gui.game_list[name].update_details(version=cur_version)
-                # Changelog Fetcher
-                if not changelog_fetched:
-                    try:
-                        try:
-                            async with globals.http.get(url='https://f95zone.to' + cur_link) as changelog2_req:
-                                text = await changelog2_req.text()
-                        except aiohttp.ClientConnectorError:
-                            await handle_no_internet()
-                            return
-                        assert text.startswith("<!DOCTYPE html>")
-                        page_html = BeautifulSoup(text, 'html.parser')
-                        if await check_f95zone_error(page_html):
-                            return
-                        if len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
-                            globals.config["game_data"][name]["status"] = 'completed'
-                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
-                            globals.config["game_data"][name]["status"] = 'onhold'
-                        elif len(page_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
-                            globals.config["game_data"][name]["status"] = 'abandoned'
-                        else:
-                            globals.config["game_data"][name]["status"] = 'none'
-                        config_utils.save_config()
-                        globals.gui.game_list[name].update_details(status=globals.config["game_data"][name]["status"])
-                        try:
-                            game_changelog = page_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-                        except AttributeError:
-                            game_changelog = page_html.select_one('b:-soup-contains("Change-Log") + br + div > div').get_text()
-                        game_changelog = game_changelog.replace('Spoiler', '')
-                        game_changes = game_changelog[:game_changelog.replace('\n', '', 69).find('\n')]
-                        try:
-                            while game_changes[-1] == '\n':
-                                game_changes = game_changes[:-1]
-                        except Exception:
-                            pass
-                        try:
-                            while game_changes[0] == '\n':
-                                game_changes = game_changes[1:]
-                        except Exception:
-                            pass
-                        changelog = game_changes
-                        while changelog.__contains__('\n\n\n'):
-                            changelog = changelog.replace('\n\n\n', '\n\n')
-                        globals.config["game_data"][name]["changelog"] = changelog
-                        config_utils.save_config()
-                        changelog_fetched = True
-                    except Exception:
-                        pass
-            # Retry Stuff
-            except Exception:
-                if retries >= globals.config["options"]["max_retries"]:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...\n\n{exc}')
-                    return
-                retries += 1
-                continue
+                async with globals.http.get(globals.tool_thread) as tool_req:
+                    text = await tool_req.text()
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                return
+            assert text.startswith("<!DOCTYPE html>")
+            tool_html = BeautifulSoup(text, 'html.parser')
             break
+        except Exception:
+            if retries >= globals.config["options"]["max_retries"]:
+                return
+            retries += 1
+    if await check_f95zone_error(tool_html, warn=True):
+        return
+    tool_title = tool_html.select_one('h1[class="p-title-value"]').find(text=True, recursive=False).strip()
+    tool_current = tool_title[tool_title.find('[') + 1:tool_title.find(']', tool_title.find('[') + 1)].strip()
+    tool_changelog = tool_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
+    tool_changelog = tool_changelog[tool_changelog.find(f'v{tool_current}'):tool_changelog.find(f'v{globals.version}', tool_changelog.find('\n', tool_changelog.find(f'v{tool_current}') + len(f'v{globals.version}')) + 1)]
+    tool_changelog = tool_changelog.replace('Spoiler', '').strip("\n")
+    # Ask to update
+    globals.checked_updates = True
+    if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{tool_changelog}"):
+        latest_url = tool_html.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
+        if globals.exec_type == "exe":
+            Popen(["update.exe", latest_url, "F95Checker.exe"])
+        elif globals.exec_type == "python" and globals.user_os == "windows":
+            os.system(f'start "" update.py "{latest_url}" "F95Checker.exe"')
+        elif globals.exec_type == "python" and globals.user_os == "linux":
+            Popen(["python3", "update.py", latest_url, "F95Checker.sh"])
+        else:
+            return
+        globals.loop.stop()
+        globals.loop.close()
+        sys.exit(0)
+        return
+
+
+# Game Checking
+async def check(game_id):
+    while globals.logging_in:
+        await asyncio.sleep(0.25)
+    if not globals.logged_in:
+        await login()
+    if not globals.logged_in:
+        return
+    retries = 0
+    while True:
+        try:
+            # Check for redirects
+            try:
+                async with globals.http.head(globals.config["games"][game_id]["link"]) as game_check_req:
+                    redirect = game_check_req.headers.get("location")
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                return
+
+            # Step Progress Bar
+            globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
+            if globals.gui.icon_progress:
+                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
+
+            # Not Updated
+            if not redirect:
+                return
+
+            # Updated
+            game_data = await get_game_data(redirect)
+            if not game_data:
+                return
+            old_version = globals.config["games"][game_id]["version"]
+
+            globals.config["games"][game_id]["name"]         = game_data["name"]
+            globals.config["games"][game_id]["version"]      = game_data["version"]
+            globals.config["games"][game_id]["status"]       = game_data["status"]
+            globals.config["games"][game_id]["installed"]    = False
+            globals.config["games"][game_id]["played"]       = False
+            globals.config["games"][game_id]["exe_path"]     = ""
+            globals.config["games"][game_id]["link"]         = game_data["link"]
+            globals.config["games"][game_id]["updated_time"] = time.time()
+            globals.config["games"][game_id]["changelog"]    = game_data["changelog"]
+            config_utils.save_config()
+
+            globals.updated_games.append({
+                'name': globals.config["games"][game_id]["name"],
+                'old_version': old_version,
+                'new_version': globals.config["games"][game_id]["version"]
+            })
+
+            globals.gui.game_list[game_id].update_details(name      = globals.config["games"][game_id]["name"],
+                                                          version   = globals.config["games"][game_id]["version"],
+                                                          status    = globals.config["games"][game_id]["status"],
+                                                          highlight = True,
+                                                          installed = False,
+                                                          played    = False,
+                                                          link      = globals.config["games"][game_id]["link"])
+        # Retry Stuff
+        except Exception:
+            if retries >= globals.config["options"]["max_retries"]:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {globals.config["games"][game_id]["name"]}...\n\n{exc}')
+                return
+            retries += 1
+            continue
+        break
+
+
+# Fetch game info
+async def get_game_data(link):
+    while globals.logging_in:
+        await asyncio.sleep(0.25)
+    if not globals.logged_in:
+        await login()
+    if not globals.logged_in:
+        return
+    retries = 0
+    while True:
+        try:
+            try:
+                async with globals.http.get(link) as thread_req:
+                    url = str(thread_req.url)
+                    text = await thread_req.text()
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                return
+            assert text.startswith("<!DOCTYPE html>")
+            thread_html = BeautifulSoup(text, 'html.parser')
+            if await check_f95zone_error(thread_html):
+                return
+
+            title = thread_html.select_one('h1[class="p-title-value"]').find(text=True, recursive=False).strip()
+            name = title[:title.find("[")].strip() if "[" in title else title.strip()
+            if title.count('[') >= 2 or title.count(']') >= 2:
+                version = title[title.find('[') + 1:title.find(']', title.find('[') + 1)].strip()
+            else:
+                version_item = thread_html.select_one('b:-soup-contains("Version")')
+                version = version_item.next_sibling if version_item else ""
+                if isinstance(version, NavigableString):
+                    version = str(version)
+                    version = version[2:] if version.startswith(": ") else version
+                else:
+                    version = "N/A"
+            if len(thread_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
+                status = 'completed'
+            elif len(thread_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
+                status = 'onhold'
+            elif len(thread_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
+                status = 'abandoned'
+            else:
+                status = 'none'
+            link = url
+            changelog = thread_html.select_one('b:-soup-contains("Changelog") + br + div > div')
+            if changelog is None:
+                changelog = thread_html.select_one('b:-soup-contains("Change-Log") + br + div > div')
+            if changelog is None:
+                changelog = ""
+            else:
+                changelog = changelog.get_text().replace('Spoiler', '')
+                changelog = changelog[:changelog.replace('\n', ' ', 69).find('\n')].strip("\n")
+                while "\n\n\n" in changelog:
+                    changelog = changelog.replace('\n\n\n', '\n\n')
+            return {
+                "name": name,
+                "version": version,
+                "status": status,
+                "link": link,
+                "changelog": changelog
+            }
+        # Retry Stuff
+        except Exception:
+            if retries >= globals.config["options"]["max_retries"]:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...\n\n{exc}')
+                return
+            retries += 1
+            continue
+        break

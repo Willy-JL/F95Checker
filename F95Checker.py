@@ -1,11 +1,11 @@
-import os
-import sys
-import json
-import asyncio
-import pathlib
-import tkinter as tk
-import tkinter.messagebox
 from functools import partial
+import tkinter.messagebox
+import tkinter as tk
+import pathlib
+import asyncio
+import json
+import sys
+import os
 
 
 # Handle dependencies import
@@ -36,14 +36,20 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '7.1h2'
-globals.login_url = "https://f95zone.to/login/login"
-globals.search_url = "https://f95zone.to/quicksearch"
-globals.notif_url = "https://f95zone.to/conversations/popup"
-globals.logged_in = False
-globals.logging_in = False
+globals.version = '8.0dev1'
+
+globals.domain      = "https://f95zone.to"
+globals.login_home  = globals.domain +  "/login/"
+globals.login_url   = globals.domain +  "/login/login"
+globals.search_url  = globals.domain +  "/quicksearch"
+globals.notif_url   = globals.domain +  "/conversations/popup"
+globals.alerts_page = globals.domain +  "/account/alerts"
+globals.inbox_page  = globals.domain +  "/conversations/"
+globals.tool_thread = globals.domain +  "/threads/44173/"
+globals.logged_in       = False
+globals.logging_in      = False
 globals.checked_updates = False
-globals.refreshing = False
+globals.refreshing      = False
 
 
 # OS Handling
@@ -99,7 +105,7 @@ except FileNotFoundError:
     globals.config = {}
     config_utils.init_config()
     if os.path.isfile(f'{globals.config_path}/config.ini'):
-        config_utils.migrate_legacy()
+        config_utils.migrate_legacy("pre7.0")
 
 
 # Populate interface
@@ -107,33 +113,32 @@ def setup_interface():
     # Game List section
     globals.gui.add_button.clicked.connect(callbacks.add_game)
     globals.gui.add_input.returnPressed.connect(callbacks.add_game)
-    for i, game in enumerate(globals.config["game_list"]):
-        config_utils.ensure_game_data(game)
+    for i, game_id in enumerate(globals.config["games"]):
 
-        globals.gui.game_list[game] = gui.GameContainer(alt=True if (i % 2) == 0 else False)
-        globals.gui.games_layout.addWidget(globals.gui.game_list[game])
-        globals.gui.game_list[game].update_details(name=game,
-                                                   status=globals.config["game_data"][game]["status"],
-                                                   version=globals.config["game_data"][game]["version"],
-                                                   highlight=not globals.config["game_data"][game]["played"],
-                                                   link=globals.config["game_data"][game]["link"])
-        globals.gui.game_list[game].open_button.mousePressEvent = partial(callbacks.open_game, game)
-        globals.gui.game_list[game].name.mousePressEvent = partial(callbacks.invoke_changelog, game)
-        globals.gui.game_list[game].installed_button.setChecked(globals.config["game_data"][game]["installed"])
-        globals.gui.game_list[game].installed_button.stateChanged.connect(partial(callbacks.set_installed, game))
-        globals.gui.game_list[game].played_button.setChecked(globals.config["game_data"][game]["played"])
-        globals.gui.game_list[game].played_button.stateChanged.connect(partial(callbacks.set_played, game))
-        globals.gui.game_list[game].remove_button.clicked.connect(partial(callbacks.remove_game, game))
-        if not globals.config["game_data"][game]["installed"]:
-            globals.config["game_data"][game]["played"] = False
-            globals.config["game_data"][game]["exe_path"] = ''
-            globals.gui.game_list[game].played_button.setChecked(False)
-            globals.gui.game_list[game].played_button.setEnabled(False)
-            globals.gui.game_list[game].open_button.setEnabled(False)
-            globals.gui.game_list[game].update_details(highlight=True)
+        globals.gui.game_list[game_id] = gui.GameContainer(alt=True if (i % 2) == 0 else False)
+        globals.gui.games_layout.addWidget(globals.gui.game_list[game_id])
+        globals.gui.game_list[game_id].update_details(name     =    globals.config["games"][game_id]["name"],
+                                                      status   =    globals.config["games"][game_id]["status"],
+                                                      version  =    globals.config["games"][game_id]["version"],
+                                                      highlight=not globals.config["games"][game_id]["played"],
+                                                      link     =    globals.config["games"][game_id]["link"])
+        globals.gui.game_list[game_id].open_button.mousePressEvent = partial(callbacks.open_game, game_id)
+        globals.gui.game_list[game_id].name.mousePressEvent = partial(callbacks.invoke_changelog, game_id)
+        globals.gui.game_list[game_id].installed_button.setChecked(globals.config["games"][game_id]["installed"])
+        globals.gui.game_list[game_id].installed_button.stateChanged.connect(partial(callbacks.set_installed, game_id))
+        globals.gui.game_list[game_id].played_button.setChecked(globals.config["games"][game_id]["played"])
+        globals.gui.game_list[game_id].played_button.stateChanged.connect(partial(callbacks.set_played, game_id))
+        globals.gui.game_list[game_id].remove_button.clicked.connect(partial(callbacks.remove_game, game_id))
+        if not globals.config["games"][game_id]["installed"]:
+            globals.config["games"][game_id]["played"] = False
+            globals.config["games"][game_id]["exe_path"] = ''
+            globals.gui.game_list[game_id].played_button.setChecked(False)
+            globals.gui.game_list[game_id].played_button.setEnabled(False)
+            globals.gui.game_list[game_id].open_button.setEnabled(False)
+            globals.gui.game_list[game_id].update_details(highlight=True)
         else:
-            globals.gui.game_list[game].played_button.setEnabled(True)
-            globals.gui.game_list[game].open_button.setEnabled(True)
+            globals.gui.game_list[game_id].played_button.setEnabled(True)
+            globals.gui.game_list[game_id].open_button.setEnabled(True)
         config_utils.save_config()
 
     # Refresh Button
@@ -188,7 +193,7 @@ def setup_interface():
         globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker Tester Build", None))
     else:
         globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker v{} by WillyJL".format(globals.version), None))
-    globals.gui.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, 'https://f95zone.to/threads/44173/')
+    globals.gui.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, globals.tool_thread)
 
 
 if __name__ == '__main__':
@@ -211,9 +216,9 @@ if __name__ == '__main__':
 
 
     # Setup GUIs
+    globals.settings = QtCore.QSettings("WillyJL", "F95Checker")
     globals.gui = gui.F95Checker_GUI()
     globals.app.setStyleSheet(globals.gui.get_stylesheet(globals.config["style"]))
-    globals.gui.resize(globals.config["options"]["width"], globals.config["options"]["height"])
     globals.tray = gui.F95Checker_Tray(globals.gui)
     globals.mode = "gui"
 
