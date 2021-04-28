@@ -35,6 +35,8 @@ def init_config():
     globals.config.setdefault("advanced", {})
     if True:
         globals.config["advanced"].setdefault("user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36")
+        globals.config["advanced"].setdefault("token",   "")
+        globals.config["advanced"].setdefault("cookies", {})
 
     globals.config.setdefault("games", {})
 
@@ -62,6 +64,9 @@ def ensure_game_attributes(game_id):
 
 
 def save_config(filename="f95checker.json"):
+    if globals.http:
+        for cookie in globals.http.cookie_jar:
+            globals.config["advanced"]["cookies"][str(cookie.key)] = str(cookie.value)
     pathlib.Path(globals.config_path).mkdir(parents=True, exist_ok=True)
     with open(f'{globals.config_path}/{filename}', 'w') as f:
         json.dump(globals.config, f, indent=4)

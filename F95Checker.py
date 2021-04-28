@@ -38,14 +38,15 @@ except ImportError as e:
 from modules import globals
 globals.version = '8.0dev1'
 
-globals.domain      = "https://f95zone.to"
-globals.login_home  = globals.domain +  "/login/"
-globals.login_url   = globals.domain +  "/login/login"
-globals.search_url  = globals.domain +  "/quicksearch"
-globals.notif_url   = globals.domain +  "/conversations/popup"
-globals.alerts_page = globals.domain +  "/account/alerts"
-globals.inbox_page  = globals.domain +  "/conversations/"
-globals.tool_thread = globals.domain +  "/threads/44173/"
+globals.domain          = "https://f95zone.to"
+globals.check_login_url = globals.domain +  "/account/"
+globals.login_home      = globals.domain +  "/login/"
+globals.login_url       = globals.domain +  "/login/login"
+globals.search_url      = globals.domain +  "/quicksearch"
+globals.notif_url       = globals.domain +  "/conversations/popup"
+globals.alerts_page     = globals.domain +  "/account/alerts"
+globals.inbox_page      = globals.domain +  "/conversations/"
+globals.tool_thread     = globals.domain +  "/threads/44173/"
 globals.logged_in       = False
 globals.logging_in      = False
 globals.checked_updates = False
@@ -211,7 +212,9 @@ if __name__ == '__main__':
     async def make_aiohttp_session():
         globals.http = aiohttp.ClientSession(headers={"user-agent": globals.config["advanced"]["user_agent"]},
                                              loop=globals.loop,
-                                             timeout=aiohttp.ClientTimeout(sock_read=5.0))
+                                             timeout=aiohttp.ClientTimeout(sock_read=5.0),
+                                             connector=aiohttp.TCPConnector(limit=0),
+                                             cookies=globals.config["advanced"]["cookies"])
     globals.loop.run_until_complete(make_aiohttp_session())
 
 

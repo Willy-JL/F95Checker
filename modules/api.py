@@ -44,7 +44,27 @@ async def login():
         return
     globals.logging_in = True
     retries = 0
-    if not globals.token:
+    while True:
+        try:
+            try:
+                async with globals.http.head(globals.check_login_url) as check_login_req:
+                    globals.logged_in = check_login_req.ok
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                config_utils.save_config()
+                globals.logging_in = False
+                return
+            break
+        except Exception:
+            if retries >= globals.config["options"]["max_retries"]:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
+                config_utils.save_config()
+                globals.logging_in = False
+                return
+            retries += 1
+    retries = 0
+    if not globals.config["advanced"]["token"]:
         while True:
             try:
                 try:
@@ -52,22 +72,30 @@ async def login():
                         text = await token_req.text()
                 except aiohttp.ClientConnectorError:
                     await handle_no_internet()
+                    config_utils.save_config()
                     globals.logging_in = False
                     return
                 assert text.startswith("<!DOCTYPE html>")
                 token_soup = BeautifulSoup(text, 'html.parser')
                 if await check_f95zone_error(token_soup, warn=True):
+                    config_utils.save_config()
                     globals.logging_in = False
                     return
-                globals.token = token_soup.select_one('input[name="_xfToken"]').get('value')
+                globals.config["advanced"]["token"] = token_soup.select_one('input[name="_xfToken"]').get('value')
+                config_utils.save_config()
                 break
             except Exception:
                 if retries >= globals.config["options"]["max_retries"]:
                     exc = "".join(traceback.format_exception(*sys.exc_info()))
                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
+                    config_utils.save_config()
                     globals.logging_in = False
                     return
                 retries += 1
+    if globals.logged_in:
+        config_utils.save_config()
+        globals.logging_in = False
+        return
     retries = 0
     while True:
         try:
@@ -75,6 +103,7 @@ async def login():
                 globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
                 config_utils.save_config()
                 if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
+                    config_utils.save_config()
                     globals.logging_in = False
                     return
             try:
@@ -87,12 +116,13 @@ async def login():
                     "remember": "1",
                     "_xfRedirect": globals.domain + "/",
                     "website_code": "",
-                    "_xfToken": globals.token
+                    "_xfToken": globals.config["advanced"]["token"]
                 }) as login_req:
                     if login_req.ok is False:
                         await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
+                config_utils.save_config()
                 globals.logging_in = False
                 return
         except Exception:
@@ -109,10 +139,12 @@ async def login():
             globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
             config_utils.save_config()
             if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
+                config_utils.save_config()
                 globals.logging_in = False
                 return
             continue
         break
+    config_utils.save_config()
     globals.logging_in = False
 
 
@@ -130,7 +162,7 @@ async def check_notifs():
             while True:
                 try:
                     try:
-                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
+                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.config["advanced"]["token"], "_xfResponseType": "json"}) as notif_req:
                             notif_json = await notif_req.json()
                     except aiohttp.ClientConnectorError:
                         await handle_no_internet()
