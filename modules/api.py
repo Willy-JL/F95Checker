@@ -18,12 +18,21 @@ def get_cookie(key: str):
 
 
 async def ask_creds():
-    globals.gui.login_gui = gui.LoginUI(globals.gui)
+    globals.gui.login_gui = gui.LoginGUI(globals.gui)
     globals.gui.login_gui.show()
     globals.gui.login_gui.setFixedSize(globals.gui.login_gui.size())
     while globals.gui.login_gui.isVisible():
         await asyncio.sleep(0.25)
     return globals.gui.login_gui.lineEdit.text(), globals.gui.login_gui.lineEdit_2.text()
+
+
+async def ask_two_step_code():
+    globals.gui.two_step_gui = gui.TwoStepGUI(globals.gui)
+    globals.gui.two_step_gui.show()
+    globals.gui.two_step_gui.setFixedSize(globals.gui.two_step_gui.size())
+    while globals.gui.two_step_gui.isVisible():
+        await asyncio.sleep(0.25)
+    return globals.gui.two_step_gui.lineEdit.text()
 
 
 async def check_f95zone_error(soup, warn=False):
@@ -96,7 +105,7 @@ async def login():
         config_utils.save_config()
         globals.logging_in = False
         return
-    retries = 0
+    retries_a = 0
     while True:
         try:
             if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
@@ -108,33 +117,33 @@ async def login():
                     return
             try:
                 async with globals.http.post(globals.login_url, data={
-                    "login": globals.config["credentials"]["username"],
-                    "url": "",
-                    "password": globals.config["credentials"]["password"],
-                    "password_confirm": "",
+                    "login":               globals.config["credentials"]["username"],
+                    "url":                 "",
+                    "password":            globals.config["credentials"]["password"],
+                    "password_confirm":    "",
                     "additional_security": "",
-                    "remember": "1",
-                    "_xfRedirect": globals.domain + "/",
-                    "website_code": "",
-                    "_xfToken": globals.token
+                    "remember":            "1",
+                    "_xfRedirect":         globals.domain + "/",
+                    "website_code":        "",
+                    "_xfToken":            globals.token
                 }) as login_req:
                     if login_req.ok is False:
                         await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
+                    login_redirects = login_req.history
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
                 config_utils.save_config()
                 globals.logging_in = False
                 return
         except Exception:
-            if retries >= globals.config["options"]["max_retries"]:
+            if retries_a >= globals.config["options"]["max_retries"]:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
                 break
-            retries += 1
+            retries_a += 1
             continue
-        if get_cookie('xf_session') is not None:
-            globals.logged_in = True
-        else:
+        # No redirects, bad credentials
+        if len(login_redirects) == 0:
             globals.logged_in = False
             globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
             config_utils.save_config()
@@ -143,7 +152,55 @@ async def login():
                 globals.logging_in = False
                 return
             continue
-        break
+
+        login_redirect = str(login_redirects[0].headers.get("location"))
+
+        # Redirect to 2FA page
+        if login_redirect.startswith(globals.two_step_url):
+            retries_b = 0
+            while True:
+                try:
+                    two_step_code = await ask_two_step_code()
+                    if two_step_code == "":
+                        config_utils.save_config()
+                        globals.logging_in = False
+                        return
+                    try:
+                        async with globals.http.post(globals.two_step_url, data={
+                            "code":            two_step_code,
+                            "trust":           "1",
+                            "confirm":         "1",
+                            "provider":        "totp",
+                            "remember":        "1",
+                            "_xfRedirect":     globals.domain + "/",
+                            "_xfWithData":     "1",
+                            "_xfToken":        globals.token,
+                            "_xfResponseType": "json"
+                        }) as two_step_req:
+                            two_step_result = (await two_step_req.json()).get("status")
+                    except aiohttp.ClientConnectorError:
+                        await handle_no_internet()
+                        config_utils.save_config()
+                        globals.logging_in = False
+                        return
+                except Exception:
+                    if retries_b >= globals.config["options"]["max_retries"]:
+                        exc = "".join(traceback.format_exception(*sys.exc_info()))
+                        await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
+                        break
+                    retries_b += 1
+                    continue
+                if two_step_result == "ok":
+                    globals.logged_in = True
+                    break
+                globals.logged_in = False
+                continue
+            break
+
+        # Good creds, no 2FA
+        if get_cookie('xf_session') is not None:
+            globals.logged_in = True
+            break
     config_utils.save_config()
     globals.logging_in = False
 

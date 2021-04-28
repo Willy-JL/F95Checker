@@ -42,7 +42,7 @@ globals.domain          = "https://f95zone.to"
 globals.check_login_url = globals.domain +  "/account/"
 globals.login_home      = globals.domain +  "/login/"
 globals.login_url       = globals.domain +  "/login/login"
-globals.search_url      = globals.domain +  "/quicksearch"
+globals.two_step_url    = globals.domain +  "/login/two-step"
 globals.notif_url       = globals.domain +  "/conversations/popup"
 globals.alerts_page     = globals.domain +  "/account/alerts"
 globals.inbox_page      = globals.domain +  "/conversations/"
@@ -220,9 +220,9 @@ if __name__ == '__main__':
 
     # Setup GUIs
     globals.settings = QtCore.QSettings("WillyJL", "F95Checker")
-    globals.gui = gui.F95Checker_GUI()
+    globals.gui = gui.F95CheckerGUI()
     globals.app.setStyleSheet(globals.gui.get_stylesheet(globals.config["style"]))
-    globals.tray = gui.F95Checker_Tray(globals.gui)
+    globals.tray = gui.F95CheckerTray(globals.gui)
     globals.mode = "gui"
 
     # Setup font awesome for icons

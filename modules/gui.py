@@ -25,7 +25,7 @@ def wrap_number(value, mod, maximum):
     return result
 
 
-class F95Checker_GUI(QMainWindow):
+class F95CheckerGUI(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowFlags())
         self.setWindowIcon(QIcon('resources/icons/icon.png'))
@@ -1100,7 +1100,7 @@ class ChangelogGUI(QWidget):
         event.accept()
 
 
-class LoginUI(QDialog):
+class LoginGUI(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
         self.setWindowIcon(QIcon('resources/icons/icon.png'))
@@ -1159,8 +1159,63 @@ class LoginUI(QDialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Login", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Please enter your F95Zone login credentials to continue...", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Username", None))
-        self.lineEdit_2.setText("")
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Password", None))
+    # retranslateUi
+
+    @asyncClose
+    async def closeEvent(self, event=None):
+        self.alive = False
+        self.accept()
+
+
+class TwoStepGUI(QDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
+        self.setupUi(self)
+
+    def setupUi(self, Dialog):
+        if not Dialog.objectName():
+            Dialog.setObjectName(u"Dialog")
+        Dialog.setSizeGripEnabled(False)
+        Dialog.setModal(True)
+        self.gridLayout = QGridLayout(Dialog)
+        self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setVerticalSpacing(10)
+        self.gridLayout.setContentsMargins(14, 12, 14, 12)
+        self.label_3 = QLabel(Dialog)
+        self.label_3.setObjectName(u"label_3")
+
+        self.gridLayout.addWidget(self.label_3, 0, 0, 1, 2)
+
+        self.lineEdit = QLineEdit(Dialog)
+        self.lineEdit.setObjectName(u"lineEdit")
+
+        self.gridLayout.addWidget(self.lineEdit, 1, 1, 1, 1)
+
+        self.label = QLabel(Dialog)
+        self.label.setObjectName(u"label")
+
+        self.gridLayout.addWidget(self.label, 1, 0, 1, 1)
+
+        self.buttonBox = QDialogButtonBox(Dialog)
+        self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.closeEvent)
+
+        self.gridLayout.addWidget(self.buttonBox, 2, 0, 1, 2)
+
+
+        self.retranslateUi(Dialog)
+
+        QMetaObject.connectSlotsByName(Dialog)
+    # setupUi
+
+    def retranslateUi(self, Dialog):
+        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Login", None))
+        self.label_3.setText(QCoreApplication.translate("Dialog", u"Please enter your two step (2FA) code to continue...", None))
+        self.label.setText(QCoreApplication.translate("Dialog", u"Code", None))
     # retranslateUi
 
     @asyncClose
@@ -1249,7 +1304,7 @@ class InfoPopup(QMessageBox):
             return True
 
 
-class F95Checker_Tray(QSystemTrayIcon):
+class F95CheckerTray(QSystemTrayIcon):
     def __init__(self, parent=None):
         self.bg_loop_task = None
         self.idle_icon = QIcon('resources/icons/icon.png')
