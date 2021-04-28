@@ -21,6 +21,7 @@ notif_url         = None
 refreshing        = None
 search_url        = None
 singleton         = None
+token             = None
 tool_thread       = None
 tray              = None
 updated_games     = None

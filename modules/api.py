@@ -64,7 +64,7 @@ async def login():
                 return
             retries += 1
     retries = 0
-    if not globals.config["advanced"]["token"]:
+    if not globals.token:
         while True:
             try:
                 try:
@@ -81,7 +81,7 @@ async def login():
                     config_utils.save_config()
                     globals.logging_in = False
                     return
-                globals.config["advanced"]["token"] = token_soup.select_one('input[name="_xfToken"]').get('value')
+                globals.token = token_soup.select_one('input[name="_xfToken"]').get('value')
                 config_utils.save_config()
                 break
             except Exception:
@@ -116,7 +116,7 @@ async def login():
                     "remember": "1",
                     "_xfRedirect": globals.domain + "/",
                     "website_code": "",
-                    "_xfToken": globals.config["advanced"]["token"]
+                    "_xfToken": globals.token
                 }) as login_req:
                     if login_req.ok is False:
                         await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
@@ -162,7 +162,7 @@ async def check_notifs():
             while True:
                 try:
                     try:
-                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.config["advanced"]["token"], "_xfResponseType": "json"}) as notif_req:
+                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
                             notif_json = await notif_req.json()
                     except aiohttp.ClientConnectorError:
                         await handle_no_internet()
