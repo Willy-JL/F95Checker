@@ -397,7 +397,10 @@ def open_game(game_id, event):
         config_utils.save_config()
     if globals.config["games"][game_id]["exe_path"]:
         if event.button() == QtCore.Qt.LeftButton:
-            Popen([globals.config["games"][game_id]["exe_path"]])
+            try:
+                Popen([globals.config["games"][game_id]["exe_path"]])
+            except Exception:
+                globals.loop.create_task(gui.WarningPopup.open(globals.gui, "Error", "Something went wrong launching this game, it was probably moved or deleted.\n\nYou can unset the executable path by toggling the installed checkbox!"))
         elif event.button() == QtCore.Qt.RightButton and globals.user_os == "windows":
             path = globals.config["games"][game_id]["exe_path"]
             path = path[:path.rfind("/")].replace("/", "\\")
