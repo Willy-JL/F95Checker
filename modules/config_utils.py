@@ -64,6 +64,7 @@ def ensure_game_attributes(game_id):
 
 def save_config(filename="f95checker.json"):
     if globals.http:
+        globals.config["advanced"]["cookies"] = {}
         for cookie in globals.http.cookie_jar:
             globals.config["advanced"]["cookies"][str(cookie.key)] = str(cookie.value)
     pathlib.Path(globals.config_path).mkdir(parents=True, exist_ok=True)
