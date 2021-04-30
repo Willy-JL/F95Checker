@@ -46,12 +46,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.0**: [Download v8.0 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0/F95CheckerV8.0.zip)
+**8.0h1**: [Download v8.0h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0h1/F95CheckerV8.0h1.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.0**: [Download v8.0 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0/F95CheckerV8.0.zip)
 
 **7.1h2**: [Download v7.1h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.1h2/F95CheckerV7.1h2.zip)
 
@@ -185,6 +187,11 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.0h1</summary>
+
+   - FIXED: an issue with enabling 2FA while the tool is open
+</details>
 <details>
   <summary>v8.0</summary>
 
