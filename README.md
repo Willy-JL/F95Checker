@@ -7,22 +7,24 @@ An update checker tool for (NSFW) games on the [F95Zone](https://f95zone.to/) pl
 
 
 ## Features:
- - Insane speed™
+ - Blazing fast™ and reliable
  - Beautiful GUI
  - Very easy to setup and use
+ - 2FA accounts supported
  - Track what versions you installed and played
  - Launch games straight from the tool
- - Alert and Inbox checker
+ - Alert and inbox checker
  - See changelogs
  - See game statuses (completed, on hold, abandoned)
- - Auto Sorting
+ - Write some notes for the games
+ - Auto sorting
  - Auto updating
  - Theme support
- - Background Mode
+ - Background mode
 
 
 ## Compatibility:
-Made with Python 3.8.8 for Windows, has compatibility layer for Linux. If you want this for Mac let me know
+Made with Python 3.8.8 for Windows, has compatibility layer for Linux. My daily is a Windows machine so I will try to help you with issues on Linux but I won't go too out of my way to do that... to be fair if you're on Linux, chances are you're somewhat experienced. If you want this for Mac let me know
 
 
 ## Installation:
@@ -44,12 +46,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**7.1h2**: [Download v7.1h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.1h2/F95CheckerV7.1h2.zip)
+**8.0**: [Download v8.0 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0/F95CheckerV8.0.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**7.1h2**: [Download v7.1h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.1h2/F95CheckerV7.1h2.zip)
 
 **7.1h1**: [Download v7.1h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/7.1h1/F95CheckerV7.1h1.zip)
 
@@ -126,7 +130,7 @@ Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/441
  - Remove games with the edit mode button on the right
  - Check for updates with the HUGE "Refresh!" button
  - If a game was updated you will get a messagebox telling you
- - Click on a game's name to view it's changelog
+ - Click on a game's name to view it's changelog or add some notes to it
  - Open a game by clicking the play button on the left
  - Right click the play button to open the install folder of the game
  - Open a webpage by clicking the "arrow square thingy" on the right
@@ -144,36 +148,34 @@ Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/441
 
 #### What the settings do:
  - **Open Pages as Saved HTML**: when you open a webpage it will be first downloaded and then opened as an html file; this is useful because it allows you to view links and spoilers without logging in on the browser
- - **Max Retries per Request**: how many times a web request to F95Zone will be retried before failing
  - **Auto Sort**: how the game list will get sorted
+ - **Max Retries per Request**: how many times a web request to F95Zone will be retried before failing
+ - **Max Threads per Request**: how many threads will be used to refresh, generally speaking should be same or higher than the count of games you have; just leaving it at 100 will let it adjust as needed
  - **BG Refresh Interval (min)**: interval between background mode refreshes in minutes
 
 
 ## How it works:
 First of all this script was written in Python 3.8.8, makes use of the aiohttp package to make HTTP requests and runs on the PyQt5 window engine, assisted by qasync to work with asyncio loops.
  - Creates a session to keep cookies alive through search requests.
- - Logs into an account (this is necessary to be able to search for games since links change upon updates).
- - Searches for each game individually with a quicksearch request.
- - Grabs the version from the game title.
- - Compares the version number with the one from the previously saved data.
- - If a game was updated, requests the game thread and identifies the changelog and status.
+ - Logs into an account (this is necessary to view spoilers / link and to check alerts / inbox).
+ - Checks if the link to a game changed (usually the version tag in the thread title changes).
+ - If the link changed it loads the thread and grabs new game info.
+ - If 1 game or more were updated it notifies you with a messagebox.
 
 
 ## Planned Features Tracker:
 
 #### Next Update:
- - Improve Linux support
+ - Search through your game list
+ - Add games by searching for best name match
 
 #### Soon:
  - Add multiple games with one add
- - Edit name upon not found error
- - Notes button to add comments to a certain game
  - Filter games based on status and other criteria
 
 #### Future:
 
- - Top / bottom of list shortcuts
- - Letter shortcuts
+ - Add image stuff somehow
 
 #### Far Future:
  - Possibly Mac support, if there's demand for it
@@ -183,6 +185,25 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.0</summary>
+
+   - Switched to HEAD requests:
+     - MUCH faster
+     - No more issues with games not being found
+     - Support any kind of thread (non game threads wont have accurate versions / changelogs, you'll just get notified when the link changes)
+     - Restructured the config file, will auto adapt (7.x compatible saved as "pre8.0.json")
+     - Max threads are now 999, default 100, will auto adjust to game count (just leave it at 100 if youre unsure)
+   - Added 2FA account support
+   - Added a notes section to the changelog screen
+   - Persistent cookies + login, tool won't need to login every time, 2FA login should last 30 days
+   - Added proper window geometry persistency, will remember size and position
+   - When opening the GUI it will now appear on top even if you clicked something else while it was loading
+   - Added some placeholder text in a few places to clear some things up
+   - Changed styling for the tray icon right click menu, now has a gradient and better margins
+   - More reliable overall
+   - Many other minor refinements and fixes
+</details>
 <details>
   <summary>v7.1h2</summary>
 
@@ -518,4 +539,5 @@ Please do! I poured my heart and soul into this tool and hearing suggestions or 
 
 
 ## Thanks:
-**Huge thanks to [AtotehZ](https://f95zone.to/members/840616/), [GrammerCop](https://f95zone.to/members/2114990/), [abada25](https://f95zone.to/members/1679118/), [d_pedestrian](https://f95zone.to/members/2616862/), [yohudood](https://f95zone.to/members/26049/), [SmurfyBlue](https://f95zone.to/members/671/), [bitogno](https://f95zone.to/members/605466/), [MillenniumEarl](https://f95zone.to/members/1470797/), [unroot](https://f95zone.to/members/1585550/) and [DarK x Duke](https://f95zone.to/members/1852502/) for the continued support and suggestions!**
+**Huge props to [ploper26](https://f95zone.to/members/1295524/) for suggesting HEAD requests instead of quicksearches!**
+**Huge thanks to [AtotehZ](https://f95zone.to/members/840616/), [abada25](https://f95zone.to/members/1679118/), [GrammerCop](https://f95zone.to/members/2114990/), [d_pedestrian](https://f95zone.to/members/2616862/), [yohudood](https://f95zone.to/members/26049/), [SmurfyBlue](https://f95zone.to/members/671/), [bitogno](https://f95zone.to/members/605466/), [MillenniumEarl](https://f95zone.to/members/1470797/), [unroot](https://f95zone.to/members/1585550/) and [DarK x Duke](https://f95zone.to/members/1852502/) for the continued support and suggestions!**
