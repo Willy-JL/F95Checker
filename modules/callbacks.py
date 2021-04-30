@@ -442,7 +442,7 @@ async def refresh(*kw):
         globals.gui.icon_progress.setValue(2)
 
     if globals.config["options"]["refresh_threads"] >= 100 and len(globals.config["games"]) >= 100:
-        globals.gui.threads_input.setValue(len(globals.config["games"]))
+        globals.gui.threads_input.setValue(len(globals.config["games"]) + 2)
 
     if globals.logged_in:
 
