@@ -274,7 +274,7 @@ async def check_for_updates():
         try:
             try:
                 async with globals.http.head(globals.tool_thread) as check_req:
-                    tool_url = check_req.headers.get("location")
+                    tool_url = str(check_req.headers.get("location"))
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
                 return
@@ -284,6 +284,29 @@ async def check_for_updates():
                 return
             retries += 1
     tool_version_flag = globals.version.replace(".", "-") + "-willyjl."
+    if tool_url.startswith(globals.login_home):
+        # Login required
+        globals.logged_in = False
+        while globals.logging_in:
+            await asyncio.sleep(0.25)
+        if not globals.logged_in:
+            await login()
+        if not globals.logged_in:
+            return
+        retries = 0
+        while True:
+            try:
+                try:
+                    async with globals.http.head(globals.tool_thread) as check_req:
+                        tool_url = str(check_req.headers.get("location"))
+                except aiohttp.ClientConnectorError:
+                    await handle_no_internet()
+                    return
+                break
+            except Exception:
+                if retries >= globals.config["options"]["max_retries"]:
+                    return
+                retries += 1
     if tool_version_flag in tool_url:
         # No update found
         return
@@ -354,6 +377,21 @@ async def check(game_id):
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
                 return
+            if str(redirect).startswith(globals.login_home):
+                # Login required
+                globals.logged_in = False
+                while globals.logging_in:
+                    await asyncio.sleep(0.25)
+                if not globals.logged_in:
+                    await login()
+                if not globals.logged_in:
+                    return
+                try:
+                    async with globals.http.head(globals.config["games"][game_id]["link"]) as game_check_req:
+                        redirect = game_check_req.headers.get("location")
+                except aiohttp.ClientConnectorError:
+                    await handle_no_internet()
+                    return
 
             # Step Progress Bar
             globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
