@@ -188,7 +188,7 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 <details>
   <summary>v8.0</summary>
 
-   - Switched to HEAD requests:
+   - Switched to HEAD requests (thanks ploper26!):
      - MUCH faster
      - No more issues with games not being found
      - Support any kind of thread (non game threads wont have accurate versions / changelogs, you'll just get notified when the link changes)
