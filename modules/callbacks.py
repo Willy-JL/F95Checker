@@ -48,18 +48,27 @@ async def remove_game(game_id, *kw):
 @asyncSlot()
 async def add_game(*kw):
     # Grab input text
-    link = globals.gui.add_input.text().strip()
-    if not link:
+    text = globals.gui.add_input.text().strip()
+    if not text:
         return
     globals.gui.add_input.setEnabled(False)
     globals.gui.add_button.setEnabled(False)
     # Only add if correct thread link
-    if not link.startswith(globals.domain + '/threads/'):
-        globals.gui.add_input.setEnabled(True)
-        globals.gui.add_button.setEnabled(True)
-        await gui.WarningPopup.open(globals.gui, 'Error!', 'Only valid thread links are supported!')
-        globals.gui.add_input.setFocus()
-        return
+    if text.startswith(globals.domain + '/threads/'):
+        link = text
+    else:
+        title, link = await api.find_game_from_search_term(text)  # FIXME: add failsafes and messagebox for confirmation
+        if not title:
+            globals.gui.add_input.setEnabled(True)
+            globals.gui.add_button.setEnabled(True)
+            await gui.WarningPopup.open(globals.gui, 'Error!', f'Couldn\'t find {text}!')
+            globals.gui.add_input.setFocus()
+            return
+        if not await gui.QuestionPopup.ask(globals.gui, f'Adding "{text}" from search', f'Found:\n{title}', 'Is this what you meant?'):
+            globals.gui.add_input.setEnabled(True)
+            globals.gui.add_button.setEnabled(True)
+            globals.gui.add_input.setFocus()
+            return
 
     game_id = link[link.rfind('.')+1:link.rfind('/')]
 

@@ -7,6 +7,7 @@ import asyncio
 import aiohttp
 import time
 import sys
+import re
 import os
 
 
@@ -443,6 +444,50 @@ async def check(game_id):
         break
 
 
+async def find_game_from_search_term(search_term):
+    while globals.logging_in:
+        await asyncio.sleep(0.25)
+    if not globals.logged_in:
+        await login()
+    if not globals.logged_in:
+        return None, None
+    retries = 0
+    while True:
+        try:
+            try:
+                async with globals.http.post(globals.qsearch_endpoint, data={
+                    "title": search_term,
+                    "_xfToken": globals.token
+                }) as search_req:
+                    text = await search_req.text()
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                return None, None
+            assert text.startswith("<!DOCTYPE html>")
+            search_html = BeautifulSoup(text, 'html.parser')
+            if await check_f95zone_error(search_html):
+                return None, None
+
+            first_result = search_html.select_one('.quicksearch-wrapper-narrow table tr > td')
+
+            if not first_result:
+                return None, None
+
+            title = re.sub(r"\ +", " ", first_result.get_text().replace('\n', ' ')).strip()
+            link = globals.domain + first_result.select('span > a')[-1].get('href')
+            return title, link
+
+        # Retry Stuff
+        except Exception:
+            if retries >= globals.config["options"]["max_retries"]:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong searching {search_term}...\n\n{exc}')
+                return None, None
+            retries += 1
+            continue
+        break
+
+
 # Fetch game info
 async def get_game_data(link):
     while globals.logging_in:
@@ -451,6 +496,7 @@ async def get_game_data(link):
         await login()
     if not globals.logged_in:
         return
+    name = ""
     retries = 0
     while True:
         try:
