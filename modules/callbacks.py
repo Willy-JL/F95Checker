@@ -185,7 +185,7 @@ async def sort_games():
         keys = []
         for item in globals.config["games"]:
             keys.append(item)
-        keys.sort(key=lambda x: globals.config["games"][x]["updated_time"])
+        keys.sort(key=lambda x: globals.config["games"][x]["add_time"])
         globals.config["sorting"] = globals.config["games"]
         globals.config["games"] = {}
         for item in keys:
@@ -195,7 +195,7 @@ async def sort_games():
         keys = []
         for item in globals.config["games"]:
             keys.append(item)
-        keys.sort()
+        keys.sort(key=lambda x: globals.config["games"][x]["name"])
         globals.config["sorting"] = globals.config["games"]
         globals.config["games"] = {}
         for item in keys:
