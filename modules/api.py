@@ -504,8 +504,11 @@ async def get_game_data(link):
                 async with globals.http.get(link) as thread_req:
                     url = str(thread_req.url)
                     text = await thread_req.text()
+                    thread_req_ok = thread_req.ok
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
+                return
+            if not thread_req_ok:
                 return
             assert text.startswith("<!DOCTYPE html>")
             thread_html = BeautifulSoup(text, 'html.parser')
