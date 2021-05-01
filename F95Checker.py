@@ -38,15 +38,17 @@ except ImportError as e:
 from modules import globals
 globals.version = '8.0h1'
 
-globals.domain          = "https://f95zone.to"
-globals.check_login_url = globals.domain +  "/account/"
-globals.login_home      = globals.domain +  "/login/"
-globals.login_url       = globals.domain +  "/login/login"
-globals.two_step_url    = globals.domain +  "/login/two-step"
-globals.notif_url       = globals.domain +  "/conversations/popup"
-globals.alerts_page     = globals.domain +  "/account/alerts"
-globals.inbox_page      = globals.domain +  "/conversations/"
-globals.tool_thread     = globals.domain +  "/threads/44173/"
+globals.domain            = "https://f95zone.to"
+globals.check_login_page  = globals.domain +  "/account/"
+globals.login_page        = globals.domain +  "/login/"
+globals.login_endpoint    = globals.domain +  "/login/login"
+globals.two_step_endpoint = globals.domain +  "/login/two-step"
+globals.notif_endpoint    = globals.domain +  "/conversations/popup"
+globals.qsearch_endpoint  = globals.domain +  "/quicksearch"
+globals.alerts_page       = globals.domain +  "/account/alerts/"
+globals.inbox_page        = globals.domain +  "/conversations/"
+globals.tool_page         = globals.domain +  "/threads/44173/"
+
 globals.logged_in       = False
 globals.logging_in      = False
 globals.checked_updates = False
@@ -195,7 +197,7 @@ def setup_interface():
         globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker Tester Build", None))
     else:
         globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker v{} by WillyJL".format(globals.version), None))
-    globals.gui.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, globals.tool_thread)
+    globals.gui.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, globals.tool_page)
 
 
 if __name__ == '__main__':

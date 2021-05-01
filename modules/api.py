@@ -56,7 +56,7 @@ async def login():
     while True:
         try:
             try:
-                async with globals.http.head(globals.check_login_url) as check_login_req:
+                async with globals.http.head(globals.check_login_page) as check_login_req:
                     globals.logged_in = check_login_req.ok
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
@@ -77,7 +77,7 @@ async def login():
         while True:
             try:
                 try:
-                    async with globals.http.get(globals.login_home) as token_req:
+                    async with globals.http.get(globals.login_page) as token_req:
                         text = await token_req.text()
                 except aiohttp.ClientConnectorError:
                     await handle_no_internet()
@@ -116,7 +116,7 @@ async def login():
                     globals.logging_in = False
                     return
             try:
-                async with globals.http.post(globals.login_url, data={
+                async with globals.http.post(globals.login_endpoint, data={
                     "login":               globals.config["credentials"]["username"],
                     "url":                 "",
                     "password":            globals.config["credentials"]["password"],
@@ -156,7 +156,7 @@ async def login():
         login_redirect = str(login_redirects[0].headers.get("location"))
 
         # Redirect to 2FA page
-        if login_redirect.startswith(globals.two_step_url):
+        if login_redirect.startswith(globals.two_step_endpoint):
             retries_b = 0
             while True:
                 try:
@@ -166,7 +166,7 @@ async def login():
                         globals.logging_in = False
                         return
                     try:
-                        async with globals.http.post(globals.two_step_url, data={
+                        async with globals.http.post(globals.two_step_endpoint, data={
                             "code":            two_step_code,
                             "trust":           "1",
                             "confirm":         "1",
@@ -219,7 +219,7 @@ async def check_notifs():
             while True:
                 try:
                     try:
-                        async with globals.http.get(globals.notif_url, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
+                        async with globals.http.get(globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
                             notif_json = await notif_req.json()
                     except aiohttp.ClientConnectorError:
                         await handle_no_internet()
@@ -273,7 +273,7 @@ async def check_for_updates():
     while True:
         try:
             try:
-                async with globals.http.head(globals.tool_thread) as check_req:
+                async with globals.http.head(globals.tool_page) as check_req:
                     tool_url = str(check_req.headers.get("location"))
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
@@ -284,7 +284,7 @@ async def check_for_updates():
                 return
             retries += 1
     tool_version_flag = globals.version.replace(".", "-") + "-willyjl."
-    if tool_url.startswith(globals.login_home):
+    if tool_url.startswith(globals.login_page):
         # Login required
         globals.logged_in = False
         while globals.logging_in:
@@ -297,7 +297,7 @@ async def check_for_updates():
         while True:
             try:
                 try:
-                    async with globals.http.head(globals.tool_thread) as check_req:
+                    async with globals.http.head(globals.tool_page) as check_req:
                         tool_url = str(check_req.headers.get("location"))
                 except aiohttp.ClientConnectorError:
                     await handle_no_internet()
@@ -322,7 +322,7 @@ async def check_for_updates():
     while True:
         try:
             try:
-                async with globals.http.get(globals.tool_thread) as tool_req:
+                async with globals.http.get(globals.tool_page) as tool_req:
                     text = await tool_req.text()
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
@@ -377,7 +377,7 @@ async def check(game_id):
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
                 return
-            if str(redirect).startswith(globals.login_home):
+            if str(redirect).startswith(globals.login_page):
                 # Login required
                 globals.logged_in = False
                 while globals.logging_in:

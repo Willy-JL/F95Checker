@@ -1324,7 +1324,7 @@ class F95CheckerTray(QSystemTrayIcon):
 
         # Watermark item
         self.watermark = QAction(f"F95Checker v{globals.version}")
-        self.watermark.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.tool_thread))
+        self.watermark.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.tool_page))
         self.idle_menu.addAction(self.watermark)
         self.paused_menu.addAction(self.watermark)
         self.refresh_menu.addAction(self.watermark)
