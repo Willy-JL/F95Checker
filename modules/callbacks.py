@@ -126,6 +126,19 @@ async def add_game(*kw):
     QtCore.QTimer.singleShot(100, lambda: globals.gui.games_section.verticalScrollBar().setSliderPosition(globals.gui.games_section.verticalScrollBar().maximum()))
 
 
+def add_input_text_edited(text):
+    for item in globals.gui.game_list:
+        globals.gui.games_layout.removeWidget(globals.gui.game_list[item])
+        globals.gui.game_list[item].setVisible(False)
+    i = 0
+    for item in globals.config["games"]:
+        if text.lower() in globals.config["games"][item]["name"].lower() or text.lower() in globals.config["games"][item]["version"].lower() or (text.lower() in globals.config["games"][item]["status"] and globals.config["games"][item]["status"] != 'none'):
+            globals.gui.games_layout.insertWidget(i, globals.gui.game_list[item])
+            globals.gui.game_list[item].setVisible(True)
+            globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
+            i += 1
+
+
 @asyncSlot()
 async def set_browser(new_browser, *kw):
     for browser_name in browsers.BROWSER_LIST:
