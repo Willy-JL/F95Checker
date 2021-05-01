@@ -76,7 +76,7 @@ class F95CheckerGUI(QMainWindow):
         self.horizontalLayout_2.setContentsMargins(3, 0, 3, 3)
         self.add_input = QLineEdit(self.add_section)
         self.add_input.setObjectName(u"add_input")
-        self.add_input.setPlaceholderText("Paste links to game threads in here!")
+        self.add_input.setPlaceholderText("Type here to filter game list, press enter to add game (thread link / search term)!")
 
         self.horizontalLayout_2.addWidget(self.add_input)
 
