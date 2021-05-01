@@ -116,7 +116,7 @@ def setup_interface():
     # Game List section
     globals.gui.add_button.clicked.connect(callbacks.add_game)
     globals.gui.add_input.returnPressed.connect(callbacks.add_game)
-    globals.gui.add_input.textEdited.connect(callbacks.add_input_text_edited)
+    globals.gui.add_input.textChanged.connect(callbacks.add_input_text_edited)
     for i, game_id in enumerate(globals.config["games"]):
 
         globals.gui.game_list[game_id] = gui.GameContainer(alt=True if (i % 2) == 0 else False)
