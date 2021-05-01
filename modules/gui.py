@@ -428,7 +428,11 @@ QLabel#status_abandoned {
     color: #DD3333
 }
 
-QFrame#game_container_frame_alt, QFrame#game_container_frame_alt QPushButton, QFrame#game_container_frame_alt QLabel#name, QFrame#game_container_frame_alt QLabel#version, QFrame#game_container_frame_alt QLabel#status, QFrame#game_container_frame_alt QCheckBox, QFrame#game_container_frame_alt QCheckBox::indicator:unchecked {
+QFrame#game_container_frame_alt QLabel#status, QFrame#game_container_frame_alt QLabel#status_completed, QFrame#game_container_frame_alt QLabel#status_onhold, QFrame#game_container_frame_alt QLabel#status_abandoned {
+    background: """+style['alt']+"""
+}
+
+QFrame#game_container_frame_alt, QFrame#game_container_frame_alt QPushButton, QFrame#game_container_frame_alt QLabel#name, QFrame#game_container_frame_alt QLabel#version, QFrame#game_container_frame_alt QCheckBox, QFrame#game_container_frame_alt QCheckBox::indicator:unchecked {
     background: """+style['alt']+""";
     color: """+font_alt+"""
 }
