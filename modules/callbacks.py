@@ -140,12 +140,21 @@ def add_input_text_edited(text):
         globals.gui.games_layout.removeWidget(globals.gui.game_list[item])
         globals.gui.game_list[item].setVisible(False)
     i = 0
-    for item in globals.config["games"]:
-        if text.lower() in globals.config["games"][item]["name"].lower() or text.lower() in globals.config["games"][item]["version"].lower() or (text.lower() in globals.config["games"][item]["status"] and globals.config["games"][item]["status"] != 'none'):
-            globals.gui.games_layout.insertWidget(i, globals.gui.game_list[item])
-            globals.gui.game_list[item].setVisible(True)
-            globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
-            i += 1
+    if text.startswith(globals.domain + '/threads/'):
+        game_id = text[text.rfind('.')+1:text.rfind('/')]
+        for item in globals.config["games"]:
+            if item == game_id:
+                globals.gui.games_layout.insertWidget(i, globals.gui.game_list[item])
+                globals.gui.game_list[item].setVisible(True)
+                globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
+                i += 1
+    else:
+        for item in globals.config["games"]:
+            if text.lower() in globals.config["games"][item]["name"].lower() or text.lower() in globals.config["games"][item]["version"].lower() or (text.lower() in globals.config["games"][item]["status"] and globals.config["games"][item]["status"] != 'none'):
+                globals.gui.games_layout.insertWidget(i, globals.gui.game_list[item])
+                globals.gui.game_list[item].setVisible(True)
+                globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
+                i += 1
 
 
 @asyncSlot()
