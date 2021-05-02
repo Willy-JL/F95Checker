@@ -46,12 +46,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.0h1**: [Download v8.0h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0h1/F95CheckerV8.0h1.zip)
+**8.1**: [Download v8.1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.1/F95CheckerV8.1.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.0h1**: [Download v8.0h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0h1/F95CheckerV8.0h1.zip)
 
 **8.0**: [Download v8.0 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0/F95CheckerV8.0.zip)
 
@@ -187,6 +189,15 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.1</summary>
+
+   - NEW: filter / search game list by typing in the add box
+   - NEW: add games by searching for the name in the add box; will take first result from website's quicksearch
+   - FIXED: alphabetical and first added sortings work now
+   - FIXED: status badges on alternate rows now have correct background color
+   - FIXED: pasting an incomplete / bad link will not add the game
+</details>
 <details>
   <summary>v8.0h1</summary>
 
