@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from subprocess import Popen
 from PIL import Image
 import traceback
+import pathlib
 import asyncio
 import aiohttp
 import time
@@ -568,6 +569,7 @@ async def download_game_image(source, game_id):
             continue
         break
     img = Image.open(io.BytesIO(img_bytes))
+    pathlib.Path(f'{globals.config_path}/images').mkdir(parents=True, exist_ok=True)
     img.save(f'{globals.config_path}/images/{game_id}.png', "PNG")
 
 
