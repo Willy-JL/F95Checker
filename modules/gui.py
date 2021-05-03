@@ -397,7 +397,7 @@ class F95CheckerGUI(QMainWindow):
         globals.settings.setValue("windowState", self.saveState())
 
     def update_image_overlay(self, game_id):
-        """Update image overlay with png from config location"""
+        """Update image overlay with jpg from config location"""
         self.image_overlay.setFixedSize(self.refresh_button.size())
         pixmap = QPixmap(self.image_overlay.size())
         painter = QPainter(pixmap)
@@ -406,7 +406,7 @@ class F95CheckerGUI(QMainWindow):
         painter.drawRoundedRect(pixmap.rect(), globals.config["style"]["radius"]+3, globals.config["style"]["radius"]+3)
         painter.end()
         self.image_overlay.setMask(pixmap.createMaskFromColor(Qt.white))
-        pixmap = QPixmap(f'{globals.config_path}/images/{game_id}.png')
+        pixmap = QPixmap(f'{globals.config_path}/images/{game_id}.jpg')
         try:
             if pixmap.size().width() / pixmap.size().height() >= self.image_overlay.size().width() / self.image_overlay.size().height():
                 pixmap = pixmap.scaledToHeight(self.image_overlay.size().height())

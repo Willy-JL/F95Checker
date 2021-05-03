@@ -504,12 +504,14 @@ async def refresh(*kw):
     globals.gui.refresh_bar.setValue(1)
     if globals.gui.icon_progress:
         globals.gui.icon_progress.setValue(1)
+    globals.gui.refresh_bar.repaint()
 
     if not globals.logged_in:
         await api.login()
     globals.gui.refresh_bar.setValue(2)
     if globals.gui.icon_progress:
         globals.gui.icon_progress.setValue(2)
+    globals.gui.refresh_bar.repaint()
 
     if globals.config["options"]["refresh_threads"] >= 100:
         globals.gui.threads_input.setValue((len(globals.config["games"]) + 2) if len(globals.config["games"]) >= 98 else 100)
@@ -552,6 +554,7 @@ async def refresh(*kw):
         if details:
             details = details[:-2]
             await gui.InfoPopup.open(globals.gui, 'Updates', f'{len(globals.updated_games)-ignored} game{"" if (len(globals.updated_games)-ignored) == 1 else "s"} {"has" if (len(globals.updated_games)-ignored) == 1 else "have"} been updated:\n\n{details}')
+
     globals.refreshing = False
 
 

@@ -254,6 +254,7 @@ async def check_notifs():
             globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
             if globals.gui.icon_progress:
                 globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
+            globals.gui.refresh_bar.repaint()
             if alerts != 0 and inbox != 0:
                 if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {alerts + inbox} unread notifications ({alerts} alert{"s" if alerts > 1 else ""} and {inbox} conversation{"s" if inbox > 1 else ""}).', "Do you want to view them?"):
                     await browsers.open_webpage(globals.alerts_page)
@@ -405,13 +406,14 @@ async def check(game_id):
                     return
 
             # Fetch image if it was never downloaded
-            if not os.path.isfile(f'{globals.config_path}/images/{game_id}.png'):
+            if not os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
                 await download_game_image(globals.config["games"][game_id]["link"], game_id)
 
             # Step Progress Bar
             globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
             if globals.gui.icon_progress:
                 globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
+            globals.gui.refresh_bar.repaint()
 
             # Not Updated
             if not redirect:
@@ -504,7 +506,7 @@ async def find_game_from_search_term(search_term):
 
 
 async def download_game_image(source, game_id):
-    """Fetch header image and save as png"""
+    """Fetch header image and save as jpg"""
     if isinstance(source, str):
         link = source
         while globals.logging_in:
@@ -568,9 +570,9 @@ async def download_game_image(source, game_id):
             retries += 1
             continue
         break
-    img = Image.open(io.BytesIO(img_bytes))
+    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
     pathlib.Path(f'{globals.config_path}/images').mkdir(parents=True, exist_ok=True)
-    img.save(f'{globals.config_path}/images/{game_id}.png', "PNG")
+    img.save(f'{globals.config_path}/images/{game_id}.jpg', 'JPEG', optimize=True, quality=100)
 
 
 async def get_game_data(link):
