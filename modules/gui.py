@@ -1101,6 +1101,12 @@ class ChangelogGUI(QWidget):
         self.layout.setObjectName(u"layout")
         self.layout.setContentsMargins(9, 9, 9, 9)
 
+        self.header = QLabel(self)
+        self.header.setObjectName(u"header")
+        self.header.setAlignment(Qt.AlignCenter)
+
+        self.layout.addWidget(self.header)
+
         self.changelog = QPlainTextEdit(self)
         self.changelog.setObjectName(u"changelog")
         self.changelog.setFrameShape(QFrame.NoFrame)
@@ -1116,6 +1122,7 @@ class ChangelogGUI(QWidget):
         self.layout.addWidget(self.notes, 1)
 
         self.setWindowTitle(QCoreApplication.translate("Form", u"Changelog for {}".format(globals.config["games"][self.game_id]["name"]), None))
+        self.header.setPixmap(QPixmap(f'{globals.config_path}/images/{game_id}.jpg').scaledToHeight(200))
         self.changelog.setPlainText(globals.config["games"][self.game_id]["changelog"])
         self.notes.setPlainText(globals.config["games"][self.game_id]["notes"])
 
