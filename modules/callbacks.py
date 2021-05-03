@@ -324,6 +324,10 @@ async def set_delay(*kw):
 
 def invoke_changelog(game_id, *kw):
     """Show changelog callback"""
+    try:
+        globals.gui.changelog_gui.close()
+    except Exception:
+        pass
     globals.gui.changelog_gui = gui.ChangelogGUI(game_id)
     globals.gui.changelog_gui.show()
 
