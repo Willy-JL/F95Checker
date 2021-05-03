@@ -2,6 +2,7 @@ from modules import globals, config_utils, gui, browsers
 from bs4.element import NavigableString
 from bs4 import BeautifulSoup
 from subprocess import Popen
+from PIL import Image
 import traceback
 import asyncio
 import aiohttp
@@ -9,9 +10,11 @@ import time
 import sys
 import re
 import os
+import io
 
 
 def get_cookie(key: str):
+    """Fetch cookie value from http cookie jar"""
     for cookie in globals.http.cookie_jar:
         if cookie.key == key:
             return cookie.value
@@ -19,6 +22,7 @@ def get_cookie(key: str):
 
 
 async def ask_creds():
+    """Popup to get user login creds"""
     globals.gui.login_gui = gui.LoginGUI(globals.gui)
     globals.gui.login_gui.show()
     globals.gui.login_gui.setFixedSize(globals.gui.login_gui.size())
@@ -28,6 +32,7 @@ async def ask_creds():
 
 
 async def ask_two_step_code():
+    """Popup to get 2FA code"""
     globals.gui.two_step_gui = gui.TwoStepGUI(globals.gui)
     globals.gui.two_step_gui.show()
     globals.gui.two_step_gui.setFixedSize(globals.gui.two_step_gui.size())
@@ -37,6 +42,7 @@ async def ask_two_step_code():
 
 
 async def check_f95zone_error(soup, warn=False):
+    """Check page html for F95Zone server difficulties and optionally warn user"""
     if soup.select_one('h1:-soup-contains("F95Zone Connection Error")') and soup.select_one('p:-soup-contains("One of our webservers appears to be experiencing difficulties")'):
         if warn:
             await gui.WarningPopup.open(globals.gui, "Connection error", "F95Zone servers are experiencing connection difficulties, please retry in a few minutes")
@@ -44,12 +50,14 @@ async def check_f95zone_error(soup, warn=False):
 
 
 async def handle_no_internet():
+    """Warn user of connection issues"""
     if not globals.warned_connection:
         globals.warned_connection = True
         await gui.WarningPopup.open(globals.gui, "Can't connect!", "There was an error connecting to F95Zone, please check your internet connection!")
 
 
 async def login():
+    """Login to F95Zone, handles both creds and 2FA"""
     if globals.logging_in:
         return
     globals.logging_in = True
@@ -207,6 +215,7 @@ async def login():
 
 
 async def check_notifs():
+    """Fetch alert and inbox and prompt to view if any found"""
     retries_a = 0
     while globals.logging_in:
         await asyncio.sleep(0.25)
@@ -264,8 +273,8 @@ async def check_notifs():
         break
 
 
-
 async def check_for_updates():
+    """Update checker for the tool itself"""
     if globals.checked_updates:
         return
     if "tester" in globals.version or "dev" in globals.version:
@@ -360,8 +369,8 @@ async def check_for_updates():
         return
 
 
-# Game Checking
 async def check(game_id):
+    """Game checking"""
     while globals.logging_in:
         await asyncio.sleep(0.25)
     if not globals.logged_in:
@@ -393,6 +402,10 @@ async def check(game_id):
                 except aiohttp.ClientConnectorError:
                     await handle_no_internet()
                     return
+
+            # Fetch image if it was never downloaded
+            if not os.path.isfile(f'{globals.config_path}/images/{game_id}.png'):
+                await download_game_image(globals.config["games"][game_id]["link"], game_id)
 
             # Step Progress Bar
             globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
@@ -445,6 +458,7 @@ async def check(game_id):
 
 
 async def find_game_from_search_term(search_term):
+    """Run quicksearch and take first result if any"""
     while globals.logging_in:
         await asyncio.sleep(0.25)
     if not globals.logged_in:
@@ -488,8 +502,77 @@ async def find_game_from_search_term(search_term):
         break
 
 
-# Fetch game info
+async def download_game_image(source, game_id):
+    """Fetch header image and save as png"""
+    if isinstance(source, str):
+        link = source
+        while globals.logging_in:
+            await asyncio.sleep(0.25)
+        if not globals.logged_in:
+            await login()
+        if not globals.logged_in:
+            return
+        retries = 0
+        while True:
+            try:
+                try:
+                    async with globals.http.get(link) as thread_req:
+                        text = await thread_req.text()
+                        thread_req_ok = thread_req.ok
+                except aiohttp.ClientConnectorError:
+                    await handle_no_internet()
+                    return
+                if not thread_req_ok:
+                    return
+                assert text.startswith("<!DOCTYPE html>")
+                thread_html = BeautifulSoup(text, 'html.parser')
+                if await check_f95zone_error(thread_html):
+                    return
+            # Retry Stuff
+            except Exception:
+                if retries >= globals.config["options"]["max_retries"]:
+                    return
+                retries += 1
+                continue
+            break
+    else:
+        thread_html = source
+
+    img_elem = thread_html.select_one(".message-threadStarterPost .message-userContent img")
+    if not img_elem:
+        return
+    img_link = img_elem.get('data-src').replace("thumb/", "")
+    while globals.logging_in:
+        await asyncio.sleep(0.25)
+    if not globals.logged_in:
+        await login()
+    if not globals.logged_in:
+        return
+    retries = 0
+    while True:
+        try:
+            try:
+                async with globals.http.get(img_link) as img_req:
+                    img_bytes = await img_req.read()
+                    img_req_ok = img_req.ok
+            except aiohttp.ClientConnectorError:
+                await handle_no_internet()
+                return
+            if not img_req_ok:
+                return
+        # Retry Stuff
+        except Exception:
+            if retries >= globals.config["options"]["max_retries"]:
+                return
+            retries += 1
+            continue
+        break
+    img = Image.open(io.BytesIO(img_bytes))
+    img.save(f'{globals.config_path}/images/{game_id}.png', "PNG")
+
+
 async def get_game_data(link):
+    """Fetch game info"""
     while globals.logging_in:
         await asyncio.sleep(0.25)
     if not globals.logged_in:
@@ -546,6 +629,12 @@ async def get_game_data(link):
                 changelog = changelog[:changelog.replace('\n', ' ', 69).find('\n')].strip("\n")
                 while "\n\n\n" in changelog:
                     changelog = changelog.replace('\n\n\n', '\n\n')
+
+            # Only fetch image if adding the game or if update_image_on_game_update is enabled (enabled by default)
+            if not globals.refreshing or globals.config["options"]["update_image_on_game_update"]:
+                game_id = link[link.rfind('.')+1:link.rfind('/')]
+                await download_game_image(thread_html, game_id)
+
             return {
                 "name": name,
                 "version": version,

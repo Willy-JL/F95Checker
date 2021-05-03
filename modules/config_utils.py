@@ -5,6 +5,7 @@ import time
 
 
 def init_config():
+    """Fill in config with default values if they are missing"""
 
     globals.config.setdefault("credentials", {})
     if True:
@@ -13,14 +14,15 @@ def init_config():
 
     globals.config.setdefault("options", {})
     if True:
-        globals.config["options"].setdefault("browser",            ""    )
-        globals.config["options"].setdefault("private_browser",    True  )
-        globals.config["options"].setdefault("open_html",          True  )
-        globals.config["options"].setdefault("start_refresh",      False )
-        globals.config["options"].setdefault("auto_sort",          "none")
-        globals.config["options"].setdefault("max_retries",        3     )
-        globals.config["options"].setdefault("refresh_threads",    100   )
-        globals.config["options"].setdefault("bg_mode_delay_mins", 15    )
+        globals.config["options"].setdefault("browser",                     ""    )
+        globals.config["options"].setdefault("private_browser",             True  )
+        globals.config["options"].setdefault("open_html",                   True  )
+        globals.config["options"].setdefault("start_refresh",               False )
+        globals.config["options"].setdefault("auto_sort",                   "none")
+        globals.config["options"].setdefault("max_retries",                 3     )
+        globals.config["options"].setdefault("refresh_threads",             100   )
+        globals.config["options"].setdefault("bg_mode_delay_mins",          15    )
+        globals.config["options"].setdefault("update_image_on_game_update", True  )
 
     globals.config.setdefault("style", {})
     if True:
@@ -49,6 +51,7 @@ def init_config():
 
 
 def ensure_game_attributes(game_id):
+    """Add default values to game if they are missing"""
     globals.config["games"][game_id].setdefault("name",         "Unknown"  )
     globals.config["games"][game_id].setdefault("version",      ""         )
     globals.config["games"][game_id].setdefault("status",       ""         )
@@ -63,6 +66,7 @@ def ensure_game_attributes(game_id):
 
 
 def save_config(filename="f95checker.json"):
+    """Dump cookies and save config"""
     if globals.http:
         globals.config["advanced"]["cookies"] = {}
         for cookie in globals.http.cookie_jar:
@@ -73,6 +77,7 @@ def save_config(filename="f95checker.json"):
 
 
 def migrate_legacy(version):
+    """Migrate older config versions to current"""
 
     if version == "pre8.0":
         save_config("pre8.0.json")

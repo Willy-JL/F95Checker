@@ -9,8 +9,8 @@ import glob
 import os
 
 
-# Cleanup, save window size and exit
 async def exit_handler():
+    """Cleanup, save window size and config and then exit"""
     file_list = glob.glob('temp/f95checker*.html')
     for item in file_list:
         try:
@@ -35,6 +35,7 @@ async def exit_handler():
 
 @asyncSlot()
 async def remove_game(game_id, *kw):
+    """Remove game id from list"""
     del globals.config["games"][game_id]
     config_utils.save_config()
     globals.gui.games_layout.removeWidget(globals.gui.game_list[game_id])
@@ -47,6 +48,7 @@ async def remove_game(game_id, *kw):
 
 @asyncSlot()
 async def add_game(*kw):
+    """Try adding user input to game list, accept links and search terms"""
     # Grab input text
     text = globals.gui.add_input.text().strip()
     if not text:
@@ -57,7 +59,7 @@ async def add_game(*kw):
     if text.startswith(globals.domain + '/threads/'):
         link = text
     else:
-        title, link = await api.find_game_from_search_term(text)  # FIXME: add failsafes and messagebox for confirmation
+        title, link = await api.find_game_from_search_term(text)
         if not title:
             globals.gui.add_input.setEnabled(True)
             globals.gui.add_button.setEnabled(True)
@@ -106,6 +108,8 @@ async def add_game(*kw):
                                                   version  =    globals.config["games"][game_id]["version"],
                                                   highlight=not globals.config["games"][game_id]["played"],
                                                   link     =    globals.config["games"][game_id]["link"])
+    globals.gui.game_list[game_id].enterEvent = partial(show_image_overlay, game_id)
+    globals.gui.game_list[game_id].leaveEvent = hide_image_overlay
     globals.gui.game_list[game_id].open_button.mousePressEvent = partial(open_game, game_id)
     globals.gui.game_list[game_id].name.mousePressEvent = partial(invoke_changelog, game_id)
     globals.gui.game_list[game_id].installed_button.setChecked(globals.config["games"][game_id]["installed"])
@@ -136,6 +140,7 @@ async def add_game(*kw):
 
 
 def add_input_text_edited(text):
+    """Callback for editing text in add box, handle game list filtering"""
     for item in globals.gui.game_list:
         globals.gui.games_layout.removeWidget(globals.gui.game_list[item])
         globals.gui.game_list[item].setVisible(False)
@@ -159,6 +164,7 @@ def add_input_text_edited(text):
 
 @asyncSlot()
 async def set_browser(new_browser, *kw):
+    """Change selected browser"""
     for browser_name in browsers.BROWSER_LIST:
         if globals.gui.browser_buttons.get(browser_name):
             globals.gui.browser_buttons[browser_name].setObjectName(u"browser_button_selected" if browser_name == new_browser else u"browser_button")
@@ -169,24 +175,28 @@ async def set_browser(new_browser, *kw):
 
 @asyncSlot()
 async def set_private_browser(*kw):
+    """Private browser checkbox callback"""
     globals.config["options"]["private_browser"] = globals.gui.private_button.isChecked()
     config_utils.save_config()
 
 
 @asyncSlot()
 async def set_html(*kw):
+    """Saved html checkbox callback"""
     globals.config["options"]["open_html"] = globals.gui.saved_html_button.isChecked()
     config_utils.save_config()
 
 
 @asyncSlot()
 async def set_refresh(*kw):
+    """Start refresh checkbox callback"""
     globals.config["options"]["start_refresh"] = globals.gui.start_refresh_button.isChecked()
     config_utils.save_config()
 
 
 @asyncSlot()
 async def set_sorting(*kw):
+    """Auto sort combobox callback"""
     i = globals.gui.sort_input.currentIndex()
     if i == 0:
         globals.config["options"]["auto_sort"] = 'none'
@@ -200,8 +210,8 @@ async def set_sorting(*kw):
     await sort_games()
 
 
-# Sort game view and config
 async def sort_games():
+    """Sort game view and config"""
     if globals.config["options"]["auto_sort"] == 'last_updated':
         keys = []
         for item in globals.config["games"]:
@@ -244,18 +254,21 @@ async def sort_games():
 
 @asyncSlot()
 async def set_max_retries(*kw):
+    """Max retries spinbox callback"""
     globals.config["options"]["max_retries"] = globals.gui.retries_input.value()
     config_utils.save_config()
 
 
 @asyncSlot()
 async def set_refresh_threads(*kw):
+    """Refresh threads spinbox callback"""
     globals.config["options"]["refresh_threads"] = globals.gui.threads_input.value()
     config_utils.save_config()
 
 
 @asyncSlot()
 async def restore_default_style(*kw):
+    """Default style styler buton callback"""
     globals.config["style"] = {
         'back': '#181818',
         'alt': '#141414',
@@ -268,8 +281,8 @@ async def restore_default_style(*kw):
     update_style()
 
 
-# Refresh gui with new style
 def update_style(style_id=None):
+    """Refresh gui with new style"""
     # Config
     if style_id == 'radius':
         globals.config["style"][style_id] = globals.gui.style_gui.radius.value()
@@ -286,6 +299,7 @@ def update_style(style_id=None):
 
 @asyncSlot()
 async def invoke_styler(*kw):
+    """Show styler window"""
     globals.gui.style_gui = gui.StyleGUI()
     globals.gui.style_gui.radius.setValue(globals.config["style"]["radius"])
     # Assign click actions
@@ -303,17 +317,20 @@ async def invoke_styler(*kw):
 
 @asyncSlot()
 async def set_delay(*kw):
+    """BG interval spinbox callback"""
     globals.config["options"]["bg_mode_delay_mins"] = globals.gui.bg_refresh_input.value()
     config_utils.save_config()
 
 
 def invoke_changelog(game_id, *kw):
+    """Show changelog callback"""
     globals.gui.changelog_gui = gui.ChangelogGUI(game_id)
     globals.gui.changelog_gui.show()
 
 
 @asyncSlot()
 async def set_installed(game_id, *kw):
+    """Installed checkboxes callback"""
     globals.config["games"][game_id]["installed"] = globals.gui.game_list[game_id].installed_button.isChecked()
     if not globals.config["games"][game_id]["installed"]:
         globals.config["games"][game_id]["played"] = False
@@ -331,6 +348,7 @@ async def set_installed(game_id, *kw):
 
 @asyncSlot()
 async def set_played(game_id, *kw):
+    """Played checkboxes callback"""
     globals.config["games"][game_id]["played"] = globals.gui.game_list[game_id].played_button.isChecked()
     config_utils.save_config()
     globals.gui.game_list[game_id].update_details(highlight=not globals.config["games"][game_id]["played"])
@@ -338,6 +356,7 @@ async def set_played(game_id, *kw):
 
 @asyncSlot()
 async def toggle_edit_mode(*kw):
+    """Remove games edit button callback"""
     visible = not globals.gui.edit_button.text() == "Done"
     for item in globals.gui.game_list:
         globals.gui.game_list[item].remove_button.setVisible(visible)
@@ -348,6 +367,7 @@ async def toggle_edit_mode(*kw):
 
 
 def hide_all_context_menus():
+    """"Close all right click menus for tray icon"""
     globals.tray.idle_menu.hide()
     globals.tray.paused_menu.hide()
     globals.tray.refresh_menu.hide()
@@ -356,6 +376,7 @@ def hide_all_context_menus():
 
 @asyncSlot()
 async def toggle_background(*kw):
+    """Toggle between gui and bg mode"""
     if globals.mode == 'gui':
         globals.gui.hide()
         globals.tray.show()
@@ -372,6 +393,7 @@ async def toggle_background(*kw):
 
 
 async def bg_loop():
+    """BG mode background loop for auto refresh"""
     while True:
         hide_all_context_menus()
         globals.tray.setContextMenu(globals.tray.refresh_menu)
@@ -386,6 +408,7 @@ async def bg_loop():
 
 @asyncSlot()
 async def manual_refresh(*kw):
+    """Refresh callback for tray icon"""
     hide_all_context_menus()
     if globals.bg_paused:
         globals.tray.setContextMenu(globals.tray.paused_refresh_menu)
@@ -406,6 +429,7 @@ async def manual_refresh(*kw):
 
 @asyncSlot()
 async def bg_toggle_pause(*kw):
+    """Pause callback for bg mode"""
     if globals.bg_paused:
         globals.bg_paused = False
         globals.tray.bg_loop_task = asyncio.create_task(bg_loop())
@@ -423,6 +447,7 @@ async def bg_toggle_pause(*kw):
 
 
 def open_game(game_id, event):
+    """Play button callback"""
     if not globals.config["games"][game_id]["exe_path"]:
         globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', filter="Game exe (*.exe *.py *.sh *.bat)")[0]
         config_utils.save_config()
@@ -438,8 +463,22 @@ def open_game(game_id, event):
             Popen(["explorer.exe", path])
 
 
+def show_image_overlay(game_id, *kw):
+    """Hover over game callback"""
+    globals.gui.update_image_overlay(game_id)
+    globals.gui.image_overlay.setVisible(True)
+    globals.gui.refresh_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"", None))
+
+
+def hide_image_overlay(*kw):
+    """Stop hovering game callback"""
+    globals.gui.image_overlay.setVisible(False)
+    globals.gui.refresh_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"Refresh!", None))
+
+
 @asyncSlot()
 async def refresh(*kw):
+    """Refresh game list"""
     if globals.refreshing and globals.mode == 'tray':
         while globals.refreshing:
             await asyncio.sleep(0.25)
@@ -478,6 +517,7 @@ async def refresh(*kw):
     if globals.logged_in:
 
         async def worker():
+            """Worker thread"""
             while not refresh_tasks.empty():
                 await refresh_tasks.get_nowait()
 
@@ -516,4 +556,5 @@ async def refresh(*kw):
 
 
 async def refresh_helper():
+    """Async wrapper for refresh func"""
     await refresh()

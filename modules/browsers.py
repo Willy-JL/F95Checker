@@ -29,6 +29,7 @@ BROWSER_PRIVATE_CLI_COMMANDS = {
 
 
 def detect_user_os_and_browsers():
+    """Find user os, installed browsers and whether we're running as EXE or in Python"""
     user_browsers = {}
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
@@ -144,6 +145,7 @@ def detect_user_os_and_browsers():
 
 
 async def open_webpage(link, *kw):
+    """Open webpage with selected browser after optionally downloading it"""
     if not globals.config["options"]["browser"]:
         await gui.WarningPopup.open(globals.gui, "Browser", "Please select a browser before opening a webpage!")
         return
@@ -213,9 +215,11 @@ async def open_webpage(link, *kw):
 
 
 def open_webpage_sync_helper(link, *kw):
+    """Sync wrapper for open webpage func"""
     globals.loop.create_task(open_webpage(link))
 
 
 @asyncSlot()
 async def open_webpage_async_helper(link, *kw):
+    """Async wrapper for open webpage func"""
     await open_webpage(link)

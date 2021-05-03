@@ -111,8 +111,8 @@ except FileNotFoundError:
         config_utils.migrate_legacy("pre7.0")
 
 
-# Populate interface
 def setup_interface():
+    """Populate interface with game entries"""
     # Game List section
     globals.gui.add_button.clicked.connect(callbacks.add_game)
     globals.gui.add_input.returnPressed.connect(callbacks.add_game)
@@ -126,6 +126,8 @@ def setup_interface():
                                                       version  =    globals.config["games"][game_id]["version"],
                                                       highlight=not globals.config["games"][game_id]["played"],
                                                       link     =    globals.config["games"][game_id]["link"])
+        globals.gui.game_list[game_id].enterEvent = partial(callbacks.show_image_overlay, game_id)
+        globals.gui.game_list[game_id].leaveEvent = callbacks.hide_image_overlay
         globals.gui.game_list[game_id].open_button.mousePressEvent = partial(callbacks.open_game, game_id)
         globals.gui.game_list[game_id].name.mousePressEvent = partial(callbacks.invoke_changelog, game_id)
         globals.gui.game_list[game_id].installed_button.setChecked(globals.config["games"][game_id]["installed"])
@@ -211,8 +213,8 @@ if __name__ == '__main__':
     asyncio.set_event_loop(loop)
     globals.loop = asyncio.get_event_loop()
 
-    # Make aiohttp global session
     async def make_aiohttp_session():
+        """Make aiohttp global session"""
         globals.http = aiohttp.ClientSession(headers={"user-agent": globals.config["advanced"]["user_agent"]},
                                              loop=globals.loop,
                                              timeout=aiohttp.ClientTimeout(sock_read=5.0),

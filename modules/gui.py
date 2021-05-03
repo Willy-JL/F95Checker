@@ -17,6 +17,7 @@ from modules import globals, browsers, callbacks, config_utils
 
 
 def wrap_number(value, mod, maximum):
+    """Wrap number if it goes above maximum or under 0"""
     result = value + mod
     while result > maximum:
         result = -1 + (result - maximum)
@@ -99,6 +100,13 @@ class F95CheckerGUI(QMainWindow):
         self.gridLayout_2 = QGridLayout(self.options_section)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setContentsMargins(0, 4, 4, 4)
+
+        self.image_overlay = QLabel(self.options_section)
+        self.image_overlay.setObjectName(u"image_overlay")
+        self.image_overlay.setAlignment(Qt.AlignCenter)
+        self.image_overlay.setVisible(False)
+
+        self.gridLayout_2.addWidget(self.image_overlay, 0, 0, 1, 3)
 
         self.refresh_button = QPushButton(self.options_section)
         self.refresh_button.setObjectName(u"refresh_button")
@@ -363,6 +371,7 @@ class F95CheckerGUI(QMainWindow):
             self.restoreState(globals.settings.value("windowState"))
 
     def showEvent(self, event):
+        """Create app icon progressbar and raise window to top"""
         if globals.user_os == "windows":
             try:
                 from PyQt5.QtWinExtras import QWinTaskbarButton
@@ -379,13 +388,36 @@ class F95CheckerGUI(QMainWindow):
 
     @asyncClose
     async def closeEvent(self, event):
+        """Gracefully shutdown on window close"""
         await callbacks.exit_handler()
 
     def save_geometry(self):
+        """Save window size and position"""
         globals.settings.setValue("geometry", self.saveGeometry())
         globals.settings.setValue("windowState", self.saveState())
 
+    def update_image_overlay(self, game_id):
+        """Update image overlay with png from config location"""
+        self.image_overlay.setFixedSize(self.refresh_button.size())
+        pixmap = QPixmap(self.image_overlay.size())
+        painter = QPainter(pixmap)
+        painter.fillRect(pixmap.rect(), Qt.white)
+        painter.setBrush(Qt.black)
+        painter.drawRoundedRect(pixmap.rect(), globals.config["style"]["radius"]+3, globals.config["style"]["radius"]+3)
+        painter.end()
+        self.image_overlay.setMask(pixmap.createMaskFromColor(Qt.white))
+        pixmap = QPixmap(f'{globals.config_path}/images/{game_id}.png')
+        try:
+            if pixmap.size().width() / pixmap.size().height() >= self.image_overlay.size().width() / self.image_overlay.size().height():
+                pixmap = pixmap.scaledToHeight(self.image_overlay.size().height())
+            else:
+                pixmap = pixmap.scaledToWidth(self.image_overlay.size().width())
+        except Exception:
+            pass
+        self.image_overlay.setPixmap(pixmap)
+
     def get_stylesheet(self, style):
+        """Dynamically create qss based on user style settings"""
         if ((int(style['back'][1:2], 16) * 299) + (int(style['back'][3:5], 16) * 587) + (int(style['back'][5:7], 16) * 114)) / 1000 >= 100:
             font = '#181818'
             font_disabled = '#8A8B8C'
@@ -879,6 +911,7 @@ class GameContainer(QFrame):
         self.remove_button.setToolTip('Click this to remove this game from your list!')
 
     def update_details(self, name: str = None, version: str = None, status: str = None, highlight: bool = None, installed: bool = None, played: bool = None, alt: bool = None, link: str = None):
+        """Edit game container attributes"""
         if alt is not None:
             self.setObjectName(u"game_container_frame" + u"_alt" if alt else u"")
             self.game_container.setObjectName(u"game_container" + u"_alt" if alt else u"")
@@ -1091,12 +1124,14 @@ class ChangelogGUI(QWidget):
         QMetaObject.connectSlotsByName(self)
 
     async def save_notes_loop(self):
+        """Periodically save notes section"""
         while True:
             globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
             config_utils.save_config()
             await asyncio.sleep(1)
 
     def closeEvent(self, event):
+        """Save on close changelog and stop save loop"""
         globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
         config_utils.save_config()
         self.save_loop_task.cancel()
@@ -1154,22 +1189,14 @@ class LoginGUI(QDialog):
         self.gridLayout.addWidget(self.label_2, 2, 0, 1, 1)
 
 
-        self.retranslateUi(Dialog)
-
         QMetaObject.connectSlotsByName(Dialog)
     # setupUi
 
-    def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Login", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Please enter your F95Zone login credentials to continue...", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Username", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Password", None))
     # retranslateUi
-
-    @asyncClose
-    async def closeEvent(self, event=None):
-        self.alive = False
-        self.accept()
 
 
 class TwoStepGUI(QDialog):
@@ -1211,21 +1238,13 @@ class TwoStepGUI(QDialog):
         self.gridLayout.addWidget(self.buttonBox, 2, 0, 1, 2)
 
 
-        self.retranslateUi(Dialog)
-
         QMetaObject.connectSlotsByName(Dialog)
     # setupUi
 
-    def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Login", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Please enter your two step (2FA) code to continue...", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Code", None))
     # retranslateUi
-
-    @asyncClose
-    async def closeEvent(self, event=None):
-        self.alive = False
-        self.accept()
 
 
 class QuestionPopup(QMessageBox):
@@ -1244,6 +1263,7 @@ class QuestionPopup(QMessageBox):
 
     @asyncClose
     async def closeEvent(self, event=None):
+        """Save result based on outcome of dialog"""
         if event == 16384:
             self.result = True
         elif event == 65536:
@@ -1253,6 +1273,7 @@ class QuestionPopup(QMessageBox):
 
     @staticmethod
     async def ask(parent, title, message, extra_message=None, details=None):
+        """Streamlined question helper"""
         if globals.mode == "gui":
             msg = QuestionPopup(parent, title, message, extra_message, details)
             msg.show()
@@ -1266,6 +1287,7 @@ class QuestionPopup(QMessageBox):
 
 class WarningPopup(QMessageBox):
     def __init__(self, parent, title, message):
+        ""
         super().__init__(parent)
         self.setWindowIcon(QIcon('resources/icons/icon.png'))
         self.setWindowTitle(title)
@@ -1275,6 +1297,7 @@ class WarningPopup(QMessageBox):
 
     @staticmethod
     async def open(parent, title, message):
+        """Streamlined popup helper"""
         if globals.mode == "gui":
             msg = WarningPopup(parent, title, message)
             msg.show()
@@ -1297,6 +1320,7 @@ class InfoPopup(QMessageBox):
 
     @staticmethod
     async def open(parent, title, message):
+        """Streamlined popup helper"""
         if globals.mode == "gui":
             msg = InfoPopup(parent, title, message)
             msg.show()
