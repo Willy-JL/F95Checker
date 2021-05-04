@@ -41,6 +41,10 @@ async def remove_game(game_id, *kw):
     globals.gui.games_layout.removeWidget(globals.gui.game_list[game_id])
     globals.gui.game_list[game_id].setVisible(False)
     del globals.gui.game_list[game_id]
+    try:
+        os.unlink(f'{globals.config_path}/images/{game_id}.jpg')
+    except Exception:
+        pass
     for i, item in enumerate(globals.config["games"]):
         globals.gui.game_list[item].update_details(alt=True if (i % 2) == 0 else False)
     await sort_games()
