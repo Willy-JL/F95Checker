@@ -1,7 +1,6 @@
 clint
 #fcntl
 qasync
-Pillow
 aiohttp
 pywin32
 PyQt5==5.15.2
