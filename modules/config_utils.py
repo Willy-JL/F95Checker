@@ -150,7 +150,7 @@ def migrate_legacy(version):
             globals.config["options"]["open_html"]          = old_config.getboolean('options', 'open_html',     fallback=True  )
             globals.config["options"]["start_refresh"]      = old_config.getboolean('options', 'start_refresh', fallback=False )
             globals.config["options"]["auto_sort"]          = old_config.get(       'options', 'auto_sort',     fallback='none')
-            globals.config["options"]["max_retries"]        = old_config.getint(    'options', 'max_retries',   fallback=5     )
+            globals.config["options"]["max_retries"]        = old_config.getint(    'options', 'max_retries',   fallback=3     )
             globals.config["options"]["bg_mode_delay_mins"] = old_config.getint(    'options', 'delay',         fallback=15    )
             globals.config["options"]["private_browser"]    = old_config.getboolean('options', 'private',       fallback=True  )
         except Exception:
