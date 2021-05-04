@@ -1126,23 +1126,19 @@ class ChangelogGUI(QWidget):
         self.changelog.setPlainText(globals.config["games"][self.game_id]["changelog"])
         self.notes.setPlainText(globals.config["games"][self.game_id]["notes"])
 
-        self.save_loop_task = globals.loop.create_task(self.save_notes_loop())
+        self.notes.textChanged.connect(self.notes_changed)
 
         QMetaObject.connectSlotsByName(self)
 
-    async def save_notes_loop(self):
-        """Periodically save notes section"""
-        while True:
-            globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
-            config_utils.save_config()
-            await asyncio.sleep(1)
+    def notes_changed(self):
+        """Save notes section when text changes"""
+        globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
+        config_utils.save_config()
 
     def closeEvent(self, event):
         """Save on close changelog and stop save loop"""
         globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
         config_utils.save_config()
-        self.save_loop_task.cancel()
-        self.save_loop_task = None
         event.accept()
 
 
