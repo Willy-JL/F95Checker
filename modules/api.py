@@ -11,7 +11,6 @@ import time
 import sys
 import re
 import os
-import io
 
 
 def get_cookie(key: str):

@@ -1,4 +1,3 @@
-from functools import partial
 import tkinter.messagebox
 import tkinter as tk
 import pathlib
