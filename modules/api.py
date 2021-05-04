@@ -519,9 +519,10 @@ async def download_game_image(source, game_id):
         while True:
             try:
                 try:
-                    async with globals.http.get(link) as thread_req:
-                        text = await thread_req.text()
-                        thread_req_ok = thread_req.ok
+                    async with globals.image_semaphore:
+                        async with globals.http.get(link) as thread_req:
+                            text = await thread_req.text()
+                            thread_req_ok = thread_req.ok
                 except aiohttp.ClientConnectorError:
                     await handle_no_internet()
                     return
@@ -556,9 +557,13 @@ async def download_game_image(source, game_id):
         try:
             try:
                 async with globals.image_semaphore:
-                    async with globals.http.get(img_link) as img_req:
-                        img_bytes = await img_req.read()
-                        img_req_ok = img_req.ok
+                    # async with globals.http.get(img_link) as img_req:
+                    #     img_bytes = await img_req.read()
+                    #     img_req_ok = img_req.ok
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(img_link) as img_req:
+                            img_bytes = await img_req.read()
+                            img_req_ok = img_req.ok
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
                 return

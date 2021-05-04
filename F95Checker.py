@@ -221,7 +221,7 @@ if __name__ == '__main__':
                                              connector=aiohttp.TCPConnector(limit=0),
                                              cookies=globals.config["advanced"]["cookies"])
     globals.loop.run_until_complete(make_aiohttp_session())
-    globals.image_semaphore = asyncio.Semaphore(1)
+    globals.image_semaphore = asyncio.Semaphore(4)
 
 
     # Setup GUIs
