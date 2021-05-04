@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
+import os
 import asyncio
 from qasync import asyncClose
 from functools import partial
@@ -1122,7 +1123,8 @@ class ChangelogGUI(QWidget):
         self.layout.addWidget(self.notes, 1)
 
         self.setWindowTitle(QCoreApplication.translate("Form", u"Changelog for {}".format(globals.config["games"][self.game_id]["name"]), None))
-        self.header.setPixmap(QPixmap(f'{globals.config_path}/images/{game_id}.jpg').scaledToHeight(200))
+        if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
+            self.header.setPixmap(QPixmap(f'{globals.config_path}/images/{game_id}.jpg').scaledToHeight(250))
         self.changelog.setPlainText(globals.config["games"][self.game_id]["changelog"])
         self.notes.setPlainText(globals.config["games"][self.game_id]["notes"])
 
