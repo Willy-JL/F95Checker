@@ -557,9 +557,6 @@ async def download_game_image(source, game_id):
         try:
             try:
                 async with globals.image_semaphore:
-                    # async with globals.http.get(img_link) as img_req:
-                    #     img_bytes = await img_req.read()
-                    #     img_req_ok = img_req.ok
                     async with aiohttp.ClientSession() as session:
                         async with session.get(img_link) as img_req:
                             img_bytes = await img_req.read()
