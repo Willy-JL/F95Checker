@@ -344,9 +344,9 @@ async def toggle_edit_mode(*kw):
     for item in globals.gui.game_list:
         globals.gui.game_list[item].remove_button.setVisible(visible)
     if visible:
-        globals.gui.edit_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"Done", None))
+        globals.gui.edit_button.setText("Done")
     else:
-        globals.gui.edit_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"Edit", None))
+        globals.gui.edit_button.setText("Edit")
 
 
 def hide_all_context_menus():
@@ -451,13 +451,13 @@ def show_image_overlay(game_id, *kw):
     globals.gui.update_image_overlay(game_id)
     globals.gui.image_overlay.setVisible(True)
     if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
-        globals.gui.refresh_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"", None))
+        globals.gui.refresh_button.setText("")
 
 
 def hide_image_overlay(*kw):
     """Stop hovering game callback"""
     globals.gui.image_overlay.setVisible(False)
-    globals.gui.refresh_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"Refresh!", None))
+    globals.gui.refresh_button.setText("Refresh!")
 
 
 @asyncSlot()

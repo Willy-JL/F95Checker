@@ -313,33 +313,33 @@ class F95CheckerGUI(QMainWindow):
         QMetaObject().connectSlotsByName(self)
     # setupUi
 
-        self.setWindowTitle(QCoreApplication.translate("F95Checker", u"F95Checker", None))
-        self.add_button.setText(QCoreApplication.translate("F95Checker", u"Add", None))
-        self.refresh_button.setText(QCoreApplication.translate("F95Checker", u"Refresh!", None))
-        self.refresh_label.setText(QCoreApplication.translate("F95Checker", u"Refresh!", None))
-        self.browser_buttons["chrome"].setText(QCoreApplication.translate("F95Checker", u"Chrome", None))
-        self.browser_buttons["firefox"].setText(QCoreApplication.translate("F95Checker", u"Firefox", None))
-        self.browser_buttons["brave"].setText(QCoreApplication.translate("F95Checker", u"Brave", None))
-        self.browser_buttons["edge"].setText(QCoreApplication.translate("F95Checker", u"Edge", None))
-        self.browser_buttons["opera"].setText(QCoreApplication.translate("F95Checker", u"Opera", None))
-        self.browser_buttons["operagx"].setText(QCoreApplication.translate("F95Checker", u"OperaGX", None))
-        self.private_button.setText(QCoreApplication.translate("F95Checker", u"Open Browser  in  Private Mode", None))
-        self.start_refresh_button.setText(QCoreApplication.translate("F95Checker", u"Refresh  List  at  Program  Start", None))
-        self.saved_html_button.setText(QCoreApplication.translate("F95Checker", u"Open  Pages   as   Saved  HTML", None))
-        self.sort_label.setText(QCoreApplication.translate("F95Checker", u"   Auto Sort:", None))
-        self.sort_input.setItemText(0, QCoreApplication.translate("F95Checker", u"Don't Sort", None))
-        self.sort_input.setItemText(1, QCoreApplication.translate("F95Checker", u"Last Updated", None))
-        self.sort_input.setItemText(2, QCoreApplication.translate("F95Checker", u"First Added", None))
-        self.sort_input.setItemText(3, QCoreApplication.translate("F95Checker", u"Alphabetical", None))
-        self.retries_label.setText(QCoreApplication.translate("F95Checker", u"   Max Retries per Request:", None))
-        self.threads_label.setText(QCoreApplication.translate("F95Checker", u"   Max Threads for Refresh:", None))
-        self.color_label.setText(QCoreApplication.translate("F95Checker", u"   Change  GUI  Colors:", None))
-        self.color_button.setText(QCoreApplication.translate("F95Checker", u"Picker", None))
-        self.edit_label.setText(QCoreApplication.translate("F95Checker", u"   Remove   Games:", None))
-        self.edit_button.setText(QCoreApplication.translate("F95Checker", u"Edit", None))
-        self.bg_refresh_label.setText(QCoreApplication.translate("F95Checker", u"   BG Refresh Delay (mins):", None))
-        self.background_label.setText(QCoreApplication.translate("F95Checker", u"   Switch  to  Background:", None))
-        self.background_button.setText(QCoreApplication.translate("F95Checker", u"Switch", None))
+        self.setWindowTitle("F95Checker")
+        self.add_button.setText("Add")
+        self.refresh_button.setText("Refresh!")
+        self.refresh_label.setText("Refresh!")
+        self.browser_buttons["chrome"].setText("Chrome")
+        self.browser_buttons["firefox"].setText("Firefox")
+        self.browser_buttons["brave"].setText("Brave")
+        self.browser_buttons["edge"].setText("Edge")
+        self.browser_buttons["opera"].setText("Opera")
+        self.browser_buttons["operagx"].setText("OperaGX")
+        self.private_button.setText("Open Browser  in  Private Mode")
+        self.start_refresh_button.setText("Refresh  List  at  Program  Start")
+        self.saved_html_button.setText("Open  Pages   as   Saved  HTML")
+        self.sort_label.setText("   Auto Sort:")
+        self.sort_input.setItemText("Don't Sort")
+        self.sort_input.setItemText("Last Updated")
+        self.sort_input.setItemText("First Added")
+        self.sort_input.setItemText("Alphabetical")
+        self.retries_label.setText("   Max Retries per Request:")
+        self.threads_label.setText("   Max Threads for Refresh:")
+        self.color_label.setText("   Change  GUI  Colors:")
+        self.color_button.setText("Picker")
+        self.edit_label.setText("   Remove   Games:")
+        self.edit_button.setText("Edit")
+        self.bg_refresh_label.setText("   BG Refresh Delay (mins):")
+        self.background_label.setText("   Switch  to  Background:")
+        self.background_button.setText("Switch")
         self.refresh_button.setToolTip('Click this to check\nfor game updates!')
         for browser in self.browser_buttons:
             self.browser_buttons[browser].setToolTip('Click this to select the\nbrowser to use to open links!')
@@ -417,9 +417,9 @@ class F95CheckerGUI(QMainWindow):
 
         # Watermark
         if "tester" in globals.version:
-            self.watermark.setText(QCoreApplication.translate("F95Checker", u"F95Checker Tester Build", None))
+            self.watermark.setText("F95Checker Tester Build")
         else:
-            self.watermark.setText(QCoreApplication.translate("F95Checker", u"F95Checker v{} by WillyJL".format(globals.version), None))
+            self.watermark.setText(f"F95Checker v{globals.version} by WillyJL")
         self.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, globals.tool_page)
 
         if globals.settings.value("geometry"):
@@ -949,17 +949,17 @@ class GameContainer(QFrame):
         self.game_container.addWidget(self.view_button)
         self.game_container.addWidget(self.remove_button)
 
-        self.remove_button.setText(QCoreApplication.translate("F95Checker", u"", None))
+        self.remove_button.setText("")
         self.remove_button.setFont(globals.font_awesome)
         self.remove_button.setVisible(False)
         self.status.setFont(globals.font_awesome)
-        self.played_button.setText(QCoreApplication.translate("F95Checker", u"  ", None))
+        self.played_button.setText("  ")
         self.played_button.setFont(globals.font_awesome)
-        self.installed_button.setText(QCoreApplication.translate("F95Checker", u"  ", None))
+        self.installed_button.setText("  ")
         self.installed_button.setFont(globals.font_awesome)
-        self.open_button.setText(QCoreApplication.translate("F95Checker", u"", None))
+        self.open_button.setText("")
         self.open_button.setFont(globals.font_awesome)
-        self.view_button.setText(QCoreApplication.translate("F95Checker", u"", None))
+        self.view_button.setText("")
         self.view_button.setFont(globals.font_awesome)
         self.name.setToolTip('Click on the name to see\nthe game\'s changelog!')
         self.open_button.setToolTip('Click this to play the game!')
@@ -1155,21 +1155,21 @@ class StyleGUI(QWidget):
         QMetaObject.connectSlotsByName(self)
     # setupUi
 
-        self.setWindowTitle(QCoreApplication.translate("StyleGUI", u"F95Checker Styler", None))
+        self.setWindowTitle("F95Checker Styler")
         self.alternate.setText("")
-        self.accent_label.setText(QCoreApplication.translate("StyleGUI", u"Accent", None))
+        self.accent_label.setText("Accent")
         self.accent.setText("")
         self.background.setText("")
-        self.restore.setText(QCoreApplication.translate("StyleGUI", u"Restore to Defaults", None))
-        self.background_label.setText(QCoreApplication.translate("StyleGUI", u"Background", None))
-        self.radius_label.setText(QCoreApplication.translate("StyleGUI", u"Corner Radius", None))
+        self.restore.setText("Restore to Defaults")
+        self.background_label.setText("Background")
+        self.radius_label.setText("Corner Radius")
         self.border.setText("")
         self.hover.setText("")
         self.disabled.setText("")
-        self.disabled_label.setText(QCoreApplication.translate("StyleGUI", u"Buttons Disabled", None))
-        self.alternate_label.setText(QCoreApplication.translate("StyleGUI", u"Alternate BG", None))
-        self.border_label.setText(QCoreApplication.translate("StyleGUI", u"Buttons Border", None))
-        self.hover_label.setText(QCoreApplication.translate("StyleGUI", u"Buttons Hover", None))
+        self.disabled_label.setText("Buttons Disabled")
+        self.alternate_label.setText("Alternate BG")
+        self.border_label.setText("Buttons Border")
+        self.hover_label.setText("Buttons Hover")
 
 
 class ChangelogGUI(QWidget):
@@ -1206,7 +1206,7 @@ class ChangelogGUI(QWidget):
 
         self.layout.addWidget(self.notes, 1)
 
-        self.setWindowTitle(QCoreApplication.translate("Form", u"Changelog for {}".format(globals.config["games"][self.game_id]["name"]), None))
+        self.setWindowTitle(f'Changelog for "{globals.config["games"][self.game_id]["name"]}"')
         if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
             self.header.setPixmap(QPixmap(f'{globals.config_path}/images/{game_id}.jpg').scaledToHeight(250))
         self.changelog.setPlainText(globals.config["games"][self.game_id]["changelog"])
@@ -1281,11 +1281,10 @@ class LoginGUI(QDialog):
         QMetaObject.connectSlotsByName(Dialog)
     # setupUi
 
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Login", None))
-        self.label_3.setText(QCoreApplication.translate("Dialog", u"Please enter your F95Zone login credentials to continue...", None))
-        self.label.setText(QCoreApplication.translate("Dialog", u"Username", None))
-        self.label_2.setText(QCoreApplication.translate("Dialog", u"Password", None))
-    # retranslateUi
+        Dialog.setWindowTitle("Login")
+        self.label_3.setText("Please enter your F95Zone login credentials to continue...")
+        self.label.setText("Username")
+        self.label_2.setText("Password")
 
 
 class TwoStepGUI(QDialog):
@@ -1330,10 +1329,9 @@ class TwoStepGUI(QDialog):
         QMetaObject.connectSlotsByName(Dialog)
     # setupUi
 
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Login", None))
-        self.label_3.setText(QCoreApplication.translate("Dialog", u"Please enter your two step (2FA) code to continue...", None))
-        self.label.setText(QCoreApplication.translate("Dialog", u"Code", None))
-    # retranslateUi
+        Dialog.setWindowTitle("Two Step Login")
+        self.label_3.setText("Please enter your two step (2FA) code to continue...")
+        self.label.setText("Code")
 
 
 class QuestionPopup(QMessageBox):
