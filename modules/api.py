@@ -2,7 +2,7 @@ from modules import globals, config_utils, gui, browsers
 from bs4.element import NavigableString
 from bs4 import BeautifulSoup
 from subprocess import Popen
-from PIL import Image
+from PyQt5 import QtGui
 import traceback
 import pathlib
 import asyncio
@@ -576,9 +576,9 @@ async def download_game_image(source, game_id):
             retries += 1
             continue
         break
-    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
-    pathlib.Path(f'{globals.config_path}/images').mkdir(parents=True, exist_ok=True)
-    img.save(f'{globals.config_path}/images/{game_id}.jpg', 'JPEG', optimize=True, quality=100)
+    img = QtGui.QPixmap()
+    img.loadFromData(img_bytes)
+    img.save(f'{globals.config_path}/images/{game_id}.jpg')
 
 
 async def get_game_data(link):
