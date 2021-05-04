@@ -405,8 +405,8 @@ async def check(game_id):
                     return
 
             # Fetch image if it was never downloaded
-            if not os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
-                await download_game_image(globals.config["games"][game_id]["link"], game_id)
+            if not os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg') and not game_id in globals.image_bg_tasks:
+                globals.loop.create_task(download_game_image(globals.config["games"][game_id]["link"], game_id))
 
             # Step Progress Bar
             globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
@@ -506,6 +506,9 @@ async def find_game_from_search_term(search_term):
 
 async def download_game_image(source, game_id):
     """Fetch header image and save as jpg"""
+    if game_id in globals.image_bg_tasks:
+        return
+    globals.image_bg_tasks.add(game_id)
     if isinstance(source, str):
         link = source
         while globals.logging_in:
@@ -513,6 +516,7 @@ async def download_game_image(source, game_id):
         if not globals.logged_in:
             await login()
         if not globals.logged_in:
+            globals.image_bg_tasks.remove(game_id)
             return
         retries = 0
         while True:
@@ -524,16 +528,20 @@ async def download_game_image(source, game_id):
                             thread_req_ok = thread_req.ok
                 except aiohttp.ClientConnectorError:
                     await handle_no_internet()
+                    globals.image_bg_tasks.remove(game_id)
                     return
                 if not thread_req_ok:
+                    globals.image_bg_tasks.remove(game_id)
                     return
                 assert text.startswith("<!DOCTYPE html>")
                 thread_html = BeautifulSoup(text, 'html.parser')
                 if await check_f95zone_error(thread_html):
+                    globals.image_bg_tasks.remove(game_id)
                     return
             # Retry Stuff
             except Exception:
                 if retries >= globals.config["options"]["max_retries"]:
+                    globals.image_bg_tasks.remove(game_id)
                     return
                 retries += 1
                 continue
@@ -543,6 +551,7 @@ async def download_game_image(source, game_id):
 
     img_elem = thread_html.select_one(".message-threadStarterPost .message-userContent img")
     if not img_elem:
+        globals.image_bg_tasks.remove(game_id)
         return
     img_link = img_elem.get('data-src').replace("thumb/", "")
     while globals.logging_in:
@@ -550,6 +559,7 @@ async def download_game_image(source, game_id):
     if not globals.logged_in:
         await login()
     if not globals.logged_in:
+        globals.image_bg_tasks.remove(game_id)
         return
     retries = 0
     while True:
@@ -562,20 +572,24 @@ async def download_game_image(source, game_id):
                             img_req_ok = img_req.ok
             except aiohttp.ClientConnectorError:
                 await handle_no_internet()
+                globals.image_bg_tasks.remove(game_id)
                 return
             if not img_req_ok:
+                globals.image_bg_tasks.remove(game_id)
                 return
+            img = QtGui.QPixmap()
+            img.loadFromData(img_bytes)
+            pathlib.Path(f'{globals.config_path}/images').mkdir(parents=True, exist_ok=True)
+            img.save(f'{globals.config_path}/images/{game_id}.jpg')
         # Retry Stuff
         except Exception:
             if retries >= globals.config["options"]["max_retries"]:
+                globals.image_bg_tasks.remove(game_id)
                 return
             retries += 1
             continue
         break
-    img = QtGui.QPixmap()
-    img.loadFromData(img_bytes)
-    pathlib.Path(f'{globals.config_path}/images').mkdir(parents=True, exist_ok=True)
-    img.save(f'{globals.config_path}/images/{game_id}.jpg')
+    globals.image_bg_tasks.remove(game_id)
 
 
 async def get_game_data(link):
@@ -638,9 +652,9 @@ async def get_game_data(link):
                     changelog = changelog.replace('\n\n\n', '\n\n')
 
             # Only fetch image if adding the game or if update_image_on_game_update is enabled (enabled by default)
-            if not globals.refreshing or globals.config["options"]["update_image_on_game_update"]:
+            if (not globals.refreshing or globals.config["options"]["update_image_on_game_update"]) and not game_id in globals.image_bg_tasks:
                 game_id = link[link.rfind('.')+1:link.rfind('/')]
-                await download_game_image(thread_html, game_id)
+                globals.loop.create_task(download_game_image(thread_html, game_id))
 
             return {
                 "name": name,

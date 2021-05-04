@@ -136,6 +136,7 @@ if __name__ == '__main__':
                                              connector=aiohttp.TCPConnector(limit=0),
                                              cookies=globals.config["advanced"]["cookies"])
     globals.loop.run_until_complete(make_aiohttp_session())
+    globals.image_bg_tasks = set()  # List-like object, no repetition, no order
     globals.image_semaphore = asyncio.Semaphore(4)
 
 
