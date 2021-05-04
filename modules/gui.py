@@ -1223,7 +1223,10 @@ class ChangelogGUI(QWidget):
 
     def closeEvent(self, event):
         """Save on close changelog and stop save loop"""
-        globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
+        try:
+            globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
+        except Exception:
+            pass
         config_utils.save_config()
         event.accept()
 
