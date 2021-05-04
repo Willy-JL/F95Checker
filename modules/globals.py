@@ -4,6 +4,7 @@ app               = None
 font_awesome      = None
 gui               = None
 http              = None
+image_semaphore   = None
 loop              = None
 settings          = None
 singleton         = None
