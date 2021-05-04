@@ -101,33 +101,8 @@ async def add_game(*kw):
     config_utils.save_config()
 
     # Create and configure gui container
-    globals.gui.game_list[game_id] = gui.GameContainer(alt=True if (len(globals.config["games"]) % 2) == 1 else False)
+    globals.gui.game_list[game_id] = gui.GameContainer(game_id, alt=True if (len(globals.config["games"]) % 2) == 1 else False)
     globals.gui.games_layout.addWidget(globals.gui.game_list[game_id])
-    globals.gui.game_list[game_id].update_details(name     =    globals.config["games"][game_id]["name"],
-                                                  status   =    globals.config["games"][game_id]["status"],
-                                                  version  =    globals.config["games"][game_id]["version"],
-                                                  highlight=not globals.config["games"][game_id]["played"],
-                                                  link     =    globals.config["games"][game_id]["link"])
-    globals.gui.game_list[game_id].enterEvent = partial(show_image_overlay, game_id)
-    globals.gui.game_list[game_id].leaveEvent = hide_image_overlay
-    globals.gui.game_list[game_id].open_button.mousePressEvent = partial(open_game, game_id)
-    globals.gui.game_list[game_id].name.mousePressEvent = partial(invoke_changelog, game_id)
-    globals.gui.game_list[game_id].installed_button.setChecked(globals.config["games"][game_id]["installed"])
-    globals.gui.game_list[game_id].installed_button.stateChanged.connect(partial(set_installed, game_id))
-    globals.gui.game_list[game_id].played_button.setChecked(globals.config["games"][game_id]["played"])
-    globals.gui.game_list[game_id].played_button.stateChanged.connect(partial(set_played, game_id))
-    globals.gui.game_list[game_id].remove_button.clicked.connect(partial(remove_game, game_id))
-    if not globals.config["games"][game_id]["installed"]:
-        globals.config["games"][game_id]["played"] = False
-        globals.config["games"][game_id]["exe_path"] = ''
-        globals.gui.game_list[game_id].played_button.setChecked(False)
-        globals.gui.game_list[game_id].played_button.setEnabled(False)
-        globals.gui.game_list[game_id].open_button.setEnabled(False)
-        globals.gui.game_list[game_id].update_details(highlight=True)
-    else:
-        globals.gui.game_list[game_id].played_button.setEnabled(True)
-        globals.gui.game_list[game_id].open_button.setEnabled(True)
-    config_utils.save_config()
 
     visible = globals.gui.edit_button.text() == "Done"
     globals.gui.game_list[game_id].remove_button.setVisible(visible)
