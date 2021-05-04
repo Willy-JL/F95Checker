@@ -471,7 +471,8 @@ def show_image_overlay(game_id, *kw):
     """Hover over game callback"""
     globals.gui.update_image_overlay(game_id)
     globals.gui.image_overlay.setVisible(True)
-    globals.gui.refresh_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"", None))
+    if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
+        globals.gui.refresh_button.setText(QtCore.QCoreApplication.translate("F95Checker", u"", None))
 
 
 def hide_image_overlay(*kw):
