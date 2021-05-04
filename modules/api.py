@@ -575,6 +575,7 @@ async def download_game_image(source, game_id):
         break
     img = QtGui.QPixmap()
     img.loadFromData(img_bytes)
+    pathlib.Path(f'{globals.config_path}/images').mkdir(parents=True, exist_ok=True)
     img.save(f'{globals.config_path}/images/{game_id}.jpg')
 
 
