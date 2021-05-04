@@ -364,6 +364,64 @@ class F95CheckerGUI(QMainWindow):
         self.add_input.setToolTip('Here you can paste a link to a F95Zone\nthread to add that game to the list!')
         self.add_button.setToolTip('Click this to add the game\nyou pasted on the left!')
 
+        self.add_button.clicked.connect(callbacks.add_game)
+        self.add_input.returnPressed.connect(callbacks.add_game)
+        self.add_input.textChanged.connect(callbacks.add_input_text_edited)
+
+        # Refresh Button
+        self.refresh_button.clicked.connect(callbacks.refresh)
+
+        # Browsers Buttons
+        for btn in self.browser_buttons:
+            self.browser_buttons[btn].setEnabled(False)
+            if globals.user_browsers.get(btn):
+                self.browser_buttons[btn].setEnabled(True)
+                self.browser_buttons[btn].clicked.connect(partial(callbacks.set_browser, btn))
+        if globals.config["options"]["browser"]:
+            self.browser_buttons[globals.config["options"]["browser"]].setObjectName(u"browser_button_selected")
+            self.browser_buttons[globals.config["options"]["browser"]].setStyleSheet("/* /")
+
+        # Check Boxes
+        if globals.config["options"]["private_browser"]:
+            self.private_button.setChecked(True)
+        self.private_button.stateChanged.connect(callbacks.set_private_browser)
+
+        if globals.config["options"]["start_refresh"]:
+            self.start_refresh_button.setChecked(True)
+        self.start_refresh_button.stateChanged.connect(callbacks.set_refresh)
+
+        if globals.config["options"]["open_html"]:
+            self.saved_html_button.setChecked(True)
+        self.saved_html_button.stateChanged.connect(callbacks.set_html)
+
+        # Sorting
+        self.sort_input.setCurrentIndex(1 if globals.config["options"]["auto_sort"] == 'last_updated' else 2 if globals.config["options"]["auto_sort"] == 'first_added' else 3 if globals.config["options"]["auto_sort"] == 'alphabetical' else 0)
+        self.sort_input.currentIndexChanged.connect(callbacks.set_sorting)
+
+        # Spin Boxes
+        self.retries_input.setValue(globals.config["options"]["max_retries"])
+        self.retries_input.valueChanged.connect(callbacks.set_max_retries)
+
+        self.threads_input.setValue(globals.config["options"]["refresh_threads"])
+        self.threads_input.valueChanged.connect(callbacks.set_refresh_threads)
+
+        self.bg_refresh_input.setValue(globals.config["options"]["bg_mode_delay_mins"])
+        self.bg_refresh_input.valueChanged.connect(callbacks.set_delay)
+
+        # Buttons
+        self.color_button.clicked.connect(callbacks.invoke_styler)
+
+        self.edit_button.clicked.connect(callbacks.toggle_edit_mode)
+
+        self.background_button.clicked.connect(callbacks.toggle_background)
+
+        # Watermark
+        if "tester" in globals.version:
+            self.watermark.setText(QCoreApplication.translate("F95Checker", u"F95Checker Tester Build", None))
+        else:
+            self.watermark.setText(QCoreApplication.translate("F95Checker", u"F95Checker v{} by WillyJL".format(globals.version), None))
+        self.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, globals.tool_page)
+
         if globals.settings.value("geometry"):
             self.restoreGeometry(globals.settings.value("geometry"))
         else:
@@ -818,7 +876,7 @@ QMenu::item:selected {
 
 # Game section frame object
 class GameContainer(QFrame):
-    def __init__(self, alt):
+    def __init__(self, game_id, alt):
         super().__init__(globals.gui.games_list_container)
         self.setObjectName(u"game_container_frame" + u"_alt" if alt else u"")
         self.setFrameShape(QFrame.StyledPanel)
@@ -910,6 +968,32 @@ class GameContainer(QFrame):
         self.installed_button.setToolTip('This checkbox indicates whether\nyou installed this update')
         self.view_button.setToolTip('Click this to open the game\'s\nwebpage in your browser!')
         self.remove_button.setToolTip('Click this to remove this game from your list!')
+
+        self.update_details(name     =    globals.config["games"][game_id]["name"],
+                            status   =    globals.config["games"][game_id]["status"],
+                            version  =    globals.config["games"][game_id]["version"],
+                            highlight=not globals.config["games"][game_id]["played"],
+                            link     =    globals.config["games"][game_id]["link"])
+        self.enterEvent = partial(callbacks.show_image_overlay, game_id)
+        self.leaveEvent = callbacks.hide_image_overlay
+        self.open_button.mousePressEvent = partial(callbacks.open_game, game_id)
+        self.name.mousePressEvent = partial(callbacks.invoke_changelog, game_id)
+        self.installed_button.setChecked(globals.config["games"][game_id]["installed"])
+        self.installed_button.stateChanged.connect(partial(callbacks.set_installed, game_id))
+        self.played_button.setChecked(globals.config["games"][game_id]["played"])
+        self.played_button.stateChanged.connect(partial(callbacks.set_played, game_id))
+        self.remove_button.clicked.connect(partial(callbacks.remove_game, game_id))
+        if not globals.config["games"][game_id]["installed"]:
+            globals.config["games"][game_id]["played"] = False
+            globals.config["games"][game_id]["exe_path"] = ''
+            self.played_button.setChecked(False)
+            self.played_button.setEnabled(False)
+            self.open_button.setEnabled(False)
+            self.update_details(highlight=True)
+        else:
+            self.played_button.setEnabled(True)
+            self.open_button.setEnabled(True)
+        config_utils.save_config()
 
     def update_details(self, name: str = None, version: str = None, status: str = None, highlight: bool = None, installed: bool = None, played: bool = None, alt: bool = None, link: str = None):
         """Edit game container attributes"""

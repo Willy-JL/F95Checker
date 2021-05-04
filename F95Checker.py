@@ -113,93 +113,9 @@ except FileNotFoundError:
 
 def setup_interface():
     """Populate interface with game entries"""
-    # Game List section
-    globals.gui.add_button.clicked.connect(callbacks.add_game)
-    globals.gui.add_input.returnPressed.connect(callbacks.add_game)
-    globals.gui.add_input.textChanged.connect(callbacks.add_input_text_edited)
     for i, game_id in enumerate(globals.config["games"]):
-
-        globals.gui.game_list[game_id] = gui.GameContainer(alt=True if (i % 2) == 0 else False)
+        globals.gui.game_list[game_id] = gui.GameContainer(game_id, alt=True if (i % 2) == 0 else False)
         globals.gui.games_layout.addWidget(globals.gui.game_list[game_id])
-        globals.gui.game_list[game_id].update_details(name     =    globals.config["games"][game_id]["name"],
-                                                      status   =    globals.config["games"][game_id]["status"],
-                                                      version  =    globals.config["games"][game_id]["version"],
-                                                      highlight=not globals.config["games"][game_id]["played"],
-                                                      link     =    globals.config["games"][game_id]["link"])
-        globals.gui.game_list[game_id].enterEvent = partial(callbacks.show_image_overlay, game_id)
-        globals.gui.game_list[game_id].leaveEvent = callbacks.hide_image_overlay
-        globals.gui.game_list[game_id].open_button.mousePressEvent = partial(callbacks.open_game, game_id)
-        globals.gui.game_list[game_id].name.mousePressEvent = partial(callbacks.invoke_changelog, game_id)
-        globals.gui.game_list[game_id].installed_button.setChecked(globals.config["games"][game_id]["installed"])
-        globals.gui.game_list[game_id].installed_button.stateChanged.connect(partial(callbacks.set_installed, game_id))
-        globals.gui.game_list[game_id].played_button.setChecked(globals.config["games"][game_id]["played"])
-        globals.gui.game_list[game_id].played_button.stateChanged.connect(partial(callbacks.set_played, game_id))
-        globals.gui.game_list[game_id].remove_button.clicked.connect(partial(callbacks.remove_game, game_id))
-        if not globals.config["games"][game_id]["installed"]:
-            globals.config["games"][game_id]["played"] = False
-            globals.config["games"][game_id]["exe_path"] = ''
-            globals.gui.game_list[game_id].played_button.setChecked(False)
-            globals.gui.game_list[game_id].played_button.setEnabled(False)
-            globals.gui.game_list[game_id].open_button.setEnabled(False)
-            globals.gui.game_list[game_id].update_details(highlight=True)
-        else:
-            globals.gui.game_list[game_id].played_button.setEnabled(True)
-            globals.gui.game_list[game_id].open_button.setEnabled(True)
-        config_utils.save_config()
-
-    # Refresh Button
-    globals.gui.refresh_button.clicked.connect(callbacks.refresh)
-
-    # Browsers Buttons
-    for btn in globals.gui.browser_buttons:
-        globals.gui.browser_buttons[btn].setEnabled(False)
-        if globals.user_browsers.get(btn):
-            globals.gui.browser_buttons[btn].setEnabled(True)
-            globals.gui.browser_buttons[btn].clicked.connect(partial(callbacks.set_browser, btn))
-    if globals.config["options"]["browser"]:
-        globals.gui.browser_buttons[globals.config["options"]["browser"]].setObjectName(u"browser_button_selected")
-        globals.gui.browser_buttons[globals.config["options"]["browser"]].setStyleSheet("/* /")
-
-    # Check Boxes
-    if globals.config["options"]["private_browser"]:
-        globals.gui.private_button.setChecked(True)
-    globals.gui.private_button.stateChanged.connect(callbacks.set_private_browser)
-
-    if globals.config["options"]["start_refresh"]:
-        globals.gui.start_refresh_button.setChecked(True)
-    globals.gui.start_refresh_button.stateChanged.connect(callbacks.set_refresh)
-
-    if globals.config["options"]["open_html"]:
-        globals.gui.saved_html_button.setChecked(True)
-    globals.gui.saved_html_button.stateChanged.connect(callbacks.set_html)
-
-    # Sorting
-    globals.gui.sort_input.setCurrentIndex(1 if globals.config["options"]["auto_sort"] == 'last_updated' else 2 if globals.config["options"]["auto_sort"] == 'first_added' else 3 if globals.config["options"]["auto_sort"] == 'alphabetical' else 0)
-    globals.gui.sort_input.currentIndexChanged.connect(callbacks.set_sorting)
-
-    # Spin Boxes
-    globals.gui.retries_input.setValue(globals.config["options"]["max_retries"])
-    globals.gui.retries_input.valueChanged.connect(callbacks.set_max_retries)
-
-    globals.gui.threads_input.setValue(globals.config["options"]["refresh_threads"])
-    globals.gui.threads_input.valueChanged.connect(callbacks.set_refresh_threads)
-
-    globals.gui.bg_refresh_input.setValue(globals.config["options"]["bg_mode_delay_mins"])
-    globals.gui.bg_refresh_input.valueChanged.connect(callbacks.set_delay)
-
-    # Buttons
-    globals.gui.color_button.clicked.connect(callbacks.invoke_styler)
-
-    globals.gui.edit_button.clicked.connect(callbacks.toggle_edit_mode)
-
-    globals.gui.background_button.clicked.connect(callbacks.toggle_background)
-
-    # Watermark
-    if "tester" in globals.version:
-        globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker Tester Build", None))
-    else:
-        globals.gui.watermark.setText(QtCore.QCoreApplication.translate("F95Checker", u"F95Checker v{} by WillyJL".format(globals.version), None))
-    globals.gui.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, globals.tool_page)
 
 
 if __name__ == '__main__':
