@@ -652,8 +652,8 @@ async def get_game_data(link):
                     changelog = changelog.replace('\n\n\n', '\n\n')
 
             # Only fetch image if adding the game or if update_image_on_game_update is enabled (enabled by default)
+            game_id = link[link.rfind('.')+1:link.rfind('/')]
             if (not globals.refreshing or globals.config["options"]["update_image_on_game_update"]) and not game_id in globals.image_bg_tasks:
-                game_id = link[link.rfind('.')+1:link.rfind('/')]
                 globals.loop.create_task(download_game_image(thread_html, game_id))
 
             return {
