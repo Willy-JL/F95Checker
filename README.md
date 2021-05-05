@@ -13,6 +13,7 @@ An update checker tool for (NSFW) games on the [F95Zone](https://f95zone.to/) pl
  - 2FA accounts supported
  - Track what versions you installed and played
  - Launch games straight from the tool
+ - Header images support
  - Alert and inbox checker
  - See changelogs
  - See game statuses (completed, on hold, abandoned)
@@ -46,12 +47,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.1**: [Download v8.1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.1/F95CheckerV8.1.zip)
+**8.2**: [Download v8.2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.2/F95CheckerV8.2.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.1**: [Download v8.1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.1/F95CheckerV8.1.zip)
 
 **8.0h1**: [Download v8.0h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.0h1/F95CheckerV8.0h1.zip)
 
@@ -169,17 +172,8 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 ## Planned Features Tracker:
 
-#### Next Update:
- - Search through your game list
- - Add games by searching for best name match
-
 #### Soon:
- - Add multiple games with one add
- - Filter games based on status and other criteria
-
-#### Future:
-
- - Add image stuff somehow
+ - Huh... looks like I've run out of feature ideas... hit me up in the replies if you want to suggest something!
 
 #### Far Future:
  - Possibly Mac support, if there's demand for it
@@ -189,6 +183,17 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.2</summary>
+
+   - NEW: images support
+     - Show game image inside refresh button on game hover
+     - Show image header in changelog screen
+     - Downloading images goes on i nthe background
+   - FIXED: smoother progress bar, not as noticeable when refreshing very fast / using the EXE version though
+   - FIXED: changelog screen more reliable
+   - FIXED: smaller code improvements
+</details>
 <details>
   <summary>v8.1</summary>
 
