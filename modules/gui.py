@@ -1218,6 +1218,8 @@ class ChangelogGUI(QWidget):
         self.setWindowTitle(f'Changelog for "{globals.config["games"][self.game_id]["name"]}"')
         if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
             self.header.setPixmap(QPixmap(f'{globals.config_path}/images/{game_id}.jpg').scaledToHeight(250))
+        else:
+            self.header.setText("Image missing...  Refresh to attempt downloading it!\n")
         self.changelog.setPlainText(globals.config["games"][self.game_id]["changelog"])
         self.notes.setPlainText(globals.config["games"][self.game_id]["notes"])
 

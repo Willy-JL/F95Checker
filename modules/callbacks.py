@@ -453,7 +453,7 @@ def show_image_overlay(game_id, *kw):
     if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
         globals.gui.refresh_button.setText("")
     else:
-        globals.gui.refresh_button.setText("   Image missing...\nRefresh to try\n downloading it!")
+        globals.gui.refresh_button.setText("  Image missing...\nRefresh to attempt\ndownloading it!")
 
 
 def hide_image_overlay(*kw):
