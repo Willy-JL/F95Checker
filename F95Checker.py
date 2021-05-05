@@ -35,7 +35,7 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '8.2dev2'
+globals.version = '8.2'
 
 globals.domain            = "https://f95zone.to"
 globals.check_login_page  = globals.domain +  "/account/"
