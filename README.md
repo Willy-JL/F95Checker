@@ -189,7 +189,7 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
    - NEW: images support
      - Show game image inside refresh button on game hover
      - Show image header in changelog screen
-     - Downloading images goes on i nthe background
+     - Downloading images goes on in the background
    - FIXED: smoother progress bar, not as noticeable when refreshing very fast / using the EXE version though
    - FIXED: changelog screen more reliable
    - FIXED: smaller code improvements
