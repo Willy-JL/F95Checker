@@ -91,7 +91,7 @@ jobs:
       - uses: benjlevesque/short-sha@v1.2
         id: short-sha
         with:
-          length: 8
+          length: 7
 
       - name: Zip Binaries
         run: zip -qq -r F95Checker-${SHA}.zip *
