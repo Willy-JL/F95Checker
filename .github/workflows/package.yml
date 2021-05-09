@@ -96,13 +96,13 @@ jobs:
           length: 8
 
       - name: Zip Binaries
-        run: zip -qq -r F95Checker-${SHORT_SHA}.zip *
+        run: zip -qq -r F95Checker-${SHA}.zip *
         working-directory: dist/windows/F95Checker
         env:
-          SHORT_SHA: ${{ steps.short-sha.outputs.sha }}
+          SHA: ${{ steps.short-sha.outputs.sha }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: F95Checker-${{ env.SHORT_SHA }}
-          path: dist/windows/F95Checker/F95Checker-${{ env.SHORT_SHA }}.zip
+          name: F95Checker-${{ env.SHA }}
+          path: dist/windows/F95Checker/F95Checker-${{ env.SHA }}.zip
