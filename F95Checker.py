@@ -1,5 +1,6 @@
 import tkinter.messagebox
 import tkinter as tk
+import datetime
 import pathlib
 import asyncio
 import json
@@ -35,7 +36,7 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '8.2'
+globals.version = '8.2 tester'
 
 globals.domain            = "https://f95zone.to"
 globals.check_login_page  = globals.domain +  "/account/"
@@ -118,6 +119,15 @@ def setup_interface():
 
 
 if __name__ == '__main__':
+
+    # Log to file
+    if "tester" in globals.version or "dev" in globals.version or globals.config["options"]["debug"]:
+        from modules import logger
+        logger.init("F95Checker")
+
+    # Log starting messgae
+    current = datetime.datetime.now()
+    print(f'F95Checker v{globals.version} starting at {"0" if current.day < 10 else ""}{current.day}/{"0" if current.month < 10 else ""}{current.month}/{current.year} - {"0" if current.hour < 10 else ""}{current.hour}:{"0" if current.minute < 10 else ""}{current.minute}:{"0" if current.second < 10 else ""}{current.second}')
 
     # Create App
     globals.app = QtWidgets.QApplication(sys.argv)

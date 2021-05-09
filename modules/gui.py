@@ -433,7 +433,7 @@ class F95CheckerGUI(QMainWindow):
                 self.watermark.setText(f'Downloading {img_task_count} image{"s" if img_task_count > 1 else ""}...')
             else:
                 if "tester" in globals.version:
-                    self.watermark.setText("F95Checker Tester Build")
+                    self.watermark.setText(f"F95Checker Tester Build (v{globals.version.replace('tester', '').strip()})")
                 else:
                     self.watermark.setText(f"F95Checker v{globals.version} by WillyJL")
             await asyncio.sleep(1)

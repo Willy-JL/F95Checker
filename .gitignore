@@ -7,3 +7,4 @@ temp/
 build/
 dist/
 F95Checker.spec
+*.log
