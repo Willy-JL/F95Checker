@@ -19,6 +19,9 @@ jobs:
       - name: Clone Repo
         uses: actions/checkout@v2
 
+      - name: Replace version number
+        run: python3 -c "exec('with open(\'F95Checker.py\') as f:\n    lines = f.readlines()\nfor i, line in enumerate(lines):\n    if line.startswith(\'globals.version = \\\\\'\'):\n        lines[i] = \'globals.version = \\\\\'${GITHUB_REF:10}\\\\\'\\\n\'\nwith open(\'F95Checker.py\', \'w\') as f:\n    f.writelines(lines)')"
+
       - name: Build Application
         uses: Willy-JL/pyinstaller-action-windows@main
         with:
