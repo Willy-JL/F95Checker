@@ -12,6 +12,9 @@ jobs:
 
     steps:
 
+      - name: Install zip
+        uses: montudor/action-zip@v0.1.1
+
       - name: Clone Repo
         uses: actions/checkout@v2
 
@@ -85,8 +88,19 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           expire-in: 0
 
+      - uses: benjlevesque/short-sha@v1.2
+        id: short-sha
+        with:
+          length: 8
+
+      - name: Zip Binaries
+        run: zip -qq -r F95Checker-${SHORT_SHA}.zip *
+        working-directory: dist/windows/F95Checker
+        env:
+          SHORT_SHA: ${{ steps.short-sha.outputs.sha }}
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: F95Checker-latest
-          path: dist/windows/F95Checker
+          name: F95Checker-manual-${{ env.SHORT_SHA }}
+          path: dist/windows/F95Checker/F95Checker-manual-${{ env.SHORT_SHA }}.zip
