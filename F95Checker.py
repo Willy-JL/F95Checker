@@ -1,5 +1,6 @@
 import tkinter.messagebox
 import tkinter as tk
+import traceback
 import datetime
 import pathlib
 import asyncio
@@ -18,6 +19,8 @@ try:
     from modules import api, callbacks, gui
 except ModuleNotFoundError as e:
     # Dependencies not found, prompt to install and exit
+    exc = "".join(traceback.format_exception(*sys.exc_info()))
+    print(exc)
     root = tk.Tk()
     root.withdraw()
     tk.messagebox.showerror('Error!', f'Some required dependencies were not found. Please install them manually using the command "pip install --upgrade -r requirements.txt"\n\nError:\n{e}')
@@ -26,6 +29,8 @@ except ModuleNotFoundError as e:
     sys.exit()
 except ImportError as e:
     # Dependencies failed, prompt to install and exit
+    exc = "".join(traceback.format_exception(*sys.exc_info()))
+    print(exc)
     root = tk.Tk()
     root.withdraw()
     tk.messagebox.showerror('Error!', f'Somemething went wrong importing dependencies. Please install them manually using the command "pip install --upgrade -r requirements.txt"\n\nError:\n{e}')
@@ -97,6 +102,8 @@ try:
             globals.config = json.load(f)
             config_utils.init_config()
         except json.JSONDecodeError:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             root = tk.Tk()
             root.withdraw()
             tk.messagebox.showerror('Invalid config!', "Something went wrong with your config file, it might have gotten corrupted...\nClick ok to generate a new empty cconfig")
@@ -105,6 +112,8 @@ try:
             globals.config = {}
             config_utils.init_config()
 except FileNotFoundError:
+    exc = "".join(traceback.format_exception(*sys.exc_info()))
+    print(exc)
     globals.config = {}
     config_utils.init_config()
     if os.path.isfile(f'{globals.config_path}/config.ini'):

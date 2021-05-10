@@ -3,6 +3,7 @@ from modules import globals, api, gui
 from bs4 import BeautifulSoup
 from qasync import asyncSlot
 from subprocess import Popen
+import traceback
 import aiohttp
 import asyncio
 import random
@@ -161,6 +162,8 @@ async def open_webpage(link, *kw):
             async with globals.http.get(link) as req:
                 text = await req.text()
         except aiohttp.ClientConnectorError:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             await api.handle_no_internet()
             return
         assert text.startswith("<!DOCTYPE html>")
@@ -179,6 +182,8 @@ async def open_webpage(link, *kw):
                         async with globals.http.get(compressed_link) as req:
                             text = await req.text()
                     except aiohttp.ClientConnectorError:
+                        exc = "".join(traceback.format_exception(*sys.exc_info()))
+                        print(exc)
                         await api.handle_no_internet()
                         return
                     assert text.startswith("<!DOCTYPE html>")

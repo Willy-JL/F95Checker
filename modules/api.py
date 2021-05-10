@@ -68,14 +68,17 @@ async def login():
                 async with globals.http.head(globals.check_login_page) as check_login_req:
                     globals.logged_in = check_login_req.ok
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 config_utils.save_config()
                 globals.logging_in = False
                 return
             break
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries >= globals.config["options"]["max_retries"]:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
                 config_utils.save_config()
                 globals.logging_in = False
@@ -89,6 +92,8 @@ async def login():
                     async with globals.http.get(globals.login_page) as token_req:
                         text = await token_req.text()
                 except aiohttp.ClientConnectorError:
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    print(exc)
                     await handle_no_internet()
                     config_utils.save_config()
                     globals.logging_in = False
@@ -103,8 +108,9 @@ async def login():
                 config_utils.save_config()
                 break
             except Exception:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 if retries >= globals.config["options"]["max_retries"]:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
                     config_utils.save_config()
                     globals.logging_in = False
@@ -140,13 +146,16 @@ async def login():
                         await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
                     login_redirects = login_req.history
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 config_utils.save_config()
                 globals.logging_in = False
                 return
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries_a >= globals.config["options"]["max_retries"]:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
                 break
             retries_a += 1
@@ -188,13 +197,16 @@ async def login():
                         }) as two_step_req:
                             two_step_result = (await two_step_req.json()).get("status")
                     except aiohttp.ClientConnectorError:
+                        exc = "".join(traceback.format_exception(*sys.exc_info()))
+                        print(exc)
                         await handle_no_internet()
                         config_utils.save_config()
                         globals.logging_in = False
                         return
                 except Exception:
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    print(exc)
                     if retries_b >= globals.config["options"]["max_retries"]:
-                        exc = "".join(traceback.format_exception(*sys.exc_info()))
                         await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
                         break
                     retries_b += 1
@@ -232,10 +244,14 @@ async def check_notifs():
                         async with globals.http.get(globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
                             notif_json = await notif_req.json()
                     except aiohttp.ClientConnectorError:
+                        exc = "".join(traceback.format_exception(*sys.exc_info()))
+                        print(exc)
                         await handle_no_internet()
                         return
                     break
                 except Exception:
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    print(exc)
                     if retries_b >= globals.config["options"]["max_retries"]:
                         return
                     retries_b += 1
@@ -265,8 +281,9 @@ async def check_notifs():
                 if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if inbox > 1 else ""}.', f'Do you want to view {"them" if inbox > 1 else "it"}?'):
                     await browsers.open_webpage(globals.inbox_page )
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries_a >= globals.config["options"]["max_retries"]:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...\n\n{exc}')
                 return
             retries_a += 1
@@ -287,10 +304,14 @@ async def check_for_updates():
                 async with globals.http.head(globals.tool_page) as check_req:
                     tool_url = str(check_req.headers.get("location"))
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 return
             break
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries >= globals.config["options"]["max_retries"]:
                 return
             retries += 1
@@ -311,10 +332,14 @@ async def check_for_updates():
                     async with globals.http.head(globals.tool_page) as check_req:
                         tool_url = str(check_req.headers.get("location"))
                 except aiohttp.ClientConnectorError:
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    print(exc)
                     await handle_no_internet()
                     return
                 break
             except Exception:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 if retries >= globals.config["options"]["max_retries"]:
                     return
                 retries += 1
@@ -336,12 +361,16 @@ async def check_for_updates():
                 async with globals.http.get(globals.tool_page) as tool_req:
                     text = await tool_req.text()
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 return
             assert text.startswith("<!DOCTYPE html>")
             tool_html = BeautifulSoup(text, 'html.parser')
             break
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries >= globals.config["options"]["max_retries"]:
                 return
             retries += 1
@@ -386,6 +415,8 @@ async def check(game_id):
                 async with globals.http.head(globals.config["games"][game_id]["link"]) as game_check_req:
                     redirect = game_check_req.headers.get("location")
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 return
             if str(redirect).startswith(globals.login_page):
@@ -401,6 +432,8 @@ async def check(game_id):
                     async with globals.http.head(globals.config["games"][game_id]["link"]) as game_check_req:
                         redirect = game_check_req.headers.get("location")
                 except aiohttp.ClientConnectorError:
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    print(exc)
                     await handle_no_internet()
                     return
 
@@ -450,8 +483,9 @@ async def check(game_id):
                                                           link      = globals.config["games"][game_id]["link"])
         # Retry Stuff
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries >= globals.config["options"]["max_retries"]:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {globals.config["games"][game_id]["name"]}...\n\n{exc}')
                 return
             retries += 1
@@ -477,6 +511,8 @@ async def find_game_from_search_term(search_term):
                 }) as search_req:
                     text = await search_req.text()
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 return None, None
             assert text.startswith("<!DOCTYPE html>")
@@ -495,8 +531,9 @@ async def find_game_from_search_term(search_term):
 
         # Retry Stuff
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries >= globals.config["options"]["max_retries"]:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong searching {search_term}...\n\n{exc}')
                 return None, None
             retries += 1
@@ -527,6 +564,8 @@ async def download_game_image(source, game_id):
                             text = await thread_req.text()
                             thread_req_ok = thread_req.ok
                 except aiohttp.ClientConnectorError:
+                    exc = "".join(traceback.format_exception(*sys.exc_info()))
+                    print(exc)
                     await handle_no_internet()
                     globals.image_bg_tasks.remove(game_id)
                     return
@@ -540,6 +579,8 @@ async def download_game_image(source, game_id):
                     return
             # Retry Stuff
             except Exception:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 if retries >= globals.config["options"]["max_retries"]:
                     globals.image_bg_tasks.remove(game_id)
                     return
@@ -571,6 +612,8 @@ async def download_game_image(source, game_id):
                             img_bytes = await img_req.read()
                             img_req_ok = img_req.ok
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 globals.image_bg_tasks.remove(game_id)
                 return
@@ -583,6 +626,8 @@ async def download_game_image(source, game_id):
             img.save(f'{globals.config_path}/images/{game_id}.jpg')
         # Retry Stuff
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries >= globals.config["options"]["max_retries"]:
                 globals.image_bg_tasks.remove(game_id)
                 return
@@ -610,6 +655,8 @@ async def get_game_data(link):
                     text = await thread_req.text()
                     thread_req_ok = thread_req.ok
             except aiohttp.ClientConnectorError:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 await handle_no_internet()
                 return
             if not thread_req_ok:
@@ -665,8 +712,9 @@ async def get_game_data(link):
             }
         # Retry Stuff
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             if retries >= globals.config["options"]["max_retries"]:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
                 await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...\n\n{exc}')
                 return
             retries += 1

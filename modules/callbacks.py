@@ -3,9 +3,11 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from functools import partial
 from subprocess import Popen
 from qasync import asyncSlot
+import traceback
 import datetime
 import asyncio
 import glob
+import sys
 import os
 
 
@@ -439,6 +441,8 @@ def open_game(game_id, event):
             try:
                 Popen([globals.config["games"][game_id]["exe_path"]])
             except Exception:
+                exc = "".join(traceback.format_exception(*sys.exc_info()))
+                print(exc)
                 globals.loop.create_task(gui.WarningPopup.open(globals.gui, "Error", "Something went wrong launching this game, it was probably moved or deleted.\n\nYou can unset the executable path by toggling the installed checkbox!"))
         elif event.button() == QtCore.Qt.RightButton and globals.user_os == "windows":
             path = globals.config["games"][game_id]["exe_path"]
@@ -519,7 +523,8 @@ async def refresh(*kw):
         try:
             await asyncio.gather(*[worker() for _ in range(globals.config["options"]["refresh_threads"])])
         except Exception:
-            pass
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
 
     globals.gui.refresh_bar.setVisible(False)
     globals.gui.refresh_label.setVisible(False)

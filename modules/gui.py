@@ -11,7 +11,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 import os
+import sys
 import asyncio
+import traceback
 from qasync import asyncClose
 from functools import partial
 from modules import globals, browsers, callbacks, config_utils
@@ -481,6 +483,8 @@ class F95CheckerGUI(QMainWindow):
             else:
                 pixmap = pixmap.scaledToWidth(self.image_overlay.size().width())
         except Exception:
+            exc = "".join(traceback.format_exception(*sys.exc_info()))
+            print(exc)
             pass
         self.image_overlay.setPixmap(pixmap)
 
