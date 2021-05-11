@@ -1286,7 +1286,7 @@ class LoginGUI(QDialog):
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.Save)
-        self.buttonBox.accepted.connect(self.closeEvent)
+        self.buttonBox.accepted.connect(lambda: self.close())
 
         self.gridLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
 
@@ -1339,7 +1339,7 @@ class TwoStepGUI(QDialog):
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.Ok)
-        self.buttonBox.accepted.connect(self.closeEvent)
+        self.buttonBox.accepted.connect(lambda: self.close())
 
         self.gridLayout.addWidget(self.buttonBox, 2, 0, 1, 2)
 
