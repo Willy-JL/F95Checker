@@ -47,12 +47,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.2**: [Download v8.2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.2/F95CheckerV8.2.zip)
+**8.3**: [Download v8.3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3/F95CheckerV8.3.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.2**: [Download v8.2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.2/F95CheckerV8.2.zip)
 
 **8.1**: [Download v8.1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.1/F95CheckerV8.1.zip)
 
@@ -183,6 +185,14 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.3</summary>
+
+   - NEW: big image viewer: click on an image inside the changelog screen to open it bigger
+   - FIXED: login crash when clicking Save / Ok buttons on the login popups
+   - FIXED: cursor now shows as pointer over interactable elements
+   - NEW: "debug" option in the config file allows to log errors to file
+</details>
 <details>
   <summary>v8.2</summary>
 
