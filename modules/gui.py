@@ -87,6 +87,7 @@ class F95CheckerGUI(QMainWindow):
         self.add_button = QPushButton(self.add_section)
         self.add_button.setObjectName(u"add_button")
         self.add_button.setMinimumSize(QSize(88, 20))
+        self.add_button.setCursor(Qt.PointingHandCursor)
 
         self.horizontalLayout_2.addWidget(self.add_button)
 
@@ -116,6 +117,7 @@ class F95CheckerGUI(QMainWindow):
         self.refresh_button.setEnabled(True)
         self.refresh_button.setMinimumSize(QSize(0, 100))
         self.refresh_button.setBaseSize(QSize(0, 0))
+        self.refresh_button.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.refresh_button, 0, 0, 1, 3)
 
@@ -146,6 +148,7 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.browser_buttons["chrome"].sizePolicy().hasHeightForWidth())
         self.browser_buttons["chrome"].setSizePolicy(sizePolicy1)
         self.browser_buttons["chrome"].setMinimumSize(QSize(64, 26))
+        self.browser_buttons["chrome"].setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.browser_buttons["chrome"], 1, 0, 1, 1)
 
@@ -154,6 +157,7 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.browser_buttons["firefox"].sizePolicy().hasHeightForWidth())
         self.browser_buttons["firefox"].setSizePolicy(sizePolicy1)
         self.browser_buttons["firefox"].setMinimumSize(QSize(64, 26))
+        self.browser_buttons["firefox"].setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.browser_buttons["firefox"], 1, 1, 1, 1)
 
@@ -162,6 +166,7 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.browser_buttons["brave"].sizePolicy().hasHeightForWidth())
         self.browser_buttons["brave"].setSizePolicy(sizePolicy1)
         self.browser_buttons["brave"].setMinimumSize(QSize(64, 26))
+        self.browser_buttons["brave"].setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.browser_buttons["brave"], 1, 2, 1, 1)
 
@@ -170,6 +175,7 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.browser_buttons["edge"].sizePolicy().hasHeightForWidth())
         self.browser_buttons["edge"].setSizePolicy(sizePolicy1)
         self.browser_buttons["edge"].setMinimumSize(QSize(64, 26))
+        self.browser_buttons["edge"].setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.browser_buttons["edge"], 2, 0, 1, 1)
 
@@ -178,6 +184,7 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.browser_buttons["opera"].sizePolicy().hasHeightForWidth())
         self.browser_buttons["opera"].setSizePolicy(sizePolicy1)
         self.browser_buttons["opera"].setMinimumSize(QSize(64, 26))
+        self.browser_buttons["opera"].setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.browser_buttons["opera"], 2, 1, 1, 1)
 
@@ -186,24 +193,28 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.browser_buttons["operagx"].sizePolicy().hasHeightForWidth())
         self.browser_buttons["operagx"].setSizePolicy(sizePolicy1)
         self.browser_buttons["operagx"].setMinimumSize(QSize(64, 26))
+        self.browser_buttons["operagx"].setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.browser_buttons["operagx"], 2, 2, 1, 1)
 
         self.private_button = QCheckBox(self.options_section)
         self.private_button.setObjectName(u"private_button")
         self.private_button.setMinimumSize(QSize(128, 22))
+        self.private_button.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.private_button, 3, 0, 1, 3, Qt.AlignHCenter)
 
         self.saved_html_button = QCheckBox(self.options_section)
         self.saved_html_button.setObjectName(u"saved_html_button")
         self.saved_html_button.setMinimumSize(QSize(128, 22))
+        self.saved_html_button.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.saved_html_button, 4, 0, 1, 3, Qt.AlignHCenter)
 
         self.start_refresh_button = QCheckBox(self.options_section)
         self.start_refresh_button.setObjectName(u"start_refresh_button")
         self.start_refresh_button.setMinimumSize(QSize(128, 22))
+        self.start_refresh_button.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.start_refresh_button, 5, 0, 1, 3, Qt.AlignHCenter)
 
@@ -219,6 +230,7 @@ class F95CheckerGUI(QMainWindow):
         self.sort_input.addItem("")
         self.sort_input.setObjectName(u"sort_input")
         self.sort_input.setMinimumSize(QSize(128, 26))
+        self.sort_input.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.sort_input, 7, 1, 1, 2)
 
@@ -230,6 +242,7 @@ class F95CheckerGUI(QMainWindow):
         self.retries_input = QSpinBox(self.options_section)
         self.retries_input.setObjectName(u"retries_input")
         self.retries_input.setMinimumSize(QSize(64, 26))
+        self.retries_input.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.retries_input, 8, 2, 1, 1)
 
@@ -243,6 +256,7 @@ class F95CheckerGUI(QMainWindow):
         self.threads_input.setMinimumSize(QSize(64, 26))
         self.threads_input.setMinimum(1)
         self.threads_input.setMaximum(999)
+        self.threads_input.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.threads_input, 9, 2, 1, 1)
 
@@ -256,6 +270,7 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.color_button.sizePolicy().hasHeightForWidth())
         self.color_button.setSizePolicy(sizePolicy1)
         self.color_button.setMinimumSize(QSize(64, 26))
+        self.color_button.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.color_button, 10, 2, 1, 1)
 
@@ -269,6 +284,7 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.edit_button.sizePolicy().hasHeightForWidth())
         self.edit_button.setSizePolicy(sizePolicy1)
         self.edit_button.setMinimumSize(QSize(64, 26))
+        self.edit_button.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.edit_button, 11, 2, 1, 1)
 
@@ -282,6 +298,7 @@ class F95CheckerGUI(QMainWindow):
         self.bg_refresh_input.setMinimumSize(QSize(64, 26))
         self.bg_refresh_input.setMinimum(5)
         self.bg_refresh_input.setMaximum(999)
+        self.bg_refresh_input.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.bg_refresh_input, 12, 2, 1, 1)
 
@@ -295,12 +312,14 @@ class F95CheckerGUI(QMainWindow):
         sizePolicy1.setHeightForWidth(self.background_button.sizePolicy().hasHeightForWidth())
         self.background_button.setSizePolicy(sizePolicy1)
         self.background_button.setMinimumSize(QSize(64, 26))
+        self.background_button.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.background_button, 13, 2, 1, 1)
 
         self.watermark = QLabel(self.options_section)
         self.watermark.setObjectName(u"watermark")
         self.watermark.setAlignment(Qt.AlignBottom | Qt.AlignRight | Qt.AlignTrailing)
+        self.watermark.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout_2.addWidget(self.watermark, 15, 0, 1, 3)
 
@@ -906,6 +925,7 @@ class GameContainer(QFrame):
         sizePolicy1.setHeightForWidth(self.remove_button.sizePolicy().hasHeightForWidth())
         self.remove_button.setSizePolicy(sizePolicy1)
         self.remove_button.setMinimumSize(QSize(26, 26))
+        self.remove_button.setCursor(Qt.PointingHandCursor)
 
         self.name = QLabel(self)
         self.name.setObjectName(u"name")
@@ -914,6 +934,7 @@ class GameContainer(QFrame):
         sizePolicy2.setVerticalStretch(0)
         sizePolicy2.setHeightForWidth(self.name.sizePolicy().hasHeightForWidth())
         self.name.setSizePolicy(sizePolicy2)
+        self.name.setCursor(Qt.PointingHandCursor)
 
         self.status = QLabel(self)
         self.status.setObjectName(u"status")
@@ -935,23 +956,27 @@ class GameContainer(QFrame):
         self.played_button.setObjectName(u"played_button")
         sizePolicy1.setHeightForWidth(self.played_button.sizePolicy().hasHeightForWidth())
         self.played_button.setSizePolicy(sizePolicy1)
+        self.played_button.setCursor(Qt.PointingHandCursor)
 
         self.installed_button = QCheckBox(self)
         self.installed_button.setObjectName(u"installed_button")
         sizePolicy1.setHeightForWidth(self.installed_button.sizePolicy().hasHeightForWidth())
         self.installed_button.setSizePolicy(sizePolicy1)
+        self.installed_button.setCursor(Qt.PointingHandCursor)
 
         self.open_button = QPushButton(self)
         self.open_button.setObjectName(u"open_button")
         sizePolicy1.setHeightForWidth(self.open_button.sizePolicy().hasHeightForWidth())
         self.open_button.setSizePolicy(sizePolicy1)
         self.open_button.setMinimumSize(QSize(26, 26))
+        self.open_button.setCursor(Qt.PointingHandCursor)
 
         self.view_button = QPushButton(self)
         self.view_button.setObjectName(u"view_button")
         sizePolicy1.setHeightForWidth(self.view_button.sizePolicy().hasHeightForWidth())
         self.view_button.setSizePolicy(sizePolicy1)
         self.view_button.setMinimumSize(QSize(26, 26))
+        self.view_button.setCursor(Qt.PointingHandCursor)
 
         self.game_container.addWidget(self.open_button)
         self.game_container.addWidget(self.name)
@@ -1073,6 +1098,7 @@ class StyleGUI(QWidget):
         self.alternate = QPushButton(self)
         self.alternate.setObjectName(u"alt_color_selection")
         self.alternate.setFixedSize(QSize(18, 18))
+        self.alternate.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.alternate, 1, 2, 1, 1)
 
@@ -1084,18 +1110,21 @@ class StyleGUI(QWidget):
         self.accent = QPushButton(self)
         self.accent.setObjectName(u"accent_color_selection")
         self.accent.setFixedSize(QSize(18, 18))
+        self.accent.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.accent, 2, 2, 1, 1)
 
         self.background = QPushButton(self)
         self.background.setObjectName(u"back_color_selection")
         self.background.setFixedSize(QSize(18, 18))
+        self.background.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.background, 0, 2, 1, 1)
 
         self.restore = QPushButton(self)
         self.restore.setObjectName(u"restore")
         self.restore.setFixedSize(QSize(106, 18))
+        self.restore.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.restore, 3, 0, 1, 3)
 
@@ -1116,24 +1145,28 @@ class StyleGUI(QWidget):
         self.border = QPushButton(self)
         self.border.setObjectName(u"border_color_selection")
         self.border.setFixedSize(QSize(18, 18))
+        self.border.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.border, 0, 6, 1, 1)
 
         self.radius = QSpinBox(self)
         self.radius.setObjectName(u"radius_selection")
         self.radius.setMaximum(6)
+        self.radius.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.radius, 3, 5, 1, 2)
 
         self.hover = QPushButton(self)
         self.hover.setObjectName(u"hover_color_selection")
         self.hover.setFixedSize(QSize(18, 18))
+        self.hover.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.hover, 1, 6, 1, 1)
 
         self.disabled = QPushButton(self)
         self.disabled.setObjectName(u"disabled_color_selection")
         self.disabled.setFixedSize(QSize(18, 18))
+        self.disabled.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.disabled, 2, 6, 1, 1)
 
@@ -1221,6 +1254,8 @@ class ChangelogGUI(QWidget):
 
         self.setWindowTitle(f'Changelog for "{globals.config["games"][self.game_id]["name"]}"')
         if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
+            self.header.mousePressEvent = lambda e=None: self.show_big_image()
+            self.header.setCursor(Qt.PointingHandCursor)
             self.header.setPixmap(QPixmap(f'{globals.config_path}/images/{game_id}.jpg').scaledToHeight(250))
         else:
             self.header.setText("Image missing...  Refresh to attempt downloading it!\n")
@@ -1230,6 +1265,15 @@ class ChangelogGUI(QWidget):
         self.notes.textChanged.connect(self.notes_changed)
 
         QMetaObject.connectSlotsByName(self)
+
+    def show_big_image(self):
+        if os.path.isfile(f'{globals.config_path}/images/{self.game_id}.jpg'):
+            try:
+                self.large_image.close()
+            except Exception:
+                pass
+            self.large_image = ImageGUI(self.game_id)
+            self.large_image.show()
 
     def notes_changed(self):
         """Save notes section when text changes"""
@@ -1243,7 +1287,63 @@ class ChangelogGUI(QWidget):
         except Exception:
             pass
         config_utils.save_config()
+        try:
+            self.large_image.close()
+        except Exception:
+            pass
         event.accept()
+
+
+class ImageGUI(QWidget):
+    def __init__(self, game_id):
+        self.game_id = game_id
+        super().__init__()
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
+
+        if not self.objectName():
+            self.setObjectName(u"Form")
+        self.layout = QHBoxLayout(self)
+        self.layout.setSpacing(0)
+        self.layout.setObjectName(u"layout")
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.image = QLabel(self)
+        self.image.setObjectName(u"image")
+        self.image.setAlignment(Qt.AlignCenter)
+        self.image.setScaledContents(True)
+        self.image.setMinimumSize(100, 100)
+
+        self.layout.addItem(QSpacerItem(0, 0))
+        self.layout.addWidget(self.image)
+        self.layout.addItem(QSpacerItem(0, 0))
+
+        self.setWindowTitle(f'Image for "{globals.config["games"][self.game_id]["name"]}"')
+        if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
+            pixmap = QPixmap(f'{globals.config_path}/images/{game_id}.jpg')
+            self.image_aspect_ratio = pixmap.size().width() / pixmap.size().height()
+            self.image.setPixmap(pixmap)
+            self.image.setMinimumSize(169 * self.image_aspect_ratio, 169)
+        else:
+            self.close()
+
+        QMetaObject.connectSlotsByName(self)
+
+    def resizeEvent(self, event):
+        resize_aspect_ratio = event.size().width() / event.size().height()
+
+        if resize_aspect_ratio > self.image_aspect_ratio:
+            self.layout.setDirection(QBoxLayout.LeftToRight)
+            widgetStretch = self.size().height() * self.image_aspect_ratio
+            outerStretch = (self.size().width() - widgetStretch) / 2 + 0.5
+        else:
+            self.layout.setDirection(QBoxLayout.TopToBottom)
+            widgetStretch = self.size().width() * (self.image_aspect_ratio ** -1)
+            outerStretch = (self.size().height() - widgetStretch) / 2 + 0.5
+
+        self.layout.setStretch(0, outerStretch);
+        self.layout.setStretch(1, widgetStretch);
+        self.layout.setStretch(2, outerStretch);
+
 
 
 class LoginGUI(QDialog):
@@ -1287,6 +1387,7 @@ class LoginGUI(QDialog):
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.Save)
         self.buttonBox.accepted.connect(lambda: self.close())
+        self.buttonBox.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
 
@@ -1340,6 +1441,7 @@ class TwoStepGUI(QDialog):
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.Ok)
         self.buttonBox.accepted.connect(lambda: self.close())
+        self.buttonBox.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.buttonBox, 2, 0, 1, 2)
 
@@ -1364,6 +1466,8 @@ class QuestionPopup(QMessageBox):
         if details:
             self.setDetailedText(details)
         self.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        for button in self.buttons():
+            button.setCursor(Qt.PointingHandCursor)
         self.finished.connect(self.closeEvent)
 
     @asyncClose
@@ -1399,6 +1503,8 @@ class WarningPopup(QMessageBox):
         self.setIcon(QMessageBox.Warning)
         self.setText(message)
         self.setStandardButtons(QMessageBox.Ok)
+        for button in self.buttons():
+            button.setCursor(Qt.PointingHandCursor)
 
     @staticmethod
     async def open(parent, title, message):
@@ -1422,6 +1528,8 @@ class InfoPopup(QMessageBox):
         self.setIcon(QMessageBox.Information)
         self.setText(message)
         self.setStandardButtons(QMessageBox.Ok)
+        for button in self.buttons():
+            button.setCursor(Qt.PointingHandCursor)
 
     @staticmethod
     async def open(parent, title, message):
