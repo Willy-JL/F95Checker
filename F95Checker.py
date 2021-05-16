@@ -41,7 +41,7 @@ except ImportError as e:
 
 # Setup Globals
 from modules import globals
-globals.version = '8.3 tester'
+globals.version = '8.3h1 tester'
 
 globals.domain            = "https://f95zone.to"
 globals.check_login_page  = globals.domain +  "/account/"
@@ -54,10 +54,11 @@ globals.alerts_page       = globals.domain +  "/account/alerts/"
 globals.inbox_page        = globals.domain +  "/conversations/"
 globals.tool_page         = globals.domain +  "/threads/44173/"
 
-globals.logged_in       = False
-globals.logging_in      = False
-globals.checked_updates = False
-globals.refreshing      = False
+globals.logged_in        = False
+globals.logging_in       = False
+globals.checked_updates  = False
+globals.checking_updates = False
+globals.refreshing       = False
 
 
 # OS Handling
