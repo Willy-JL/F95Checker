@@ -437,7 +437,7 @@ class F95CheckerGUI(QMainWindow):
         self.background_button.clicked.connect(callbacks.toggle_background)
 
         # Watermark
-        globals.loop.create_task(self.update_bg_images_text_loop())
+        globals.loop.create_task(self.update_status_text_loop())
         self.watermark.mousePressEvent = partial(browsers.open_webpage_sync_helper, globals.tool_page)
 
         if globals.settings.value("geometry"):
@@ -447,17 +447,19 @@ class F95CheckerGUI(QMainWindow):
         if globals.settings.value("windowState"):
             self.restoreState(globals.settings.value("windowState"))
 
-    async def update_bg_images_text_loop(self):
+    async def update_status_text_loop(self):
         while True:
             img_task_count = len(globals.image_bg_tasks)
-            if img_task_count > 0:
+            if globals.checking_updates:
+                self.watermark.setText(f'Checking for tool updates...')
+            elif img_task_count > 0:
                 self.watermark.setText(f'Downloading {img_task_count} image{"s" if img_task_count > 1 else ""}...')
             else:
                 if "tester" in globals.version:
                     self.watermark.setText(f"F95Checker Tester Build (v{globals.version.replace('tester', '').strip()})")
                 else:
                     self.watermark.setText(f"F95Checker v{globals.version} by WillyJL")
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
 
     def showEvent(self, event):
         """Create app icon progressbar and raise window to top"""
