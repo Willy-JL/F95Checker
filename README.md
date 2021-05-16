@@ -47,12 +47,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.3**: [Download v8.3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3/F95CheckerV8.3.zip)
+**8.3h1**: [Download v8.3h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h1/F95CheckerV8.3h1.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.3**: [Download v8.3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3/F95CheckerV8.3.zip)
 
 **8.2**: [Download v8.2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.2/F95CheckerV8.2.zip)
 
@@ -185,6 +187,13 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.3h1</summary>
+
+   - FIXED: The tool's own update checker runs after refreshing, so you see the game updates popup now
+   - FIXED: The tool's own update prompt now shows the changelog in a bigger textbox, easier to read
+   - NEW: When checking updates for the tool itself you will see it in the status text (bottom right corner)
+</details>
 <details>
   <summary>v8.3</summary>
 
