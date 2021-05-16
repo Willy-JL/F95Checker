@@ -21,6 +21,7 @@ user_os           = None
 
 bg_paused         = None
 checked_updates   = None
+checking_updates  = None
 logged_in         = None
 logging_in        = None
 refreshing        = None

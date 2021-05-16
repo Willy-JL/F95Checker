@@ -504,7 +504,7 @@ async def refresh(*kw):
     globals.gui.refresh_bar.repaint()
 
     if globals.config["options"]["refresh_threads"] >= 100:
-        globals.gui.threads_input.setValue((len(globals.config["games"]) + 2) if len(globals.config["games"]) >= 98 else 100)
+        globals.gui.threads_input.setValue((len(globals.config["games"]) + 1) if len(globals.config["games"]) >= 99 else 100)
 
     if globals.logged_in:
 
@@ -517,8 +517,6 @@ async def refresh(*kw):
         for game in globals.config["games"]:
             refresh_tasks.put_nowait(api.check(game))
         refresh_tasks.put_nowait(api.check_notifs())
-        if not globals.checked_updates:
-            refresh_tasks.put_nowait(api.check_for_updates())
 
         try:
             await asyncio.gather(*[worker() for _ in range(globals.config["options"]["refresh_threads"])])
@@ -547,6 +545,9 @@ async def refresh(*kw):
             await gui.InfoPopup.open(globals.gui, 'Updates', f'{len(globals.updated_games)-ignored} game{"" if (len(globals.updated_games)-ignored) == 1 else "s"} {"has" if (len(globals.updated_games)-ignored) == 1 else "have"} been updated:\n\n{details}')
 
     globals.refreshing = False
+
+    if not globals.checked_updates and not globals.checking_updates:
+        globals.loop.create_task(api.check_for_updates())
 
 
 async def refresh_helper():

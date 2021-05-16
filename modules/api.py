@@ -293,9 +293,13 @@ async def check_notifs():
 
 async def check_for_updates():
     """Update checker for the tool itself"""
+    while globals.checking_updates:
+        await asyncio.sleep(0.25)
     if globals.checked_updates:
         return
+    globals.checking_updates = True
     if "tester" in globals.version or "dev" in globals.version:
+        globals.checking_updates = False
         return
     retries = 0
     while True:
@@ -307,12 +311,14 @@ async def check_for_updates():
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
                 await handle_no_internet()
+                globals.checking_updates = False
                 return
             break
         except Exception:
             exc = "".join(traceback.format_exception(*sys.exc_info()))
             print(exc)
             if retries >= globals.config["options"]["max_retries"]:
+                globals.checking_updates = False
                 return
             retries += 1
     tool_version_flag = globals.version.replace(".", "-") + "-willyjl."
@@ -324,6 +330,7 @@ async def check_for_updates():
         if not globals.logged_in:
             await login()
         if not globals.logged_in:
+            globals.checking_updates = False
             return
         retries = 0
         while True:
@@ -335,16 +342,20 @@ async def check_for_updates():
                     exc = "".join(traceback.format_exception(*sys.exc_info()))
                     print(exc)
                     await handle_no_internet()
+                    globals.checking_updates = False
                     return
                 break
             except Exception:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
                 if retries >= globals.config["options"]["max_retries"]:
+                    globals.checking_updates = False
                     return
                 retries += 1
     if tool_version_flag in tool_url:
         # No update found
+        globals.checked_updates = True
+        globals.checking_updates = False
         return
 
     # Update found, log in and fetch changelog
@@ -353,6 +364,7 @@ async def check_for_updates():
     if not globals.logged_in:
         await login()
     if not globals.logged_in:
+        globals.checking_updates = False
         return
     retries = 0
     while True:
@@ -364,6 +376,7 @@ async def check_for_updates():
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
                 await handle_no_internet()
+                globals.checking_updates = False
                 return
             assert text.startswith("<!DOCTYPE html>")
             tool_html = BeautifulSoup(text, 'html.parser')
@@ -372,9 +385,11 @@ async def check_for_updates():
             exc = "".join(traceback.format_exception(*sys.exc_info()))
             print(exc)
             if retries >= globals.config["options"]["max_retries"]:
+                globals.checking_updates = False
                 return
             retries += 1
     if await check_f95zone_error(tool_html, warn=True):
+        globals.checking_updates = False
         return
     tool_title = tool_html.select_one('h1[class="p-title-value"]').find(text=True, recursive=False).strip()
     tool_current = tool_title[tool_title.find('[') + 1:tool_title.find(']', tool_title.find('[') + 1)].strip()
@@ -392,11 +407,14 @@ async def check_for_updates():
         elif globals.exec_type == "python" and globals.user_os == "linux":
             Popen(["python3", "update.py", latest_url, "F95Checker.sh"])
         else:
+            globals.checking_updates = False
             return
         globals.loop.stop()
         globals.loop.close()
         sys.exit(0)
+        globals.checking_updates = False
         return
+    globals.checking_updates = False
 
 
 async def check(game_id):
