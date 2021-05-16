@@ -6,3 +6,4 @@ pywin32
 PyQt5==5.15.2
 soupsieve>=2.1
 beautifulsoup4
+PyQt5-sip==12.8.1
