@@ -1471,6 +1471,10 @@ class QuestionPopup(QMessageBox):
         for button in self.buttons():
             button.setCursor(Qt.PointingHandCursor)
         self.finished.connect(self.closeEvent)
+        try:
+            self.findChildren(QTextEdit)[0].setFixedSize(500, 250)
+        except Exception:
+            pass
 
     @asyncClose
     async def closeEvent(self, event=None):
