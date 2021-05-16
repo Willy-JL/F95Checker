@@ -90,7 +90,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           expire-in: 0
 
-      - uses: benjlevesque/short-sha@v1.2
+      - name: Get short SHA string
+        uses: benjlevesque/short-sha@v1.2
         id: short-sha
         with:
           length: 7
