@@ -1,4 +1,5 @@
 #!/bin/bash
 full_path=$(realpath $0)
 dir_path=$(dirname $full_path)
-python3 $dir_path/F95Checker.py
+cd $dir_path/
+python3 F95Checker.py
