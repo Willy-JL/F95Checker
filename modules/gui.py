@@ -202,21 +202,28 @@ class F95CheckerGUI(QMainWindow):
         self.private_button.setMinimumSize(QSize(128, 22))
         self.private_button.setCursor(Qt.PointingHandCursor)
 
-        self.gridLayout_2.addWidget(self.private_button, 3, 0, 1, 3, Qt.AlignHCenter)
+        self.gridLayout_2.addWidget(self.private_button, 3, 0, 1, 3, Qt.AlignLeft)
 
         self.saved_html_button = QCheckBox(self.options_section)
         self.saved_html_button.setObjectName(u"saved_html_button")
         self.saved_html_button.setMinimumSize(QSize(128, 22))
         self.saved_html_button.setCursor(Qt.PointingHandCursor)
 
-        self.gridLayout_2.addWidget(self.saved_html_button, 4, 0, 1, 3, Qt.AlignHCenter)
+        self.gridLayout_2.addWidget(self.saved_html_button, 4, 0, 1, 3, Qt.AlignLeft)
 
         self.start_refresh_button = QCheckBox(self.options_section)
         self.start_refresh_button.setObjectName(u"start_refresh_button")
         self.start_refresh_button.setMinimumSize(QSize(128, 22))
         self.start_refresh_button.setCursor(Qt.PointingHandCursor)
 
-        self.gridLayout_2.addWidget(self.start_refresh_button, 5, 0, 1, 3, Qt.AlignHCenter)
+        self.gridLayout_2.addWidget(self.start_refresh_button, 5, 0, 1, 3, Qt.AlignLeft)
+
+        self.refresh_completed_games_button = QCheckBox(self.options_section)
+        self.refresh_completed_games_button.setObjectName(u"refresh_completed_games_button")
+        self.refresh_completed_games_button.setMinimumSize(QSize(128, 22))
+        self.refresh_completed_games_button.setCursor(Qt.PointingHandCursor)
+
+        self.gridLayout_2.addWidget(self.refresh_completed_games_button, 6, 0, 1, 3, Qt.AlignLeft)
 
         self.sort_label = QLabel(self.options_section)
         self.sort_label.setObjectName(u"sort_label")
@@ -344,22 +351,23 @@ class F95CheckerGUI(QMainWindow):
         self.browser_buttons["edge"].setText("Edge")
         self.browser_buttons["opera"].setText("Opera")
         self.browser_buttons["operagx"].setText("OperaGX")
-        self.private_button.setText("Open Browser  in  Private Mode")
-        self.start_refresh_button.setText("Refresh  List  at  Program  Start")
-        self.saved_html_button.setText("Open  Pages   as   Saved  HTML")
-        self.sort_label.setText("   Auto Sort:")
+        self.private_button.setText("Open Browser in Private Mode")
+        self.start_refresh_button.setText("Refresh List at Program Start")
+        self.saved_html_button.setText("Open Pages as Saved HTML")
+        self.refresh_completed_games_button.setText("Refresh completed games")
+        self.sort_label.setText("Auto Sort:")
         self.sort_input.setItemText(0, "Don't Sort")
         self.sort_input.setItemText(1, "Last Updated")
         self.sort_input.setItemText(2, "First Added")
         self.sort_input.setItemText(3, "Alphabetical")
-        self.retries_label.setText("   Max Retries per Request:")
-        self.threads_label.setText("   Max Threads for Refresh:")
-        self.color_label.setText("   Change  GUI  Colors:")
+        self.retries_label.setText("Max Retries per Request:")
+        self.threads_label.setText("Max Threads for Refresh:")
+        self.color_label.setText("Change GUI Colors:")
         self.color_button.setText("Picker")
-        self.edit_label.setText("   Remove   Games:")
+        self.edit_label.setText("Remove Games:")
         self.edit_button.setText("Edit")
-        self.bg_refresh_label.setText("   BG Refresh Delay (mins):")
-        self.background_label.setText("   Switch  to  Background:")
+        self.bg_refresh_label.setText("BG Refresh Delay (mins):")
+        self.background_label.setText("Switch  to  Background:")
         self.background_button.setText("Switch")
         self.refresh_button.setToolTip('Click this to check\nfor game updates!')
         for browser in self.browser_buttons:
@@ -367,6 +375,7 @@ class F95CheckerGUI(QMainWindow):
         self.private_button.setToolTip('This toggles whether links should be\nopened in incognito / private mode!')
         self.saved_html_button.setToolTip('This toggles whether links should be opened as a local HTML,\nallowing you to see links and spoilers without logging in!')
         self.start_refresh_button.setToolTip('This toggles whether the tool should\nrefresh automatically when you open it!')
+        self.refresh_completed_games_button.setToolTip('This toggles weather games that are marked as completed should be refreshed!')
         self.sort_input.setToolTip('This changes how\ngames get sorted!')
         self.sort_label.setToolTip('This changes how\ngames get sorted!')
         self.retries_input.setToolTip('This changes how many times a\nfailed request will be retried!')
@@ -414,6 +423,10 @@ class F95CheckerGUI(QMainWindow):
         if globals.config["options"]["open_html"]:
             self.saved_html_button.setChecked(True)
         self.saved_html_button.stateChanged.connect(callbacks.set_html)
+
+        if globals.config["options"]["refresh_completed_games"]:
+            self.refresh_completed_games_button.setChecked(True)
+        self.refresh_completed_games_button.stateChanged.connect(callbacks.set_refresh_completed_games)
 
         # Sorting
         self.sort_input.setCurrentIndex(1 if globals.config["options"]["auto_sort"] == 'last_updated' else 2 if globals.config["options"]["auto_sort"] == 'first_added' else 3 if globals.config["options"]["auto_sort"] == 'alphabetical' else 0)
