@@ -176,6 +176,13 @@ async def set_refresh(*kw):
 
 
 @asyncSlot()
+async def set_refresh_completed_games(*kw):
+    """Refresh completed games checkbox callback"""
+    globals.config["options"]["refresh_completed_games"] = globals.gui.refresh_completed_games_button.isChecked()
+    config_utils.save_config()
+
+
+@asyncSlot()
 async def set_sorting(*kw):
     """Auto sort combobox callback"""
     i = globals.gui.sort_input.currentIndex()
@@ -515,6 +522,8 @@ async def refresh(*kw):
 
         refresh_tasks = asyncio.Queue()
         for game in globals.config["games"]:
+            if not globals.config["options"]["refresh_completed_games"] and globals.config["games"][game]["status"] == "completed":
+                continue
             refresh_tasks.put_nowait(api.check(game))
         refresh_tasks.put_nowait(api.check_notifs())
 
