@@ -375,7 +375,7 @@ class F95CheckerGUI(QMainWindow):
         self.edit_label.setText("Remove Games:")
         self.edit_button.setText("Edit")
         self.bg_refresh_label.setText("BG Refresh Delay (mins):")
-        self.background_label.setText("Switch  to  Background:")
+        self.background_label.setText("Switch to Background:")
         self.background_button.setText("Switch")
         self.refresh_button.setToolTip('Click this to check\nfor game updates!')
         for browser in self.browser_buttons:
