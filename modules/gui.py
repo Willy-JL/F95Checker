@@ -375,7 +375,7 @@ class F95CheckerGUI(QMainWindow):
         self.private_button.setToolTip('This toggles whether links should be\nopened in incognito / private mode!')
         self.saved_html_button.setToolTip('This toggles whether links should be opened as a local HTML,\nallowing you to see links and spoilers without logging in!')
         self.start_refresh_button.setToolTip('This toggles whether the tool should\nrefresh automatically when you open it!')
-        self.refresh_completed_games_button.setToolTip('This toggles weather games that are marked as completed should be refreshed!')
+        self.refresh_completed_games_button.setToolTip('This toggles whether games that are marked as completed should be refreshed!')
         self.sort_input.setToolTip('This changes how\ngames get sorted!')
         self.sort_label.setToolTip('This changes how\ngames get sorted!')
         self.retries_input.setToolTip('This changes how many times a\nfailed request will be retried!')
