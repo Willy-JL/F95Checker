@@ -24,7 +24,7 @@ def init_config():
         globals.config["options"].setdefault("bg_mode_delay_mins",          15    )
         globals.config["options"].setdefault("update_image_on_game_update", True  )
         globals.config["options"].setdefault("debug",                       False )
-        globals.config["options"].setdefault("refresh_completed_games",     False )
+        globals.config["options"].setdefault("refresh_completed_games",     True  )
 
     globals.config.setdefault("style", {})
     if True:
