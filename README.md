@@ -47,12 +47,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.3h2**: [Download v8.3h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h2/F95CheckerV8.3h2.zip) ([VirusTotal](https://www.virustotal.com/gui/file/ed295f9c93afe37938177e55aa5a554ecd5222e7a09b560381b421a8f0ad387a/detection))
+**8.3h3**: [Download v8.3h3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h3/F95CheckerV8.3h3.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.3h2**: [Download v8.3h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h2/F95CheckerV8.3h2.zip) ([VirusTotal](https://www.virustotal.com/gui/file/ed295f9c93afe37938177e55aa5a554ecd5222e7a09b560381b421a8f0ad387a/detection))
 
 **8.3h1**: [Download v8.3h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h1/F95CheckerV8.3h1.zip)
 
@@ -190,6 +192,11 @@ First of all this script was written in Python 3 and built with Python 3.9.5, ma
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.3h3</summary>
+
+   - FIXED: after updating the tool it should now relaunch properly
+</details>
 <details>
   <summary>v8.3h2</summary>
 
