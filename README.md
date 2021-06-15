@@ -47,7 +47,7 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.3h2**: [Download v8.3h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h2/F95CheckerV8.3h2.zip)
+**8.3h2**: [Download v8.3h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h2/F95CheckerV8.3h2.zip) ([VirusTotal](https://www.virustotal.com/gui/file/ed295f9c93afe37938177e55aa5a554ecd5222e7a09b560381b421a8f0ad387a/detection))
 
 #### Older Versions:
 <details>
