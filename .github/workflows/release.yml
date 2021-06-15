@@ -1,110 +1,119 @@
-name: Build Release Binaries
+name: Build release package
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
-
   Build:
-
     name: Build
-    runs-on: ubuntu-20.04
+    runs-on: windows-2019
+    steps:    
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9.5'
 
-    steps:
+      - name: Set Git to use LF
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
 
-      - name: Install zip
-        uses: montudor/action-zip@v0.1.1
-
-      - name: Clone Repo
+      - name: Clone PyInstaller source
         uses: actions/checkout@v2
-
-      - name: Replace version number
-        run: python3 -c "exec('with open(\'F95Checker.py\') as f:\n    lines = f.readlines()\nfor i, line in enumerate(lines):\n    if line.startswith(\'globals.version = \\\\\'\'):\n        lines[i] = \'globals.version = \\\\\'${GITHUB_REF:10}\\\\\'\\\n\'\nwith open(\'F95Checker.py\', \'w\') as f:\n    f.writelines(lines)')"
-
-      - name: Build Application
-        uses: Willy-JL/pyinstaller-action-windows@main
         with:
-          path: ./
+          repository: 'pyinstaller/pyinstaller'
+          ref: 'v4.3'
+          path: './pyinstaller'
 
-      - name: Remove redundant libs
+      - name: Build PyInstaller bootloader
         run: |
-          rm -rf dist/windows/F95Checker/Include
-          rm -rf dist/windows/F95Checker/api-ms-win-*
-          rm -rf dist/windows/F95Checker/Qt5WebSockets.dll
-          rm -rf dist/windows/F95Checker/Qt5Svg.dll
-          rm -rf dist/windows/F95Checker/Qt5Quick.dll
-          rm -rf dist/windows/F95Checker/Qt5QmlModels.dll
-          rm -rf dist/windows/F95Checker/Qt5Qml.dll
-          rm -rf dist/windows/F95Checker/Qt5Network.dll
-          rm -rf dist/windows/F95Checker/Qt5DBus.dll
-          rm -rf dist/windows/F95Checker/ucrtbase.dll
+          cd ./pyinstaller/bootloader
+          python ./waf all --target-arch=64bit
 
-      - name: Move libs to lib dir
+      - name: Install PyInstaller
         run: |
-          mkdir dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/aiohttp dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/multidict dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/tcl8 dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/yarl dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_asyncio.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_ctypes.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_hashlib.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_overlapped.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_queue.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_socket.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_ssl.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_tkinter.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/_win32sysloader.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/d3dcompiler_47.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/libcrypto-1_1.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/libEGL.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/libffi-7.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/libGLESv2.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/libssl-1_1.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/MSVCP140.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/MSVCP140_1.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/opengl32sw.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/python3.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/pywintypes38.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/select.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/tcl86t.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/tk86t.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/unicodedata.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/VCRUNTIME140.dll dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/win32api.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/win32event.pyd dist/windows/F95Checker/lib
-          mv dist/windows/F95Checker/win32wnet.pyd dist/windows/F95Checker/lib
+          cd ./pyinstaller
+          python -m pip install wheel
+          python setup.py install
 
-      - name: Move python files to dist folder
-        run: |
-          mv F95Checker.py dist/windows/F95Checker
-          mv F95Checker.sh dist/windows/F95Checker
-          mv requirements_linux.txt dist/windows/F95Checker
-          mv requirements.txt dist/windows/F95Checker
-          mv update.py dist/windows/F95Checker
-          mv update.exe dist/windows/F95Checker
-          mv modules dist/windows/F95Checker
-
-      - name: Purge old artifacts
-        uses: kolpav/purge-artifacts-action@v1
+      - name: Clone repo
+        uses: actions/checkout@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          expire-in: 0
+          path: './F95Checker'
 
-      - name: Delete skipped workflow runs
-        uses: Willy-JL/delete-skipped-workflow-runs@main
-        with:
-          retain_days: 0
-          keep_minimum_runs: 0
+      - name: Set version
+        run: |
+          sed -i "s/\(globals.version =\) .*/\globals.version = '${{ github.event.release.tag_name }}'/" .\F95Checker\F95Checker.py
 
-      - name: Zip Binaries
-        run: zip -qq -r F95CheckerV${GITHUB_REF:10}.zip *
-        working-directory: dist/windows/F95Checker
+      - name: Build
+        run: |
+          cd .\F95Checker
+          python -m pip install -r requirements.txt
+          pyinstaller --clean -y --dist dist\windows --workpath tmp build.spec
 
-      - name: Upload Binaries
-        uses: skx/github-action-publish-binaries@master
+      - name: Cleanup
+        shell: cmd
+        run: |
+          cd .\F95Checker
+          del /f dist\windows\F95Checker\api-ms-win-*
+          del /f dist\windows\F95Checker\Qt5WebSockets.dll
+          del /f dist\windows\F95Checker\Qt5Svg.dll
+          del /f dist\windows\F95Checker\Qt5Quick.dll
+          del /f dist\windows\F95Checker\Qt5QmlModels.dll
+          del /f dist\windows\F95Checker\Qt5Qml.dll
+          del /f dist\windows\F95Checker\Qt5Network.dll
+          del /f dist\windows\F95Checker\Qt5DBus.dll
+          del /f dist\windows\F95Checker\ucrtbase.dll
+          mkdir dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\aiohttp dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\multidict dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\tcl8 dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\yarl dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_asyncio.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_ctypes.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_hashlib.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_overlapped.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_queue.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_socket.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_ssl.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_tkinter.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_win32sysloader.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\_uuid.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\d3dcompiler_47.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\libcrypto-1_1.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\libEGL.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\libffi-7.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\libGLESv2.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\libssl-1_1.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\MSVCP140.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\MSVCP140_1.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\opengl32sw.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\pywintypes39.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\select.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\tcl86t.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\tk86t.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\unicodedata.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\VCRUNTIME140.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\VCRUNTIME140_1.dll dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\win32api.pyd dist\windows\F95Checker\lib
+          move /y dist\windows\F95Checker\win32event.pyd dist\windows\F95Checker\lib
+          copy /y F95Checker.py dist\windows\F95Checker
+          copy /y F95Checker.sh dist\windows\F95Checker
+          copy /y requirements_linux.txt dist\windows\F95Checker
+          copy /y requirements.txt dist\windows\F95Checker
+          copy /y update.py dist\windows\F95Checker
+          copy /y update.exe dist\windows\F95Checker
+          mkdir dist\windows\F95Checker\modules
+          copy /y modules dist\windows\F95Checker\modules        
+
+      - name: Zip package
+        shell: cmd
+        run: 7z a -r .\F95Checker-${{ github.event.release.tag_name }}.zip .\F95Checker\dist\windows\F95Checker\*
+
+      - name: Publish package
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: 'dist/windows/F95Checker/F95CheckerV*.zip'
+          files: ./F95Checker-${{ github.event.release.tag_name }}.zip
