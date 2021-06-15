@@ -111,6 +111,17 @@ jobs:
           mkdir dist\windows\F95Checker\modules
           copy /y modules dist\windows\F95Checker\modules
 
+      - name: Zip package
+        shell: cmd
+        run: 7z a -r .\F95CheckerV${{ github.event.release.tag_name }}.zip .\F95Checker\dist\windows\F95Checker\*
+
+      - name: Publish package
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ./F95CheckerV${{ github.event.release.tag_name }}.zip
+
       - name: Purge old artifacts
         uses: kolpav/purge-artifacts-action@v1
         with:
@@ -122,14 +133,3 @@ jobs:
         with:
           retain_days: 0
           keep_minimum_runs: 0
-
-      - name: Zip package
-        shell: cmd
-        run: 7z a -r .\F95Checker-${{ github.event.release.tag_name }}.zip .\F95Checker\dist\windows\F95Checker\*
-
-      - name: Publish package
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: ./F95Checker-${{ github.event.release.tag_name }}.zip
