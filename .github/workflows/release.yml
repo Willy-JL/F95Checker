@@ -93,7 +93,6 @@ jobs:
           move /y dist\windows\F95Checker\MSVCP140.dll dist\windows\F95Checker\lib
           move /y dist\windows\F95Checker\MSVCP140_1.dll dist\windows\F95Checker\lib
           move /y dist\windows\F95Checker\opengl32sw.dll dist\windows\F95Checker\lib
-          move /y dist\windows\F95Checker\pywintypes39.dll dist\windows\F95Checker\lib
           move /y dist\windows\F95Checker\select.pyd dist\windows\F95Checker\lib
           move /y dist\windows\F95Checker\tcl86t.dll dist\windows\F95Checker\lib
           move /y dist\windows\F95Checker\tk86t.dll dist\windows\F95Checker\lib
