@@ -25,7 +25,7 @@ An update checker tool for (NSFW) games on the [F95Zone](https://f95zone.to/) pl
 
 
 ## Compatibility:
-Made with Python 3.8.8 for Windows, has compatibility layer for Linux. My daily is a Windows machine so I will try to help you with issues on Linux but I won't go too out of my way to do that... to be fair if you're on Linux, chances are you're somewhat experienced. If you want this for Mac let me know
+Built with Python 3.9.5 for Windows, has compatibility layer for Linux. My daily is a Windows machine so I will try to help you with issues on Linux but I won't go too out of my way to do that... to be fair if you're on Linux, chances are you're somewhat experienced. If you want this for Mac let me know
 
 
 ## Installation:
@@ -35,7 +35,7 @@ The tool comes bundled with both windows EXE and python scripts, so you have two
  - Download below and extract
  - Double-click `F95Checker.exe` when you want to use the tool
 #### Python script (Linux):
- - Install Python ( 3.8.8 preferably ) from the official [Python website](https://www.python.org/downloads/)
+ - Install Python ( 3.9.5 preferably ) from the official [Python website](https://www.python.org/downloads/)
  - Download below and extract
  - Install requirements (`pip3 install --upgrade -r requirements_linux.txt`)
  - Run "F95Checker.py" with Python (`python3 F95Checker.py`) or use `F95Checker.sh`
@@ -47,12 +47,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.3h1**: [Download v8.3h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h1/F95CheckerV8.3h1.zip)
+**8.3h2**: [Download v8.3h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h2/F95CheckerV8.3h2.zip)
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.3h1**: [Download v8.3h1 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h1/F95CheckerV8.3h1.zip)
 
 **8.3**: [Download v8.3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3/F95CheckerV8.3.zip)
 
@@ -159,6 +161,7 @@ Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/441
 
 #### What the settings do:
  - **Open Pages as Saved HTML**: when you open a webpage it will be first downloaded and then opened as an html file; this is useful because it allows you to view links and spoilers without logging in on the browser
+ - **Refresh Completed Games**: when this is **disabled** completed games will not be checked, meaning that refreshing will be faster but of course you might miss out on smaller hotfixes or expansions to those games
  - **Auto Sort**: how the game list will get sorted
  - **Max Retries per Request**: how many times a web request to F95Zone will be retried before failing
  - **Max Threads per Request**: how many threads will be used to refresh, generally speaking should be same or higher than the count of games you have; just leaving it at 100 will let it adjust as needed
@@ -166,7 +169,7 @@ Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/441
 
 
 ## How it works:
-First of all this script was written in Python 3.8.8, makes use of the aiohttp package to make HTTP requests and runs on the PyQt5 window engine, assisted by qasync to work with asyncio loops.
+First of all this script was written in Python 3 and built with Python 3.9.5, makes use of the aiohttp package to make HTTP requests and runs on the PyQt5 window engine, assisted by qasync to work with asyncio loops.
  - Creates a session to keep cookies alive through search requests.
  - Logs into an account (this is necessary to view spoilers / link and to check alerts / inbox).
  - Checks if the link to a game changed (usually the version tag in the thread title changes).
@@ -187,6 +190,13 @@ First of all this script was written in Python 3.8.8, makes use of the aiohttp p
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.3h2</summary>
+
+   - NEW: checkbox to disable checking of completed games, this will speed up refreshing if you keep completed games in your list. Thanks @GR3ee3N!
+   - FIXED: .sh launch script for linux
+   - FIXED: new build routine for windows .exe, should not flag antiviruses as much now hopefully. Thanks @GR3ee3N!
+</details>
 <details>
   <summary>v8.3h1</summary>
 
@@ -583,4 +593,4 @@ Please do! I poured my heart and soul into this tool and hearing suggestions or 
 ## Thanks:
 **Huge props to [ploper26](https://f95zone.to/members/1295524/) for suggesting HEAD requests instead of quicksearches!**
 
-**Huge thanks to [AtotehZ](https://f95zone.to/members/840616/), [abada25](https://f95zone.to/members/1679118/), [GrammerCop](https://f95zone.to/members/2114990/), [d_pedestrian](https://f95zone.to/members/2616862/), [yohudood](https://f95zone.to/members/26049/), [SmurfyBlue](https://f95zone.to/members/671/), [bitogno](https://f95zone.to/members/605466/), [MillenniumEarl](https://f95zone.to/members/1470797/), [unroot](https://f95zone.to/members/1585550/) and [DarK x Duke](https://f95zone.to/members/1852502/) for the continued support and suggestions!**
+**Huge thanks to [GR3ee3N](https://github.com/GR3ee3N), [AtotehZ](https://f95zone.to/members/840616/), [abada25](https://f95zone.to/members/1679118/), [GrammerCop](https://f95zone.to/members/2114990/), [d_pedestrian](https://f95zone.to/members/2616862/), [yohudood](https://f95zone.to/members/26049/), [SmurfyBlue](https://f95zone.to/members/671/), [bitogno](https://f95zone.to/members/605466/), [MillenniumEarl](https://f95zone.to/members/1470797/), [unroot](https://f95zone.to/members/1585550/) and [DarK x Duke](https://f95zone.to/members/1852502/) for the continued support and suggestions!**
