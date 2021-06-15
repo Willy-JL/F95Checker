@@ -1,14 +1,18 @@
-name: Build release package
+name: Build Release Package
 
 on:
   release:
-    types: [published]
+    types: [created]
 
 jobs:
+
   Build:
+
     name: Build
     runs-on: windows-2019
-    steps:    
+
+    steps:
+
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -52,7 +56,7 @@ jobs:
           python -m pip install -r requirements.txt
           pyinstaller --clean -y --dist dist\windows --workpath tmp build.spec
 
-      - name: Cleanup
+      - name: Cleanup + Include .py files
         shell: cmd
         run: |
           cd .\F95Checker
@@ -105,7 +109,19 @@ jobs:
           copy /y update.py dist\windows\F95Checker
           copy /y update.exe dist\windows\F95Checker
           mkdir dist\windows\F95Checker\modules
-          copy /y modules dist\windows\F95Checker\modules        
+          copy /y modules dist\windows\F95Checker\modules
+
+      - name: Purge old artifacts
+        uses: kolpav/purge-artifacts-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          expire-in: 0
+
+      - name: Delete skipped workflow runs
+        uses: Willy-JL/delete-skipped-workflow-runs@main
+        with:
+          retain_days: 0
+          keep_minimum_runs: 0
 
       - name: Zip package
         shell: cmd
