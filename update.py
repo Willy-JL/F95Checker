@@ -15,7 +15,7 @@ if __name__ == '__main__':
         dl = requests.get(sys.argv[1], stream=True)
         with open('update.zip', 'wb') as f:
             total_length = int(dl.headers.get('content-length'))
-            for chunk in progress.bar(dl.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1): 
+            for chunk in progress.bar(dl.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1):
                 if chunk:
                     f.write(chunk)
                     f.flush()
