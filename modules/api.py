@@ -125,6 +125,7 @@ async def login():
     # TEMPORARY LOGIN FIX
     await gui.WarningPopup.open(globals.gui, "Login required!", "On the next window you will be prompted to login, click Ok to proceed...")
     weblogin = gui.QCookieWebEngineView()
+    weblogin.setWindowTitle("Please login...")
     weblogin.resize(500, 720)
     weblogin.load(QtCore.QUrl(globals.login_page))
     weblogin.show()

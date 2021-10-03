@@ -1686,6 +1686,7 @@ class F95CheckerTray(QSystemTrayIcon):
 class QCookieWebEngineView(QWebEngineView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setWindowIcon(QIcon('resources/icons/icon.png'))
         self.cookies = {}
         self.alive = True
         QWebEngineProfile.defaultProfile().cookieStore().deleteAllCookies()
