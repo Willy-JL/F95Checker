@@ -126,7 +126,7 @@ async def login():
     await gui.WarningPopup.open(globals.gui, "Login required!", "On the next window you will be prompted to login, click Ok to proceed...")
     weblogin = gui.QCookieWebEngineView()
     weblogin.resize(500, 720)
-    weblogin.load(QtCore.QUrl("https://f95zone.to/login/"))
+    weblogin.load(QtCore.QUrl(globals.login_page))
     weblogin.show()
     while weblogin.alive and not weblogin.cookies.get("xf_user"):
         await asyncio.sleep(0.5)
