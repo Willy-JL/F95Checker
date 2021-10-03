@@ -35,7 +35,7 @@ The tool comes bundled with both windows EXE and python scripts, so you have two
  - Download below and extract
  - Double-click `F95Checker.exe` when you want to use the tool
 #### Python script (Linux):
- - Install Python ( 3.9.5 preferably ) from the official [Python website](https://www.python.org/downloads/)
+ - Install Python ( 3.9.5 preferably )
  - Download below and extract
  - Install requirements (`pip3 install --upgrade -r requirements_linux.txt`)
  - Run "F95Checker.py" with Python (`python3 F95Checker.py`) or use `F95Checker.sh`
@@ -47,12 +47,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.3h3**: [Download v8.3h3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h3/F95CheckerV8.3h3.zip) ([VirusTotal](https://www.virustotal.com/gui/file/0eccba159098f5e2fc9f87ce7bab02190b1109064ac4fe06a5f057a9e41fe2c0/detection))
+**8.4**: [Download v8.4 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.4/F95CheckerV8.4.zip) ([VirusTotal](https://www.virustotal.com/gui/file/1cbecb7d0f55a704b1724ff2bdd28d057f8554be529e7693f95f9dd7f9f4b1e1/detection))
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.3h3**: [Download v8.3h3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h3/F95CheckerV8.3h3.zip) ([VirusTotal](https://www.virustotal.com/gui/file/0eccba159098f5e2fc9f87ce7bab02190b1109064ac4fe06a5f057a9e41fe2c0/detection))
 
 **8.3h2**: [Download v8.3h2 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h2/F95CheckerV8.3h2.zip) ([VirusTotal](https://www.virustotal.com/gui/file/ed295f9c93afe37938177e55aa5a554ecd5222e7a09b560381b421a8f0ad387a/detection))
 
@@ -192,6 +194,15 @@ First of all this script was written in Python 3 and built with Python 3.9.5, ma
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.4</summary>
+
+   - NEW: temporary web login fix, no need to fiddle with cookies anymore
+   - FIXED: removed broken requirement on Linux
+   - FIXED: refresh button sizing issues on Linux
+   - FIXED: a few errors here and there
+   - Changed license from MIT to GPLv3, cos' FOSS am I right?
+</details>
 <details>
   <summary>v8.3h3</summary>
 
