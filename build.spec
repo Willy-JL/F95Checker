@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['F95Checker.py'],
-             pathex=['C:\\WillyJL\\Python\\!Projects\\F95Checker'],
+             pathex=[],
              binaries=[],
              datas=[( 'resources', 'resources' )],
              hiddenimports=[],
