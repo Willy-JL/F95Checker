@@ -9,12 +9,14 @@ import sys
 import os
 
 
-# Handle dependencies import
+# Sanity check: try to import all needed third party libs
 try:
     import aiohttp
     from bs4 import BeautifulSoup
-    from PyQt5 import QtWidgets, QtGui, QtCore
-    from qasync import QEventLoop, asyncSlot, asyncClose
+    from clint.textui import progress
+    from bs4.element import NavigableString
+    from qasync import asyncClose, asyncSlot
+    from PyQt5 import QtCore, QtGui, QtWebEngineWidgets, QtWidgets
 
     from modules import api, callbacks, gui
 except ModuleNotFoundError as e:
