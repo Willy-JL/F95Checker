@@ -6,6 +6,7 @@
 ## Created by: Qt User Interface Compiler version 5.15.1
 ################################################################################
 
+from PyQt5.QtWebEngineWidgets import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -1680,3 +1681,22 @@ class F95CheckerTray(QSystemTrayIcon):
                 await callbacks.toggle_background()
 
             globals.loop.create_task(toggle_background_helper())
+
+
+class QCookieWebEngineView(QWebEngineView):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.cookies = {}
+        self.alive = True
+        QWebEngineProfile.defaultProfile().cookieStore().deleteAllCookies()
+        QWebEngineProfile.defaultProfile().cookieStore().deleteSessionCookies()
+        QWebEngineProfile.defaultProfile().cookieStore().cookieAdded.connect(self.onCookieAdd)
+
+    def onCookieAdd(self, cookie):
+        name  = cookie.name().data().decode('utf-8')
+        value = cookie.value().data().decode('utf-8')
+        self.cookies[name] = value
+
+    def closeEvent(self, event):
+        self.alive = False
+        return super().closeEvent(event)

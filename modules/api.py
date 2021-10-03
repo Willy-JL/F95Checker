@@ -2,6 +2,7 @@ from modules import globals, config_utils, gui, browsers
 from bs4.element import NavigableString
 from bs4 import BeautifulSoup
 from subprocess import Popen
+from PyQt5 import QtCore
 from PyQt5 import QtGui
 import traceback
 import pathlib
@@ -120,110 +121,138 @@ async def login():
         config_utils.save_config()
         globals.logging_in = False
         return
-    retries_a = 0
-    while True:
-        try:
-            if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
-                globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
-                config_utils.save_config()
-                if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
-                    config_utils.save_config()
-                    globals.logging_in = False
-                    return
-            try:
-                async with globals.http.post(globals.login_endpoint, data={
-                    "login":               globals.config["credentials"]["username"],
-                    "url":                 "",
-                    "password":            globals.config["credentials"]["password"],
-                    "password_confirm":    "",
-                    "additional_security": "",
-                    "remember":            "1",
-                    "_xfRedirect":         globals.domain + "/",
-                    "website_code":        "",
-                    "_xfToken":            globals.token
-                }) as login_req:
-                    if login_req.ok is False:
-                        await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
-                    login_redirects = login_req.history
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                config_utils.save_config()
-                globals.logging_in = False
-                return
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries_a >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
-                break
-            retries_a += 1
-            continue
-        # No redirects, bad credentials
-        if len(login_redirects) == 0:
-            globals.logged_in = False
-            globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
-            config_utils.save_config()
-            if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
-                config_utils.save_config()
-                globals.logging_in = False
-                return
-            continue
 
-        login_redirect = str(login_redirects[0].headers.get("location"))
-
-        # Redirect to 2FA page
-        if login_redirect.startswith(globals.two_step_endpoint):
-            retries_b = 0
-            while True:
-                try:
-                    two_step_code = await ask_two_step_code()
-                    if two_step_code == "":
-                        config_utils.save_config()
-                        globals.logging_in = False
-                        return
-                    try:
-                        async with globals.http.post(globals.two_step_endpoint, data={
-                            "code":            two_step_code,
-                            "trust":           "1",
-                            "confirm":         "1",
-                            "provider":        "totp",
-                            "remember":        "1",
-                            "_xfRedirect":     globals.domain + "/",
-                            "_xfWithData":     "1",
-                            "_xfToken":        globals.token,
-                            "_xfResponseType": "json"
-                        }) as two_step_req:
-                            two_step_result = (await two_step_req.json()).get("status")
-                    except aiohttp.ClientConnectorError:
-                        exc = "".join(traceback.format_exception(*sys.exc_info()))
-                        print(exc)
-                        await handle_no_internet()
-                        config_utils.save_config()
-                        globals.logging_in = False
-                        return
-                except Exception:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    print(exc)
-                    if retries_b >= globals.config["options"]["max_retries"]:
-                        await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
-                        break
-                    retries_b += 1
-                    continue
-                if two_step_result == "ok":
-                    globals.logged_in = True
-                    break
-                globals.logged_in = False
-                continue
-            break
-
-        # Good creds, no 2FA
-        if get_cookie('xf_session') is not None:
-            globals.logged_in = True
-            break
+    # TEMPORARY LOGIN FIX
+    await gui.WarningPopup.open(globals.gui, "Login required!", "On the next window you will be prompted to login, click Ok to proceed...")
+    weblogin = gui.QCookieWebEngineView()
+    weblogin.resize(500, 720)
+    weblogin.load(QtCore.QUrl("https://f95zone.to/login/"))
+    weblogin.show()
+    while weblogin.alive and not weblogin.cookies.get("xf_user"):
+        await asyncio.sleep(0.5)
+    if weblogin.alive:
+        weblogin.close()
+    if not weblogin.cookies.get("xf_user"):
+        globals.logging_in = False
+        return
+    cookies = []
+    globals.config["advanced"]["cookies"]["xf_csrf"] = weblogin.cookies["xf_csrf"]
+    cookies.append(("xf_csrf", weblogin.cookies["xf_csrf"],))
+    globals.config["advanced"]["cookies"]["xf_user"] = weblogin.cookies["xf_user"]
+    cookies.append(("xf_user", weblogin.cookies["xf_user"],))
+    if weblogin.cookies.get("xf_tfa_trust"):
+        globals.config["advanced"]["cookies"]["xf_tfa_trust"] = weblogin.cookies["xf_tfa_trust"]
+        cookies.append(("xf_tfa_trust", weblogin.cookies["xf_tfa_trust"],))
+    globals.http.cookie_jar.update_cookies(cookies)
     config_utils.save_config()
+    globals.logged_in = True
     globals.logging_in = False
+
+    # ORIGINAL LOGIN CODE
+    # retries_a = 0
+    # while True:
+    #     try:
+    #         if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
+    #             globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
+    #             config_utils.save_config()
+    #             if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
+    #                 config_utils.save_config()
+    #                 globals.logging_in = False
+    #                 return
+    #         try:
+    #             async with globals.http.post(globals.login_endpoint, data={
+    #                 "login":               globals.config["credentials"]["username"],
+    #                 "url":                 "",
+    #                 "password":            globals.config["credentials"]["password"],
+    #                 "password_confirm":    "",
+    #                 "additional_security": "",
+    #                 "remember":            "1",
+    #                 "_xfRedirect":         globals.domain + "/",
+    #                 "website_code":        "",
+    #                 "_xfToken":            globals.token
+    #             }) as login_req:
+    #                 if login_req.ok is False:
+    #                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
+    #                 login_redirects = login_req.history
+    #         except aiohttp.ClientConnectorError:
+    #             exc = "".join(traceback.format_exception(*sys.exc_info()))
+    #             print(exc)
+    #             await handle_no_internet()
+    #             config_utils.save_config()
+    #             globals.logging_in = False
+    #             return
+    #     except Exception:
+    #         exc = "".join(traceback.format_exception(*sys.exc_info()))
+    #         print(exc)
+    #         if retries_a >= globals.config["options"]["max_retries"]:
+    #             await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
+    #             break
+    #         retries_a += 1
+    #         continue
+    #     # No redirects, bad credentials
+    #     if len(login_redirects) == 0:
+    #         globals.logged_in = False
+    #         globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
+    #         config_utils.save_config()
+    #         if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
+    #             config_utils.save_config()
+    #             globals.logging_in = False
+    #             return
+    #         continue
+
+    #     login_redirect = str(login_redirects[0].headers.get("location"))
+
+    #     # Redirect to 2FA page
+    #     if login_redirect.startswith(globals.two_step_endpoint):
+    #         retries_b = 0
+    #         while True:
+    #             try:
+    #                 two_step_code = await ask_two_step_code()
+    #                 if two_step_code == "":
+    #                     config_utils.save_config()
+    #                     globals.logging_in = False
+    #                     return
+    #                 try:
+    #                     async with globals.http.post(globals.two_step_endpoint, data={
+    #                         "code":            two_step_code,
+    #                         "trust":           "1",
+    #                         "confirm":         "1",
+    #                         "provider":        "totp",
+    #                         "remember":        "1",
+    #                         "_xfRedirect":     globals.domain + "/",
+    #                         "_xfWithData":     "1",
+    #                         "_xfToken":        globals.token,
+    #                         "_xfResponseType": "json"
+    #                     }) as two_step_req:
+    #                         two_step_result = (await two_step_req.json()).get("status")
+    #                 except aiohttp.ClientConnectorError:
+    #                     exc = "".join(traceback.format_exception(*sys.exc_info()))
+    #                     print(exc)
+    #                     await handle_no_internet()
+    #                     config_utils.save_config()
+    #                     globals.logging_in = False
+    #                     return
+    #             except Exception:
+    #                 exc = "".join(traceback.format_exception(*sys.exc_info()))
+    #                 print(exc)
+    #                 if retries_b >= globals.config["options"]["max_retries"]:
+    #                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
+    #                     break
+    #                 retries_b += 1
+    #                 continue
+    #             if two_step_result == "ok":
+    #                 globals.logged_in = True
+    #                 break
+    #             globals.logged_in = False
+    #             continue
+    #         break
+
+    #     # Good creds, no 2FA
+    #     if get_cookie('xf_session') is not None:
+    #         globals.logged_in = True
+    #         break
+    # config_utils.save_config()
+    # globals.logging_in = False
 
 
 async def check_notifs():
