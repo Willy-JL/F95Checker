@@ -498,6 +498,7 @@ class F95CheckerGUI(QMainWindow):
         event.accept()
         self.activateWindow()
         self.raise_()
+        self.refresh_button.setFixedSize(self.refresh_button.size())
 
     @asyncClose
     async def closeEvent(self, event):
