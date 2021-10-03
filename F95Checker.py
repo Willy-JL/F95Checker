@@ -15,7 +15,7 @@ try:
     from bs4 import BeautifulSoup
     from clint.textui import progress
     from bs4.element import NavigableString
-    from qasync import asyncClose, asyncSlot
+    from qasync import QEventLoop, asyncClose, asyncSlot
     from PyQt5 import QtCore, QtGui, QtWebEngineWidgets, QtWidgets
 
     from modules import api, callbacks, gui
