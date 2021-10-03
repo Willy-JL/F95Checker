@@ -521,10 +521,11 @@ class F95CheckerGUI(QMainWindow):
         self.image_overlay.setMask(pixmap.createMaskFromColor(Qt.white))
         pixmap = QPixmap(f'{globals.config_path}/images/{game_id}.jpg')
         try:
-            if pixmap.size().width() / pixmap.size().height() >= self.image_overlay.size().width() / self.image_overlay.size().height():
-                pixmap = pixmap.scaledToHeight(self.image_overlay.size().height())
-            else:
-                pixmap = pixmap.scaledToWidth(self.image_overlay.size().width())
+            if pixmap.size().width() > 0 and pixmap.size().height() > 0:
+                if pixmap.size().width() / pixmap.size().height() >= self.image_overlay.size().width() / self.image_overlay.size().height():
+                    pixmap = pixmap.scaledToHeight(self.image_overlay.size().height())
+                else:
+                    pixmap = pixmap.scaledToWidth(self.image_overlay.size().width())
         except Exception:
             exc = "".join(traceback.format_exception(*sys.exc_info()))
             print(exc)
