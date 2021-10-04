@@ -4,15 +4,14 @@ import os
 class Singleton:
     def __init__(self, app_id: str):
         if os.name == 'nt':
-            import win32api
-            import winerror
-            import win32event
+            # Requirement: pip install pywin32
+            import win32api, win32event, winerror
             self.mutexname = app_id
             self.lock = win32event.CreateMutex(None, False, self.mutexname)
             self.running = (win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS)
         else:
             import fcntl
-            self.lock = open(f"/tmp/isnstance_{app_id}.lock", 'wb')
+            self.lock = open(f"/tmp/instance_{app_id}.lock", 'wb')
             try:
                 fcntl.lockf(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 self.running = False
