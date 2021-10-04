@@ -1582,7 +1582,7 @@ class F95CheckerTray(QSystemTrayIcon):
         self.idle_icon = QIcon('resources/icons/icon.png')
         self.paused_icon = QIcon('resources/icons/icon-disabled.png')
         self.refresh_icon = QIcon('resources/icons/refreshing.png')
-        QSystemTrayIcon.__init__(self, self.idle_icon, self.parent)
+        super().__init__(self.idle_icon, self.parent)
 
         # Watermark item
         self.watermark = QAction(f"F95Checker v{globals.version}")
@@ -1600,97 +1600,67 @@ class F95CheckerTray(QSystemTrayIcon):
         self.next_refresh = QAction(f"Next Refresh: N/A")
         self.next_refresh.setEnabled(False)
 
-        self.next_refresh_paused = QAction(f"Next Refresh: Paused")
-        self.next_refresh_paused.setEnabled(False)
-
-        self.refreshing = QAction(f"Refreshing...")
-        self.refreshing.setEnabled(False)
-
         # Refresh item
-        self.refresh = QAction(f"Refresh Now!")
-        self.refresh.triggered.connect(callbacks.manual_refresh)
-
-        self.refresh_paused = QAction(f"Refresh Now!")
-        self.refresh_paused.setEnabled(False)
+        self.refresh_now = QAction("Refresh Now!")
+        self.refresh_now.triggered.connect(callbacks.manual_refresh)
 
         # Pause item
-        self.pause = QAction(f"Pause Auto Refresh")
-        self.pause.triggered.connect(callbacks.bg_toggle_pause)
-
-        self.unpause = QAction(f"Unpause Auto Refresh")
-        self.unpause.triggered.connect(callbacks.bg_toggle_pause)
-
-        self.pause_disabled = QAction(f"Pause Auto Refresh")
-        self.pause_disabled.setEnabled(False)
-
-        self.unpause_disabled = QAction(f"Unpause Auto Refresh")
-        self.unpause_disabled.setEnabled(False)
+        self.pause_unpause = QAction(f"Pause Auto Refresh")
+        self.pause_unpause.triggered.connect(callbacks.bg_toggle_pause)
 
         # Switch item
-        self.switch = QAction("Switch to GUI")
-        self.switch.triggered.connect(callbacks.toggle_background)
+        self.switch_to_gui = QAction("Switch to GUI")
+        self.switch_to_gui.triggered.connect(callbacks.toggle_background)
 
         # Exit item
         self.exit = QAction("Exit")
         self.exit.triggered.connect(globals.gui.close)
 
-        # Apply context menu
-        self.setContextMenu(self.idle_menu)
+        # Context menu
+        self.menu = QMenu(self.parent)
+        self.menu.addAction(self.watermark)
+        self.menu.addAction(self.view_alerts)
+        self.menu.addAction(self.view_inbox)
+        self.menu.addAction(self.next_refresh)
+        self.menu.addAction(self.refresh_now)
+        self.menu.addAction(self.pause_unpause)
+        self.menu.addAction(self.switch_to_gui)
+        self.menu.addAction(self.exit)
 
+        # Apply context menu
+        self.setContextMenu(self.menu)
+
+        # Click callbacks
         self.activated.connect(self.double_click_show_gui)
         self.messageClicked.connect(callbacks.toggle_background)
 
-    @property
-    def idle_menu(self):
-        idle_menu = QMenu(self.parent)
-        idle_menu.addAction(self.watermark)
-        idle_menu.addAction(self.view_alerts)
-        idle_menu.addAction(self.view_inbox)
-        idle_menu.addAction(self.next_refresh)
-        idle_menu.addAction(self.refresh)
-        idle_menu.addAction(self.pause)
-        idle_menu.addAction(self.switch)
-        idle_menu.addAction(self.exit)
-        return idle_menu
+    def setIdle(self, next_refresh="N/A"):
+        self.setIcon(self.idle_icon)
+        self.next_refresh.setText(f"Next Refresh: {next_refresh}")
+        self.refresh_now.setEnabled(True)
+        self.pause_unpause.setText("Pause Auto Refresh")
+        self.pause_unpause.setEnabled(True)
 
-    @property
-    def paused_menu(self):
-        paused_menu = QMenu(self.parent)
-        paused_menu.addAction(self.watermark)
-        paused_menu.addAction(self.view_alerts)
-        paused_menu.addAction(self.view_inbox)
-        paused_menu.addAction(self.next_refresh_paused)
-        paused_menu.addAction(self.refresh)
-        paused_menu.addAction(self.unpause)
-        paused_menu.addAction(self.switch)
-        paused_menu.addAction(self.exit)
-        return paused_menu
+    def setPaused(self):
+        self.setIcon(self.paused_icon)
+        self.next_refresh.setText("Next Refresh: Paused")
+        self.refresh_now.setEnabled(True)
+        self.pause_unpause.setText("Unpause Auto Refresh")
+        self.pause_unpause.setEnabled(True)
 
-    @property
-    def refresh_menu(self):
-        refresh_menu = QMenu(self.parent)
-        refresh_menu.addAction(self.watermark)
-        refresh_menu.addAction(self.view_alerts)
-        refresh_menu.addAction(self.view_inbox)
-        refresh_menu.addAction(self.refreshing)
-        refresh_menu.addAction(self.refresh_paused)
-        refresh_menu.addAction(self.pause_disabled)
-        refresh_menu.addAction(self.switch)
-        refresh_menu.addAction(self.exit)
-        return refresh_menu
+    def setRefreshing(self):
+        self.setIcon(self.refresh_icon)
+        self.next_refresh.setText("Refreshing...")
+        self.refresh_now.setEnabled(False)
+        self.pause_unpause.setText("Pause Auto Refresh")
+        self.pause_unpause.setEnabled(False)
 
-    @property
-    def paused_refresh_menu(self):
-        paused_refresh_menu = QMenu(self.parent)
-        paused_refresh_menu.addAction(self.watermark)
-        paused_refresh_menu.addAction(self.view_alerts)
-        paused_refresh_menu.addAction(self.view_inbox)
-        paused_refresh_menu.addAction(self.refreshing)
-        paused_refresh_menu.addAction(self.refresh_paused)
-        paused_refresh_menu.addAction(self.unpause_disabled)
-        paused_refresh_menu.addAction(self.switch)
-        paused_refresh_menu.addAction(self.exit)
-        return paused_refresh_menu
+    def setPausedRefreshing(self):
+        self.setIcon(self.refresh_icon)
+        self.next_refresh.setText("Refreshing...")
+        self.refresh_now.setEnabled(False)
+        self.pause_unpause.setText("Unpause Auto Refresh")
+        self.pause_unpause.setEnabled(False)
 
     def double_click_show_gui(self, reason):
         if reason == QSystemTrayIcon.DoubleClick:
