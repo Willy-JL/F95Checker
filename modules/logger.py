@@ -18,7 +18,7 @@ def _file_write(message, no_color=True):
     if no_color:
         message = re.sub("\\x1b\[38;2;\d\d?\d?;\d\d?\d?;\d\d?\d?m", "", message)
         message = re.sub("\\x1b\[\d\d?\d?m",                        "", message)
-    with open(f"log.txt", "a", encoding='utf-8') as log:
+    with open("log.txt", "a", encoding='utf-8') as log:
         log.write(message)
 
 class __stdout_override():

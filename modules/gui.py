@@ -473,7 +473,7 @@ class F95CheckerGUI(QMainWindow):
         while True:
             img_task_count = len(globals.image_bg_tasks)
             if globals.checking_updates:
-                self.watermark.setText(f'Checking for tool updates...')
+                self.watermark.setText('Checking for tool updates...')
             elif img_task_count > 0:
                 self.watermark.setText(f'Downloading {img_task_count} image{"s" if img_task_count > 1 else ""}...')
             else:
@@ -1589,15 +1589,15 @@ class F95CheckerTray(QSystemTrayIcon):
         self.watermark.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.tool_page))
 
         # View alerts item
-        self.view_alerts = QAction(f"View Alerts")
+        self.view_alerts = QAction("View Alerts")
         self.view_alerts.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.alerts_page))
 
         # View inbox item
-        self.view_inbox = QAction(f"View Inbox")
+        self.view_inbox = QAction("View Inbox")
         self.view_inbox.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.inbox_page))
 
         # Refresh status item
-        self.next_refresh = QAction(f"Next Refresh: N/A")
+        self.next_refresh = QAction("Next Refresh: N/A")
         self.next_refresh.setEnabled(False)
 
         # Refresh item
@@ -1605,7 +1605,7 @@ class F95CheckerTray(QSystemTrayIcon):
         self.refresh_now.triggered.connect(callbacks.manual_refresh)
 
         # Pause item
-        self.pause_unpause = QAction(f"Pause Auto Refresh")
+        self.pause_unpause = QAction("Pause Auto Refresh")
         self.pause_unpause.triggered.connect(callbacks.bg_toggle_pause)
 
         # Switch item
