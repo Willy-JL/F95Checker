@@ -135,7 +135,6 @@ if __name__ == '__main__':
     # Log to file
     if "tester" in globals.version or "dev" in globals.version or globals.config["options"]["debug"]:
         from modules import logger
-        logger.init("F95Checker")
 
     # Log starting messgae
     current = datetime.datetime.now()
