@@ -358,14 +358,6 @@ async def toggle_edit_mode(*kw):
         globals.gui.edit_button.setText("Edit")
 
 
-def hide_all_context_menus():
-    """"Close all right click menus for tray icon"""
-    globals.tray.idle_menu.hide()
-    globals.tray.paused_menu.hide()
-    globals.tray.refresh_menu.hide()
-    globals.tray.paused_refresh_menu.hide()
-
-
 @asyncSlot()
 async def toggle_background(*kw):
     """Toggle between gui and bg mode"""
@@ -387,11 +379,11 @@ async def toggle_background(*kw):
 async def bg_loop():
     """BG mode background loop for auto refresh"""
     while True:
-        hide_all_context_menus()
+        globals.tray.contextMenu().close()
         globals.tray.setContextMenu(globals.tray.refresh_menu)
         globals.tray.setIcon(globals.tray.refresh_icon)
         await refresh()
-        hide_all_context_menus()
+        globals.tray.contextMenu().close()
         globals.tray.next_refresh.setText(f'Next Refresh: {(datetime.datetime.now()+datetime.timedelta(minutes=globals.config["options"]["bg_mode_delay_mins"])).strftime("%H:%M")}')
         globals.tray.setContextMenu(globals.tray.idle_menu)
         globals.tray.setIcon(globals.tray.idle_icon)
@@ -401,7 +393,7 @@ async def bg_loop():
 @asyncSlot()
 async def manual_refresh(*kw):
     """Refresh callback for tray icon"""
-    hide_all_context_menus()
+    globals.tray.contextMenu().close()
     if globals.bg_paused:
         globals.tray.setContextMenu(globals.tray.paused_refresh_menu)
         globals.tray.setIcon(globals.tray.refresh_icon)
@@ -409,7 +401,7 @@ async def manual_refresh(*kw):
         globals.tray.setContextMenu(globals.tray.refresh_menu)
         globals.tray.setIcon(globals.tray.refresh_icon)
     await refresh()
-    hide_all_context_menus()
+    globals.tray.contextMenu().close()
     if globals.bg_paused:
         globals.tray.setContextMenu(globals.tray.paused_menu)
         globals.tray.setIcon(globals.tray.paused_icon)
@@ -425,7 +417,7 @@ async def bg_toggle_pause(*kw):
     if globals.bg_paused:
         globals.bg_paused = False
         globals.tray.bg_loop_task = asyncio.create_task(bg_loop())
-        hide_all_context_menus()
+        globals.tray.contextMenu().close()
         globals.tray.next_refresh.setText(f'Next Refresh: {(datetime.datetime.now()+datetime.timedelta(minutes=globals.config["options"]["bg_mode_delay_mins"])).strftime("%H:%M")}')
         globals.tray.setContextMenu(globals.tray.idle_menu)
         globals.tray.setIcon(globals.tray.idle_icon)
@@ -433,7 +425,7 @@ async def bg_toggle_pause(*kw):
         globals.bg_paused = True
         globals.tray.bg_loop_task.cancel()
         globals.tray.bg_loop_task = None
-        hide_all_context_menus()
+        globals.tray.contextMenu().close()
         globals.tray.setContextMenu(globals.tray.paused_menu)
         globals.tray.setIcon(globals.tray.paused_icon)
 
