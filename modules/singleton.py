@@ -1,8 +1,9 @@
-import os
+# https://gist.github.com/Willy-JL/2473ab16e27d4c8d8c0c4d7bcb81a5ee
 
 
 class Singleton:
     def __init__(self, app_id: str):
+        import os
         if os.name == 'nt':
             # Requirement: pip install pywin32
             import win32api, win32event, winerror
