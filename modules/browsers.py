@@ -54,8 +54,8 @@ def detect_user_os_and_browsers():
         import winreg
         HKEY_LOCAL_MACHINE = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
         HKEY_CURRENT_USER = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-        StartMenuInternet = f"SOFTWARE\\Clients\\StartMenuInternet\\"
-        open_command = f"\\shell\\open\\command"
+        StartMenuInternet = "SOFTWARE\\Clients\\StartMenuInternet\\"
+        open_command = "\\shell\\open\\command"
 
         try:
             path = winreg.QueryValue(
