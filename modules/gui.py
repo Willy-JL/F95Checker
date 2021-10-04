@@ -1580,7 +1580,7 @@ class F95CheckerTray(QSystemTrayIcon):
         self.parent = parent
         self.bg_loop_task = None
         self.idle_icon = QIcon('resources/icons/icon.png')
-        self.paused_icon = QIcon('resources/icons/icon-disabled.png')
+        self.paused_icon = QIcon('resources/icons/paused.png')
         self.refresh_icon = QIcon('resources/icons/refreshing.png')
         super().__init__(self.idle_icon, self.parent)
 
