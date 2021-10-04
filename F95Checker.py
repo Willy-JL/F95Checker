@@ -126,8 +126,7 @@ if __name__ == '__main__':
             config_utils.migrate_legacy("pre7.0")
 
     # Log starting message
-    current = datetime.datetime.now()
-    print(f'F95Checker v{globals.version} starting at {"0" if current.day < 10 else ""}{current.day}/{"0" if current.month < 10 else ""}{current.month}/{current.year} - {"0" if current.hour < 10 else ""}{current.hour}:{"0" if current.minute < 10 else ""}{current.minute}:{"0" if current.second < 10 else ""}{current.second}')
+    print(f'F95Checker v{globals.version} starting at {datetime.datetime.now().strftime("%d/%m/%Y - %H:%M:%S")}')
 
     # Create App
     globals.app = QtWidgets.QApplication(sys.argv)
