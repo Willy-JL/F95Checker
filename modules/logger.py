@@ -12,12 +12,9 @@ _stdin  = sys.stdin
 _pause_file_output = False
 
 
-def _file_write(message, no_color=True):
+def _file_write(message):
     if _pause_file_output:
         return
-    if no_color:
-        message = re.sub("\\x1b\[38;2;\d\d?\d?;\d\d?\d?;\d\d?\d?m", "", message)
-        message = re.sub("\\x1b\[\d\d?\d?m",                        "", message)
     with open("log.txt", "a", encoding='utf-8') as log:
         log.write(message)
 
@@ -40,7 +37,7 @@ class __stderr_override():
 class __stdin_override():
     def readline(self):
         message = _stdin.readline()
-        _file_write(message, no_color=False)
+        _file_write(message)
         return message
 
     def __getattr__(self, name):
