@@ -1288,7 +1288,7 @@ class ChangelogGUI(QWidget):
         self.changelog.setPlainText(globals.config["games"][self.game_id]["changelog"])
         self.notes.setPlainText(globals.config["games"][self.game_id]["notes"])
 
-        self.notes.textChanged.connect(self.notes_changed)
+        self.notes.textChanged.connect(self.save_notes)
 
         QMetaObject.connectSlotsByName(self)
 
@@ -1301,18 +1301,17 @@ class ChangelogGUI(QWidget):
             self.large_image = ImageGUI(self.game_id)
             self.large_image.show()
 
-    def notes_changed(self):
+    def save_notes(self):
         """Save notes section when text changes"""
-        globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
-        config_utils.save_config()
-
-    def closeEvent(self, event):
-        """Save on close changelog and stop save loop"""
         try:
             globals.config["games"][self.game_id]["notes"] = self.notes.toPlainText()
         except Exception:
             pass
         config_utils.save_config()
+
+    def closeEvent(self, event):
+        """Save on close changelog and stop save loop"""
+        self.save_notes()
         try:
             self.large_image.close()
         except Exception:
