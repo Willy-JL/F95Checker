@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from qasync import asyncSlot
 from subprocess import Popen
 import traceback
+import aiofiles
 import aiohttp
 import asyncio
 import random
@@ -197,16 +198,16 @@ async def open_webpage(link, *kw):
                             compressed_tag['href'] = globals.domain + compressed_tag['href']
                     if not os.path.isdir('temp'):
                         os.mkdir('temp')
-                    with open(f'temp/f95checkercompressed{html_id}.html', 'wb') as out:
-                        out.write(compressed_soup.prettify(encoding='utf-8'))
+                    async with aiofiles.open(f'temp/f95checkercompressed{html_id}.html', 'wb') as out:
+                        await out.write(compressed_soup.prettify(encoding='utf-8'))
                     tag['href'] = f'f95checkercompressed{html_id}.html{compressed_code}'
                     first_compressed = False
             elif tag['href'][0] == '/':
                 tag['href'] = globals.domain + tag['href']
         if not os.path.isdir('temp'):
             os.mkdir('temp')
-        with open(f'temp/f95checker{html_id}.html', 'wb') as out:
-            out.write(soup.prettify(encoding='utf-8'))
+        async with aiofiles.open(f'temp/f95checker{html_id}.html', 'wb') as out:
+            await out.write(soup.prettify(encoding='utf-8'))
         folder = os.getcwd().replace('\\', '/')
         link = f'file://{folder}/temp/f95checker{html_id}.html'.replace(' ', '%20')
 

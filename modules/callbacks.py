@@ -25,7 +25,7 @@ async def exit_handler():
         pass
 
     globals.gui.save_geometry()
-    config_utils.save_config()
+    await config_utils.save_config()
 
     try:
         await globals.http.close()

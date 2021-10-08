@@ -106,7 +106,7 @@ if __name__ == '__main__':
         with open(f'{globals.config_path}/f95checker.json', 'r') as f:
             try:
                 globals.config = json.load(f)
-                config_utils.init_config()
+                asyncio.run(config_utils.init_config())
             except json.JSONDecodeError:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
@@ -116,12 +116,12 @@ if __name__ == '__main__':
                 root.destroy()
                 del root
                 globals.config = {}
-                config_utils.init_config()
+                asyncio.run(config_utils.init_config())
     except FileNotFoundError:
         exc = "".join(traceback.format_exception(*sys.exc_info()))
         print(exc)
         globals.config = {}
-        config_utils.init_config()
+        asyncio.run(config_utils.init_config())
         if os.path.isfile(f'{globals.config_path}/config.ini'):
             config_utils.migrate_legacy("pre7.0")
 

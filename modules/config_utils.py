@@ -1,10 +1,12 @@
+from qasync import asyncSlot
 from modules import globals
+import aiofiles
 import pathlib
 import json
 import time
 
 
-def init_config():
+async def init_config():
     """Fill in config with default values if they are missing"""
 
     globals.config.setdefault("credentials", {})
@@ -49,7 +51,7 @@ def init_config():
     for game_id in globals.config["games"]:
         ensure_game_attributes(game_id)
 
-    save_config()
+    await save_config()
 
 
 def ensure_game_attributes(game_id):
@@ -67,15 +69,16 @@ def ensure_game_attributes(game_id):
     globals.config["games"][game_id].setdefault("notes",        ""         )
 
 
-def save_config(filename="f95checker.json"):
+@asyncSlot()
+async def save_config(filename="f95checker.json"):
     """Dump cookies and save config"""
     if globals.http:
         globals.config["advanced"]["cookies"] = {}
         for cookie in globals.http.cookie_jar:
             globals.config["advanced"]["cookies"][str(cookie.key)] = str(cookie.value)
     pathlib.Path(globals.config_path).mkdir(parents=True, exist_ok=True)
-    with open(f'{globals.config_path}/{filename}', 'w') as f:
-        json.dump(globals.config, f, indent=4)
+    async with aiofiles.open(f'{globals.config_path}/{filename}', 'w', encoding='utf-8') as f:
+        await f.write(json.dumps(globals.config, indent=4))
 
 
 def migrate_legacy(version):

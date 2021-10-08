@@ -2,6 +2,7 @@ clint
 qasync
 aiohttp
 #pywin32
+aiofiles
 PyQt5==5.15.2
 PyQtWebEngine
 soupsieve>=2.1
