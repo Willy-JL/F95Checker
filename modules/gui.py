@@ -1347,7 +1347,7 @@ class ImageGUI(QWidget):
             pixmap = QPixmap(f'{globals.config_path}/images/{game_id}.jpg')
             self.image_aspect_ratio = pixmap.size().width() / pixmap.size().height()
             self.image.setPixmap(pixmap)
-            self.image.setMinimumSize(169 * self.image_aspect_ratio, 169)
+            self.image.setMinimumSize(round(169 * self.image_aspect_ratio), 169)
         else:
             self.close()
 
@@ -1365,9 +1365,9 @@ class ImageGUI(QWidget):
             widgetStretch = self.size().width() * (self.image_aspect_ratio ** -1)
             outerStretch = (self.size().height() - widgetStretch) / 2 + 0.5
 
-        self.layout.setStretch(0, outerStretch);
-        self.layout.setStretch(1, widgetStretch);
-        self.layout.setStretch(2, outerStretch);
+        self.layout.setStretch(0, round(outerStretch));
+        self.layout.setStretch(1, round(widgetStretch));
+        self.layout.setStretch(2, round(outerStretch));
 
 
 
