@@ -419,17 +419,21 @@ def open_game(game_id, event):
         globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', filter="Game exe (*.exe *.py *.sh *.bat)")[0]
         config_utils.save_config()
     if globals.config["games"][game_id]["exe_path"]:
+        exe_path = globals.config["games"][game_id]["exe_path"]
+        parent_path = exe_path[:exe_path.rfind("/")]
         if event.button() == QtCore.Qt.LeftButton:
             try:
-                Popen([globals.config["games"][game_id]["exe_path"]])
+                Popen([exe_path], cwd=parent_path)
             except Exception:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
                 globals.loop.create_task(gui.WarningPopup.open(globals.gui, "Error", "Something went wrong launching this game, it was probably moved or deleted.\n\nYou can unset the executable path by toggling the installed checkbox!"))
-        elif event.button() == QtCore.Qt.RightButton and globals.user_os == "windows":
-            path = globals.config["games"][game_id]["exe_path"]
-            path = path[:path.rfind("/")].replace("/", "\\")
-            Popen(["explorer.exe", path])
+        elif event.button() == QtCore.Qt.RightButton:
+            if globals.user_os == "windows":
+                parent_path = parent_path.replace("/", "\\")
+                Popen(["explorer.exe", parent_path])
+            elif globals.user_os == "linux":
+                Popen(["xdg-open", parent_path])
 
 
 def show_image_overlay(game_id, *kw):
