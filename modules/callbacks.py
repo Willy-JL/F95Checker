@@ -447,13 +447,22 @@ def open_game(game_id, event):
             except Exception:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
-                globals.loop.create_task(gui.WarningPopup.open(globals.gui, "Error", "Something went wrong launching this game, it was probably moved or deleted.\n\nYou can unset the executable path by toggling the installed checkbox!"))
+                globals.loop.create_task(ask_reset_exe_path(game_id))
         elif event.button() == QtCore.Qt.RightButton:
-            if globals.user_os == "windows":
-                parent_path = parent_path.replace("/", "\\")
-                Popen(["explorer.exe", parent_path])
-            elif globals.user_os == "linux":
-                Popen(["xdg-open", parent_path])
+            if not os.path.isdir(parent_path):
+                globals.loop.create_task(ask_reset_exe_path(game_id))
+            else:
+                if globals.user_os == "windows":
+                    parent_path = parent_path.replace("/", "\\")
+                    Popen(["explorer.exe", parent_path])
+                elif globals.user_os == "linux":
+                    Popen(["xdg-open", parent_path])
+
+
+async def ask_reset_exe_path(game_id):
+    if await gui.QuestionPopup.ask(globals.gui, "Error", "Something went wrong launching this game, it was probably moved or deleted.", "Do you want to unset the EXE path for it?"):
+        globals.config["games"][game_id]["exe_path"] = ""
+        config_utils.save_config()
 
 
 def show_image_overlay(game_id, *kw):
