@@ -149,7 +149,7 @@ async def set_browser(new_browser, *kw):
     for browser_name in browsers.BROWSER_LIST:
         if globals.gui.browser_buttons.get(browser_name):
             globals.gui.browser_buttons[browser_name].setObjectName(u"browser_button_selected" if browser_name == new_browser else u"browser_button")
-            globals.gui.browser_buttons[browser_name].setStyleSheet("/* /")
+            globals.gui.browser_buttons[browser_name].setStyleSheet("/* */")
     globals.config["options"]["browser"] = new_browser
     config_utils.save_config()
 
@@ -258,13 +258,14 @@ async def set_refresh_threads(*kw):
 async def restore_default_style(*kw):
     """Default style styler buton callback"""
     globals.config["style"] = {
-        'back': '#181818',
-        'alt': '#141414',
-        'accent': '#da1e2e',
-        'border': '#454545',
-        'hover': '#747474',
-        'disabled': '#232323',
-        'radius': 6
+        'back':       '#181818',
+        'alt':        '#141414',
+        'accent':     '#da1e2e',
+        'border':     '#454545',
+        'hover':      '#747474',
+        'disabled':   '#232323',
+        'radius':     6,
+        "use_system": False
     }
     update_style()
 
@@ -274,6 +275,8 @@ def update_style(style_id=None):
     # Config
     if style_id == 'radius':
         globals.config["style"][style_id] = globals.gui.style_gui.radius.value()
+    elif style_id == 'use_system':
+        globals.config["style"][style_id] = globals.gui.style_gui.use_system.isChecked()
     elif style_id:
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(globals.config["style"][style_id]))
         if color.isValid():
@@ -291,14 +294,15 @@ async def invoke_styler(*kw):
     globals.gui.style_gui = gui.StyleGUI()
     globals.gui.style_gui.radius.setValue(globals.config["style"]["radius"])
     # Assign click actions
-    globals.gui.style_gui.background.clicked     .connect(partial(update_style, 'back')    )
-    globals.gui.style_gui.alternate .clicked     .connect(partial(update_style, 'alt')     )
-    globals.gui.style_gui.accent    .clicked     .connect(partial(update_style, 'accent')  )
-    globals.gui.style_gui.border    .clicked     .connect(partial(update_style, 'border')  )
-    globals.gui.style_gui.hover     .clicked     .connect(partial(update_style, 'hover')   )
-    globals.gui.style_gui.disabled  .clicked     .connect(partial(update_style, 'disabled'))
-    globals.gui.style_gui.radius    .valueChanged.connect(partial(update_style, 'radius')  )
-    globals.gui.style_gui.restore   .clicked     .connect(restore_default_style            )
+    globals.gui.style_gui.background.clicked     .connect(partial(update_style, 'back'      ))
+    globals.gui.style_gui.alternate .clicked     .connect(partial(update_style, 'alt'       ))
+    globals.gui.style_gui.accent    .clicked     .connect(partial(update_style, 'accent'    ))
+    globals.gui.style_gui.border    .clicked     .connect(partial(update_style, 'border'    ))
+    globals.gui.style_gui.hover     .clicked     .connect(partial(update_style, 'hover'     ))
+    globals.gui.style_gui.disabled  .clicked     .connect(partial(update_style, 'disabled'  ))
+    globals.gui.style_gui.radius    .valueChanged.connect(partial(update_style, 'radius'    ))
+    globals.gui.style_gui.use_system.stateChanged.connect(partial(update_style, 'use_system'))
+    globals.gui.style_gui.restore   .clicked     .connect(restore_default_style              )
     # Show window
     globals.gui.style_gui.show()
 
@@ -441,7 +445,7 @@ def show_image_overlay(game_id, *kw):
     globals.gui.update_image_overlay(game_id)
     globals.gui.image_overlay.setVisible(True)
     if os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg'):
-        globals.gui.refresh_button.setText("")
+        globals.gui.refresh_button.setVisible(False)
     else:
         globals.gui.refresh_button.setText("  Image missing...\nRefresh to attempt\ndownloading it!")
 
@@ -450,6 +454,7 @@ def hide_image_overlay(*kw):
     """Stop hovering game callback"""
     globals.gui.image_overlay.setVisible(False)
     globals.gui.refresh_button.setText("Refresh!")
+    globals.gui.refresh_button.setVisible(True)
 
 
 @asyncSlot()

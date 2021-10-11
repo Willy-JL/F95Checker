@@ -30,13 +30,14 @@ async def init_config():
 
     globals.config.setdefault("style", {})
     if True:
-        globals.config["style"].setdefault("back",     "#181818")
-        globals.config["style"].setdefault("alt",      "#141414")
-        globals.config["style"].setdefault("accent",   "#da1e2e")
-        globals.config["style"].setdefault("border",   "#454545")
-        globals.config["style"].setdefault("hover",    "#747474")
-        globals.config["style"].setdefault("disabled", "#232323")
-        globals.config["style"].setdefault("radius",   6        )
+        globals.config["style"].setdefault("back",       "#181818")
+        globals.config["style"].setdefault("alt",        "#141414")
+        globals.config["style"].setdefault("accent",     "#da1e2e")
+        globals.config["style"].setdefault("border",     "#454545")
+        globals.config["style"].setdefault("hover",      "#747474")
+        globals.config["style"].setdefault("disabled",   "#232323")
+        globals.config["style"].setdefault("radius",     6        )
+        globals.config["style"].setdefault("use_system", False    )
 
     globals.config.setdefault("advanced", {})
     if True:

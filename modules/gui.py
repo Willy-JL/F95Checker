@@ -418,7 +418,7 @@ class F95CheckerGUI(QMainWindow):
                 self.browser_buttons[btn].clicked.connect(partial(callbacks.set_browser, btn))
         if globals.config["options"]["browser"]:
             self.browser_buttons[globals.config["options"]["browser"]].setObjectName(u"browser_button_selected")
-            self.browser_buttons[globals.config["options"]["browser"]].setStyleSheet("/* /")
+            self.browser_buttons[globals.config["options"]["browser"]].setStyleSheet("/* */")
 
         # Check Boxes
         if globals.config["options"]["private_browser"]:
@@ -552,15 +552,6 @@ class F95CheckerGUI(QMainWindow):
         else:
             font_alt = '#CDCECF'
         qss = """
-QWidget {
-    background: """+style['back']+""";
-    color: """+font+"""
-}
-
-QLabel#highlighted {
-    color: """+style['accent']+"""
-}
-
 QLabel#refresh_label {
     background: transparent
 }
@@ -577,243 +568,24 @@ QLabel#status_abandoned {
     color: #DD3333
 }
 
-QFrame#game_container_frame_alt QLabel#status, QFrame#game_container_frame_alt QLabel#status_completed, QFrame#game_container_frame_alt QLabel#status_onhold, QFrame#game_container_frame_alt QLabel#status_abandoned {
-    background: """+style['alt']+"""
-}
-
-QFrame#game_container_frame_alt, QFrame#game_container_frame_alt QPushButton, QFrame#game_container_frame_alt QLabel#name, QFrame#game_container_frame_alt QLabel#version, QFrame#game_container_frame_alt QCheckBox, QFrame#game_container_frame_alt QCheckBox::indicator:unchecked {
-    background: """+style['alt']+""";
-    color: """+font_alt+"""
-}
-
-QFrame#game_container_frame_alt QLabel#highlighted {
-    background: """+style['alt']+""";
-    color: """+style['accent']+"""
-}
-
 QPushButton {
-    background: transparent;
-    border: 1px solid """+style['border']+""";
-    border-radius: """+str(style['radius'])+"""px;
     padding-top: 2px;
     padding-bottom: 2px;
     padding-right: 4px;
     padding-left: 4px;
 }
 
-QPushButton:disabled {
-    border-color: """+style['disabled']+""";
-    color: """+font_disabled+"""
-}
-
-QFrame#game_container_frame_alt QPushButton:disabled {
-    border-color: """+style['disabled']+""";
-    color: """+font_disabled+"""
-}
-
-QPushButton:hover {
-    border-color: """+style['hover']+"""
-}
-
-QPushButton:pressed {
-    border: 2px solid """+style['accent']+"""
-}
-
-QPushButton#browser_button_selected {
-    border: 2px solid """+style['accent']+"""
-}
-
-QPushButton#browser_button_selected:disabled {
-    border-color: """+style['disabled']+""";
-    color: """+font_disabled+"""
-}
-
-QPushButton#browser_button_selected:hover {
-    border: 2px solid """+style['accent']+"""
-}
-
-QPushButton#browser_button_selected:pressed {
-    border: 2px solid """+style['accent']+"""
-}
-
 QSpinBox {
-    background: """+style['back']+""";
-    border: 1px solid """+style['border']+""";
-    border-radius: """+str(style['radius'])+"""px;
     padding-left: 6px;
-    selection-color: """+style['accent']+""";
-    selection-background-color: rgba(0, 0, 0, 30%)
-}
-
-QSpinBox:hover {
-    border-color: """+style['hover']+"""
-}
-
-QSpinBox::up-button {
-    background: """+style['accent']+""";
-    border: 1px solid """+style['back']+""";
-    border-radius: """+str(style['radius'])+"""px;
-    image: url(resources/icons/up-"""+arrow_normal+""".png);
-    width: 15px
-}
-
-QSpinBox::up-button:pressed {
-    image: url(resources/icons/up-"""+arrow_active+""".png)
-}
-
-QSpinBox::down-button {
-    background: """+style['accent']+""";
-    border: 1px solid """+style['back']+""";
-    border-radius: """+str(style['radius'])+"""px;
-    image: url(resources/icons/down-"""+arrow_normal+""".png);
-    width: 15px
-}
-
-QSpinBox::down-button:pressed {
-    image: url(resources/icons/down-"""+arrow_active+""".png)
-}
-
-QCheckBox::indicator {
-    border: 2px solid """+style['border']+""";
-    border-radius: """+str(style['radius'])+"""px;
-    background: """+style['back']+""";
-    width: 16px;
-    height: 16px
-}
-
-QCheckBox::indicator:checked {
-    border-color: """+style['accent']+""";
-    background: """+style['accent']+""";
-    image: url(resources/icons/"""+check+""".png)
-}
-
-QCheckBox::indicator:unchecked:hover {
-    border-color: """+style['hover']+"""
-}
-
-QCheckBox:disabled {
-    color: """+font_disabled+"""
-}
-
-QCheckBox::indicator:disabled {
-    border-color: """+style['disabled']+"""
 }
 
 QComboBox {
-    background: transparent;
-    border: 1px solid """+style['border']+""";
-    border-radius: """+str(style['radius'])+"""px;
-    padding-left: 10px
-}
-
-QComboBox:hover {
-    border-color: """+style['hover']+"""
-}
-
-QComboBox::drop-down {
-    background: """+style['accent']+""";
-    border: 2px solid """+style['back']+""";
-    border-radius: """+str(style['radius'])+"""px;
-    image: url(resources/icons/down-"""+arrow_normal+""".png);
-    width: 13px
-}
-
-QComboBox::drop-down:pressed {
-    image: url(resources/icons/down-"""+arrow_active+""".png)
-}
-
-QComboBox QAbstractItemView {
-    border: 1px solid """+style['border']+""";
-    border-radius: """+str(style['radius'])+"""px;
-    selection-background-color: """+style['accent']+"""
-}
-
-QScrollBar:horizontal {
-    background: transparent;
-    height: 16px;
-    padding: 2px;
-}
-
-QScrollBar::handle:horizontal {
-    background: """+style['border']+""";
-    border: 0px solid """+style['back']+""";
-    border-radius: 3px;
-    margin: 3px
-}
-
-QScrollBar::handle:horizontal:hover {
-    background: """+style['hover']+"""
-}
-
-QScrollBar::handle:horizontal:pressed {
-    background: """+style['accent']+"""
-}
-
-QScrollBar::add-line:horizontal {
-    width: 0px
-}
-
-QScrollBar::sub-line:horizontal {
-    width: 0px
-}
-
-QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-    background: transparent;
-}
-
-QScrollBar:vertical {
-    background: transparent;
-    width: 16px;
-    padding: 2px;
-}
-
-QScrollBar::handle:vertical {
-    background: """+style['border']+""";
-    border: 0px solid """+style['back']+""";
-    border-radius: 3px;
-    margin: 3px
-}
-
-QScrollBar::handle:vertical:hover {
-    background: """+style['hover']+"""
-}
-
-QScrollBar::handle:vertical:pressed {
-    background: """+style['accent']+"""
-}
-
-QScrollBar::add-line:vertical {
-    height: 0px
-}
-
-QScrollBar::sub-line:vertical {
-    height: 0px
-}
-
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-    background: transparent;
+    padding-left: 10px;
 }
 
 QLineEdit {
-    border: 1px solid """+style['border']+""";
-    border-radius: """+str(style['radius'])+"""px;
     padding-left: 4px;
     min-height: 18px;
-    selection-color: """+style['accent']+""";
-    selection-background-color: rgba(0, 0, 0, 30%)
-}
-
-QLineEdit:disabled {
-    border-color: """+style['disabled']+""";
-    color: """+font_disabled+"""
-}
-
-QLineEdit:hover {
-    border-color: """+style['hover']+"""
-}
-
-QLineEdit:focus {
-    border: 1px solid """+style['accent']+"""
 }
 
 QPushButton#back_color_selection {
@@ -909,6 +681,246 @@ QPushButton#disabled_color_selection:pressed {
 QSpinBox#radius_selection::up-button, QSpinBox#radius_selection::down-button {
     border-radius: """+("4" if style["radius"] > 4 else str(style['radius']))+"""px
 }
+""" + ("""
+QWidget {
+    background: """+style['back']+""";
+    color: """+font+"""
+}
+
+QLabel#highlighted {
+    color: """+style['accent']+"""
+}
+
+QFrame#game_container_frame_alt QLabel#status, QFrame#game_container_frame_alt QLabel#status_completed, QFrame#game_container_frame_alt QLabel#status_onhold, QFrame#game_container_frame_alt QLabel#status_abandoned {
+    background: """+style['alt']+"""
+}
+
+QFrame#game_container_frame_alt, QFrame#game_container_frame_alt QPushButton, QFrame#game_container_frame_alt QLabel#name, QFrame#game_container_frame_alt QLabel#version, QFrame#game_container_frame_alt QCheckBox, QFrame#game_container_frame_alt QCheckBox::indicator:unchecked {
+    background: """+style['alt']+""";
+    color: """+font_alt+"""
+}
+
+QFrame#game_container_frame_alt QLabel#highlighted {
+    background: """+style['alt']+""";
+    color: """+style['accent']+"""
+}
+
+QPushButton {
+    background: transparent;
+    border: 1px solid """+style['border']+""";
+    border-radius: """+str(style['radius'])+"""px;
+}
+
+QPushButton:disabled {
+    border-color: """+style['disabled']+""";
+    color: """+font_disabled+"""
+}
+
+QFrame#game_container_frame_alt QPushButton:disabled {
+    border-color: """+style['disabled']+""";
+    color: """+font_disabled+"""
+}
+
+QPushButton:hover {
+    border-color: """+style['hover']+"""
+}
+
+QPushButton:pressed {
+    border: 2px solid """+style['accent']+"""
+}
+
+QPushButton#browser_button_selected {
+    border: 2px solid """+style['accent']+"""
+}
+
+QPushButton#browser_button_selected:disabled {
+    border-color: """+style['disabled']+""";
+    color: """+font_disabled+"""
+}
+
+QPushButton#browser_button_selected:hover {
+    border: 2px solid """+style['accent']+"""
+}
+
+QPushButton#browser_button_selected:pressed {
+    border: 2px solid """+style['accent']+"""
+}
+
+QSpinBox {
+    background: """+style['back']+""";
+    border: 1px solid """+style['border']+""";
+    border-radius: """+str(style['radius'])+"""px;
+    selection-color: """+style['accent']+""";
+    selection-background-color: rgba(0, 0, 0, 30%);
+}
+
+QSpinBox:hover {
+    border-color: """+style['hover']+"""
+}
+
+QSpinBox::up-button {
+    background: """+style['accent']+""";
+    border: 1px solid """+style['back']+""";
+    border-radius: """+str(style['radius'])+"""px;
+    image: url(resources/icons/up-"""+arrow_normal+""".png);
+    width: 15px;
+}
+
+QSpinBox::up-button:pressed {
+    image: url(resources/icons/up-"""+arrow_active+""".png)
+}
+
+QSpinBox::down-button {
+    background: """+style['accent']+""";
+    border: 1px solid """+style['back']+""";
+    border-radius: """+str(style['radius'])+"""px;
+    image: url(resources/icons/down-"""+arrow_normal+""".png);
+    width: 15px;
+}
+
+QSpinBox::down-button:pressed {
+    image: url(resources/icons/down-"""+arrow_active+""".png)
+}
+
+QCheckBox::indicator {
+    border: 2px solid """+style['border']+""";
+    border-radius: """+str(style['radius'])+"""px;
+    background: """+style['back']+""";
+    width: 16px;
+    height: 16px;
+}
+
+QCheckBox::indicator:checked {
+    border-color: """+style['accent']+""";
+    background: """+style['accent']+""";
+    image: url(resources/icons/"""+check+""".png)
+}
+
+QCheckBox::indicator:unchecked:hover {
+    border-color: """+style['hover']+"""
+}
+
+QCheckBox:disabled {
+    color: """+font_disabled+"""
+}
+
+QCheckBox::indicator:disabled {
+    border-color: """+style['disabled']+"""
+}
+
+QComboBox {
+    background: transparent;
+    border: 1px solid """+style['border']+""";
+    border-radius: """+str(style['radius'])+"""px;
+}
+
+QComboBox:hover {
+    border-color: """+style['hover']+"""
+}
+
+QComboBox::drop-down {
+    background: """+style['accent']+""";
+    border: 2px solid """+style['back']+""";
+    border-radius: """+str(style['radius'])+"""px;
+    image: url(resources/icons/down-"""+arrow_normal+""".png);
+    width: 13px
+}
+
+QComboBox::drop-down:pressed {
+    image: url(resources/icons/down-"""+arrow_active+""".png)
+}
+
+QComboBox QAbstractItemView {
+    border: 1px solid """+style['border']+""";
+    border-radius: """+str(style['radius'])+"""px;
+    selection-background-color: """+style['accent']+"""
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 16px;
+    padding: 2px;
+}
+
+QScrollBar::handle:horizontal {
+    background: """+style['border']+""";
+    border: 0px solid """+style['back']+""";
+    border-radius: 3px;
+    margin: 3px
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: """+style['hover']+"""
+}
+
+QScrollBar::handle:horizontal:pressed {
+    background: """+style['accent']+"""
+}
+
+QScrollBar::add-line:horizontal {
+    width: 0px
+}
+
+QScrollBar::sub-line:horizontal {
+    width: 0px
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: transparent;
+}
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 16px;
+    padding: 2px;
+}
+
+QScrollBar::handle:vertical {
+    background: """+style['border']+""";
+    border: 0px solid """+style['back']+""";
+    border-radius: 3px;
+    margin: 3px
+}
+
+QScrollBar::handle:vertical:hover {
+    background: """+style['hover']+"""
+}
+
+QScrollBar::handle:vertical:pressed {
+    background: """+style['accent']+"""
+}
+
+QScrollBar::add-line:vertical {
+    height: 0px
+}
+
+QScrollBar::sub-line:vertical {
+    height: 0px
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+QLineEdit {
+    border: 1px solid """+style['border']+""";
+    border-radius: """+str(style['radius'])+"""px;
+    selection-color: """+style['accent']+""";
+    selection-background-color: rgba(0, 0, 0, 30%);
+}
+
+QLineEdit:disabled {
+    border-color: """+style['disabled']+""";
+    color: """+font_disabled+"""
+}
+
+QLineEdit:hover {
+    border-color: """+style['hover']+"""
+}
+
+QLineEdit:focus {
+    border: 1px solid """+style['accent']+"""
+}
 
 QProgressBar {
     background: """+style['back']+""";
@@ -928,7 +940,7 @@ QMenu::item:selected {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 """+f'#{hex(QColor.fromHsl(wrap_number(QColor(style["accent"]).getHsl()[0], -10, 359), QColor(style["accent"]).getHsl()[1], QColor(style["accent"]).getHsl()[2]).rgb())[4:]}'+""", stop:1 """+f'#{hex(QColor.fromHsl(wrap_number(QColor(style["accent"]).getHsl()[0], +10, 359), QColor(style["accent"]).getHsl()[1], QColor(style["accent"]).getHsl()[2]).rgb())[4:]}'+""");
     color: rgb(255, 255, 255)
 }
-"""
+""" if not style["use_system"] else "")
         return qss
 
 
@@ -1065,7 +1077,7 @@ class GameContainer(QFrame):
             self.setObjectName(u"game_container_frame" + u"_alt" if alt else u"")
             self.game_container.setObjectName(u"game_container" + u"_alt" if alt else u"")
             # Refresh style
-            self.setStyleSheet("/* /")
+            self.setStyleSheet("/* */")
         if name is not None:
             self.name.setText(name)
         if version is not None:
@@ -1098,7 +1110,7 @@ class GameContainer(QFrame):
             else:
                 self.name.setObjectName(u"highlighted")
             # Refresh style
-            self.name.setStyleSheet("/* /")
+            self.name.setStyleSheet("/* */")
         if installed is not None:
             self.installed_button.setChecked(installed)
         if played is not None:
@@ -1121,6 +1133,26 @@ class StyleGUI(QWidget):
         self.resize(280, 150)
         self.gridLayout = QGridLayout(self)
         self.gridLayout.setObjectName(u"gridLayout")
+
+        # Background
+        self.background_label = QLabel(self)
+        self.background_label.setObjectName(u"background_label")
+
+        self.gridLayout.addWidget(self.background_label, 0, 0, 1, 1)
+
+        self.background = QPushButton(self)
+        self.background.setObjectName(u"back_color_selection")
+        self.background.setFixedSize(QSize(18, 18))
+        self.background.setCursor(Qt.PointingHandCursor)
+
+        self.gridLayout.addWidget(self.background, 0, 2, 1, 1)
+
+        # Alternate BG
+        self.alternate_label = QLabel(self)
+        self.alternate_label.setObjectName(u"alternate_label")
+
+        self.gridLayout.addWidget(self.alternate_label, 1, 0, 1, 1)
+
         self.alternate = QPushButton(self)
         self.alternate.setObjectName(u"alt_color_selection")
         self.alternate.setFixedSize(QSize(18, 18))
@@ -1128,6 +1160,7 @@ class StyleGUI(QWidget):
 
         self.gridLayout.addWidget(self.alternate, 1, 2, 1, 1)
 
+        # Accent
         self.accent_label = QLabel(self)
         self.accent_label.setObjectName(u"accent_label")
 
@@ -1140,33 +1173,18 @@ class StyleGUI(QWidget):
 
         self.gridLayout.addWidget(self.accent, 2, 2, 1, 1)
 
-        self.background = QPushButton(self)
-        self.background.setObjectName(u"back_color_selection")
-        self.background.setFixedSize(QSize(18, 18))
-        self.background.setCursor(Qt.PointingHandCursor)
-
-        self.gridLayout.addWidget(self.background, 0, 2, 1, 1)
-
+        # Restore to Defaults
         self.restore = QPushButton(self)
         self.restore.setObjectName(u"restore")
-        self.restore.setFixedSize(QSize(106, 18))
         self.restore.setCursor(Qt.PointingHandCursor)
 
         self.gridLayout.addWidget(self.restore, 3, 0, 1, 3)
 
-        self.horizontalSpacer = QSpacerItem(10, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        # Buttons Border
+        self.border_label = QLabel(self)
+        self.border_label.setObjectName(u"border_label")
 
-        self.gridLayout.addItem(self.horizontalSpacer, 0, 1, 3, 1)
-
-        self.background_label = QLabel(self)
-        self.background_label.setObjectName(u"background_label")
-
-        self.gridLayout.addWidget(self.background_label, 0, 0, 1, 1)
-
-        self.radius_label = QLabel(self)
-        self.radius_label.setObjectName(u"radius_label")
-
-        self.gridLayout.addWidget(self.radius_label, 3, 4, 1, 1)
+        self.gridLayout.addWidget(self.border_label, 0, 4, 1, 1)
 
         self.border = QPushButton(self)
         self.border.setObjectName(u"border_color_selection")
@@ -1175,12 +1193,11 @@ class StyleGUI(QWidget):
 
         self.gridLayout.addWidget(self.border, 0, 6, 1, 1)
 
-        self.radius = QSpinBox(self)
-        self.radius.setObjectName(u"radius_selection")
-        self.radius.setMaximum(6)
-        self.radius.setCursor(Qt.PointingHandCursor)
+        # Buttons Hover
+        self.hover_label = QLabel(self)
+        self.hover_label.setObjectName(u"hover_label")
 
-        self.gridLayout.addWidget(self.radius, 3, 5, 1, 2)
+        self.gridLayout.addWidget(self.hover_label, 1, 4, 1, 1)
 
         self.hover = QPushButton(self)
         self.hover.setObjectName(u"hover_color_selection")
@@ -1189,6 +1206,12 @@ class StyleGUI(QWidget):
 
         self.gridLayout.addWidget(self.hover, 1, 6, 1, 1)
 
+        # Buttons Disabled
+        self.disabled_label = QLabel(self)
+        self.disabled_label.setObjectName(u"disabled_label")
+
+        self.gridLayout.addWidget(self.disabled_label, 2, 4, 1, 1)
+
         self.disabled = QPushButton(self)
         self.disabled.setObjectName(u"disabled_color_selection")
         self.disabled.setFixedSize(QSize(18, 18))
@@ -1196,25 +1219,30 @@ class StyleGUI(QWidget):
 
         self.gridLayout.addWidget(self.disabled, 2, 6, 1, 1)
 
-        self.disabled_label = QLabel(self)
-        self.disabled_label.setObjectName(u"disabled_label")
+        # Corner Radius
+        self.radius_label = QLabel(self)
+        self.radius_label.setObjectName(u"radius_label")
 
-        self.gridLayout.addWidget(self.disabled_label, 2, 4, 1, 1)
+        self.gridLayout.addWidget(self.radius_label, 3, 4, 1, 1)
 
-        self.alternate_label = QLabel(self)
-        self.alternate_label.setObjectName(u"alternate_label")
+        self.radius = QSpinBox(self)
+        self.radius.setObjectName(u"radius_selection")
+        self.radius.setMaximum(6)
+        self.radius.setCursor(Qt.PointingHandCursor)
 
-        self.gridLayout.addWidget(self.alternate_label, 1, 0, 1, 1)
+        self.gridLayout.addWidget(self.radius, 3, 5, 1, 2)
 
-        self.border_label = QLabel(self)
-        self.border_label.setObjectName(u"border_label")
+        # Use System Theme
+        self.use_system = QCheckBox(self)
+        self.use_system.setObjectName(u"use_system")
+        self.use_system.setCursor(Qt.PointingHandCursor)
 
-        self.gridLayout.addWidget(self.border_label, 0, 4, 1, 1)
+        self.gridLayout.addWidget(self.use_system, 4, 0, 1, 7, Qt.AlignCenter)
 
-        self.hover_label = QLabel(self)
-        self.hover_label.setObjectName(u"hover_label")
+        # Spacers
+        self.horizontalSpacer = QSpacerItem(10, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.gridLayout.addWidget(self.hover_label, 1, 4, 1, 1)
+        self.gridLayout.addItem(self.horizontalSpacer, 0, 1, 3, 1)
 
         self.horizontalSpacer_2 = QSpacerItem(16, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
@@ -1228,20 +1256,21 @@ class StyleGUI(QWidget):
     # setupUi
 
         self.setWindowTitle("F95Checker Styler")
+        self.background_label.setText("Background")
+        self.background.setText("")
+        self.alternate_label.setText("Alternate BG")
         self.alternate.setText("")
         self.accent_label.setText("Accent")
         self.accent.setText("")
-        self.background.setText("")
         self.restore.setText("Restore to Defaults")
-        self.background_label.setText("Background")
-        self.radius_label.setText("Corner Radius")
-        self.border.setText("")
-        self.hover.setText("")
-        self.disabled.setText("")
-        self.disabled_label.setText("Buttons Disabled")
-        self.alternate_label.setText("Alternate BG")
         self.border_label.setText("Buttons Border")
+        self.border.setText("")
         self.hover_label.setText("Buttons Hover")
+        self.hover.setText("")
+        self.disabled_label.setText("Buttons Disabled")
+        self.disabled.setText("")
+        self.radius_label.setText("Corner Radius")
+        self.use_system.setText("Use System Theme")
 
 
 class ChangelogGUI(QWidget):
