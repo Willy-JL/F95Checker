@@ -41,14 +41,24 @@ def detect_user_os_and_browsers():
 
     if sys.platform.startswith("linux"):
         user_os = "linux"
+        if find_executable("chrome"):
+            user_browsers["chrome"] = {"path": "chrome"}
         if find_executable("google-chrome"):
             user_browsers["chrome"] = {"path": "google-chrome"}
+        if find_executable("google-chrome-stable"):
+            user_browsers["chrome"] = {"path": "google-chrome-stable"}
         if find_executable("firefox"):
             user_browsers["firefox"] = {"path": "firefox"}
+        if find_executable("brave"):
+            user_browsers["brave"] = {"path": "brave"}
+        if find_executable("brave-stable"):
+            user_browsers["brave"] = {"path": "brave-stable"}
         if find_executable("brave-browser"):
             user_browsers["brave"] = {"path": "brave-browser"}
         if find_executable("opera"):
             user_browsers["opera"] = {"path": "opera"}
+        if find_executable("opera-stable"):
+            user_browsers["opera"] = {"path": "opera-stable"}
         # Currently (as of Sept 14 2020) OperaGX and Edge are not supported on linux
     elif sys.platform.startswith("win"):
         user_os = "windows"
