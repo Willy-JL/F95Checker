@@ -513,25 +513,36 @@ class F95CheckerGUI(QMainWindow):
     def update_image_overlay(self, game_id):
         """Update image overlay with jpg from config location"""
         self.image_overlay.setFixedSize(self.refresh_button.size())
-        pixmap = QPixmap(self.image_overlay.size())
-        painter = QPainter(pixmap)
-        painter.fillRect(pixmap.rect(), Qt.white)
-        painter.setBrush(Qt.black)
-        painter.drawRoundedRect(pixmap.rect(), globals.config["style"]["radius"]+3, globals.config["style"]["radius"]+3)
-        painter.end()
-        self.image_overlay.setMask(pixmap.createMaskFromColor(Qt.white))
+        btn_width = self.image_overlay.size().width()
+        btn_height = self.image_overlay.size().height()
         pixmap = QPixmap(f'{globals.config_path}/images/{game_id}.jpg')
+        pxm_width = pixmap.size().width()
+        pxm_height = pixmap.size().height()
         try:
-            if pixmap.size().width() > 0 and pixmap.size().height() > 0:
-                if pixmap.size().width() / pixmap.size().height() >= self.image_overlay.size().width() / self.image_overlay.size().height():
-                    pixmap = pixmap.scaledToHeight(self.image_overlay.size().height())
+            if pxm_width > 0 and pxm_height > 0:
+                if pxm_width / pxm_height >= btn_width / btn_height:
+                    pixmap = pixmap.scaledToHeight(btn_height)
                 else:
-                    pixmap = pixmap.scaledToWidth(self.image_overlay.size().width())
+                    pixmap = pixmap.scaledToWidth(btn_width)
         except Exception:
             exc = "".join(traceback.format_exception(*sys.exc_info()))
             print(exc)
             pass
-        self.image_overlay.setPixmap(pixmap)
+        if not pixmap.isNull():
+            pxm_width = pixmap.size().width()
+            pxm_height = pixmap.size().height()
+            pixmap = pixmap.copy(round((pxm_width - btn_width) / 2), round((pxm_height - btn_height) / 2), btn_width, btn_height)
+            rounded = QPixmap(pixmap.size())
+            rounded.fill(QColor("transparent"))
+            painter = QPainter(rounded)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setBrush(QBrush(pixmap))
+            painter.setPen(Qt.NoPen)
+            painter.drawRoundedRect(pixmap.rect(), globals.config["style"]["radius"], globals.config["style"]["radius"])
+            painter.end()
+            self.image_overlay.setPixmap(rounded)
+        else:
+            self.image_overlay.setPixmap(pixmap)
 
     def get_stylesheet(self, style):
         """Dynamically create qss based on user style settings"""
