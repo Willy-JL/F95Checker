@@ -293,6 +293,7 @@ async def invoke_styler(*kw):
     """Show styler window"""
     globals.gui.style_gui = gui.StyleGUI()
     globals.gui.style_gui.radius.setValue(globals.config["style"]["radius"])
+    globals.gui.style_gui.use_system.setChecked(globals.config["style"]["use_system"])
     # Assign click actions
     globals.gui.style_gui.background.clicked     .connect(partial(update_style, 'back'      ))
     globals.gui.style_gui.alternate .clicked     .connect(partial(update_style, 'alt'       ))
