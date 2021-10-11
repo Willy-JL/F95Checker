@@ -437,7 +437,7 @@ async def bg_toggle_pause(*kw):
 def open_game(game_id, event):
     """Play button callback"""
     if not globals.config["games"][game_id]["exe_path"]:
-        globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', filter="Game exe (*.exe *.py *.sh *.bat)")[0]
+        globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', filter=f"Game exe (*.exe *.py *.sh *.bat{' *' if globals.user_os == 'linux' else ''})")[0]
         config_utils.save_config()
     if globals.config["games"][game_id]["exe_path"]:
         exe_path = globals.config["games"][game_id]["exe_path"]
