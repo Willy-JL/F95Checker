@@ -384,10 +384,10 @@ async def toggle_background(*kw):
 async def bg_loop():
     """BG mode background loop for auto refresh"""
     while True:
-        globals.tray.setRefreshing()
-        await refresh()
         globals.tray.setIdle(next_refresh=(datetime.datetime.now()+datetime.timedelta(minutes=globals.config["options"]["bg_mode_delay_mins"])).strftime("%H:%M"))
         await asyncio.sleep(globals.config["options"]["bg_mode_delay_mins"] * 60)
+        globals.tray.setRefreshing()
+        await refresh()
 
 
 @asyncSlot()
