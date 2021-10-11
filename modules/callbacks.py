@@ -183,6 +183,20 @@ async def set_refresh_completed_games(*kw):
 
 
 @asyncSlot()
+async def set_keep_image_on_game_update(*kw):
+    """Keep old image on update checkbox callback"""
+    globals.config["options"]["keep_image_on_game_update"] = globals.gui.keep_image_on_game_update_button.isChecked()
+    config_utils.save_config()
+
+
+@asyncSlot()
+async def set_keep_exe_path_on_game_update(*kw):
+    """Keep old exe path on update checkbox callback"""
+    globals.config["options"]["keep_exe_path_on_game_update"] = globals.gui.keep_exe_path_on_game_update_button.isChecked()
+    config_utils.save_config()
+
+
+@asyncSlot()
 async def set_sorting(*kw):
     """Auto sort combobox callback"""
     i = globals.gui.sort_input.currentIndex()
@@ -331,7 +345,8 @@ async def set_installed(game_id, *kw):
     globals.config["games"][game_id]["installed"] = globals.gui.game_list[game_id].installed_button.isChecked()
     if not globals.config["games"][game_id]["installed"]:
         globals.config["games"][game_id]["played"] = False
-        globals.config["games"][game_id]["exe_path"] = ''
+        if not globals.config["options"]["keep_exe_path_on_game_update"]:
+            globals.config["games"][game_id]["exe_path"] = ''
         globals.gui.game_list[game_id].played_button.setChecked(False)
         globals.gui.game_list[game_id].played_button.setEnabled(False)
         globals.gui.game_list[game_id].open_button.setEnabled(False)

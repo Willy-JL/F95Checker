@@ -510,7 +510,8 @@ async def check(game_id):
             globals.config["games"][game_id]["status"]       = game_data["status"]
             globals.config["games"][game_id]["installed"]    = False
             globals.config["games"][game_id]["played"]       = False
-            globals.config["games"][game_id]["exe_path"]     = ""
+            if not globals.config["options"]["keep_exe_path_on_game_update"]:
+                globals.config["games"][game_id]["exe_path"]     = ""
             globals.config["games"][game_id]["link"]         = game_data["link"]
             globals.config["games"][game_id]["updated_time"] = time.time()
             globals.config["games"][game_id]["changelog"]    = game_data["changelog"]
@@ -748,7 +749,7 @@ async def get_game_data(link):
 
             # Only fetch image if adding the game or if update_image_on_game_update is enabled (enabled by default)
             game_id = link[link.rfind('.')+1:link.rfind('/')]
-            if (not globals.refreshing or globals.config["options"]["update_image_on_game_update"]) and not game_id in globals.image_bg_tasks:
+            if (not globals.refreshing or not globals.config["options"]["keep_image_on_game_update"]) and not game_id in globals.image_bg_tasks:
                 globals.loop.create_task(download_game_image(thread_html, game_id))
 
             return {

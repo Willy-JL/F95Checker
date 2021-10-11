@@ -232,6 +232,20 @@ class F95CheckerGUI(QMainWindow):
 
         self.checkboxes_layout.addWidget(self.refresh_completed_games_button, alignment=Qt.AlignLeft)
 
+        self.keep_image_on_game_update_button = QCheckBox(self.options_section)
+        self.keep_image_on_game_update_button.setObjectName(u"keep_image_on_game_update_button")
+        self.keep_image_on_game_update_button.setMinimumSize(QSize(128, 22))
+        self.keep_image_on_game_update_button.setCursor(Qt.PointingHandCursor)
+
+        self.checkboxes_layout.addWidget(self.keep_image_on_game_update_button, alignment=Qt.AlignLeft)
+
+        self.keep_exe_path_on_game_update_button = QCheckBox(self.options_section)
+        self.keep_exe_path_on_game_update_button.setObjectName(u"keep_exe_path_on_game_update_button")
+        self.keep_exe_path_on_game_update_button.setMinimumSize(QSize(128, 22))
+        self.keep_exe_path_on_game_update_button.setCursor(Qt.PointingHandCursor)
+
+        self.checkboxes_layout.addWidget(self.keep_exe_path_on_game_update_button, alignment=Qt.AlignLeft)
+
         self.gridLayout_2.addWidget(self.checkboxes_widget, 3, 0, 1, 3, Qt.AlignHCenter)
 
         self.sort_label = QLabel(self.options_section)
@@ -364,6 +378,8 @@ class F95CheckerGUI(QMainWindow):
         self.start_refresh_button.setText("Refresh List at Program Start")
         self.saved_html_button.setText("Open Pages as Saved HTML")
         self.refresh_completed_games_button.setText("Refresh Completed Games")
+        self.keep_image_on_game_update_button.setText("Keep Old Image on Update")
+        self.keep_exe_path_on_game_update_button.setText("Keep Old EXE Path on Update")
         self.sort_label.setText("Auto Sort:")
         self.sort_input.setItemText(0, "Don't Sort")
         self.sort_input.setItemText(1, "Last Updated")
@@ -385,6 +401,8 @@ class F95CheckerGUI(QMainWindow):
         self.saved_html_button.setToolTip('This toggles whether links should be opened as a local HTML,\nallowing you to see links and spoilers without logging in!')
         self.start_refresh_button.setToolTip('This toggles whether the tool should\nrefresh automatically when you open it!')
         self.refresh_completed_games_button.setToolTip('This toggles whether games that are marked as completed should be refreshed!')
+        self.keep_image_on_game_update_button.setToolTip('This toggles whether the previous image should be kept when a game gets an update instead of being replaced!')
+        self.keep_exe_path_on_game_update_button.setToolTip('This toggles whether the previous EXE path should be kept when a game gets an update instead of being reset!')
         self.sort_input.setToolTip('This changes how\ngames get sorted!')
         self.sort_label.setToolTip('This changes how\ngames get sorted!')
         self.retries_input.setToolTip('This changes how many times a\nfailed request will be retried!')
@@ -436,6 +454,14 @@ class F95CheckerGUI(QMainWindow):
         if globals.config["options"]["refresh_completed_games"]:
             self.refresh_completed_games_button.setChecked(True)
         self.refresh_completed_games_button.stateChanged.connect(callbacks.set_refresh_completed_games)
+
+        if globals.config["options"]["keep_image_on_game_update"]:
+            self.keep_image_on_game_update_button.setChecked(True)
+        self.keep_image_on_game_update_button.stateChanged.connect(callbacks.set_keep_image_on_game_update)
+
+        if globals.config["options"]["keep_exe_path_on_game_update"]:
+            self.keep_exe_path_on_game_update_button.setChecked(True)
+        self.keep_exe_path_on_game_update_button.stateChanged.connect(callbacks.set_keep_exe_path_on_game_update)
 
         # Sorting
         self.sort_input.setCurrentIndex(1 if globals.config["options"]["auto_sort"] == 'last_updated' else 2 if globals.config["options"]["auto_sort"] == 'first_added' else 3 if globals.config["options"]["auto_sort"] == 'alphabetical' else 0)
@@ -1072,7 +1098,8 @@ class GameContainer(QFrame):
         self.remove_button.clicked.connect(partial(callbacks.remove_game, game_id))
         if not globals.config["games"][game_id]["installed"]:
             globals.config["games"][game_id]["played"] = False
-            globals.config["games"][game_id]["exe_path"] = ''
+            if not globals.config["options"]["keep_exe_path_on_game_update"]:
+                globals.config["games"][game_id]["exe_path"] = ''
             self.played_button.setChecked(False)
             self.played_button.setEnabled(False)
             self.open_button.setEnabled(False)
