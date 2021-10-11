@@ -44,9 +44,9 @@ async def ask_two_step_code():
 
 async def check_f95zone_error(soup, warn=False):
     """Check page html for F95Zone server difficulties and optionally warn user"""
-    if soup.select_one('h1:-soup-contains("F95Zone Connection Error")') and soup.select_one('p:-soup-contains("One of our webservers appears to be experiencing difficulties")'):
+    if soup.select_one('h1:-soup-contains("F95Zone Connection Error")') or soup.select_one('h1:-soup-contains("F95Zone Maintenance")') or soup.select_one('title:-soup-contains("F95Zone :: ")'):
         if warn:
-            await gui.WarningPopup.open(globals.gui, "Connection error", "F95Zone servers are experiencing connection difficulties, please retry in a few minutes")
+            await gui.WarningPopup.open(globals.gui, "Connection error", "F95Zone servers are not currently available, please retry in a few minutes")
         return True
 
 
