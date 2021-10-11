@@ -6,6 +6,7 @@ from qasync import asyncSlot
 import traceback
 import datetime
 import asyncio
+import stat
 import glob
 import sys
 import os
@@ -443,6 +444,15 @@ def open_game(game_id, event):
         parent_path = exe_path[:exe_path.rfind("/")]
         if event.button() == QtCore.Qt.LeftButton:
             try:
+                if globals.user_os == "linux":
+                    # Make executable if it is not already
+                    try:
+                        st = os.stat(exe_path)
+                        if st.st_mode & stat.S_IEXEC < stat.S_IEXEC:
+                            os.chmod(exe_path, st.st_mode | stat.S_IEXEC)
+                    except Exception:
+                        exc = "".join(traceback.format_exception(*sys.exc_info()))
+                        print(exc)
                 Popen([exe_path], cwd=parent_path)
             except Exception:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
