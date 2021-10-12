@@ -46,7 +46,7 @@ async def check_f95zone_error(soup, warn=False):
     """Check page html for F95Zone server difficulties and optionally warn user"""
     if soup.select_one('h1:-soup-contains("F95Zone Connection Error")') or soup.select_one('h1:-soup-contains("F95Zone Maintenance")') or soup.select_one('title:-soup-contains("F95Zone :: ")'):
         if warn:
-            await gui.WarningPopup.open(globals.gui, "Connection error", "F95Zone servers are not currently available, please retry in a few minutes")
+            await gui.WarningPopup.open(globals.gui, "Connection error", "F95Zone servers are currently unavailable, please retry in a few minutes")
         return True
 
 
@@ -99,7 +99,7 @@ async def login():
                     config_utils.save_config()
                     globals.logging_in = False
                     return
-                assert text.startswith("<!DOCTYPE html>")
+                assert text[:15].lower() == "<!doctype html>"
                 token_soup = BeautifulSoup(text, 'html.parser')
                 if await check_f95zone_error(token_soup, warn=True):
                     config_utils.save_config()
