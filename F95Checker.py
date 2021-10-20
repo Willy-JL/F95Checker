@@ -73,7 +73,7 @@ if __name__ == '__main__':
         globals.exec_type, globals.user_os, globals.user_browsers = browsers.detect_user_os_and_browsers()
         if globals.user_os == "windows":
             globals.config_path = os.path.expanduser("~/AppData/Roaming/f95checker")
-        elif globals.user_os == "linux":
+        elif globals.user_os == "linux" or globals.user_os == "macos":
             globals.config_path = os.path.expanduser("~/.f95checker")
     except OSError:
         root = tk.Tk()
