@@ -33,7 +33,8 @@ def wrap_number(value, mod, maximum):
 class F95CheckerGUI(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowFlags())
-        self.setWindowIcon(QIcon('resources/icons/icon.png'))
+        if globals.user_os != "macos":
+            self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
         if not self.objectName():
             self.setObjectName(u"F95Checker")

@@ -135,6 +135,7 @@ if __name__ == '__main__':
     if globals.user_os == "macos":
         # Setting this to false leads to a confusing user experience on Mac
         globals.app.setQuitOnLastWindowClosed(True)
+        globals.app.setWindowIcon(QtGui.QIcon(os.path.dirname(__file__) + '/resources/icons/icon.png'))
     else:
         globals.app.setQuitOnLastWindowClosed(False)
 
