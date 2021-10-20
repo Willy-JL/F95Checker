@@ -130,7 +130,11 @@ if __name__ == '__main__':
 
     # Create App
     globals.app = QtWidgets.QApplication(sys.argv)
-    globals.app.setQuitOnLastWindowClosed(False)
+    if globals.user_os == "macos":
+        # Setting this to false leads to a confusing user experience on Mac
+        globals.app.setQuitOnLastWindowClosed(True)
+    else:
+        globals.app.setQuitOnLastWindowClosed(False)
 
     # Configure asyncio loop to work with PyQt
     loop = QEventLoop(globals.app)
