@@ -156,8 +156,14 @@ if __name__ == '__main__':
     globals.mode = "gui"
 
     # Setup font awesome for icons
-    QtGui.QFontDatabase.addApplicationFont("resources/fonts/Font Awesome 5 Free-Solid-900.otf")
-    globals.font_awesome = QtGui.QFont('Font Awesome 5 Free Solid', 11)
+    if globals.user_os == "macos":
+        # See https://forum.qt.io/topic/106497/how-do-i-addapplicationfont-in-macos-font-is-in-python-script-folder/2
+        QtGui.QFontDatabase.addApplicationFont(os.path.dirname(__file__) + "/resources/fonts/Font Awesome 5 Free-Solid-900.otf")
+        # See https://forum.qt.io/topic/87340/custom-fonts-are-not-displayed-properly-on-macos
+        globals.font_awesome = QtGui.QFont('Font Awesome 5 Free', 11)
+    else:
+        QtGui.QFontDatabase.addApplicationFont("resources/fonts/Font Awesome 5 Free-Solid-900.otf")
+        globals.font_awesome = QtGui.QFont('Font Awesome 5 Free Solid', 11)
 
     # Populate and configure interface items and callbacks
     for i, game_id in enumerate(globals.config["games"]):
