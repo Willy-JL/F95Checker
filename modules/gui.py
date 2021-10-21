@@ -50,6 +50,9 @@ class F95CheckerGUI(QMainWindow):
         self.games_section.setObjectName(u"games_section")
         self.games_section.setFrameShape(QFrame.NoFrame)
         self.games_section.setWidgetResizable(True)
+        if globals.user_os == "macos":
+            # Otherwise the scrollbar overlaps the view_button/remove_button
+            self.games_section.setViewportMargins(0, 0, 14, 0)
         self.games_section.verticalScrollBar().setSingleStep(10)
         self.games_list_container = QWidget()
         self.games_list_container.setObjectName(u"games_list_container")
