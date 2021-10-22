@@ -68,11 +68,10 @@ def detect_user_os_and_browsers():
             user_browsers["firefox"] = {"path": "/Applications/Firefox.app/Contents/MacOS/firefox"}
         if find_executable("/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"):
             user_browsers["brave"] = {"path": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"}
-        if find_executable("opera"):
-            user_browsers["opera"] = {"path": "opera"}
-        if find_executable("opera-stable"):
-            user_browsers["opera"] = {"path": "opera-stable"}
-        # TODO: Opera, Opera GX
+        if find_executable("/Applications/Opera.app/Contents/MacOS/Opera"):
+            user_browsers["opera"] = {"path": "/Applications/Opera.app/Contents/MacOS/Opera"}
+        if find_executable("/Applications/Opera GX.app/Contents/MacOS/Opera"):
+            user_browsers["opera"] = {"path": "/Applications/Opera GX.app/Contents/MacOS/Opera"}
         # Edge is not supported on macos
     elif sys.platform.startswith("win"):
         user_os = "windows"
