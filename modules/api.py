@@ -408,7 +408,7 @@ async def check_for_updates():
                 await handle_no_internet()
                 globals.checking_updates = False
                 return
-            assert text.startswith("<!DOCTYPE html>")
+            assert text[:15].lower() == "<!doctype html>"
             tool_html = BeautifulSoup(text, 'html.parser')
             break
         except Exception:
@@ -564,7 +564,7 @@ async def find_game_from_search_term(search_term):
                 print(exc)
                 await handle_no_internet()
                 return None, None
-            assert text.startswith("<!DOCTYPE html>")
+            assert text[:15].lower() == "<!doctype html>"
             search_html = BeautifulSoup(text, 'html.parser')
             if await check_f95zone_error(search_html):
                 return None, None
@@ -621,7 +621,7 @@ async def download_game_image(source, game_id):
                 if not thread_req_ok:
                     globals.image_bg_tasks.remove(game_id)
                     return
-                assert text.startswith("<!DOCTYPE html>")
+                assert text[:15].lower() == "<!doctype html>"
                 thread_html = BeautifulSoup(text, 'html.parser')
                 if await check_f95zone_error(thread_html):
                     globals.image_bg_tasks.remove(game_id)
@@ -710,7 +710,7 @@ async def get_game_data(link):
                 return
             if not thread_req_ok:
                 return
-            assert text.startswith("<!DOCTYPE html>")
+            assert text[:15].lower() == "<!doctype html>"
             thread_html = BeautifulSoup(text, 'html.parser')
             if await check_f95zone_error(thread_html):
                 return

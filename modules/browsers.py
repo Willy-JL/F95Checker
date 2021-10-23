@@ -177,7 +177,7 @@ async def open_webpage(link, *kw):
             print(exc)
             await api.handle_no_internet()
             return
-        assert text.startswith("<!DOCTYPE html>")
+        assert text[:15].lower() == "<!doctype html>"
         soup = BeautifulSoup(text, 'html.parser')
         if await api.check_f95zone_error(soup, warn=True):
             return
@@ -197,7 +197,7 @@ async def open_webpage(link, *kw):
                         print(exc)
                         await api.handle_no_internet()
                         return
-                    assert text.startswith("<!DOCTYPE html>")
+                    assert text[:15].lower() == "<!doctype html>"
                     compressed_soup = BeautifulSoup(text, 'html.parser')
                     if await api.check_f95zone_error(compressed_soup, warn=True):
                         return
