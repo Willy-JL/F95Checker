@@ -43,7 +43,7 @@ The tool comes bundled with both windows EXE and python scripts, so you have two
  - Install required packages using [Homebrew](https://brew.sh/) if you haven't already:
 ```bash
 brew install python@3.9
-brew install pyqt@5
+brew install qt@5
 brew install python-tk@3.9
 ```
  - Download below and extract
