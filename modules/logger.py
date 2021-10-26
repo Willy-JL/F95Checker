@@ -15,8 +15,11 @@ _pause_file_output = False
 def _file_write(message):
     if _pause_file_output:
         return
-    with open("log.txt", "a", encoding='utf-8') as log:
-        log.write(message)
+    try:
+        with open("log.txt", "a", encoding='utf-8') as log:
+            log.write(message)
+    except Exception:
+        pass
 
 class __stdout_override():
     def write(self, message):
@@ -59,7 +62,10 @@ pause = pause_file_output
 
 
 # Create / clear log file
-open("log.txt", "w").close()
+try:
+    open("log.txt", "w").close()
+except Exception:
+    pass
 
 # Apply overrides
 sys.stdout = __stdout_override()
