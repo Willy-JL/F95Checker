@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     # Setup Globals
     from modules import globals
-    globals.version = '8.4 tester'
+    globals.version = '8.5 tester'
 
     globals.domain            = "https://f95zone.to"
     globals.check_login_page  = globals.domain +  "/account/"
