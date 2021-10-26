@@ -65,7 +65,7 @@ if __name__ == '__main__':
     globals.refreshing       = False
 
     # Log to file
-    if "tester" in globals.version or "dev" in globals.version or globals.config["options"]["debug"]:
+    if "tester" in globals.version or "dev" in globals.version:
         from modules import logger
 
     # OS Handling
@@ -132,6 +132,10 @@ if __name__ == '__main__':
         asyncio.run(config_utils.init_config())
         if os.path.isfile(f'{globals.config_path}/config.ini'):
             config_utils.migrate_legacy("pre7.0")
+
+    # Log to file pt2
+    if globals.config["options"]["debug"]:
+        from modules import logger
 
     # Log starting message
     print(f'F95Checker v{globals.version} starting at {datetime.datetime.now().strftime("%d/%m/%Y - %H:%M:%S")}')
