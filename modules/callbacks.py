@@ -437,30 +437,33 @@ async def bg_toggle_pause(*kw):
 def open_game(game_id, event):
     """Play button callback"""
     if not globals.config["games"][game_id]["exe_path"]:
+        title = f'Select game executable file for {globals.config["games"][game_id]["name"]}'
+        filter = "Game exe (*.exe *.py *.sh *.bat *.html *.* *)"
         if globals.user_os == "macos":
             # Use the QT file dialog so .apps can be opened
-            options = QtWidgets.QFileDialog.DontUseNativeDialog
-            dir = "/Applications"
+            globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, title, filter=filter, directory="/Applications", options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
         else:
-            options = None
-            dir = ''
-        globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', directory=dir, filter=f"Game exe (*.exe *.py *.sh *.bat{' *' if globals.user_os == 'linux' or globals.user_os == 'macos' else ''})", options=options)[0]
+            globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, title, filter=filter)[0]
         config_utils.save_config()
     if globals.config["games"][game_id]["exe_path"]:
         exe_path = globals.config["games"][game_id]["exe_path"]
         parent_path = exe_path[:exe_path.rfind("/")]
         if event.button() == QtCore.Qt.LeftButton:
             try:
-                if globals.user_os == "linux" or globals.user_os == "macos":
-                    # Make executable if it is not already
-                    try:
-                        st = os.stat(exe_path)
-                        if st.st_mode & stat.S_IEXEC < stat.S_IEXEC:
-                            os.chmod(exe_path, st.st_mode | stat.S_IEXEC)
-                    except Exception:
-                        exc = "".join(traceback.format_exception(*sys.exc_info()))
-                        print(exc)
-                Popen([exe_path], cwd=parent_path)
+                if not os.path.exists(exe_path):
+                    raise FileNotFoundError("Path does not exist")
+                if globals.user_os == "windows":
+                    exe_path    = exe_path   .replace("/", "\\")
+                    parent_path = parent_path.replace("/", "\\")
+                    Popen([exe_path], cwd=parent_path, shell=True)
+                else:
+                    if os.stat(exe_path).st_mode & stat.S_IEXEC < stat.S_IEXEC:  # Not executable
+                        if globals.user_os == "linux":
+                            Popen(["xdg-open", exe_path], cwd=parent_path)
+                        elif globals.user_os == "macos":
+                            Popen(["open", exe_path], cwd=parent_path)
+                    else:
+                        Popen([exe_path], cwd=parent_path)
             except Exception:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
