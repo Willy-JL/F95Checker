@@ -25,30 +25,32 @@ An update checker tool for (NSFW) games on the [F95Zone](https://f95zone.to/) pl
 
 
 ## Compatibility:
-Built with Python 3.9.5 for Windows, has compatibility layer for Linux. My daily is a Windows machine so I will try to help you with issues on Linux but I won't go too out of my way to do that... to be fair if you're on Linux, chances are you're somewhat experienced. If you want this for Mac let me know
+Built with Python 3.9.5 for Windows, Linux and MacOS.
+
+
+My daily is a Linux machine but I will try to help you with issues on Windows. I also try my best to test in a Windows 10 VM before release.
+For Linux issues I'll try to help but I won't go too out of my way to do that since, to be fair, if you're on Linux chances are you're somewhat experienced. For issues on MacOS you will likely be on your own.
 
 
 ## Installation:
-The tool comes bundled with both windows EXE and python scripts, so you have two ways to install:
+The tool comes bundled with both windows EXE and python scripts, so it's a single downlaod for all OS's:
 
-#### Windows EXE:
+#### Windows (.exe):
  - Download below and extract
  - Double-click `F95Checker.exe` when you want to use the tool
-#### Python script (Linux):
- - Install Python ( 3.9.5 preferably )
+#### Linux (.py):
+ - Install Python ( 3.9.5 preferably ) if you don't have it already
  - Download below and extract
  - Install requirements (`pip3 install --upgrade -r requirements_linux.txt`)
  - Run "F95Checker.py" with Python (`python3 F95Checker.py`) or use `F95Checker.sh`
-#### Python script (MacOS - experimental):
- - Install required packages using [Homebrew](https://brew.sh/) if you haven't already:
-```bash
-brew install python@3.9
-brew install qt@5
-brew install python-tk@3.9
-```
+ - If you have issues with Qt and PyQt try [this fix](https://f95zone.to/threads/f95checker-8-4-willyjl.44173/page-30#post-6560443)
+#### MacOS (.py):
+ - Install Python and Qt with [Homebrew](https://brew.sh/) if you haven't already:
+
+   `brew install python@3.9 python-tk@3.9 qt@5`
  - Download below and extract
  - Install same requirements as Linux (`pip3 install --upgrade -r requirements_linux.txt`)
- - Run "F95Checker.py" with Python (`python3 F95Checker.py`) or use `F95Checker.sh`
+ - Run "F95Checker.py" with Python (`python3 F95Checker.py`)
 
 ## Download:
 Versions after 7.0 are hosted here on GitHub, in the [releases section](https://github.com/Willy-JL/f95checker/releases)
@@ -56,12 +58,14 @@ Versions after 7.0 are hosted here on GitHub, in the [releases section](https://
 Older versions are hosted on the [F95Zone thread](https://f95zone.to/threads/44173/)
 
 #### Current Version:
-**8.4**: [Download v8.4 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.4/F95CheckerV8.4.zip) ([VirusTotal](https://www.virustotal.com/gui/file/1cbecb7d0f55a704b1724ff2bdd28d057f8554be529e7693f95f9dd7f9f4b1e1/detection))
+**8.5**: [Download v8.5 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.5/F95CheckerV8.5.zip) ([VirusTotal](https://www.virustotal.com/gui/file/2a64c52d1d0ba20a1674dbecd1e51374ce8b69c93c35950670a310a91ba90ad1/detection))
 
 #### Older Versions:
 <details>
   <summary>Spoiler</summary>
 
+
+**8.4**: [Download v8.4 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.4/F95CheckerV8.4.zip) ([VirusTotal](https://www.virustotal.com/gui/file/1cbecb7d0f55a704b1724ff2bdd28d057f8554be529e7693f95f9dd7f9f4b1e1/detection))
 
 **8.3h3**: [Download v8.3h3 (GitHub)](https://github.com/Willy-JL/f95checker/releases/download/8.3h3/F95CheckerV8.3h3.zip) ([VirusTotal](https://www.virustotal.com/gui/file/0eccba159098f5e2fc9f87ce7bab02190b1109064ac4fe06a5f057a9e41fe2c0/detection))
 
@@ -192,17 +196,31 @@ First of all this script was written in Python 3 and built with Python 3.9.5, ma
 
 ## Planned Features Tracker:
 
-#### Soon:
- - Huh... looks like I've run out of feature ideas... hit me up in the replies if you want to suggest something!
-
-#### Far Future:
- - Possibly Mac support, if there's demand for it
+#### This is hosted on the [F95Zone thread!](https://f95zone.to/threads/44173/)
 
 
 ## Changelog:
 
 <details><summary>Spoiler</summary>
 
+<details>
+  <summary>v8.5</summary>
+
+   - NEW: MacOS support (experimental, let me know your experience); thanks @batblue!
+   - NEW: custom app icons made by yours truly
+   - NEW: keep old exe path and old image upon update toggles
+   - NEW: switch to aiofiles, interface might lag a bit less while refreshing
+   - NEW: use system theme styler option
+   - FIXED: backup broken config when reading fails
+   - FIXED: many issues with the tray icon
+   - FIXED: F95zone error / maintenance detection
+   - FIXED: crashes with big image popouts
+   - FIXED: browser detection on linux
+   - FIXED: rounded corners around refresh button image overlays
+   - FIXED: tweaked bg mode, now waits instead of refreshing immediately
+   - FIXED: many issues with the play button, now also allows non executables (like .html)
+   - FIXED: better console output logger
+</details>
 <details>
   <summary>v8.4</summary>
 
@@ -618,6 +636,8 @@ Please do! I poured my heart and soul into this tool and hearing suggestions or 
 
 
 ## Thanks:
-**Huge props to [ploper26](https://f95zone.to/members/1295524/) for suggesting HEAD requests instead of quicksearches!**
+**Supporters: [FaceCrap](https://f95zone.to/members/2913051/)**
 
-**Huge thanks to [GR3ee3N](https://github.com/GR3ee3N), [AtotehZ](https://f95zone.to/members/840616/), [abada25](https://f95zone.to/members/1679118/), [GrammerCop](https://f95zone.to/members/2114990/), [d_pedestrian](https://f95zone.to/members/2616862/), [yohudood](https://f95zone.to/members/26049/), [SmurfyBlue](https://f95zone.to/members/671/), [bitogno](https://f95zone.to/members/605466/), [MillenniumEarl](https://f95zone.to/members/1470797/), [unroot](https://f95zone.to/members/1585550/) and [DarK x Duke](https://f95zone.to/members/1852502/) for the continued support and suggestions!**
+**Contributors: [GR3ee3N](https://github.com/GR3ee3N) - [batblue](https://f95zone.to/members/4143766/) - [ploper26](https://f95zone.to/members/1295524/)**
+
+**Community: [AtotehZ](https://f95zone.to/members/840616/) - [unroot](https://f95zone.to/members/1585550/) - [abada25](https://f95zone.to/members/1679118/) - [d_pedestrian](https://f95zone.to/members/2616862/) - [yohudood](https://f95zone.to/members/26049/) - [GrammerCop](https://f95zone.to/members/2114990/) - [ascsd](https://f95zone.to/members/3977760/) - [SmurfyBlue](https://f95zone.to/members/671/) - [bitogno](https://f95zone.to/members/605466/) - [MillenniumEarl](https://f95zone.to/members/1470797/) - [DarK x Duke](https://f95zone.to/members/1852502/)**
