@@ -4,7 +4,7 @@ aiohttp
 pywin32
 aiofiles
 PyQt5==5.15.2
-PyQtWebEngine
 soupsieve>=2.1
 beautifulsoup4
 PyQt5-sip==12.8.1
+PyQtWebEngine==5.15.2
