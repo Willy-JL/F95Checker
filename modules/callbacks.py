@@ -437,14 +437,21 @@ async def bg_toggle_pause(*kw):
 def open_game(game_id, event):
     """Play button callback"""
     if not globals.config["games"][game_id]["exe_path"]:
-        globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', filter=f"Game exe (*.exe *.py *.sh *.bat{' *' if globals.user_os == 'linux' else ''})")[0]
+        if globals.user_os == "macos":
+            # Use the QT file dialog so .apps can be opened
+            options = QtWidgets.QFileDialog.DontUseNativeDialog
+            dir = "/Applications"
+        else:
+            options = None
+            dir = ''
+        globals.config["games"][game_id]["exe_path"] = QtWidgets.QFileDialog.getOpenFileName(globals.gui, f'Select game executable file for {globals.config["games"][game_id]["name"]}', directory=dir, filter=f"Game exe (*.exe *.py *.sh *.bat{' *' if globals.user_os == 'linux' or globals.user_os == 'macos' else ''})", options=options)[0]
         config_utils.save_config()
     if globals.config["games"][game_id]["exe_path"]:
         exe_path = globals.config["games"][game_id]["exe_path"]
         parent_path = exe_path[:exe_path.rfind("/")]
         if event.button() == QtCore.Qt.LeftButton:
             try:
-                if globals.user_os == "linux":
+                if globals.user_os == "linux" or globals.user_os == "macos":
                     # Make executable if it is not already
                     try:
                         st = os.stat(exe_path)
@@ -467,6 +474,8 @@ def open_game(game_id, event):
                     Popen(["explorer.exe", parent_path])
                 elif globals.user_os == "linux":
                     Popen(["xdg-open", parent_path])
+                elif globals.user_os == "macos":
+                    Popen(["open", parent_path])
 
 
 async def ask_reset_exe_path(game_id):

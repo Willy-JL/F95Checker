@@ -33,7 +33,8 @@ def wrap_number(value, mod, maximum):
 class F95CheckerGUI(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowFlags())
-        self.setWindowIcon(QIcon('resources/icons/icon.png'))
+        if globals.user_os != "macos":
+            self.setWindowIcon(QIcon('resources/icons/icon.png'))
 
         if not self.objectName():
             self.setObjectName(u"F95Checker")
@@ -49,6 +50,9 @@ class F95CheckerGUI(QMainWindow):
         self.games_section.setObjectName(u"games_section")
         self.games_section.setFrameShape(QFrame.NoFrame)
         self.games_section.setWidgetResizable(True)
+        if globals.user_os == "macos":
+            # Otherwise the scrollbar overlaps the view_button/remove_button
+            self.games_section.setViewportMargins(0, 0, 14, 0)
         self.games_section.verticalScrollBar().setSingleStep(10)
         self.games_list_container = QWidget()
         self.games_list_container.setObjectName(u"games_list_container")

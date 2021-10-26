@@ -430,6 +430,7 @@ async def check_for_updates():
     globals.checked_updates = True
     if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{tool_changelog}"):
         latest_url = tool_html.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
+        # TODO: MacOS auto-update
         if globals.exec_type == "exe":
             Popen(["update.exe", latest_url, "F95Checker.exe"])
         elif globals.exec_type == "python" and globals.user_os == "windows":
