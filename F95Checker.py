@@ -5,6 +5,7 @@ import datetime
 import pathlib
 import asyncio
 import json
+import time
 import sys
 import os
 
@@ -112,13 +113,18 @@ if __name__ == '__main__':
             except json.JSONDecodeError:
                 exc = "".join(traceback.format_exception(*sys.exc_info()))
                 print(exc)
-                root = tk.Tk()
-                root.withdraw()
-                tk.messagebox.showerror('Invalid config!', "Something went wrong with your config file, it might have gotten corrupted...\nClick ok to generate a new empty cconfig")
-                root.destroy()
-                del root
+                f.close()
+                backup_filename = f'{globals.config_path}/f95checker.{int(time.time()*100)}.json'
+                with open(f'{globals.config_path}/f95checker.json', 'rb') as original:
+                    with open(backup_filename, 'wb') as backup:
+                        backup.write(original.read())
                 globals.config = {}
                 asyncio.run(config_utils.init_config())
+                root = tk.Tk()
+                root.withdraw()
+                tk.messagebox.showerror('Invalid config!', f"Something went wrong while reading your config file, it might have gotten corrupted...\nA new one has been generated and the old file has been backed up at {backup_filename}")
+                root.destroy()
+                del root
     except FileNotFoundError:
         exc = "".join(traceback.format_exception(*sys.exc_info()))
         print(exc)
