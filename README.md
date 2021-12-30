@@ -41,7 +41,7 @@ The tool comes bundled with both windows EXE and python scripts, so it's a singl
 #### Linux (.py):
  - Install Python ( 3.9.5 preferably ) if you don't have it already
  - Download below and extract
- - Install requirements (`pip3 install --upgrade -r requirements_linux.txt`)
+ - Install requirements (`pip3 install --upgrade -r requirements.txt`)
  - Run "F95Checker.py" with Python (`python3 F95Checker.py`) or use `F95Checker.sh`
  - If you have issues with Qt and PyQt try [this fix](https://f95zone.to/threads/f95checker-8-4-willyjl.44173/page-30#post-6560443)
 #### MacOS (.py):
@@ -49,7 +49,7 @@ The tool comes bundled with both windows EXE and python scripts, so it's a singl
 
    `brew install python@3.9 python-tk@3.9 qt@5`
  - Download below and extract
- - Install same requirements as Linux (`pip3 install --upgrade -r requirements_linux.txt`)
+ - Install same requirements as Linux (`pip3 install --upgrade -r requirements.txt`)
  - Run "F95Checker.py" with Python (`python3 F95Checker.py`)
 
 ## Download:

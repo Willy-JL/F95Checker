@@ -52,7 +52,6 @@ cmd.exe /c move /y dist\windows\F95Checker\VCRUNTIME140.dll      dist\windows\F9
 cmd.exe /c mkdir   dist\windows\F95Checker\modules
 cmd.exe /c copy /y F95Checker.py                                 dist\windows\F95Checker
 cmd.exe /c copy /y F95Checker.sh                                 dist\windows\F95Checker
-cmd.exe /c copy /y requirements_linux.txt                        dist\windows\F95Checker
 cmd.exe /c copy /y requirements.txt                              dist\windows\F95Checker
 cmd.exe /c copy /y update.py                                     dist\windows\F95Checker
 cmd.exe /c copy /y update.exe                                    dist\windows\F95Checker

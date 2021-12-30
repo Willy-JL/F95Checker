@@ -112,7 +112,6 @@ jobs:
           mkdir   dist\windows\F95Checker\modules
           copy /y F95Checker.py                                 dist\windows\F95Checker
           copy /y F95Checker.sh                                 dist\windows\F95Checker
-          copy /y requirements_linux.txt                        dist\windows\F95Checker
           copy /y requirements.txt                              dist\windows\F95Checker
           copy /y update.py                                     dist\windows\F95Checker
           copy /y update.exe                                    dist\windows\F95Checker
