@@ -262,6 +262,7 @@ class F95CheckerGUI(QMainWindow):
         self.sort_input.addItem("")
         self.sort_input.addItem("")
         self.sort_input.addItem("")
+        self.sort_input.addItem("")
         self.sort_input.setObjectName(u"sort_input")
         self.sort_input.setMinimumSize(QSize(128, 26))
         self.sort_input.setCursor(Qt.PointingHandCursor)
@@ -389,6 +390,7 @@ class F95CheckerGUI(QMainWindow):
         self.sort_input.setItemText(1, "Last Updated")
         self.sort_input.setItemText(2, "First Added")
         self.sort_input.setItemText(3, "Alphabetical")
+        self.sort_input.setItemText(4, "Status")
         self.retries_label.setText("Max Retries per Request:")
         self.threads_label.setText("Max Threads for Refresh:")
         self.color_label.setText("Change GUI Colors:")
@@ -468,7 +470,7 @@ class F95CheckerGUI(QMainWindow):
         self.keep_exe_path_on_game_update_button.stateChanged.connect(callbacks.set_keep_exe_path_on_game_update)
 
         # Sorting
-        self.sort_input.setCurrentIndex(1 if globals.config["options"]["auto_sort"] == 'last_updated' else 2 if globals.config["options"]["auto_sort"] == 'first_added' else 3 if globals.config["options"]["auto_sort"] == 'alphabetical' else 0)
+        self.sort_input.setCurrentIndex(1 if globals.config["options"]["auto_sort"] == 'last_updated' else 2 if globals.config["options"]["auto_sort"] == 'first_added' else 3 if globals.config["options"]["auto_sort"] == 'alphabetical' else 4 if globals.config["options"]["auto_sort"] == 'status' else 0)
         self.sort_input.currentIndexChanged.connect(callbacks.set_sorting)
 
         # Spin Boxes

@@ -209,6 +209,8 @@ async def set_sorting(*kw):
         globals.config["options"]["auto_sort"] = 'first_added'
     elif i == 3:
         globals.config["options"]["auto_sort"] = 'alphabetical'
+    elif i == 4:
+        globals.config["options"]["auto_sort"] = 'status'        
     config_utils.save_config()
     await sort_games()
 
@@ -245,6 +247,18 @@ async def sort_games():
         for item in keys:
             globals.config["games"][item] = globals.config["sorting"][item]
         del globals.config["sorting"]
+    elif globals.config["options"]["auto_sort"] == 'status':
+        keys = []
+        for item in globals.config["games"]:
+            keys.append(item)
+        # Sort by status, name
+        SORT_ORDER = {"completed": 0, "onhold": 1, "abandoned": 2, "none": 3}
+        keys.sort(key=lambda x: (SORT_ORDER[globals.config["games"][x]["status"]], globals.config["games"][x]["name"]))
+        globals.config["sorting"] = globals.config["games"]
+        globals.config["games"] = {}
+        for item in keys:
+            globals.config["games"][item] = globals.config["sorting"][item]
+        del globals.config["sorting"]        
     else:
         return
     config_utils.save_config()
