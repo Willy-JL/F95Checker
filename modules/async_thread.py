@@ -1,5 +1,6 @@
 import threading
 import asyncio
+import time
 
 loop: asyncio.BaseEventLoop = None
 thread: threading.Thread = None
@@ -18,5 +19,11 @@ def setup():
     thread.start()
 
 
-def run(coroutine):
-    return asyncio.run_coroutine_threadsafe(coroutine, loop)
+def run(coroutine, wait=False):
+    if wait:
+        future = asyncio.run_coroutine_threadsafe(coroutine, loop)
+        while not future.done():
+            time.sleep(0.1)
+        return future.result
+    else:
+        return asyncio.run_coroutine_threadsafe(coroutine, loop)
