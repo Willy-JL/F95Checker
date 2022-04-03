@@ -1,50 +1,32 @@
-from modules.gui import F95CheckerTray, F95CheckerGUI
-from PyQt5.QtWidgets import QApplication
-from modules.singleton import Singleton
-from qasync import QSelectorEventLoop
-from PyQt5.QtCore import QSettings
-from aiohttp import ClientSession
-from PyQt5.QtGui import QFont
-from asyncio import Semaphore
+import pathlib
+import sys
 
 
-version           : str                = None
+version = "9.0"
 
-app               : QApplication       = None
-font_awesome      : QFont              = None
-gui               : F95CheckerGUI      = None
-http              : ClientSession      = None
-image_bg_tasks    : set                = None
-image_semaphore   : Semaphore          = None
-loop              : QSelectorEventLoop = None
-settings          : QSettings          = None
-singleton         : Singleton          = None
-tray              : F95CheckerTray     = None
+if sys.platform.startswith("win"):
+    os = "windows"
+    data_path = "AppData/Roaming/f95checker"
+elif sys.platform.startswith("linux"):
+    os = "linux"
+    data_path = ".f95checker"
+elif sys.platform.startswith("darwin"):
+    os = "macos"
+    data_path = "Library/Application Support/f95checker"
+else:
+    print("Your system is not officially supported at the moment!\n"
+          "You can let me know on the tool thread or on GitHub, or you can try porting yourself ;)")
+    sys.exit(1)
+data_path = pathlib.Path.home() / data_path
+data_path.mkdir(parents=True, exist_ok=True)
 
-config            : dict               = None
-config_path       : str                = None
-exec_type         : str                = None
-mode              : str                = None
-token             : str                = None
-user_browsers     : dict               = None
-user_os           : str                = None
-
-bg_paused         : bool               = None
-checked_updates   : bool               = None
-checking_updates  : bool               = None
-logged_in         : bool               = None
-logging_in        : bool               = None
-refreshing        : bool               = None
-updated_games     : bool               = None
-warned_connection : bool               = None
-
-alerts_page       : str                = None
-check_login_page  : str                = None
-domain            : str                = None
-inbox_page        : str                = None
-login_endpoint    : str                = None
-login_page        : str                = None
-notif_endpoint    : str                = None
-qsearch_endpoint  : str                = None
-tool_page         : str                = None
-two_step_endpoint : str                = None
+domain = "https://f95zone.to/"
+check_login_page  = domain + "account/"
+login_page        = domain + "login/"
+login_endpoint    = domain + "login/login"
+two_step_endpoint = domain + "login/two-step"
+notif_endpoint    = domain + "conversations/popup"
+qsearch_endpoint  = domain + "quicksearch"
+alerts_page       = domain + "account/alerts/"
+inbox_page        = domain + "conversations/"
+tool_page         = domain + "threads/44173/"

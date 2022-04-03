@@ -1,15 +1,15 @@
 # https://gist.github.com/Willy-JL/3eaa171144b3bb0a4602c7b537f90036
 from contextlib import contextmanager
+import typing
 import sys
-import re
 
 # Backup original functionality
-_stdout = sys.stdout
-_stderr = sys.stderr
-_stdin  = sys.stdin
+_stdout: typing.TextIO = sys.stdout
+_stderr: typing.TextIO = sys.stderr
+_stdin:  typing.TextIO = sys.stdin
 
 # Used to temporarily stop output to log file
-_pause_file_output = False
+_pause_file_output: bool = False
 
 
 def _file_write(message):
@@ -61,13 +61,15 @@ def pause_file_output():
 pause = pause_file_output
 
 
-# Create / clear log file
-try:
-    open("log.txt", "w").close()
-except Exception:
-    pass
+def install():
 
-# Apply overrides
-sys.stdout = __stdout_override()
-sys.stderr = __stderr_override()
-sys.stdin  = __stdin_override ()
+    # Create / clear log file
+    try:
+        open("log.txt", "w").close()
+    except Exception:
+        pass
+
+    # Apply overrides
+    sys.stdout = __stdout_override()
+    sys.stderr = __stderr_override()
+    sys.stdin  = __stdin_override ()
