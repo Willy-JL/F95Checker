@@ -1,5 +1,6 @@
 import threading
 import asyncio
+import typing
 import time
 
 loop: asyncio.BaseEventLoop = None
@@ -19,7 +20,7 @@ def setup():
     thread.start()
 
 
-def run(coroutine, wait=False):
+def run(coroutine: typing.Coroutine, wait: bool = False):
     if wait:
         future = asyncio.run_coroutine_threadsafe(coroutine, loop)
         while not future.done():

@@ -3,6 +3,7 @@ from modules import globals
 from modules import utils
 import aiosqlite
 import asyncio
+import pathlib
 import json
 
 connection: aiosqlite.Connection = None
@@ -107,7 +108,7 @@ async def wait_connection():
     await asyncio.wait_for(_wait_connection(), timeout=30)
 
 
-async def execute(request, *args):
+async def execute(request: str, *args):
     global pending
     await wait_connection()
     pending += 1
@@ -170,7 +171,7 @@ async def load():
             setattr(globals.games[game["id"]], key, value)
 
 
-async def migrate_legacy_json(path):  # Pre v9.0
+async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0
     try:
         with open(path, encoding="utf-8") as f:
             config = json.load(f)
@@ -198,7 +199,7 @@ async def migrate_legacy_json(path):  # Pre v9.0
         print(exc)
 
 
-async def migrate_legacy_ini(path):  # Pre v7.0
+async def migrate_legacy_ini(path: str | pathlib.Path):  # Pre v7.0
     try:
         from configparser import RawConfigParser
         old_config = RawConfigParser()
@@ -239,7 +240,7 @@ async def migrate_legacy_ini(path):  # Pre v7.0
         print(exc)
 
 
-async def migrate_legacy(config):
+async def migrate_legacy(config: dict):
     keys = []
     values = []
 
@@ -377,4 +378,3 @@ async def migrate_legacy(config):
                 VALUES
                 ({", ".join("?" * len(values))})
             """, tuple(values))
-

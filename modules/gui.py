@@ -9,7 +9,7 @@ import sys
 from modules import globals
 
 
-def impl_glfw_init(width, height, window_name):
+def impl_glfw_init(width: int, height: int, window_name: str):
     # FIXME: takes quite a while to initialize on my arch linux machine
     if not glfw.init():
         print("Could not initialize OpenGL context")
@@ -177,6 +177,6 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
 
         self.show()
 
-    def activated_filter(self, reason):
+    def activated_filter(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
         if reason in self.show_gui_events:
             self.main_gui.show()

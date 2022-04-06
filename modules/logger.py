@@ -9,11 +9,11 @@ _stderr: typing.TextIO = sys.stderr
 _stdin:  typing.TextIO = sys.stdin
 
 # Used to temporarily stop output to log file
-_pause_file_output: bool = False
+_pause_file_output_count: int = 0
 
 
-def _file_write(message):
-    if _pause_file_output:
+def _file_write(message: str):
+    if _pause_file_output_count > 0:
         return
     try:
         with open("log.txt", "a", encoding='utf-8') as log:
@@ -22,19 +22,19 @@ def _file_write(message):
         pass
 
 class __stdout_override():
-    def write(self, message):
+    def write(self, message: str):
         _stdout.write(message)
         _file_write(message)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         return getattr(_stdout, name)
 
 class __stderr_override():
-    def write(self, message):
+    def write(self, message: str):
         _stderr.write(message)
         _file_write(message)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         return getattr(_stderr, name)
 
 class __stdin_override():
@@ -43,7 +43,7 @@ class __stdin_override():
         _file_write(message)
         return message
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         # The input() function tries to use sys.stdin.fileno()
         # and then do the printing and input reading on the C
         # side, causing this .readline() override to not work.
@@ -54,10 +54,10 @@ class __stdin_override():
 
 @contextmanager
 def pause_file_output():
-    global _pause_file_output
-    _pause_file_output = True
+    global _pause_file_output_count
+    _pause_file_output_count += 1
     yield
-    _pause_file_output = False
+    _pause_file_output_count -= 1
 pause = pause_file_output
 
 
