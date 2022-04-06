@@ -20,13 +20,13 @@ else:
 data_path = pathlib.Path.home() / data_path
 data_path.mkdir(parents=True, exist_ok=True)
 
-domain = "https://f95zone.to/"
-check_login_page  = domain + "account/"
-login_page        = domain + "login/"
-login_endpoint    = domain + "login/login"
-two_step_endpoint = domain + "login/two-step"
-notif_endpoint    = domain + "conversations/popup"
-qsearch_endpoint  = domain + "quicksearch"
-alerts_page       = domain + "account/alerts/"
-inbox_page        = domain + "conversations/"
-tool_page         = domain + "threads/44173/"
+domain = "https://f95zone.to"
+check_login_page  = domain + "/account/"
+login_page        = domain + "/login/"
+login_endpoint    = domain + "/login/login"
+two_step_endpoint = domain + "/login/two-step"
+notif_endpoint    = domain + "/conversations/popup"
+qsearch_endpoint  = domain + "/quicksearch"
+alerts_page       = domain + "/account/alerts/"
+inbox_page        = domain + "/conversations/"
+tool_page         = domain + "/threads/44173/"

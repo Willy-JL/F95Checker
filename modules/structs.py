@@ -23,13 +23,10 @@ class Status(enum.Enum):
 class SortMode(enum.Enum):
     manual = 0
     last_updated = 1
-    time_added = 2
-    alphabetical = 3
-    status = 4
-    last_played = 5
-    rating = 6
-    installed = 7
-    played = 8
+    last_played = 2
+    time_added = 3
+    alphabetical = 4
+    rating = 5
 
 
 Tag = enum.Enum("Tag", " ".join([
@@ -175,14 +172,33 @@ Tag = enum.Enum("Tag", " ".join([
 ]))
 
 
+Engine = enum.Enum("Engine", " ".join([
+    "ADRIFT",
+    "Flash",
+    "HTML",
+    "Java",
+    "Other",
+    "QSP",
+    "RAGS",
+    "RPGM",
+    "RenPy",
+    "Tads",
+    "Unity",
+    "UnrealEngine",
+    "WebGL",
+    "WolfRPG"
+]))
+
+
 @dataclasses.dataclass
 class Settings:
-    _: int = None
     browser_custom_arguments: str = None
     browser_custom_executable: str = None
     browser_html: bool = None
     browser_private: bool = None
     browser: Browser = None
+    column_developer: bool = None
+    column_engine: bool = None
     column_installed: bool = None
     column_last_played: bool = None
     column_last_updated: bool = None
@@ -218,11 +234,13 @@ class Game:
     id: int = None
     name: str = None
     version: str = None
+    developer: str = None
+    engine: Engine = None
     status: Status = None
     url: str = None
     time_added: int = None
     last_updated: int = None
-    last_checked: int = None
+    last_full_refresh: int = None
     last_played: int = None
     rating: int = None
     installed: str = None
