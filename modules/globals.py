@@ -1,3 +1,5 @@
+from modules.structs import *
+from modules.gui import *
 import pathlib
 import sys
 
@@ -20,6 +22,12 @@ else:
 data_path = pathlib.Path.home() / data_path
 data_path.mkdir(parents=True, exist_ok=True)
 
+self_path = pathlib.Path(
+    sys.executable
+    if getattr(sys, "frozen", False) else
+    __file__
+).parent.parent
+
 domain = "https://f95zone.to"
 check_login_page  = domain + "/account/"
 login_page        = domain + "/login/"
@@ -30,3 +38,8 @@ qsearch_endpoint  = domain + "/quicksearch"
 alerts_page       = domain + "/account/alerts/"
 inbox_page        = domain + "/conversations/"
 tool_page         = domain + "/threads/44173/"
+
+# Will get initialized later
+gui: MainGUI = None
+settings: Settings = None
+games: dict[Game] = None

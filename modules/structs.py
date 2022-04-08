@@ -1,35 +1,99 @@
 import dataclasses
+import types
 import enum
 
 
-class Browser(enum.Enum):
-    none = 0
-    chrome = 1
-    firefox = 2
-    brave = 3
-    edge = 4
-    opera = 5
-    operagx = 6
-    custom = 7
+class IntFlagListed(enum.IntFlag):
+    def __init__(self):
+        super().__init__()
+        self._values_ = [self]
+
+    def __new__(cls, *args):
+        value = 2 ** len(cls.__members__)
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        return obj
+
+    @classmethod
+    def _create_pseudo_member_(cls, value):
+        pseudo_member = super()._create_pseudo_member_(value)
+        pseudo_member._values_ = enum._decompose(cls, pseudo_member)[0]
+        return pseudo_member
+
+    @types.DynamicClassAttribute
+    def values(self):
+        return self._values_
 
 
-class Status(enum.Enum):
-    none = 0
-    completed = 1
-    onhold = 2
-    abandoned = 3
+class IntEnumAuto(enum.IntEnum):
+    def __new__(cls, *args):
+        value = len(cls.__members__) + 1
+        obj = int.__new__(cls)
+        obj._value_ = value
+        return obj
 
 
-class SortMode(enum.Enum):
-    manual = 0
-    last_updated = 1
-    last_played = 2
-    time_added = 3
-    alphabetical = 4
-    rating = 5
+class Browser(IntEnumAuto):
+    none = ()
+    chrome = ()
+    firefox = ()
+    brave = ()
+    edge = ()
+    opera = ()
+    operagx = ()
+    custom = ()
 
 
-Tag = enum.Enum("Tag", " ".join([
+class Column(IntFlagListed):
+    play_button = ()
+    engine = ()
+    version = ()
+    developer = ()
+    status = ()
+    last_updated = ()
+    last_played = ()
+    added_on = ()
+    played = ()
+    installed = ()
+    rating = ()
+    open_page = ()
+
+
+class SortMode(IntEnumAuto):
+    manual = ()
+    last_updated = ()
+    last_played = ()
+    time_added = ()
+    alphabetical = ()
+    rating = ()
+
+
+Engine = IntEnumAuto("Engine", " ".join([
+    "ADRIFT",
+    "Flash",
+    "HTML",
+    "Java",
+    "Other",
+    "QSP",
+    "RAGS",
+    "RPGM",
+    "RenPy",
+    "Tads",
+    "Unity",
+    "UnrealEngine",
+    "WebGL",
+    "WolfRPG"
+]))
+
+
+class Status(IntEnumAuto):
+    none = ()
+    completed = ()
+    onhold = ()
+    abandoned = ()
+
+
+Tag = IntEnumAuto("Tag", " ".join([
     "2d-game",
     "2dcg",
     "3d-game",
@@ -172,24 +236,6 @@ Tag = enum.Enum("Tag", " ".join([
 ]))
 
 
-Engine = enum.Enum("Engine", " ".join([
-    "ADRIFT",
-    "Flash",
-    "HTML",
-    "Java",
-    "Other",
-    "QSP",
-    "RAGS",
-    "RPGM",
-    "RenPy",
-    "Tads",
-    "Unity",
-    "UnrealEngine",
-    "WebGL",
-    "WolfRPG"
-]))
-
-
 @dataclasses.dataclass
 class Settings:
     browser_custom_arguments: str = None
@@ -197,17 +243,7 @@ class Settings:
     browser_html: bool = None
     browser_private: bool = None
     browser: Browser = None
-    column_developer: bool = None
-    column_engine: bool = None
-    column_installed: bool = None
-    column_last_played: bool = None
-    column_last_updated: bool = None
-    column_name: bool = None
-    column_played: bool = None
-    column_rating: bool = None
-    column_status: bool = None
-    column_time_added: bool = None
-    column_version: bool = None
+    columns: Column = None
     refresh_completed_games: bool = None
     refresh_workers: int = None
     request_timeout: int = None

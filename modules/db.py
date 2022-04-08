@@ -12,91 +12,85 @@ pending: int = 0
 
 
 async def connect():
-    global available, connection
+    try:
+        global available, connection
 
-    migrate = not (globals.data_path / "db.sqlite3").is_file()
-    connection = await aiosqlite.connect(globals.data_path / "db.sqlite3")
-    connection.row_factory = aiosqlite.Row  # Return sqlite3.Row instead of tuple
+        migrate = not (globals.data_path / "db.sqlite3").is_file()
+        # connection = await aiosqlite.connect(globals.data_path / "db.sqlite3")
+        connection = await aiosqlite.connect(":memory:")  # Temporary while things are not final
+        connection.row_factory = aiosqlite.Row  # Return sqlite3.Row instead of tuple
 
-    await connection.execute("""
-        CREATE TABLE IF NOT EXISTS settings (
-            _                           INTEGER PRIMARY KEY CHECK (_=0),
-            browser_custom_arguments    TEXT    DEFAULT "",
-            browser_custom_executable   TEXT    DEFAULT "",
-            browser_html                INTEGER DEFAULT 0,
-            browser_private             INTEGER DEFAULT 0,
-            browser                     INTEGER DEFAULT 0,
-            column_developer            INTEGER DEFAULT 0,
-            column_engine               INTEGER DEFAULT 0,
-            column_installed            INTEGER DEFAULT 1,
-            column_last_played          INTEGER DEFAULT 0,
-            column_last_updated         INTEGER DEFAULT 0,
-            column_name                 INTEGER DEFAULT 1,
-            column_played               INTEGER DEFAULT 1,
-            column_rating               INTEGER DEFAULT 0,
-            column_status               INTEGER DEFAULT 1,
-            column_time_added           INTEGER DEFAULT 0,
-            column_version              INTEGER DEFAULT 1,
-            refresh_completed_games     INTEGER DEFAULT 1,
-            refresh_workers             INTEGER DEFAULT 20,
-            request_timeout             INTEGER DEFAULT 30,
-            select_executable_after_add INTEGER DEFAULT 0,
-            sort_mode                   INTEGER DEFAULT 1,
-            start_in_tray               INTEGER DEFAULT 0,
-            start_refresh               INTEGER DEFAULT 0,
-            start_with_system           INTEGER DEFAULT 0,
-            style_accent                TEXT    DEFAULT "#da1e2e",
-            style_alt_bg                TEXT    DEFAULT "#141414",
-            style_bg                    TEXT    DEFAULT "#181818",
-            style_btn_border            TEXT    DEFAULT "#454545",
-            style_btn_disabled          TEXT    DEFAULT "#232323",
-            style_btn_hover             TEXT    DEFAULT "#747474",
-            style_corner_radius         INTEGER DEFAULT 6,
-            style_scaling               REAL    DEFAULT 1.0,
-            tray_refresh_interval       INTEGER DEFAULT 15,
-            update_keep_executable      INTEGER DEFAULT 0,
-            update_keep_image           INTEGER DEFAULT 0
-        )
-    """)
-    await connection.execute("""
-        INSERT INTO settings
-        (_)
-        VALUES
-        (0)
-        ON CONFLICT DO NOTHING
-    """)
+        await connection.execute(f"""
+            CREATE TABLE IF NOT EXISTS settings (
+                _                           INTEGER PRIMARY KEY CHECK (_=0),
+                browser_custom_arguments    TEXT    DEFAULT "",
+                browser_custom_executable   TEXT    DEFAULT "",
+                browser_html                INTEGER DEFAULT 0,
+                browser_private             INTEGER DEFAULT 0,
+                browser                     INTEGER DEFAULT {Browser.none},
+                columns                     INTEGER DEFAULT {Column.play_button | Column.version | Column.status | Column.played | Column.installed | Column.open_page},
+                refresh_completed_games     INTEGER DEFAULT 1,
+                refresh_workers             INTEGER DEFAULT 20,
+                request_timeout             INTEGER DEFAULT 30,
+                select_executable_after_add INTEGER DEFAULT 0,
+                sort_mode                   INTEGER DEFAULT {SortMode.last_updated},
+                start_in_tray               INTEGER DEFAULT 0,
+                start_refresh               INTEGER DEFAULT 0,
+                start_with_system           INTEGER DEFAULT 0,
+                style_accent                TEXT    DEFAULT "#da1e2e",
+                style_alt_bg                TEXT    DEFAULT "#141414",
+                style_bg                    TEXT    DEFAULT "#181818",
+                style_btn_border            TEXT    DEFAULT "#454545",
+                style_btn_disabled          TEXT    DEFAULT "#232323",
+                style_btn_hover             TEXT    DEFAULT "#747474",
+                style_corner_radius         INTEGER DEFAULT 6,
+                style_scaling               REAL    DEFAULT 1.0,
+                tray_refresh_interval       INTEGER DEFAULT 15,
+                update_keep_executable      INTEGER DEFAULT 0,
+                update_keep_image           INTEGER DEFAULT 0
+            )
+        """)
+        await connection.execute("""
+            INSERT INTO settings
+            (_)
+            VALUES
+            (0)
+            ON CONFLICT DO NOTHING
+        """)
 
-    await connection.execute("""
-        CREATE TABLE IF NOT EXISTS games (
-            id                INTEGER PRIMARY KEY,
-            name              TEXT    DEFAULT "",
-            version           TEXT    DEFAULT "",
-            developer         TEXT    DEFAULT "",
-            engine            INTEGER DEFAULT 0,
-            status            INTEGER DEFAULT 0,
-            url               TEXT    DEFAULT "",
-            time_added        INTEGER DEFAULT 0,
-            last_updated      INTEGER DEFAULT 0,
-            last_full_refresh INTEGER DEFAULT 0,
-            last_played       INTEGER DEFAULT 0,
-            rating            INTEGER DEFAULT 0,
-            installed         TEXT    DEFAULT "",
-            played            INTEGER DEFAULT 0,
-            executable        TEXT    DEFAULT "",
-            description       TEXT    DEFAULT "",
-            changelog         TEXT    DEFAULT "",
-            tags              TEXT    DEFAULT "[]",
-            notes             TEXT    DEFAULT ""
-        )
-    """)
+        await connection.execute(f"""
+            CREATE TABLE IF NOT EXISTS games (
+                id                INTEGER PRIMARY KEY,
+                name              TEXT    DEFAULT "",
+                version           TEXT    DEFAULT "",
+                developer         TEXT    DEFAULT "",
+                engine            INTEGER DEFAULT {Engine.Other},
+                status            INTEGER DEFAULT {Status.none},
+                url               TEXT    DEFAULT "",
+                time_added        INTEGER DEFAULT 0,
+                last_updated      INTEGER DEFAULT 0,
+                last_full_refresh INTEGER DEFAULT 0,
+                last_played       INTEGER DEFAULT 0,
+                rating            INTEGER DEFAULT 0,
+                installed         TEXT    DEFAULT "",
+                played            INTEGER DEFAULT 0,
+                executable        TEXT    DEFAULT "",
+                description       TEXT    DEFAULT "",
+                changelog         TEXT    DEFAULT "",
+                tags              TEXT    DEFAULT "[]",
+                notes             TEXT    DEFAULT ""
+            )
+        """)
 
-    available = True
+        available = True
 
-    if migrate:
-        if (path := globals.data_path / "f95checker.json").is_file():
-            await migrate_legacy_json(path)
-        elif (path := globals.data_path / "config.ini").is_file():
-            await migrate_legacy_ini(path)
+        if migrate:
+            if (path := globals.data_path / "f95checker.json").is_file():
+                await migrate_legacy_json(path)
+            elif (path := globals.data_path / "config.ini").is_file():
+                await migrate_legacy_ini(path)
+    except Exception as exc:
+        print(exc)
 
 
 async def _wait_connection():
@@ -142,33 +136,36 @@ async def save():
 
 
 async def load():
-    globals.settings = Settings()
-    cursor = await execute("""
-        SELECT *
-        FROM settings
-    """)
-    settings = await cursor.fetchone()
-    for key in settings.keys():
-        data_type = Settings.__annotations__.get(key)
-        if data_type:
-            value = data_type(settings[key])
-            setattr(globals.settings, key, value)
+    try:
+        globals.settings = Settings()
+        cursor = await execute("""
+            SELECT *
+            FROM settings
+        """)
+        settings = await cursor.fetchone()
+        for key in settings.keys():
+            data_type = Settings.__annotations__.get(key)
+            if data_type:
+                value = data_type(settings[key])
+                setattr(globals.settings, key, value)
 
-    globals.games = {}
-    cursor = await execute("""
-        SELECT *
-        FROM games
-    """)
-    games = await cursor.fetchall()
-    for game in games:
-        globals.games[game["id"]] = Game()
-        for key in game.keys():
-            data_type = Game.__annotations__[key]
-            if data_type == list[Tag]:
-                value = [Tag(x) for x in json.loads(game[key])]
-            else:
-                value = data_type(game[key])
-            setattr(globals.games[game["id"]], key, value)
+        globals.games = {}
+        cursor = await execute("""
+            SELECT *
+            FROM games
+        """)
+        games = await cursor.fetchall()
+        for game in games:
+            globals.games[game["id"]] = Game()
+            for key in game.keys():
+                data_type = Game.__annotations__[key]
+                if data_type == list[Tag]:
+                    value = [Tag(x) for x in json.loads(game[key])]
+                else:
+                    value = data_type(game[key])
+                setattr(globals.games[game["id"]], key, value)
+    except Exception as exc:
+        print(exc)
 
 
 async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0

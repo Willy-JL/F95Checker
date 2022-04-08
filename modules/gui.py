@@ -6,6 +6,7 @@ import imgui
 import glfw
 import sys
 
+from modules.structs import *
 from modules import globals
 
 
@@ -56,6 +57,21 @@ class MainGUI():
         self.window = impl_glfw_init(*self.size, "F95Checker")
         glfw.set_window_icon(self.window, 1, Image.open("resources/icons/icon.png"))
         self.impl = GlfwRenderer(self.window)
+        io = imgui.get_io()
+        io.font_global_scale = 1
+        ranges = imgui.core.GlyphRanges([
+            0xf0000,
+            0xf2000,
+            0
+        ])
+        config = imgui.core.FontConfig(merge_mode=True, glyph_offset_x=-2, glyph_offset_y=3, glyph_extra_spacing_x=-3)
+        io.fonts.add_font_from_file_ttf(
+            str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
+            16,
+            font_config=config,
+            glyph_ranges=ranges
+        )
+        self.impl.refresh_font_texture()
         glfw.set_window_iconify_callback(self.window, self.minimize)
 
     def close(self, *args, **kwargs):
@@ -90,21 +106,12 @@ class MainGUI():
                     window_flags |= imgui.WINDOW_MENU_BAR
 
                 with imgui.begin("F95Checker", closable=False, flags=window_flags):
-                    with imgui.begin_menu_bar():
-                        self.draw_menu_bar()
                     with imgui.begin_child("Main", width=-269, height=0, border=False):
-                        with imgui.begin_table("Games", 3):
-                            for x in range(1, 10):
-                                imgui.table_next_column()
-                                imgui.text(str(imgui.get_content_region_available_width()))
-                                imgui.table_next_column()
-                                imgui.text(str(imgui.get_content_region_available_width()))
-                                imgui.table_next_column()
-                                imgui.text(str(imgui.get_content_region_available_width()))
-                                # self.draw_game_entry(x)
+                        self.draw_games_list()
+                        # self.draw_games_grid()
                     imgui.same_line()
                     with imgui.begin_child("Sidebar", width=269, height=0, border=False):
-                        imgui.text(f"FPS: {io.framerate}")
+                        # imgui.text(f"FPS: {io.framerate}")
                         self.draw_sidebar()
 
                 imgui.render()
@@ -115,23 +122,79 @@ class MainGUI():
         self.impl.shutdown()
         glfw.terminate()
 
-    def draw_menu_bar(self):
-        with imgui.begin_menu("File"):
-            if imgui.menu_item("Quit")[0]:
-                self.close()
-
-    def draw_game_entry(self, id):
-        imgui.text(f"some game called {id}")
-        imgui.same_line()
-        imgui.spacing()
-        imgui.same_line()
-        imgui.text("version")
-        imgui.same_line()
-        imgui.checkbox("played", False)
-        imgui.same_line()
-        imgui.checkbox("downloaded", True)
-        imgui.same_line()
-        imgui.button("view")
+    def draw_games_list(self):
+        columns = globals.settings.columns
+        with imgui.begin_table("Games", columns.bit_count(), imgui.TABLE_SIZING_FIXED_FIT):
+            if Column.play_button in columns:
+                imgui.table_setup_column("Play")
+            if Column.engine in columns:
+                imgui.table_setup_column("Engine")
+            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            if Column.developer in columns:
+                imgui.table_setup_column("Developer")
+            if Column.last_updated in columns:
+                imgui.table_setup_column("Last Updated")
+            if Column.last_played in columns:
+                imgui.table_setup_column("Last Played")
+            if Column.added_on in columns:
+                imgui.table_setup_column("Added On")
+            if Column.played in columns:
+                imgui.table_setup_column("Played")
+            if Column.installed in columns:
+                imgui.table_setup_column("Installed")
+            if Column.rating in columns:
+                imgui.table_setup_column("Rating")
+            if Column.open_page in columns:
+                imgui.table_setup_column("Open")
+            imgui.table_headers_row()
+            for game in globals.games.values():
+                imgui.table_next_row()
+                # i = 0
+                if Column.play_button in columns:
+                    imgui.table_next_column()
+                    if imgui.button("󰐊"):
+                        pass
+                if Column.engine in columns:
+                    imgui.table_next_column()
+                    pass
+                imgui.table_next_column()
+                imgui.text(game.name)
+                if Column.version in columns:
+                    imgui.same_line()
+                    imgui.text_disabled(game.version)
+                if Column.status in columns:
+                    imgui.same_line()
+                    if game.status is Status.completed:
+                        imgui.text_colored("󰄳", 0.00, 0.85, 0.00)
+                    elif game.status is Status.onhold:
+                        imgui.text_colored("󰏥", 0.00, 0.50, 0.95)
+                    elif game.status is Status.abandoned:
+                        imgui.text_colored("󰅙", 0.87, 0.20, 0.20)
+                if Column.developer in columns:
+                    imgui.table_next_column()
+                    imgui.text(game.developer)
+                if Column.last_updated in columns:
+                    imgui.table_next_column()
+                    pass
+                if Column.last_played in columns:
+                    imgui.table_next_column()
+                    pass
+                if Column.added_on in columns:
+                    imgui.table_next_column()
+                    pass
+                if Column.played in columns:
+                    imgui.table_next_column()
+                    imgui.checkbox("a", True)
+                if Column.installed in columns:
+                    imgui.table_next_column()
+                    imgui.checkbox("b", True)
+                if Column.rating in columns:
+                    imgui.table_next_column()
+                    pass
+                if Column.open_page in columns:
+                    imgui.table_next_column()
+                    if imgui.button("B"):
+                        pass
 
     def draw_sidebar(self):
         if imgui.button("Refresh!"):
@@ -144,6 +207,7 @@ class MainGUI():
             imgui.button(f"{x}")
         if imgui.button("Minimize"):
             self.minimize()
+
 
 class TrayIcon(QtWidgets.QSystemTrayIcon):
     def __init__(self, main_gui: MainGUI):
