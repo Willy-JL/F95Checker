@@ -198,6 +198,52 @@ async def update_game(id: int, *keys):
     """, tuple(values))
 
 
+def convert_py_value(value):
+    if isinstance(value, enum.Enum):
+        value = value.value
+    elif isinstance(value, Timestamp):
+        value = value.value
+    elif isinstance(value, bool):
+        value = int(value)
+    elif isinstance(value, list):
+        for i, x in enumerate(value):
+            if isinstance(x, enum.Enum):
+                value[i] = x.value
+        value = json.dumps(value)
+    return value
+
+
+async def update_game(id: int, *keys: list[str]):
+    game = globals.games[id]
+    values = []
+
+    for key in keys:
+        value = convert_py_value(getattr(game, key))
+        values.append(value)
+
+    await execute(f"""
+        UPDATE games
+        SET
+            {", ".join(f"{key} = ?" for key in keys)}
+        WHERE id={id}
+    """, tuple(values))
+
+
+async def update_settings(*keys: list[str]):
+    values = []
+
+    for key in keys:
+        value = convert_py_value(getattr(globals.settings, key))
+        values.append(value)
+
+    await execute(f"""
+        UPDATE settings
+        SET
+            {", ".join(f"{key} = ?" for key in keys)}
+        WHERE _=0
+    """, tuple(values))
+
+
 async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0
     try:
         with open(path, encoding="utf-8") as f:
