@@ -28,12 +28,12 @@ async def connect():
                 browser_html                INTEGER DEFAULT 0,
                 browser_private             INTEGER DEFAULT 0,
                 browser                     INTEGER DEFAULT {Browser.none},
-                columns                     INTEGER DEFAULT {Column.play_button | Column.version | Column.status | Column.played | Column.installed | Column.open_page},
+                display_mode                INTEGER DEFAULT {DisplayMode.list},
+                manual_sort_list            TEXT    DEFAULT "[]",
                 refresh_completed_games     INTEGER DEFAULT 1,
                 refresh_workers             INTEGER DEFAULT 20,
                 request_timeout             INTEGER DEFAULT 30,
                 select_executable_after_add INTEGER DEFAULT 0,
-                sort_mode                   INTEGER DEFAULT {SortMode.last_updated},
                 start_in_tray               INTEGER DEFAULT 0,
                 start_refresh               INTEGER DEFAULT 0,
                 start_with_system           INTEGER DEFAULT 0,
@@ -67,13 +67,13 @@ async def connect():
                 engine            INTEGER DEFAULT {Engine.Other},
                 status            INTEGER DEFAULT {Status.none},
                 url               TEXT    DEFAULT "",
-                time_added        INTEGER DEFAULT 0,
+                added_on          INTEGER DEFAULT 0,
                 last_updated      INTEGER DEFAULT 0,
                 last_full_refresh INTEGER DEFAULT 0,
                 last_played       INTEGER DEFAULT 0,
                 rating            INTEGER DEFAULT 0,
-                installed         TEXT    DEFAULT "",
                 played            INTEGER DEFAULT 0,
+                installed         TEXT    DEFAULT "",
                 executable        TEXT    DEFAULT "",
                 description       TEXT    DEFAULT "",
                 changelog         TEXT    DEFAULT "",
@@ -146,7 +146,10 @@ async def load():
         for key in settings.keys():
             data_type = Settings.__annotations__.get(key)
             if data_type:
-                value = data_type(settings[key])
+                if data_type == list:
+                    value = json.loads(settings[key])
+                else:
+                    value = data_type(settings[key])
                 setattr(globals.settings, key, value)
 
         globals.games = {}
@@ -166,6 +169,33 @@ async def load():
                 setattr(globals.games[game["id"]], key, value)
     except Exception as exc:
         print(exc)
+
+
+async def update_game(id: int, *keys):
+    game = globals.games[id]
+    values = []
+
+    for key in keys:
+        value = getattr(game, key)
+        if isinstance(value, enum.Enum):
+            value = value.value
+        elif isinstance(value, Timestamp):
+            value = value.value
+        elif isinstance(value, bool):
+            value = int(value)
+        elif isinstance(value, list):
+            for i, x in enumerate(value):
+                if isinstance(x, enum.Enum):
+                    value[i] = x.value
+            value = json.dumps(value)
+        values.append(value)
+
+    await execute(f"""
+        UPDATE games
+        SET
+            {", ".join(f"{key} = ?" for key in keys)}
+        WHERE id={id}
+    """, tuple(values))
 
 
 async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0
@@ -207,7 +237,6 @@ async def migrate_legacy_ini(path: str | pathlib.Path):  # Pre v7.0
         config["options"]["private_browser"]    = old_config.getboolean('options', 'private',       fallback=False )
         config["options"]["open_html"]          = old_config.getboolean('options', 'open_html',     fallback=False )
         config["options"]["start_refresh"]      = old_config.getboolean('options', 'start_refresh', fallback=False )
-        config["options"]["auto_sort"]          = old_config.get(       'options', 'auto_sort',     fallback='none')
         config["options"]["bg_mode_delay_mins"] = old_config.getint(    'options', 'delay',         fallback=15    )
         config["style"] = {}
         config["style"]["accent"] = old_config.get('options', 'accent', fallback='#da1e2e')
@@ -258,15 +287,6 @@ async def migrate_legacy(config: dict):
         if start_refresh := options.get("start_refresh"):
             keys.append("start_refresh")
             values.append(int(start_refresh))
-
-        if auto_sort := options.get("auto_sort"):
-            keys.append("sort_mode")
-            values.append(SortMode[{
-                "none": "manual",
-                "last_updated": "last_updated",
-                "first_added": "time_added",
-                "alphabetical": "alphabetical"
-            }[auto_sort]].value)
 
         if bg_mode_delay_mins := options.get("bg_mode_delay_mins"):
             keys.append("tray_refresh_interval")
@@ -354,7 +374,7 @@ async def migrate_legacy(config: dict):
                 values.append(link)
 
             if add_time := game.get("add_time"):
-                keys.append("time_added")
+                keys.append("added_on")
                 values.append(int(add_time))
 
             if updated_time := game.get("updated_time"):

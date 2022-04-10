@@ -6,8 +6,10 @@ import imgui
 import glfw
 import sys
 
+from modules import async_thread
 from modules.structs import *
 from modules import globals
+from modules import db
 
 
 def impl_glfw_init(width: int, height: int, window_name: str):
@@ -38,41 +40,67 @@ class MainGUI():
     def __init__(self):
         self.visible = True
         self.prev_size = 0, 0
-        self.size = 1280, 720
         self.window_flags = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
             imgui.WINDOW_NO_COLLAPSE |
             imgui.WINDOW_NO_TITLE_BAR |
             imgui.WINDOW_NO_SCROLLBAR |
-            imgui.WINDOW_NO_SAVED_SETTINGS |
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
+        self.sidebar_size = 269
+        self.game_list_column_count = 15
+        self.game_list_table_flags = (
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_HIDEABLE |
+            imgui.TABLE_SORTABLE |
+            imgui.TABLE_REORDERABLE |
+            imgui.TABLE_ROW_BACKGROUND |
+            imgui.TABLE_SIZING_FIXED_FIT |
+            imgui.TABLE_NO_HOST_EXTEND_Y
+        )
+        self.ghost_columns_enabled_count = 0
+        self.ghost_columns_flags = (
+            imgui.TABLE_COLUMN_NO_SORT |
+            imgui.TABLE_COLUMN_NO_REORDER |
+            imgui.TABLE_COLUMN_NO_HEADER_WIDTH
+        )
+        self.require_sort = True
+        self.sorted_games_ids = []
+        self.prev_manual_sort = False
 
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.qt_loop = QtCore.QEventLoop()
         self.tray = TrayIcon(self)
 
         imgui.create_context()
-        self.window = impl_glfw_init(*self.size, "F95Checker")
+        io = imgui.get_io()
+
+        self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
+        io.ini_file_name = self.ini_file_name
+
+        self.window = impl_glfw_init(1280, 720, "F95Checker")  # TODO: remember window size
         glfw.set_window_icon(self.window, 1, Image.open("resources/icons/icon.png"))
         self.impl = GlfwRenderer(self.window)
-        io = imgui.get_io()
-        io.font_global_scale = 1
-        ranges = imgui.core.GlyphRanges([
-            0xf0000,
-            0xf2000,
-            0
-        ])
-        config = imgui.core.FontConfig(merge_mode=True, glyph_offset_x=-2, glyph_offset_y=3, glyph_extra_spacing_x=-3)
+        glfw.set_window_iconify_callback(self.window, self.minimize)
+
+        io.fonts.clear()
+        win_w, win_h = glfw.get_window_size(self.window)
+        fb_w, fb_h = glfw.get_framebuffer_size(self.window)
+        font_scaling_factor = max(float(fb_w) / win_w, float(fb_h) / win_h)
+        io.font_global_scale = 1 / font_scaling_factor
+        io.fonts.add_font_from_file_ttf(
+            str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
+            18 * font_scaling_factor,
+            font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
+        )
         io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
-            16,
-            font_config=config,
-            glyph_ranges=ranges
+            18 * font_scaling_factor,
+            font_config=imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1),
+            glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
         )
         self.impl.refresh_font_texture()
-        glfw.set_window_iconify_callback(self.window, self.minimize)
 
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
@@ -94,25 +122,24 @@ class MainGUI():
 
             if self.visible:
                 imgui.new_frame()
-                io = imgui.get_io()
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
-                size = self.impl.io.display_size
-                if size != self.prev_size:
+                if (size := self.impl.io.display_size) != self.prev_size:
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
                     self.prev_size = size
-                window_flags = self.window_flags
-                if io.key_alt:
-                    window_flags |= imgui.WINDOW_MENU_BAR
 
-                with imgui.begin("F95Checker", closable=False, flags=window_flags):
-                    with imgui.begin_child("Main", width=-269, height=0, border=False):
-                        self.draw_games_list()
-                        # self.draw_games_grid()
+                with imgui.begin("F95Checker", closable=False, flags=self.window_flags):
+                    with imgui.begin_child("Main", width=-self.sidebar_size, height=0, border=False):
+                        if globals.settings.display_mode is DisplayMode.list:
+                            self.draw_games_list()
+                        elif globals.settings.display_mode is DisplayMode.grid:
+                            self.draw_games_grid()
+                        self.draw_bottombar()
                     imgui.same_line()
-                    with imgui.begin_child("Sidebar", width=269, height=0, border=False):
-                        # imgui.text(f"FPS: {io.framerate}")
+                    with imgui.begin_child("Sidebar", width=self.sidebar_size, height=0, border=False):
                         self.draw_sidebar()
+
+                # imgui.show_demo_window()
 
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
@@ -123,46 +150,123 @@ class MainGUI():
         glfw.terminate()
 
     def draw_games_list(self):
-        columns = globals.settings.columns
-        with imgui.begin_table("Games", columns.bit_count(), imgui.TABLE_SIZING_FIXED_FIT):
-            if Column.play_button in columns:
-                imgui.table_setup_column("Play")
-            if Column.engine in columns:
-                imgui.table_setup_column("Engine")
-            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-            if Column.developer in columns:
-                imgui.table_setup_column("Developer")
-            if Column.last_updated in columns:
-                imgui.table_setup_column("Last Updated")
-            if Column.last_played in columns:
-                imgui.table_setup_column("Last Played")
-            if Column.added_on in columns:
-                imgui.table_setup_column("Added On")
-            if Column.played in columns:
-                imgui.table_setup_column("Played")
-            if Column.installed in columns:
-                imgui.table_setup_column("Installed")
-            if Column.rating in columns:
-                imgui.table_setup_column("Rating")
-            if Column.open_page in columns:
-                imgui.table_setup_column("Open")
-            imgui.table_headers_row()
-            for game in globals.games.values():
+        style = imgui.get_style()
+        ghost_column_size = (style.frame_padding.x + style.cell_padding.x * 2)
+        offset = ghost_column_size * self.ghost_columns_enabled_count
+        imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
+        with imgui.begin_table(
+            "Games",
+            column=self.game_list_column_count,
+            flags=self.game_list_table_flags,
+            outer_size_width=imgui.get_content_region_available_width(),
+            outer_size_height=-28
+        ):
+            # Setup
+            imgui.table_setup_column("Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
+            imgui.table_setup_column("Version", self.ghost_columns_flags)  # 1
+            imgui.table_setup_column("Status", self.ghost_columns_flags)  # 2
+            imgui.table_setup_column("##", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3, separator
+            self.ghost_columns_enabled_count = 1
+            manual_sort = bool(imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED)
+            version_enabled = bool(imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED)
+            status_enabled = bool(imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED)
+            self.ghost_columns_enabled_count += int(version_enabled)
+            self.ghost_columns_enabled_count += int(status_enabled)
+            self.ghost_columns_enabled_count += int(manual_sort)
+            if manual_sort != self.prev_manual_sort:
+                self.prev_manual_sort = manual_sort
+                self.require_sort = True
+            sort = imgui.TABLE_COLUMN_NO_SORT * int(manual_sort)
+            imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT)  # 4
+            imgui.table_setup_column("Engine", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 5
+            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | sort)  # 6
+            imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 7
+            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 8
+            imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 9
+            imgui.table_setup_column("Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 10
+            imgui.table_setup_column("Played", sort)  # 11
+            imgui.table_setup_column("Installed", sort)  # 12
+            imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 13
+            imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT)  # 14
+            imgui.table_setup_scroll_freez(0, 1)  # Sticky column headers
+
+            # Headers
+            imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
+            for i in range(self.game_list_column_count):
+                imgui.table_set_column_index(i)
+                name = imgui.table_get_column_name(i)
+                if i in (0, 1, 2, 3, 4, 14):
+                    name = "##" + name  # Hide name for small columns
+                elif i == 6:  # Name
+                    if version_enabled:
+                        name += ", Version"
+                    if status_enabled:
+                        name += ", Status"
+                elif i == 11:
+                    name = "󰈼"  # Played
+                elif i == 12:
+                    name = "󰅢"  # Installed
+                imgui.table_header(name)
+
+            # Sorting
+            sort_specs = imgui.table_get_sort_specs()
+            if sort_specs.specs_dirty or self.require_sort:
+                if manual_sort:
+                    self.sorted_games_ids = globals.settings.manual_sort_list
+                    for _id in globals.games.keys():
+                        if _id not in self.sorted_games_ids:
+                            self.sorted_games_ids.append(_id)
+                elif sort_specs.specs_count > 0:
+                    sort_spec = sort_specs.specs[0]
+                    match sort_spec.column_index:
+                        case 5:  # Engine
+                            key = lambda id: globals.games[id].engine.value
+                        case 7:  # Developer
+                            key = lambda id: globals.games[id].developer.lower()
+                        case 8:  # Last Updated
+                            key = lambda id: globals.games[id].last_updated.value
+                        case 9:  # Last Played
+                            key = lambda id: globals.games[id].last_played.value
+                        case 10:  # Added On
+                            key = lambda id: globals.games[id].added_on.value
+                        case 11:  # Played
+                            key = lambda id: globals.games[id].played
+                        case 12:  # Installed
+                            key = lambda id: globals.games[id].installed == globals.games[id].version
+                        case 13:  # Rating
+                            key = lambda id: globals.games[id].rating
+                        case _:  # Name and all others
+                            key = lambda id: globals.games[id].name.lower()
+                    ids = list(globals.games.keys())
+                    ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
+                    self.sorted_games_ids = ids
+                sort_specs.specs_dirty = False
+                self.require_sort = False
+
+            # Loop rows
+            swap_b = None
+            for game_i, id in enumerate(self.sorted_games_ids):
+                game: Game = globals.games[id]
                 imgui.table_next_row()
-                # i = 0
-                if Column.play_button in columns:
-                    imgui.table_next_column()
-                    if imgui.button("󰐊"):
-                        pass
-                if Column.engine in columns:
-                    imgui.table_next_column()
-                    pass
-                imgui.table_next_column()
+                id = "##" + str(game.id)
+                column_i = 2
+                # Base row height
+                imgui.table_set_column_index(column_i := column_i + 1)
+                imgui.button("##ID" + id)
+                # Play Button
+                imgui.table_set_column_index(column_i := column_i + 1)
+                if imgui.button("󰐊" + id):
+                    pass  # TODO: game launching
+                # Engine
+                imgui.table_set_column_index(column_i := column_i + 1)
+                imgui.text(game.engine.name)
+                # Name
+                imgui.table_set_column_index(column_i := column_i + 1)
                 imgui.text(game.name)
-                if Column.version in columns:
+                if version_enabled:
                     imgui.same_line()
                     imgui.text_disabled(game.version)
-                if Column.status in columns:
+                if status_enabled:
                     imgui.same_line()
                     if game.status is Status.completed:
                         imgui.text_colored("󰄳", 0.00, 0.85, 0.00)
@@ -170,31 +274,69 @@ class MainGUI():
                         imgui.text_colored("󰏥", 0.00, 0.50, 0.95)
                     elif game.status is Status.abandoned:
                         imgui.text_colored("󰅙", 0.87, 0.20, 0.20)
-                if Column.developer in columns:
-                    imgui.table_next_column()
-                    imgui.text(game.developer)
-                if Column.last_updated in columns:
-                    imgui.table_next_column()
-                    pass
-                if Column.last_played in columns:
-                    imgui.table_next_column()
-                    pass
-                if Column.added_on in columns:
-                    imgui.table_next_column()
-                    pass
-                if Column.played in columns:
-                    imgui.table_next_column()
-                    imgui.checkbox("a", True)
-                if Column.installed in columns:
-                    imgui.table_next_column()
-                    imgui.checkbox("b", True)
-                if Column.rating in columns:
-                    imgui.table_next_column()
-                    pass
-                if Column.open_page in columns:
-                    imgui.table_next_column()
-                    if imgui.button("B"):
-                        pass
+                # Developer
+                imgui.table_set_column_index(column_i := column_i + 1)
+                # imgui.text(game.developer)  # TODO: fetch game developers
+                imgui.text("Placeholder")
+                # Last Updated
+                imgui.table_set_column_index(column_i := column_i + 1)
+                imgui.text(game.last_updated.display)
+                # Last Played
+                imgui.table_set_column_index(column_i := column_i + 1)
+                imgui.text(game.last_played.display)
+                # Added On
+                imgui.table_set_column_index(column_i := column_i + 1)
+                imgui.text(game.added_on.display)
+                # Played
+                imgui.table_set_column_index(column_i := column_i + 1)
+                changed, game.played = imgui.checkbox("##󰈼" + id, game.played)
+                if changed:
+                    async_thread.run(db.update_game(id, "played"))
+                # Installed
+                imgui.table_set_column_index(column_i := column_i + 1)
+                changed, installed = imgui.checkbox("##󰅢" + id, game.installed == game.version)
+                if changed:
+                    if installed:
+                        game.installed = game.version
+                    else:
+                        game.installed = ""
+                    async_thread.run(db.update_game(id, "installed"))
+                # Rating
+                imgui.table_set_column_index(column_i := column_i + 1)
+                imgui.text("Placeholder")  # TODO: rating buttons
+                # Open Thread
+                imgui.table_set_column_index(column_i := column_i + 1)
+                if imgui.button("󰏌" + id):
+                    pass  # TODO: open game threads
+                # Row hitbox
+                imgui.same_line()
+                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - style.frame_padding.y)
+                imgui.selectable("##HitBox" + id, selected=False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=24)
+                # TODO: left clickable for more info, right for context menu
+                # Manual sort swap logic
+                if manual_sort:
+                    if imgui.is_item_active() and not imgui.is_item_hovered():
+                        if imgui.get_mouse_drag_delta().y > 0:
+                            swap_b = game_i + 1
+                        else:
+                            swap_b = game_i - 1
+                        swap_a = game_i
+            if swap_b is not None:
+                self.sorted_games_ids[swap_a], self.sorted_games_ids[swap_b] = self.sorted_games_ids[swap_b], self.sorted_games_ids[swap_a]
+                imgui.reset_mouse_drag_delta()
+
+    def draw_bottombar(self):
+        if imgui.button("󱇘"):
+            print("aaa")
+        imgui.same_line()
+        if imgui.button("󱇙"):
+            print("bbb")
+        imgui.same_line()
+        imgui.set_next_item_width(-48)
+        imgui.input_text("##FilterAddBar", "", 999)
+        imgui.same_line()
+        if imgui.button("Add!"):
+            print("ccc")
 
     def draw_sidebar(self):
         if imgui.button("Refresh!"):

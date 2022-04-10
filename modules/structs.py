@@ -1,28 +1,6 @@
 import dataclasses
-import types
+import datetime
 import enum
-
-
-class IntFlagListed(enum.IntFlag):
-    def __init__(self):
-        super().__init__()
-        self._values_ = [self]
-
-    def __new__(cls, *args):
-        value = 2 ** len(cls.__members__)
-        obj = int.__new__(cls, value)
-        obj._value_ = value
-        return obj
-
-    @classmethod
-    def _create_pseudo_member_(cls, value):
-        pseudo_member = super()._create_pseudo_member_(value)
-        pseudo_member._values_ = enum._decompose(cls, pseudo_member)[0]
-        return pseudo_member
-
-    @types.DynamicClassAttribute
-    def values(self):
-        return self._values_
 
 
 class IntEnumAuto(enum.IntEnum):
@@ -44,28 +22,9 @@ class Browser(IntEnumAuto):
     custom = ()
 
 
-class Column(IntFlagListed):
-    play_button = ()
-    engine = ()
-    version = ()
-    developer = ()
-    status = ()
-    last_updated = ()
-    last_played = ()
-    added_on = ()
-    played = ()
-    installed = ()
-    rating = ()
-    open_page = ()
-
-
-class SortMode(IntEnumAuto):
-    manual = ()
-    last_updated = ()
-    last_played = ()
-    time_added = ()
-    alphabetical = ()
-    rating = ()
+class DisplayMode(IntEnumAuto):
+    list = ()
+    grid = ()
 
 
 Engine = IntEnumAuto("Engine", " ".join([
@@ -91,6 +50,15 @@ class Status(IntEnumAuto):
     completed = ()
     onhold = ()
     abandoned = ()
+
+
+class Timestamp:
+    def __init__(self, unix_time: int):
+        self.value = unix_time
+        if self.value == 0:
+            self.display = "N/A"
+        else:
+            self.display = datetime.date.fromtimestamp(unix_time).strftime("%d/%m/%Y")
 
 
 Tag = IntEnumAuto("Tag", " ".join([
@@ -243,12 +211,12 @@ class Settings:
     browser_html: bool = None
     browser_private: bool = None
     browser: Browser = None
-    columns: Column = None
+    display_mode: DisplayMode = None
+    manual_sort_list: list = None
     refresh_completed_games: bool = None
     refresh_workers: int = None
     request_timeout: int = None
     select_executable_after_add: bool = None
-    sort_mode: SortMode = None
     start_in_tray: bool = None
     start_refresh: bool = None
     start_with_system: bool = None
@@ -274,13 +242,13 @@ class Game:
     engine: Engine = None
     status: Status = None
     url: str = None
-    time_added: int = None
-    last_updated: int = None
+    added_on: Timestamp = None
+    last_updated: Timestamp = None
     last_full_refresh: int = None
-    last_played: int = None
+    last_played: Timestamp = None
     rating: int = None
-    installed: str = None
     played: bool = None
+    installed: str = None
     executable: str = None
     description: str = None
     changelog: str = None
