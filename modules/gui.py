@@ -59,6 +59,13 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_FIT |
             imgui.TABLE_NO_HOST_EXTEND_Y
         )
+        # Note: Since I am now heavily relying on ImGui for the
+        # dislay options of the games list, and the right click
+        # context menu on the column headers does not support
+        # adding custom options, I add custom toggles by adding
+        # "ghost columns", which are tiny, empty columns at the
+        # beginning of the table, and are hidden by rendering
+        # the table starting before the content region.
         self.ghost_columns_enabled_count = 0
         self.ghost_columns_flags = (
             imgui.TABLE_COLUMN_NO_SORT |
@@ -155,7 +162,7 @@ class MainGUI():
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         with imgui.begin_table(
-            "Games",
+            "GamesList",
             column=self.game_list_column_count,
             flags=self.game_list_table_flags,
             outer_size_width=imgui.get_content_region_available_width(),
@@ -165,7 +172,7 @@ class MainGUI():
             imgui.table_setup_column("Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
             imgui.table_setup_column("Version", self.ghost_columns_flags)  # 1
             imgui.table_setup_column("Status", self.ghost_columns_flags)  # 2
-            imgui.table_setup_column("##", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3, separator
+            imgui.table_setup_column("##Separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
             self.ghost_columns_enabled_count = 1
             manual_sort = bool(imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED)
             version_enabled = bool(imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED)
@@ -199,9 +206,9 @@ class MainGUI():
                     name = "##" + name  # Hide name for small columns
                 elif i == 6:  # Name
                     if version_enabled:
-                        name += ", Version"
+                        name += "   -   Version"
                     if status_enabled:
-                        name += ", Status"
+                        name += "   -   Status"
                 elif i == 11:
                     name = "󰈼"  # Played
                 elif i == 12:
