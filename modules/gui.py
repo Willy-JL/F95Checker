@@ -323,14 +323,15 @@ class MainGUI():
                 # Manual sort swap logic
                 if manual_sort:
                     if imgui.is_item_active() and not imgui.is_item_hovered():
-                        if imgui.get_mouse_drag_delta().y > 0:
+                        if imgui.get_mouse_drag_delta().y > 0 and game_i != len(self.sorted_games_ids) - 1:
                             swap_b = game_i + 1
-                        else:
+                        elif game_i != 0:
                             swap_b = game_i - 1
                         swap_a = game_i
             if swap_b is not None:
-                self.sorted_games_ids[swap_a], self.sorted_games_ids[swap_b] = self.sorted_games_ids[swap_b], self.sorted_games_ids[swap_a]
                 imgui.reset_mouse_drag_delta()
+                self.sorted_games_ids[swap_a], self.sorted_games_ids[swap_b] = self.sorted_games_ids[swap_b], self.sorted_games_ids[swap_a]
+                async_thread.run(db.update_settings("manual_sort_list"))
 
     def draw_bottombar(self):
         if imgui.button("󱇘"):
