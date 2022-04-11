@@ -80,6 +80,7 @@ class MainGUI():
         self.require_sort = True
         self.sorted_games_ids = []
         self.prev_manual_sort = False
+        self.game_list_hitbox_hold_time = 0
 
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.qt_loop = QtCore.QEventLoop()
@@ -366,15 +367,23 @@ class MainGUI():
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=24)
-                # TODO: left clickable for more info, right for context menu
-                # Manual sort swap logic
-                if manual_sort:
-                    if imgui.is_item_active() and not imgui.is_item_hovered():
-                        if imgui.get_mouse_drag_delta().y > 0 and game_i != len(self.sorted_games_ids) - 1:
-                            swap_b = game_i + 1
-                        elif game_i != 0:
-                            swap_b = game_i - 1
-                        swap_a = game_i
+                # Row click callbacks
+                if imgui.is_item_focused():
+                    if imgui.is_item_active():
+                        self.game_list_hitbox_hold_time += imgui.get_io().delta_time
+                        if manual_sort and not imgui.is_item_hovered() and self.game_list_hitbox_hold_time > 0.25:
+                            # Swap
+                            if imgui.get_mouse_drag_delta().y > 0 and game_i != len(self.sorted_games_ids) - 1:
+                                swap_b = game_i + 1
+                            elif game_i != 0:
+                                swap_b = game_i - 1
+                            swap_a = game_i
+                    else:
+                        if 0 < self.game_list_hitbox_hold_time < 0.25:
+                            # Click
+                            pass
+                        self.game_list_hitbox_hold_time = 0
+            # Apply swap
             if swap_b is not None:
                 imgui.reset_mouse_drag_delta()
                 manual_sort_list = globals.settings.manual_sort_list
