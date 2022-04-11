@@ -37,77 +37,85 @@ def impl_glfw_init(width: int, height: int, window_name: str):
 
 
 class MainGUI():
+    # Constants
+    sidebar_size = 269
+    game_list_column_count = 15
+    window_flags = (
+        imgui.WINDOW_NO_MOVE |
+        imgui.WINDOW_NO_RESIZE |
+        imgui.WINDOW_NO_COLLAPSE |
+        imgui.WINDOW_NO_TITLE_BAR |
+        imgui.WINDOW_NO_SCROLLBAR |
+        imgui.WINDOW_NO_SCROLL_WITH_MOUSE
+    )
+    game_list_table_flags = (
+        imgui.TABLE_SCROLL_Y |
+        imgui.TABLE_HIDEABLE |
+        imgui.TABLE_SORTABLE |
+        imgui.TABLE_REORDERABLE |
+        imgui.TABLE_ROW_BACKGROUND |
+        imgui.TABLE_SIZING_FIXED_FIT |
+        imgui.TABLE_NO_HOST_EXTEND_Y
+    )
+    ghost_columns_flags = (
+        imgui.TABLE_COLUMN_NO_SORT |
+        imgui.TABLE_COLUMN_NO_REORDER |
+        imgui.TABLE_COLUMN_NO_HEADER_WIDTH
+    )
+    game_grid_table_flags = (
+        imgui.TABLE_SCROLL_Y |
+        imgui.TABLE_SIZING_FIXED_FIT |
+        imgui.TABLE_NO_HOST_EXTEND_Y
+    )
+    popup_flags = (
+        imgui.WINDOW_NO_MOVE |
+        imgui.WINDOW_NO_RESIZE |
+        imgui.WINDOW_NO_COLLAPSE |
+        imgui.WINDOW_NO_TITLE_BAR
+    )
+
     def __init__(self):
+        # Variables
         self.visible = True
         self.prev_size = 0, 0
-        self.window_flags = (
-            imgui.WINDOW_NO_MOVE |
-            imgui.WINDOW_NO_RESIZE |
-            imgui.WINDOW_NO_COLLAPSE |
-            imgui.WINDOW_NO_TITLE_BAR |
-            imgui.WINDOW_NO_SCROLLBAR |
-            imgui.WINDOW_NO_SCROLL_WITH_MOUSE
-        )
-        self.sidebar_size = 269
-        self.game_list_column_count = 15
-        self.game_list_table_flags = (
-            imgui.TABLE_SCROLL_Y |
-            imgui.TABLE_HIDEABLE |
-            imgui.TABLE_SORTABLE |
-            imgui.TABLE_REORDERABLE |
-            imgui.TABLE_ROW_BACKGROUND |
-            imgui.TABLE_SIZING_FIXED_FIT |
-            imgui.TABLE_NO_HOST_EXTEND_Y
-        )
-        self.game_list_hitbox_click = False
-        self.game_grid_table_flags = (
-            imgui.TABLE_SCROLL_Y |
-            imgui.TABLE_SIZING_FIXED_FIT |
-            imgui.TABLE_NO_HOST_EXTEND_Y
-        )
-        # Note: Since I am now heavily relying on ImGui for the
-        # dislay options of the games list, and the right click
-        # context menu on the column headers does not support
-        # adding custom options, I add custom toggles by adding
-        # "ghost columns", which are tiny, empty columns at the
-        # beginning of the table, and are hidden by rendering
-        # the table starting before the content region.
-        self.ghost_columns_enabled_count = 0
-        self.ghost_columns_flags = (
-            imgui.TABLE_COLUMN_NO_SORT |
-            imgui.TABLE_COLUMN_NO_REORDER |
-            imgui.TABLE_COLUMN_NO_HEADER_WIDTH
-        )
         self.require_sort = True
         self.sorted_games_ids = []
         self.prev_manual_sort = False
+        self.current_info_popup_game = 0
+        self.game_list_hitbox_click = False
+        self.ghost_columns_enabled_count = 0
 
+        # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.qt_loop = QtCore.QEventLoop()
         self.tray = TrayIcon(self)
 
+        # Setup ImGui
         imgui.create_context()
-        io = imgui.get_io()
-
+        self.io = imgui.get_io()
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
-        io.ini_file_name = self.ini_file_name
+        self.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
+        self.style = imgui.get_style()
 
+        # Setup GLFW window
         self.window = impl_glfw_init(1280, 720, "F95Checker")  # TODO: remember window size
         glfw.set_window_icon(self.window, 1, Image.open("resources/icons/icon.png"))
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_iconify_callback(self.window, self.minimize)
+        self.refresh_fonts()
 
-        io.fonts.clear()
+    def refresh_fonts(self):
+        self.io.fonts.clear()
         win_w, win_h = glfw.get_window_size(self.window)
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
         font_scaling_factor = max(float(fb_w) / win_w, float(fb_h) / win_h)
-        io.font_global_scale = 1 / font_scaling_factor
-        io.fonts.add_font_from_file_ttf(
+        self.io.font_global_scale = 1 / font_scaling_factor
+        self.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
             18 * font_scaling_factor,
             font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         )
-        io.fonts.add_font_from_file_ttf(
+        self.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
             18 * font_scaling_factor,
             font_config=imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1),
@@ -132,7 +140,6 @@ class MainGUI():
             self.qt_loop.processEvents()
             glfw.poll_events()
             self.impl.process_inputs()
-
             if self.visible:
                 imgui.new_frame()
 
@@ -152,13 +159,9 @@ class MainGUI():
                     with imgui.begin_child("Sidebar", width=self.sidebar_size, height=0, border=False):
                         self.draw_sidebar()
 
-                # imgui.show_demo_window()
-
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
-
             glfw.swap_buffers(self.window)  # Also waits idle time, must run always to avoid useless cycles
-
         self.impl.shutdown()
         glfw.terminate()
 
@@ -166,21 +169,31 @@ class MainGUI():
         if imgui.button(f"{label}##{game.id}_play_button"):
             pass  # TODO: game launching
 
-    def draw_game_status(self, game):
-        if game.status is Status.completed:
-            imgui.text_colored("󰄳", 0.00, 0.85, 0.00)
-        elif game.status is Status.onhold:
-            imgui.text_colored("󰏥", 0.00, 0.50, 0.95)
-        elif game.status is Status.abandoned:
-            imgui.text_colored("󰅙", 0.87, 0.20, 0.20)
+    def draw_game_engine_widget(self, game):
+        col = (*EngineColors[game.engine.value], 1)
+        imgui.push_style_color(imgui.COLOR_BUTTON, *col)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        imgui.small_button(f"{game.engine.name}##{game.id}_engine")
+        imgui.pop_style_color(3)
 
-    def draw_game_played_toggle(self, game, label=""):
+    def draw_game_status_widget(self, game):
+        if game.status is Status.Completed:
+            imgui.text_colored("󰄳", 0.00, 0.85, 0.00)
+        elif game.status is Status.OnHold:
+            imgui.text_colored("󰏥", 0.00, 0.50, 0.95)
+        elif game.status is Status.Abandoned:
+            imgui.text_colored("󰅙", 0.87, 0.20, 0.20)
+        else:
+            imgui.text("")
+
+    def draw_game_played_checkbox(self, game, label=""):
         changed, game.played = imgui.checkbox(f"{label}##{game.id}_played", game.played)
         if changed:
             async_thread.run(db.update_game(game, "played"))
             self.require_sort = True
 
-    def draw_game_installed_toggle(self, game, label=""):
+    def draw_game_installed_checkbox(self, game, label=""):
         changed, installed = imgui.checkbox(f"{label}##{game.id}_installed", game.installed == game.version)
         if changed:
             if installed:
@@ -213,9 +226,32 @@ class MainGUI():
         if imgui.button(f"{label}##{game.id}_open_thread"):
             pass  # TODO: open game threads
 
+    def draw_game_info_popup(self):
+        avail = self.io.display_size
+        imgui.set_next_window_position(avail.x / 2, avail.y / 2, imgui.ALWAYS, 0.5, 0.5)
+        imgui.set_next_window_size(min(avail.x * 0.9, 600), min(avail.y * 0.9, 800))
+        with imgui.begin_popup("GameInfo", flags=self.popup_flags):
+            game = self.current_info_popup_game
+            imgui.text("[Image Placeholder]")
+            imgui.text(game.name)  # FIXME: title text style
+            imgui.text_disabled("Engine:")
+            imgui.same_line()
+            self.draw_game_engine_widget(game)
+            imgui.text_disabled("Version:")
+            imgui.same_line()
+            imgui.text(game.version)
+            imgui.text_disabled("Status:")
+            imgui.same_line()
+            imgui.text(game.status.name)
+            imgui.same_line()
+            self.draw_game_status_widget(game)
+            imgui.text_disabled("Develoer:")
+            imgui.same_line()
+            # imgui.text(game.developer)
+            imgui.text("Developer Placeholder")
+
     def draw_games_list(self):
-        style = imgui.get_style()
-        ghost_column_size = (style.frame_padding.x + style.cell_padding.x * 2)
+        ghost_column_size = (self.style.frame_padding.x + self.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         with imgui.begin_table(
@@ -229,6 +265,10 @@ class MainGUI():
             imgui.table_setup_column("Version", self.ghost_columns_flags)  # 1
             imgui.table_setup_column("Status", self.ghost_columns_flags)  # 2
             imgui.table_setup_column("##Separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
+            # Note: Since I am now heavily relying on ImGui for the dislay options of the games list, and the right click
+            # context menu on the column headers does not support adding custom options, I add custom toggles by adding
+            # "ghost columns", which are tiny, empty columns at the beginning of the table, and are hidden by rendering
+            # the table starting before the content region.
             self.ghost_columns_enabled_count = 1
             manual_sort = bool(imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED)
             version_enabled = bool(imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED)
@@ -328,7 +368,7 @@ class MainGUI():
                 self.draw_game_play_button(game, label="󰐊")
                 # Engine
                 imgui.table_set_column_index(column_i := column_i + 1)
-                imgui.text(game.engine.name)
+                self.draw_game_engine_widget(game)
                 # Name
                 imgui.table_set_column_index(column_i := column_i + 1)
                 imgui.text(game.name)
@@ -337,7 +377,7 @@ class MainGUI():
                     imgui.text_disabled(game.version)
                 if status_enabled:
                     imgui.same_line()
-                    self.draw_game_status(game)
+                    self.draw_game_status_widget(game)
                 # Developer
                 imgui.table_set_column_index(column_i := column_i + 1)
                 # imgui.text(game.developer)  # TODO: fetch game developers
@@ -353,10 +393,10 @@ class MainGUI():
                 imgui.text(game.added_on.display)
                 # Played
                 imgui.table_set_column_index(column_i := column_i + 1)
-                self.draw_game_played_toggle(game)
+                self.draw_game_played_checkbox(game)
                 # Installed
                 imgui.table_set_column_index(column_i := column_i + 1)
-                self.draw_game_installed_toggle(game)
+                self.draw_game_installed_checkbox(game)
                 # Rating
                 imgui.table_set_column_index(column_i := column_i + 1)
                 self.draw_game_rating_widget(game)
@@ -365,7 +405,7 @@ class MainGUI():
                 self.draw_game_open_thread_button(game, label="󰏌")
                 # Row hitbox
                 imgui.same_line()
-                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - style.frame_padding.y)
+                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - self.style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=24)
                 # Row click callbacks
                 if imgui.is_item_focused():
@@ -373,16 +413,19 @@ class MainGUI():
                         self.game_list_hitbox_click = True
                     if imgui.is_item_active():
                         if manual_sort and not imgui.is_item_hovered():
-                            # Swap
+                            # Drag = swap if in manual sort mode
                             if imgui.get_mouse_drag_delta().y > 0 and game_i != len(self.sorted_games_ids) - 1:
                                 swap_b = game_i + 1
                             elif game_i != 0:
                                 swap_b = game_i - 1
                             swap_a = game_i
                     elif self.game_list_hitbox_click:
-                        # Click
-                        print("click")
+                        # Click = open game info popup
                         self.game_list_hitbox_click = False
+                        self.current_info_popup_game = game
+                        imgui.open_popup("GameInfo")
+            # Draw info popup outside loop but in same ImGui context
+            self.draw_game_info_popup()
             # Apply swap
             if swap_b is not None:
                 imgui.reset_mouse_drag_delta()

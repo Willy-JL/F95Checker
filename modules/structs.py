@@ -12,14 +12,14 @@ class IntEnumAuto(enum.IntEnum):
 
 
 class Browser(IntEnumAuto):
-    none = ()
-    chrome = ()
+    none    = ()
+    chrome  = ()
     firefox = ()
-    brave = ()
-    edge = ()
-    opera = ()
+    brave   = ()
+    edge    = ()
+    opera   = ()
     operagx = ()
-    custom = ()
+    custom  = ()
 
 
 class DisplayMode(IntEnumAuto):
@@ -45,11 +45,30 @@ Engine = IntEnumAuto("Engine", " ".join([
 ]))
 
 
-class Status(IntEnumAuto):
-    none = ()
-    completed = ()
-    onhold = ()
-    abandoned = ()
+EngineColors = {
+    Engine.ADRIFT       .value: (33  / 255, 150 / 255, 243 / 255),
+    Engine.Flash        .value: (97  / 255, 97  / 255, 97  / 255),
+    Engine.HTML         .value: (104 / 255, 159 / 255, 56  / 255),
+    Engine.Java         .value: (82  / 255, 166 / 255, 176 / 255),
+    Engine.Other        .value: (139 / 255, 195 / 255, 74  / 255),
+    Engine.QSP          .value: (211 / 255, 47  / 255, 47  / 255),
+    Engine.RAGS         .value: (255 / 255, 152 / 255, 0   / 255),
+    Engine.RPGM         .value: (33  / 255, 150 / 255, 243 / 255),
+    Engine.RenPy        .value: (176 / 255, 105 / 255, 232 / 255),
+    Engine.Tads         .value: (33  / 255, 150 / 255, 243 / 255),
+    Engine.Unity        .value: (254 / 255, 89  / 255, 1   / 255),
+    Engine.UnrealEngine .value: (13  / 255, 71  / 255, 161 / 255),
+    Engine.WebGL        .value: (254 / 255, 89  / 255, 1   / 255),
+    Engine.WolfRPG      .value: (76  / 255, 175 / 255, 80  / 255)
+}
+
+
+Status = IntEnumAuto("Status", " ".join([
+    "None",
+    "Completed",
+    "OnHold",
+    "Abandoned"
+]))
 
 
 class Timestamp:
@@ -206,51 +225,51 @@ Tag = IntEnumAuto("Tag", " ".join([
 
 @dataclasses.dataclass
 class Settings:
-    browser_custom_arguments: str = None
-    browser_custom_executable: str = None
-    browser_html: bool = None
-    browser_private: bool = None
-    browser: Browser = None
-    display_mode: DisplayMode = None
-    manual_sort_list: list = None
-    refresh_completed_games: bool = None
-    refresh_workers: int = None
-    request_timeout: int = None
-    select_executable_after_add: bool = None
-    start_in_tray: bool = None
-    start_refresh: bool = None
-    start_with_system: bool = None
-    style_accent: str = None
-    style_alt_bg: str = None
-    style_bg: str = None
-    style_btn_border: str = None
-    style_btn_disabled: str = None
-    style_btn_hover: str = None
-    style_corner_radius: int = None
-    style_scaling: float = None
-    tray_refresh_interval: int = None
-    update_keep_executable: bool = None
-    update_keep_image: bool = None
+    browser_custom_arguments    : str         = None
+    browser_custom_executable   : str         = None
+    browser_html                : bool        = None
+    browser_private             : bool        = None
+    browser                     : Browser     = None
+    display_mode                : DisplayMode = None
+    manual_sort_list            : list        = None
+    refresh_completed_games     : bool        = None
+    refresh_workers             : int         = None
+    request_timeout             : int         = None
+    select_executable_after_add : bool        = None
+    start_in_tray               : bool        = None
+    start_refresh               : bool        = None
+    start_with_system           : bool        = None
+    style_accent                : str         = None
+    style_alt_bg                : str         = None
+    style_bg                    : str         = None
+    style_btn_border            : str         = None
+    style_btn_disabled          : str         = None
+    style_btn_hover             : str         = None
+    style_corner_radius         : int         = None
+    style_scaling               : float       = None
+    tray_refresh_interval       : int         = None
+    update_keep_executable      : bool        = None
+    update_keep_image           : bool        = None
 
 
 @dataclasses.dataclass
 class Game:
-    id: int = None
-    name: str = None
-    version: str = None
-    developer: str = None
-    engine: Engine = None
-    status: Status = None
-    url: str = None
-    added_on: Timestamp = None
-    last_updated: Timestamp = None
-    last_full_refresh: int = None
-    last_played: Timestamp = None
-    rating: int = None
-    played: bool = None
-    installed: str = None
-    executable: str = None
-    description: str = None
-    changelog: str = None
-    tags: list[Tag] = None
-    notes: str = None
+    id                : int       = None
+    name              : str       = None
+    version           : str       = None
+    developer         : str       = None
+    engine            : Engine    = None
+    status            : Status    = None
+    url               : str       = None
+    added_on          : Timestamp = None
+    last_updated      : Timestamp = None
+    last_full_refresh : int       = None
+    last_played       : Timestamp = None
+    rating            : int       = None
+    played            : bool      = None
+    installed         : str       = None
+    executable        : str       = None
+    description       : str       = None
+    changelog         : str       = None
+    tags              : list[Tag] = None
+    notes             : str       = None
