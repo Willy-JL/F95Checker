@@ -59,6 +59,11 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_FIT |
             imgui.TABLE_NO_HOST_EXTEND_Y
         )
+        self.game_grid_table_flags = (
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_SIZING_FIXED_FIT |
+            imgui.TABLE_NO_HOST_EXTEND_Y
+        )
         # Note: Since I am now heavily relying on ImGui for the
         # dislay options of the games list, and the right click
         # context menu on the column headers does not support
@@ -216,7 +221,6 @@ class MainGUI():
             "GamesList",
             column=self.game_list_column_count,
             flags=self.game_list_table_flags,
-            outer_size_width=imgui.get_content_region_available_width(),
             outer_size_height=-28
         ):
             # Setup
@@ -379,6 +383,13 @@ class MainGUI():
 
     def draw_games_grid(self):
         imgui.text("Placeholder")
+        with imgui.begin_table(
+            "GamesGrid",
+            column=4,
+            flags=self.game_grid_table_flags,
+            outer_size_height=-28
+        ):
+            pass
 
     def draw_bottombar(self):
         new_display_mode = None
@@ -411,7 +422,7 @@ class MainGUI():
         imgui.input_text("##filter_add_bar", "", 999)
         imgui.same_line()
         if imgui.button("Add!"):
-            print("ccc")
+            pass  # TODO: add button functionality
 
     def draw_sidebar(self):
         if imgui.button("Refresh!"):
