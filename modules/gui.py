@@ -59,6 +59,7 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_FIT |
             imgui.TABLE_NO_HOST_EXTEND_Y
         )
+        self.game_list_hitbox_click = False
         self.game_grid_table_flags = (
             imgui.TABLE_SCROLL_Y |
             imgui.TABLE_SIZING_FIXED_FIT |
@@ -80,7 +81,6 @@ class MainGUI():
         self.require_sort = True
         self.sorted_games_ids = []
         self.prev_manual_sort = False
-        self.game_list_hitbox_hold_time = 0
 
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.qt_loop = QtCore.QEventLoop()
@@ -369,23 +369,24 @@ class MainGUI():
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=24)
                 # Row click callbacks
                 if imgui.is_item_focused():
+                    if imgui.is_item_clicked():
+                        self.game_list_hitbox_click = True
                     if imgui.is_item_active():
-                        self.game_list_hitbox_hold_time += imgui.get_io().delta_time
-                        if manual_sort and not imgui.is_item_hovered() and self.game_list_hitbox_hold_time > 0.25:
+                        if manual_sort and not imgui.is_item_hovered():
                             # Swap
                             if imgui.get_mouse_drag_delta().y > 0 and game_i != len(self.sorted_games_ids) - 1:
                                 swap_b = game_i + 1
                             elif game_i != 0:
                                 swap_b = game_i - 1
                             swap_a = game_i
-                    else:
-                        if 0 < self.game_list_hitbox_hold_time < 0.25:
-                            # Click
-                            pass
-                        self.game_list_hitbox_hold_time = 0
+                    elif self.game_list_hitbox_click:
+                        # Click
+                        print("click")
+                        self.game_list_hitbox_click = False
             # Apply swap
             if swap_b is not None:
                 imgui.reset_mouse_drag_delta()
+                self.game_list_hitbox_click = False
                 manual_sort_list = globals.settings.manual_sort_list
                 manual_sort_list[swap_a], manual_sort_list[swap_b] = manual_sort_list[swap_b], manual_sort_list[swap_a]
                 async_thread.run(db.update_settings("manual_sort_list"))
