@@ -381,23 +381,31 @@ class MainGUI():
         imgui.text("Placeholder")
 
     def draw_bottombar(self):
-        # FIXME: highlight what display mode is currently selected
+        new_display_mode = None
+
+        if globals.settings.display_mode is DisplayMode.grid:
+            imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
+            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
+            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
         if imgui.button("󱇘##list_mode"):
-            globals.settings.display_mode = DisplayMode.list
-            async_thread.run(db.update_settings("display_mode"))
+            new_display_mode = DisplayMode.list
+        if globals.settings.display_mode is DisplayMode.grid:
+            imgui.pop_style_color(3)
+
         imgui.same_line()
+        if globals.settings.display_mode is DisplayMode.list:
+            imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
+            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
+            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
         if imgui.button("󱇙##grid_mode"):
-            globals.settings.display_mode = DisplayMode.grid
+            new_display_mode = DisplayMode.grid
+        if globals.settings.display_mode is DisplayMode.list:
+            imgui.pop_style_color(3)
+
+        if new_display_mode is not None:
+            globals.settings.display_mode = new_display_mode
             async_thread.run(db.update_settings("display_mode"))
-        # clicked, selected = imgui.selectable("󱇘##list_mode", globals.settings.display_mode is DisplayMode.list, width=22, height=20)
-        # if clicked and selected:
-        #     globals.settings.display_mode = DisplayMode.list
-        #     async_thread.run(db.update_settings("display_mode"))
-        # imgui.same_line()
-        # clicked, selected = imgui.selectable("󱇙##grid_mode", globals.settings.display_mode is DisplayMode.grid, width=22, height=20)
-        # if clicked and selected:
-        #     globals.settings.display_mode = DisplayMode.grid
-        #     async_thread.run(db.update_settings("display_mode"))
+
         imgui.same_line()
         imgui.set_next_item_width(-48)
         imgui.input_text("##filter_add_bar", "", 999)
