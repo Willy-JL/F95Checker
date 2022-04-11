@@ -171,33 +171,6 @@ async def load():
         print(exc)
 
 
-async def update_game(id: int, *keys):
-    game = globals.games[id]
-    values = []
-
-    for key in keys:
-        value = getattr(game, key)
-        if isinstance(value, enum.Enum):
-            value = value.value
-        elif isinstance(value, Timestamp):
-            value = value.value
-        elif isinstance(value, bool):
-            value = int(value)
-        elif isinstance(value, list):
-            for i, x in enumerate(value):
-                if isinstance(x, enum.Enum):
-                    value[i] = x.value
-            value = json.dumps(value)
-        values.append(value)
-
-    await execute(f"""
-        UPDATE games
-        SET
-            {", ".join(f"{key} = ?" for key in keys)}
-        WHERE id={id}
-    """, tuple(values))
-
-
 def convert_py_value(value):
     if isinstance(value, enum.Enum):
         value = value.value
@@ -213,8 +186,7 @@ def convert_py_value(value):
     return value
 
 
-async def update_game(id: int, *keys: list[str]):
-    game = globals.games[id]
+async def update_game(game: Game, *keys: list[str]):
     values = []
 
     for key in keys:
@@ -225,7 +197,7 @@ async def update_game(id: int, *keys: list[str]):
         UPDATE games
         SET
             {", ".join(f"{key} = ?" for key in keys)}
-        WHERE id={id}
+        WHERE id={game.id}
     """, tuple(values))
 
 
