@@ -82,8 +82,8 @@ class MainGUI():
         self.visible = True
         self.prev_size = 0, 0
         self.require_sort = True
-        self.sorted_games_ids = []
         self.prev_manual_sort = 0
+        self.sorted_games_ids = []
         self.current_info_popup_game = 0
         self.game_list_hitbox_click = False
         self.current_info_popup_image = None
@@ -106,7 +106,7 @@ class MainGUI():
             end = ini.find("\n[", start)
             config = configparser.RawConfigParser()
             config.read_string(ini[start:end])
-            size = (int(x) for x in config.get("Window][F95Checker", "Size").split(","))
+            size = tuple(int(x) for x in config.get("Window][F95Checker", "Size").split(","))
             assert type(size) is tuple and len(size) == 2
             assert type(size[0]) is int and type(size[1]) is int
         except Exception:
@@ -175,9 +175,8 @@ class MainGUI():
                 imgui.new_frame()
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
-                if (size := self.impl.io.display_size) != self.prev_size:
+                if (size := self.io.display_size) != self.prev_size:
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
-                    self.prev_size = size
 
                 if imgui.begin("F95Checker", closable=False, flags=self.window_flags) or True:
                     if imgui.begin_child("Main", width=-self.sidebar_size, height=0, border=False) or True:
@@ -192,6 +191,9 @@ class MainGUI():
                         self.draw_sidebar()
                     imgui.end_child()
                 imgui.end()
+
+                if (size := self.io.display_size) != self.prev_size:
+                    self.prev_size = size
 
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
@@ -266,7 +268,7 @@ class MainGUI():
             value=game.notes,
             buffer_length=9999999,
             width=imgui.get_content_region_available_width(),
-            height=0
+            height=100
         )
         if changed:
             game.notes = new_notes
@@ -286,9 +288,12 @@ class MainGUI():
         imgui.pop_style_color(3)
 
     def draw_game_info_popup(self):
-        avail = self.io.display_size
-        imgui.set_next_window_position(avail.x / 2, avail.y / 2, imgui.ALWAYS, 0.5, 0.5)
-        imgui.set_next_window_size(min(avail.x * 0.9, 600), min(avail.y * 0.9, 800))
+        size = self.io.display_size
+        height = size.y * 0.9
+        width = min(size.x * 0.9, height * 0.9)
+        imgui.set_next_window_size(width, height)
+        imgui.set_next_window_position((size.x - width) / 2, (size.y - height) / 2)
+
         if imgui.begin_popup("GameInfo", flags=self.popup_flags):
             game = self.current_info_popup_game
             imgui.push_text_wrap_pos()
