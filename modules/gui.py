@@ -2,6 +2,7 @@ from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
 from PIL import Image
+import configparser
 import pathlib
 import numpy
 import imgui
@@ -98,10 +99,22 @@ class MainGUI():
         self.io = imgui.get_io()
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
         self.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
+        try:
+            imgui.load_ini_settings_from_disk(self.ini_file_name.decode("utf-8"))
+            ini = imgui.save_ini_settings_to_memory()
+            start = ini.find("[Window][F95Checker]")
+            end = ini.find("\n[", start)
+            config = configparser.RawConfigParser()
+            config.read_string(ini[start:end])
+            size = (int(x) for x in config.get("Window][F95Checker", "Size").split(","))
+            assert type(size) is tuple and len(size) == 2
+            assert type(size[0]) is int and type(size[1]) is int
+        except Exception:
+            size = 1280, 720
         self.style = imgui.get_style()
 
         # Setup GLFW window
-        self.window = impl_glfw_init(1280, 720, "F95Checker")  # TODO: remember window size
+        self.window = impl_glfw_init(*size, "F95Checker")
         glfw.set_window_icon(self.window, 1, Image.open("resources/icons/icon.png"))
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_iconify_callback(self.window, self.minimize)
