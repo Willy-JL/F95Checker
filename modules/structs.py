@@ -1,6 +1,5 @@
 import dataclasses
 import datetime
-import numpy
 import enum
 
 
@@ -221,13 +220,6 @@ Tag = IntEnumAuto("Tag", " ".join([
     "vore",
     "voyeurism"
 ]))
-
-
-@dataclasses.dataclass
-class GLImage:
-    texture_id : numpy.uint32
-    width      : int
-    height     :int
 
 
 @dataclasses.dataclass

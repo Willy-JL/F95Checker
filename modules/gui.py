@@ -1,8 +1,10 @@
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
+import multiprocessing
 from PIL import Image
 import configparser
+import asyncio
 import pathlib
 import numpy
 import imgui
@@ -37,6 +39,47 @@ def impl_glfw_init(width: int, height: int, window_name: str):
         sys.exit(1)
 
     return window
+
+
+class GLImage:
+    def __init__(self, path: str | pathlib.Path):
+        self.applied = False
+        self.img_array = None
+        img = Image.open(path)
+        self.width, self.height = img.size
+        self.texture_id = gl.glGenTextures(1)
+        async_thread.run(self.convert(img))
+
+    @staticmethod
+    def _convert(img, queue):
+        if img.mode != "RGBA":
+            img = img.convert("RGBA")
+        img_data = img.getdata()
+        img_array = numpy.array(img_data, numpy.uint8)
+        queue.put(img_array)
+
+    async def convert(self, img):
+        queue = multiprocessing.SimpleQueue()
+        proc = multiprocessing.Process(
+            target=self._convert,
+            args=(img, queue)
+        )
+        proc.start()
+        while queue.empty():
+            await asyncio.sleep(0.1)
+        self.img_array = queue.get()
+
+    def render(self):
+        if self.applied:
+            return
+        if self.img_array is not None:
+            gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
+            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
+            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.img_array)
+            self.applied = True
 
 
 class MainGUI():
@@ -138,21 +181,6 @@ class MainGUI():
             glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
         )
         self.impl.refresh_font_texture()
-
-    def load_image(self, path: str | pathlib.Path):
-        img = Image.open(path)
-        if img.mode != "RGB":
-            img = img.convert(mode="RGB")
-        img_data = img.getdata()
-        img_array = numpy.array(img_data, numpy.uint8)
-        texture_id = gl.glGenTextures(1)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, img.width, img.height, 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, img_array)
-        return GLImage(texture_id, img.width, img.height)
 
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
@@ -299,6 +327,7 @@ class MainGUI():
             imgui.push_text_wrap_pos()
 
             image = self.current_info_popup_image
+            image.render()
             aspect_ratio = image.height / image.width
             avail = imgui.get_content_region_available()
             width = avail.x
@@ -570,7 +599,7 @@ class MainGUI():
                         # Click = open game info popup
                         self.game_list_hitbox_click = False
                         self.current_info_popup_game = game
-                        self.current_info_popup_image = self.load_image(globals.data_path / f"images/{game.id}.jpg")
+                        self.current_info_popup_image = GLImage(globals.data_path / f"images/{game.id}.jpg")
                         imgui.open_popup("GameInfo")
             # Draw info popup outside loop but in same ImGui context
             self.draw_game_info_popup()
