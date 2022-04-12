@@ -217,38 +217,127 @@ class MainGUI():
                 game.rating = i
                 async_thread.run(db.update_game(game, "rating"))
                 self.require_sort = True
-            if i < 5:
-                imgui.same_line()
+            imgui.same_line()
         imgui.pop_style_color(3)
         imgui.pop_style_var(2)
+        imgui.text("")
 
     def draw_game_open_thread_button(self, game, label=""):
         if imgui.button(f"{label}##{game.id}_open_thread"):
             pass  # TODO: open game threads
 
+    def draw_game_notes_widget(self, game):
+        changed, new_notes = imgui.input_text_multiline(
+            f"##{game.id}_notes",
+            value=game.notes,
+            buffer_length=9999999,
+            width=imgui.get_content_region_available_width(),
+            height=0
+        )
+        if changed:
+            game.notes = new_notes
+            async_thread.run(db.update_game(game, "notes"))
+
+    def draw_game_tags_widget(self, game):
+        imgui.text("")
+        col = (0.3, 0.3, 0.3, 1)
+        imgui.push_style_color(imgui.COLOR_BUTTON, *col)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        for tag in game.tags:
+            imgui.same_line()
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + 20:
+                imgui.text("")
+            imgui.small_button(tag.name)
+        imgui.pop_style_color(3)
+
     def draw_game_info_popup(self):
         avail = self.io.display_size
         imgui.set_next_window_position(avail.x / 2, avail.y / 2, imgui.ALWAYS, 0.5, 0.5)
         imgui.set_next_window_size(min(avail.x * 0.9, 600), min(avail.y * 0.9, 800))
-        with imgui.begin_popup("GameInfo", flags=self.popup_flags):
-            game = self.current_info_popup_game
-            imgui.text("[Image Placeholder]")
-            imgui.text(game.name)  # FIXME: title text style
-            imgui.text_disabled("Engine:")
-            imgui.same_line()
-            self.draw_game_engine_widget(game)
-            imgui.text_disabled("Version:")
-            imgui.same_line()
-            imgui.text(game.version)
-            imgui.text_disabled("Status:")
-            imgui.same_line()
-            imgui.text(game.status.name)
-            imgui.same_line()
-            self.draw_game_status_widget(game)
-            imgui.text_disabled("Develoer:")
-            imgui.same_line()
-            # imgui.text(game.developer)
-            imgui.text("Developer Placeholder")
+        with imgui.begin_popup("GameInfo", flags=self.popup_flags) as popup:
+            if popup.opened:
+                game = self.current_info_popup_game
+                imgui.push_text_wrap_pos()
+
+                imgui.text("[Image Placeholder]")
+
+                imgui.text(game.name)  # FIXME: title text style
+
+                self.draw_game_play_button(game, label="󰐊 Play")
+                imgui.same_line()
+                self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
+                imgui.same_line()
+                self.draw_game_played_checkbox(game, label="󰈼 Played")
+                imgui.same_line()
+                imgui.spacing()
+                imgui.same_line()
+                self.draw_game_installed_checkbox(game, label="󰅢 Installed")
+
+                imgui.text_disabled("Personal Rating:")
+                imgui.same_line()
+                self.draw_game_rating_widget(game)
+
+                imgui.text_disabled("Version:")
+                imgui.same_line()
+                imgui.text(game.version)
+
+                imgui.text_disabled("Status:")
+                imgui.same_line()
+                imgui.text(game.status.name)
+                imgui.same_line()
+                self.draw_game_status_widget(game)
+
+                imgui.text_disabled("Develoer:")
+                imgui.same_line()
+                imgui.text(game.developer)
+
+                imgui.text_disabled("Engine:")
+                imgui.same_line()
+                self.draw_game_engine_widget(game)
+
+                imgui.text_disabled("Last Updated:")
+                imgui.same_line()
+                imgui.text(game.last_updated.display)
+
+                imgui.text_disabled("Last Played:")
+                imgui.same_line()
+                imgui.text(game.last_played.display)
+
+                imgui.text_disabled("Added On:")
+                imgui.same_line()
+                imgui.text(game.added_on.display)
+
+                imgui.text("")
+
+                imgui.text_disabled("Notes:")
+                self.draw_game_notes_widget(game)
+
+                imgui.text("")
+
+                imgui.text_disabled("Tags:")
+                if game.tags:
+                    self.draw_game_tags_widget(game)
+                else:
+                    imgui.text("This game has no tags!")
+
+                imgui.text("")
+
+                imgui.text_disabled("Description:")
+                if game.description:
+                    imgui.text_unformatted(game.description)
+                else:
+                    imgui.text_unformatted("Either this game doesn't have a description, or the thread is not formatted properly!")
+
+                imgui.text("")
+
+                imgui.text_disabled("Changelog:")
+                if game.changelog:
+                    imgui.text_unformatted(game.changelog)
+                else:
+                    imgui.text_unformatted("Either this game doesn't have a changelog, or the thread is not formatted properly!")
+
+                imgui.pop_text_wrap_pos()
 
     def draw_games_list(self):
         ghost_column_size = (self.style.frame_padding.x + self.style.cell_padding.x * 2)
@@ -380,8 +469,7 @@ class MainGUI():
                     self.draw_game_status_widget(game)
                 # Developer
                 imgui.table_set_column_index(column_i := column_i + 1)
-                # imgui.text(game.developer)  # TODO: fetch game developers
-                imgui.text("Placeholder")
+                imgui.text(game.developer)  # TODO: fetch game developers
                 # Last Updated
                 imgui.table_set_column_index(column_i := column_i + 1)
                 imgui.text(game.last_updated.display)

@@ -65,7 +65,7 @@ async def connect():
                 version           TEXT    DEFAULT "",
                 developer         TEXT    DEFAULT "",
                 engine            INTEGER DEFAULT {Engine.Other},
-                status            INTEGER DEFAULT {Status["None"]},
+                status            INTEGER DEFAULT {Status.Normal},
                 url               TEXT    DEFAULT "",
                 added_on          INTEGER DEFAULT 0,
                 last_updated      INTEGER DEFAULT 0,
@@ -371,11 +371,11 @@ async def migrate_legacy(config: dict):
             if status := game.get("status"):
                 keys.append("status")
                 values.append(Status[{
-                    "none":      "None",
+                    "none":      "Normal",
                     "completed": "Completed",
                     "onhold":    "OnHold",
                     "abandoned": "Abandoned"
-                }].value)
+                }[status]].value)
 
             if installed := game.get("installed"):
                 keys.append("installed")

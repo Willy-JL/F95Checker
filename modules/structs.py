@@ -63,12 +63,11 @@ EngineColors = {
 }
 
 
-Status = IntEnumAuto("Status", " ".join([
-    "None",
-    "Completed",
-    "OnHold",
-    "Abandoned"
-]))
+class Status(IntEnumAuto):
+    Normal    = ()
+    Completed = ()
+    OnHold    = ()
+    Abandoned = ()
 
 
 class Timestamp:
