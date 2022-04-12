@@ -3,6 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
 from PIL import Image
 import pathlib
+import numpy
 import imgui
 import glfw
 import sys
@@ -84,6 +85,7 @@ class MainGUI():
         self.prev_manual_sort = False
         self.current_info_popup_game = 0
         self.game_list_hitbox_click = False
+        self.current_info_popup_image = None
         self.ghost_columns_enabled_count = 0
 
         # Setup Qt objects
@@ -123,6 +125,21 @@ class MainGUI():
             glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
         )
         self.impl.refresh_font_texture()
+
+    def load_image(self, path: str | pathlib.Path):
+        img = Image.open(path)
+        if img.mode != "RGB":
+            img = img.convert(mode="RGB")
+        img_data = img.getdata()
+        img_array = numpy.array(img_data, numpy.uint8)
+        texture_id = gl.glGenTextures(1)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, img.width, img.height, 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, img_array)
+        return GLImage(texture_id, img.width, img.height)
 
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
@@ -261,7 +278,12 @@ class MainGUI():
                 game = self.current_info_popup_game
                 imgui.push_text_wrap_pos()
 
-                imgui.text("[Image Placeholder]")
+                image = self.current_info_popup_image
+                aspect_ratio = image.height / image.width
+                width = imgui.get_content_region_available_width()
+                height = width * aspect_ratio
+                imgui.image(image.texture_id, width, height)
+
 
                 imgui.text(game.name)  # FIXME: title text style
 
@@ -512,6 +534,7 @@ class MainGUI():
                         # Click = open game info popup
                         self.game_list_hitbox_click = False
                         self.current_info_popup_game = game
+                        self.current_info_popup_image = self.load_image(globals.data_path / f"images/{game.id}.jpg")
                         imgui.open_popup("GameInfo")
             # Draw info popup outside loop but in same ImGui context
             self.draw_game_info_popup()
