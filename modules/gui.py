@@ -298,6 +298,10 @@ class MainGUI():
             avail = imgui.get_content_region_available()
             width = avail.x
             height = width * aspect_ratio
+            if height > (new_height := avail.y * 0.3):
+                height = new_height
+                width = height * (1 / aspect_ratio)
+                imgui.set_cursor_pos_x((avail.x - width + self.style.scrollbar_size) / 2)
             imgui.image(image.texture_id, width, height)
 
 
