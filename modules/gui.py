@@ -2,6 +2,7 @@ from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
 from PIL import Image
+import pathlib
 import imgui
 import glfw
 import sys
@@ -165,11 +166,11 @@ class MainGUI():
         self.impl.shutdown()
         glfw.terminate()
 
-    def draw_game_play_button(self, game, label=""):
+    def draw_game_play_button(self, game: Game, label:str = ""):
         if imgui.button(f"{label}##{game.id}_play_button"):
             pass  # TODO: game launching
 
-    def draw_game_engine_widget(self, game):
+    def draw_game_engine_widget(self, game: Game):
         col = (*EngineColors[game.engine.value], 1)
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
@@ -177,7 +178,7 @@ class MainGUI():
         imgui.small_button(f"{game.engine.name}##{game.id}_engine")
         imgui.pop_style_color(3)
 
-    def draw_game_status_widget(self, game):
+    def draw_game_status_widget(self, game: Game):
         if game.status is Status.Completed:
             imgui.text_colored("󰄳", 0.00, 0.85, 0.00)
         elif game.status is Status.OnHold:
@@ -187,13 +188,13 @@ class MainGUI():
         else:
             imgui.text("")
 
-    def draw_game_played_checkbox(self, game, label=""):
+    def draw_game_played_checkbox(self, game: Game, label:str = ""):
         changed, game.played = imgui.checkbox(f"{label}##{game.id}_played", game.played)
         if changed:
             async_thread.run(db.update_game(game, "played"))
             self.require_sort = True
 
-    def draw_game_installed_checkbox(self, game, label=""):
+    def draw_game_installed_checkbox(self, game: Game, label: str = ""):
         changed, installed = imgui.checkbox(f"{label}##{game.id}_installed", game.installed == game.version)
         if changed:
             if installed:
@@ -203,7 +204,7 @@ class MainGUI():
             async_thread.run(db.update_game(game, "installed"))
             self.require_sort = True
 
-    def draw_game_rating_widget(self, game):
+    def draw_game_rating_widget(self, game: Game):
         imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
@@ -222,11 +223,11 @@ class MainGUI():
         imgui.pop_style_var(2)
         imgui.text("")
 
-    def draw_game_open_thread_button(self, game, label=""):
+    def draw_game_open_thread_button(self, game: Game, label: str = ""):
         if imgui.button(f"{label}##{game.id}_open_thread"):
             pass  # TODO: open game threads
 
-    def draw_game_notes_widget(self, game):
+    def draw_game_notes_widget(self, game: Game):
         changed, new_notes = imgui.input_text_multiline(
             f"##{game.id}_notes",
             value=game.notes,
@@ -238,7 +239,7 @@ class MainGUI():
             game.notes = new_notes
             async_thread.run(db.update_game(game, "notes"))
 
-    def draw_game_tags_widget(self, game):
+    def draw_game_tags_widget(self, game: Game):
         imgui.text("")
         col = (0.3, 0.3, 0.3, 1)
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
