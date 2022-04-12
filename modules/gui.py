@@ -411,7 +411,7 @@ class MainGUI():
             sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT)  # 4
             imgui.table_setup_column("Engine", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 5
-            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | sort)  # 6
+            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | sort)  # 6
             imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 7
             imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 8
             imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 9
