@@ -11,15 +11,16 @@ class IntEnumAuto(enum.IntEnum):
         return obj
 
 
-class Browser(IntEnumAuto):
-    none    = ()
-    chrome  = ()
-    firefox = ()
-    brave   = ()
-    edge    = ()
-    opera   = ()
-    operagx = ()
-    custom  = ()
+Browser = IntEnumAuto("Browser", " ".join([
+    "None",
+    "Chrome",
+    "Firefox",
+    "Brave",
+    "Edge",
+    "Opera",
+    "OperaGX",
+    "Custom"
+]))
 
 
 class DisplayMode(IntEnumAuto):

@@ -27,7 +27,7 @@ async def connect():
                 browser_custom_executable   TEXT    DEFAULT "",
                 browser_html                INTEGER DEFAULT 0,
                 browser_private             INTEGER DEFAULT 0,
-                browser                     INTEGER DEFAULT {Browser.none},
+                browser                     INTEGER DEFAULT {Browser["None"]},
                 display_mode                INTEGER DEFAULT {DisplayMode.list},
                 manual_sort_list            TEXT    DEFAULT "[]",
                 refresh_completed_games     INTEGER DEFAULT 1,
@@ -295,7 +295,15 @@ async def migrate_legacy(config: dict):
 
         if browser := options.get("browser"):
             keys.append("browser")
-            values.append(Browser[browser].value)
+            values.append(Browser[{
+                "none":    "None",
+                "chrome":  "Chrome",
+                "firefox": "Firefox",
+                "brave":   "Brave",
+                "edge":    "Edge",
+                "opera":   "Opera",
+                "operagx": "OperaGX"
+            }[browser]].value)
 
         if private_browser := options.get("private_browser"):
             keys.append("browser_private")
