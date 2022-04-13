@@ -130,6 +130,7 @@ class MainGUI():
         # Variables
         self.visible = True
         self.prev_size = 0, 0
+        self.status_text = ""
         self.require_sort = True
         self.prev_manual_sort = 0
         self.sorted_games_ids = []
@@ -218,6 +219,7 @@ class MainGUI():
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
 
                 if imgui.begin("F95Checker", closable=False, flags=self.window_flags) or True:
+
                     if imgui.begin_child("Main", width=-self.sidebar_size, height=0, border=False) or True:
                         if globals.settings.display_mode is DisplayMode.list:
                             self.draw_games_list()
@@ -225,10 +227,21 @@ class MainGUI():
                             self.draw_games_grid()
                         self.draw_bottombar()
                     imgui.end_child()
+
+                    text = self.status_text or f"F95Checker v{globals.version} by WillyJL"
+                    text_size = imgui.calc_text_size(text)
+                    text_pos = size.x - text_size.x - 6, size.y - text_size.y - 6
+
                     imgui.same_line()
-                    if imgui.begin_child("Sidebar", width=self.sidebar_size, height=0, border=False) or True:
+                    if imgui.begin_child("Sidebar", width=self.sidebar_size - 8, height=-text_size.y, border=False) or True:
                         self.draw_sidebar()
                     imgui.end_child()
+
+                    imgui.set_cursor_screen_pos(text_pos)
+                    if imgui.invisible_button("##status_text", *text_size):
+                        print("aaa")
+                    imgui.set_cursor_screen_pos(text_pos)
+                    imgui.text(text)
                 imgui.end()
 
                 if (size := self.io.display_size) != self.prev_size:
