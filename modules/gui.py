@@ -232,8 +232,8 @@ class MainGUI():
                     text_size = imgui.calc_text_size(text)
                     text_pos = size.x - text_size.x - 6, size.y - text_size.y - 6
 
-                    imgui.same_line()
-                    if imgui.begin_child("Sidebar", width=self.sidebar_size - 8, height=-text_size.y, border=False) or True:
+                    imgui.same_line(spacing=0)
+                    if imgui.begin_child("Sidebar", width=self.sidebar_size, height=-text_size.y, border=False) or True:
                         self.draw_sidebar()
                     imgui.end_child()
 
