@@ -365,20 +365,27 @@ class MainGUI():
                 imgui.begin_tooltip()
                 size = globals.settings.zoom_size
                 zoom = globals.settings.zoom_amount
-                crop_size = size / zoom
+                zoomed_size = size * zoom
                 mouse_pos = self.io.mouse_pos
                 ratio = image.width / width
-                x = (mouse_pos.x - image_pos.x) * ratio - crop_size * 0.5
+                x = (mouse_pos.x - image_pos.x) - size * 0.5
                 if x < 0:
                     x = 0
-                elif x > (new_x := image.width - crop_size):
+                elif x > (new_x := width - size):
                     x = new_x
-                y = (mouse_pos.y - image_pos.y) * ratio - crop_size * 0.5
+                y = (mouse_pos.y - image_pos.y) - size * 0.5
                 if y < 0:
                     y = 0
-                elif y > (new_y := image.height - crop_size):
+                elif y > (new_y := height - size):
                     y = new_y
-                imgui.image(image.texture_id, size, size, (x / image.width, y / image.height), ((x + crop_size) / image.width, (y + crop_size) / image.height))
+                x *= ratio
+                y *= ratio
+                size *= ratio
+                left = x / image.width
+                top = y / image.height
+                right = (x + size) / image.width
+                bottom = (y + size) / image.height
+                imgui.image(image.texture_id, zoomed_size, zoomed_size, (left, top), (right, bottom))
                 imgui.end_tooltip()
             imgui.push_text_wrap_pos()
 
