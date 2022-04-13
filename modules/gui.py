@@ -186,6 +186,11 @@ class MainGUI():
             font_config=imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1),
             glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
         )
+        self.big_font = self.io.fonts.add_font_from_file_ttf(
+            str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
+            28 * font_scaling_factor,
+            font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
+        )
         self.impl.refresh_font_texture()
 
     def close(self, *args, **kwargs):
@@ -350,13 +355,11 @@ class MainGUI():
                 crop_size = size / zoom
                 mouse_pos = self.io.mouse_pos
                 ratio = image.width / width
-                print(ratio)
                 x = (mouse_pos.x - image_pos.x) * ratio - crop_size * 0.5
                 if x < 0:
                     x = 0
                 elif x > (new_x := image.width - crop_size):
                     x = new_x
-                print(x, image.width)
                 y = (mouse_pos.y - image_pos.y) * ratio - crop_size * 0.5
                 if y < 0:
                     y = 0
@@ -367,7 +370,8 @@ class MainGUI():
             imgui.push_text_wrap_pos()
 
 
-            imgui.text(game.name)  # FIXME: title text style
+            with imgui.font(self.big_font):
+                imgui.text(game.name)
 
             self.draw_game_play_button(game, label="󰐊 Play")
             imgui.same_line()
