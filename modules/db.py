@@ -47,7 +47,10 @@ async def connect():
                 style_scaling               REAL    DEFAULT 1.0,
                 tray_refresh_interval       INTEGER DEFAULT 15,
                 update_keep_executable      INTEGER DEFAULT 0,
-                update_keep_image           INTEGER DEFAULT 0
+                update_keep_image           INTEGER DEFAULT 0,
+                zoom_amount                 INTEGER DEFAULT 4,
+                zoom_enabled                INTEGER DEFAULT 1,
+                zoom_size                   INTEGER DEFAULT 256
             )
         """)
         await connection.execute("""
