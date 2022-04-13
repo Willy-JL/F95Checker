@@ -47,8 +47,14 @@ class GLImage:
         self.img_array = None
         img = Image.open(path)
         self.width, self.height = img.size
-        self.texture_id = gl.glGenTextures(1)
+        self._texture_id = gl.glGenTextures(1)
         async_thread.run(self.convert(img))
+
+    @property
+    def texture_id(self):
+        if not self.applied:
+            self.apply()
+        return self._texture_id
 
     @staticmethod
     def _convert(img, queue):
@@ -69,11 +75,11 @@ class GLImage:
             await asyncio.sleep(0.1)
         self.img_array = queue.get()
 
-    def render(self):
+    def apply(self):
         if self.applied:
             return
         if self.img_array is not None:
-            gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
+            gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
@@ -324,19 +330,41 @@ class MainGUI():
 
         if imgui.begin_popup("GameInfo", flags=self.popup_flags):
             game = self.current_info_popup_game
-            imgui.push_text_wrap_pos()
 
             image = self.current_info_popup_image
-            image.render()
             aspect_ratio = image.height / image.width
             avail = imgui.get_content_region_available()
-            width = avail.x
-            height = width * aspect_ratio
+            width = min(avail.x, image.width)
+            height = min(width * aspect_ratio, image.height)
             if height > (new_height := avail.y * 0.3):
                 height = new_height
                 width = height * (1 / aspect_ratio)
+            if width < avail.x:
                 imgui.set_cursor_pos_x((avail.x - width + self.style.scrollbar_size) / 2)
+            image_pos = imgui.get_cursor_screen_pos()
             imgui.image(image.texture_id, width, height)
+            if imgui.is_item_hovered() and globals.settings.zoom_enabled:
+                imgui.begin_tooltip()
+                size = globals.settings.zoom_size
+                zoom = globals.settings.zoom_amount
+                crop_size = size / zoom
+                mouse_pos = self.io.mouse_pos
+                ratio = image.width / width
+                print(ratio)
+                x = (mouse_pos.x - image_pos.x) * ratio - crop_size * 0.5
+                if x < 0:
+                    x = 0
+                elif x > (new_x := image.width - crop_size):
+                    x = new_x
+                print(x, image.width)
+                y = (mouse_pos.y - image_pos.y) * ratio - crop_size * 0.5
+                if y < 0:
+                    y = 0
+                elif y > (new_y := image.height - crop_size):
+                    y = new_y
+                imgui.image(image.texture_id, size, size, (x / image.width, y / image.height), ((x + crop_size) / image.width, (y + crop_size) / image.height))
+                imgui.end_tooltip()
+            imgui.push_text_wrap_pos()
 
 
             imgui.text(game.name)  # FIXME: title text style
