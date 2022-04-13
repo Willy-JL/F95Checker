@@ -50,6 +50,7 @@ async def connect():
                 update_keep_image           INTEGER DEFAULT 0,
                 zoom_amount                 INTEGER DEFAULT 4,
                 zoom_enabled                INTEGER DEFAULT 1,
+                zoom_region                 INTEGER DEFAULT 1,
                 zoom_size                   INTEGER DEFAULT 64
             )
         """)

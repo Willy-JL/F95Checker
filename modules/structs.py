@@ -252,6 +252,7 @@ class Settings:
     update_keep_image           : bool        = None
     zoom_amount                 : int         = None
     zoom_enabled                : bool        = None
+    zoom_region                 : bool        = None
     zoom_size                   : int         = None
 
 
