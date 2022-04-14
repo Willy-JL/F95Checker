@@ -41,51 +41,67 @@ def impl_glfw_init(width: int, height: int, window_name: str):
     return window
 
 
-class GLImage:
+class ImGuiImage:
     def __init__(self, path: str | pathlib.Path):
+        self.loaded = False
+        self.loading = False
         self.applied = False
         self.img_array = None
-        img = Image.open(path)
-        self.width, self.height = img.size
-        self._texture_id = gl.glGenTextures(1)
-        async_thread.run(self.convert(img))
+        self.path = path
+        self.width, self.height = 1, 1
+        self.texture_id = None
 
-    @property
-    def texture_id(self):
-        if not self.applied:
-            self.apply()
-        return self._texture_id
+    def open(self):
+        img = Image.open(self.path)
+        self.width, self.height = img.size
+        return img
 
     @staticmethod
-    def _convert(img, queue):
+    def _load(img, queue):
         if img.mode != "RGBA":
             img = img.convert("RGBA")
         img_data = img.getdata()
         img_array = numpy.array(img_data, numpy.uint8)
         queue.put(img_array)
 
-    async def convert(self, img):
+    async def load(self, img):
         queue = multiprocessing.SimpleQueue()
         proc = multiprocessing.Process(
-            target=self._convert,
+            target=self._load,
             args=(img, queue)
         )
         proc.start()
         while queue.empty():
             await asyncio.sleep(0.1)
         self.img_array = queue.get()
+        self.loading = False
+        self.loaded = True
+
+    def reset(self):
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, numpy.empty(0))
 
     def apply(self):
-        if self.applied:
-            return
-        if self.img_array is not None:
-            gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-            gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
-            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.img_array)
-            self.applied = True
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.img_array)
+        self.applied = True
+
+    def render(self, *args, **kwargs):
+        if self.texture_id is None:
+            self.texture_id = gl.glGenTextures(1)
+        if not self.loaded:
+            if not self.loading:
+                self.loading = True
+                self.applied = False
+                self.reset()
+                async_thread.run(self.load(self.open()))
+        elif not self.applied:
+            self.apply()
+        imgui.image(self.texture_id, *args, **kwargs)
 
 
 class MainGUI():
@@ -136,7 +152,6 @@ class MainGUI():
         self.sorted_games_ids = []
         self.current_info_popup_game = 0
         self.game_list_hitbox_click = False
-        self.current_info_popup_image = None
         self.ghost_columns_enabled_count = 0
 
         # Setup Qt objects
@@ -358,7 +373,7 @@ class MainGUI():
         if imgui.begin_popup("GameInfo", flags=self.popup_flags):
             game = self.current_info_popup_game
 
-            image = self.current_info_popup_image
+            image = game.image
             aspect_ratio = image.height / image.width
             avail = imgui.get_content_region_available()
             width = min(avail.x, image.width)
@@ -369,7 +384,7 @@ class MainGUI():
             if width < avail.x:
                 imgui.set_cursor_pos_x((avail.x - width + self.style.scrollbar_size) / 2)
             image_pos = imgui.get_cursor_screen_pos()
-            imgui.image(image.texture_id, width, height)
+            image.render(width, height)
             if imgui.is_item_hovered() and globals.settings.zoom_enabled:
                 size = globals.settings.zoom_size
                 zoom = globals.settings.zoom_amount
@@ -399,7 +414,7 @@ class MainGUI():
                 right = (x + size) / image.width
                 bottom = (y + size) / image.height
                 imgui.begin_tooltip()
-                imgui.image(image.texture_id, zoomed_size, zoomed_size, (left, top), (right, bottom))
+                image.render(zoomed_size, zoomed_size, (left, top), (right, bottom))
                 imgui.end_tooltip()
             imgui.push_text_wrap_pos()
 
@@ -665,7 +680,6 @@ class MainGUI():
                         # Click = open game info popup
                         self.game_list_hitbox_click = False
                         self.current_info_popup_game = game
-                        self.current_info_popup_image = GLImage(globals.data_path / f"images/{game.id}.jpg")
                         imgui.open_popup("GameInfo")
             # Draw info popup outside loop but in same ImGui context
             self.draw_game_info_popup()

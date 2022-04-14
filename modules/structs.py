@@ -277,3 +277,4 @@ class Game:
     changelog         : str       = None
     tags              : list[Tag] = None
     notes             : str       = None
+    image                         = None
