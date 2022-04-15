@@ -706,7 +706,7 @@ class MainGUI():
 
         imgui.same_line()
         imgui.set_next_item_width(-48)
-        imgui.input_text("##filter_add_bar", "", 999)
+        imgui.input_text("##filter_add_bar", "", 9999999)
         imgui.same_line()
         if imgui.button("Add!"):
             pass  # TODO: add button functionality
