@@ -686,23 +686,19 @@ class MainGUI():
         new_display_mode = None
 
         if globals.settings.display_mode is DisplayMode.grid:
-            imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
-            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
-            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
+            imgui.push_style_var(imgui.STYLE_ALPHA, imgui.get_style().alpha *  0.5)
         if imgui.button("󱇘##list_mode"):
             new_display_mode = DisplayMode.list
         if globals.settings.display_mode is DisplayMode.grid:
-            imgui.pop_style_color(3)
+            imgui.pop_style_var()
 
         imgui.same_line()
         if globals.settings.display_mode is DisplayMode.list:
-            imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
-            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
-            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
+            imgui.push_style_var(imgui.STYLE_ALPHA, imgui.get_style().alpha *  0.5)
         if imgui.button("󱇙##grid_mode"):
             new_display_mode = DisplayMode.grid
         if globals.settings.display_mode is DisplayMode.list:
-            imgui.pop_style_color(3)
+            imgui.pop_style_var()
 
         if new_display_mode is not None:
             globals.settings.display_mode = new_display_mode
