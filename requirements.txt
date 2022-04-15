@@ -8,4 +8,6 @@ soupsieve>=2.1
 beautifulsoup4
 PyQt5-sip==12.8.1
 PyQtWebEngine==5.15.2
+
+pygame
 git+https://github.com/pyimgui/pyimgui.git@c27d2f29b187e4453c0826140992c095500f042b

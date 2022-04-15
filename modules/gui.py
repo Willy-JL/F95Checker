@@ -1,11 +1,10 @@
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
-import multiprocessing
 from PIL import Image
 import configparser
-import asyncio
 import pathlib
+import pygame
 import numpy
 import imgui
 import glfw
@@ -44,42 +43,23 @@ def impl_glfw_init(width: int, height: int, window_name: str):
 class ImGuiImage:
     def __init__(self, path: str | pathlib.Path):
         self.loaded = False
-        self.loading = False
         self.applied = False
-        self.img_array = None
+        self.data = None
         self.path = path
         self.width, self.height = 1, 1
         self.texture_id = None
 
-    def open(self):
-        img = Image.open(self.path)
-        self.width, self.height = img.size
-        return img
-
-    @staticmethod
-    def _load(img, queue):
-        if img.mode != "RGBA":
-            img = img.convert("RGBA")
-        img_data = img.getdata()
-        img_array = numpy.array(img_data, numpy.uint8)
-        queue.put(img_array)
-
-    async def load(self, img):
-        queue = multiprocessing.SimpleQueue()
-        proc = multiprocessing.Process(
-            target=self._load,
-            args=(img, queue)
-        )
-        proc.start()
-        while queue.empty():
-            await asyncio.sleep(0.1)
-        self.img_array = queue.get()
-        self.loading = False
-        self.loaded = True
-
     def reset(self):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, numpy.empty(0))
+        self.applied = False
+
+    def load(self):
+        image = pygame.image.load(self.path)
+        surface = pygame.transform.flip(image, False, True)
+        self.width, self.height = surface.get_size()
+        self.data = pygame.image.tostring(surface, "RGBA", 1)
+        self.loaded = True
 
     def apply(self):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
@@ -87,18 +67,15 @@ class ImGuiImage:
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.img_array)
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.data)
         self.applied = True
 
     def render(self, *args, **kwargs):
         if self.texture_id is None:
             self.texture_id = gl.glGenTextures(1)
         if not self.loaded:
-            if not self.loading:
-                self.loading = True
-                self.applied = False
-                self.reset()
-                async_thread.run(self.load(self.open()))
+            self.reset()
+            self.load()
         elif not self.applied:
             self.apply()
         imgui.image(self.texture_id, *args, **kwargs)
