@@ -80,12 +80,12 @@ class FilePicker:
             imgui.end_child()
 
             # Cancel button
-            imgui.same_line()
             if imgui.button("Cancel"):
                 self.selected = ""
                 self.active = False
                 imgui.close_current_popup()
             # Ok button
+            imgui.same_line()
             if item[0] == self.dir_icon:
                 imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
                 imgui.push_style_var(imgui.STYLE_ALPHA, imgui.get_style().alpha *  0.5)
