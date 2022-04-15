@@ -11,6 +11,7 @@ import glfw
 import sys
 
 from modules import async_thread
+from modules import filepicker
 from modules.structs import *
 from modules import globals
 from modules import db
@@ -127,6 +128,7 @@ class MainGUI():
         self.require_sort = True
         self.prev_manual_sort = 0
         self.sorted_games_ids = []
+        self.current_filepicker = None
         self.current_info_popup_game = 0
         self.game_list_hitbox_click = False
         self.ghost_columns_enabled_count = 0
@@ -753,15 +755,47 @@ class MainGUI():
                     set.browser = Browser(value + 1)
                     async_thread.run(db.update_settings("browser"))
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Use private mode:")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
-                changed, value = imgui.checkbox("##browser_private", set.browser_private)
-                if changed:
-                    set.browser_private = value
-                    async_thread.run(db.update_settings("browser_private"))
+                if set.browser is Browser.Custom:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.text("Custom browser:")
+                    imgui.table_next_column()
+                    if imgui.button("Configure##browser_custom_popup", width=-0.1):
+                        imgui.open_popup("browser_custom_settings")
+                    size = self.io.display_size
+                    imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
+                    if imgui.begin_popup("browser_custom_settings", flags=self.popup_flags):
+                        args_width = 0
+                        changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
+                        args_width += imgui.calculate_item_width()
+                        if changed:
+                            async_thread.run(db.update_settings("browser_custom_executable"))
+                        imgui.same_line()
+                        clicked = imgui.button("󰷏")
+                        args_width += 26
+                        if clicked:
+                            self.current_filepicker = filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable)
+                        if self.current_filepicker:
+                            selected = self.current_filepicker.tick()
+                            if selected is not None:
+                                set.browser_custom_executable = selected or set.browser_custom_executable
+                                async_thread.run(db.update_settings("browser_custom_executable"))
+                                self.current_filepicker = None
+                        imgui.set_next_item_width(args_width + self.style.item_spacing.x)
+                        changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
+                        if changed:
+                            async_thread.run(db.update_settings("browser_custom_arguments"))
+                        imgui.end_popup()
+                else:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.text("Use private mode:")
+                    imgui.table_next_column()
+                    imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                    changed, value = imgui.checkbox("##browser_private", set.browser_private)
+                    if changed:
+                        set.browser_private = value
+                        async_thread.run(db.update_settings("browser_private"))
 
                 imgui.table_next_row()
                 imgui.table_next_column()
@@ -774,15 +808,6 @@ class MainGUI():
                 if changed:
                     set.browser_html = value
                     async_thread.run(db.update_settings("browser_html"))
-
-                # imgui.table_next_row()
-                # imgui.table_next_column()
-                # imgui.text("Request timeout:")
-                # imgui.table_next_column()
-                # changed, value = imgui.input_int("##request_timeout", set.request_timeout)
-                # set.request_timeout = min(max(value, 1), 120)
-                # if changed:
-                #     async_thread.run(db.update_settings("request_timeout"))
 
                 imgui.end_table()
                 imgui.spacing()
