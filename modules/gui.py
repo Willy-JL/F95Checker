@@ -761,7 +761,10 @@ class MainGUI():
                     size = self.io.display_size
                     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
                     if imgui.begin_popup("browser_custom_settings", flags=self.popup_flags):
+                        imgui.text("Executable: ")
                         args_width = 0
+                        imgui.same_line()
+                        pos = imgui.get_cursor_pos_x()
                         changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
                         args_width += imgui.calculate_item_width()
                         if changed:
@@ -777,6 +780,9 @@ class MainGUI():
                                 set.browser_custom_executable = selected or set.browser_custom_executable
                                 async_thread.run(db.update_settings("browser_custom_executable"))
                                 self.current_filepicker = None
+                        imgui.text("Arguments: ")
+                        imgui.same_line()
+                        imgui.set_cursor_pos_x(pos)
                         imgui.set_next_item_width(args_width + self.style.item_spacing.x)
                         changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
                         if changed:
