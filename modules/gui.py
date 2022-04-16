@@ -249,8 +249,8 @@ class MainGUI():
         self.impl.shutdown()
         glfw.terminate()
 
-    def draw_help_marker(self, help_text: str):
-        imgui.text_disabled("(?)")
+    def draw_help_marker(self, help_text: str, *args, **kwargs):
+        imgui.text_disabled("(?)", *args, **kwargs)
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(imgui.get_font_size() * 35)
@@ -258,36 +258,41 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
-    def draw_game_play_button(self, game: Game, label:str = ""):
-        if imgui.button(f"{label}##{game.id}_play_button"):
-            pass  # TODO: game launching
+    def draw_game_play_button(self, game: Game, label:str = "", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_play_button"
+        if selectable:
+            if imgui.selectable(id, False, *args, **kwargs)[0]:
+                pass
+        else:
+            if imgui.button(id, *args, **kwargs):
+                pass  # TODO: game launching
 
-    def draw_game_engine_widget(self, game: Game):
+    def draw_game_engine_widget(self, game: Game, *args, **kwargs):
         col = (*EngineColors[game.engine.value], 1)
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
-        imgui.small_button(f"{game.engine.name}##{game.id}_engine")
+        imgui.small_button(f"{game.engine.name}##{game.id}_engine", *args, **kwargs)
         imgui.pop_style_color(3)
 
-    def draw_game_status_widget(self, game: Game):
+    def draw_game_status_widget(self, game: Game, *args, **kwargs):
         if game.status is Status.Completed:
-            imgui.text_colored("󰄳", 0.00, 0.85, 0.00)
+            imgui.text_colored("󰄳", 0.00, 0.85, 0.00, *args, **kwargs)
         elif game.status is Status.OnHold:
-            imgui.text_colored("󰏥", 0.00, 0.50, 0.95)
+            imgui.text_colored("󰏥", 0.00, 0.50, 0.95, *args, **kwargs)
         elif game.status is Status.Abandoned:
-            imgui.text_colored("󰅙", 0.87, 0.20, 0.20)
+            imgui.text_colored("󰅙", 0.87, 0.20, 0.20, *args, **kwargs)
         else:
-            imgui.text("")
+            imgui.text("", *args, **kwargs)
 
-    def draw_game_played_checkbox(self, game: Game, label:str = ""):
-        changed, game.played = imgui.checkbox(f"{label}##{game.id}_played", game.played)
+    def draw_game_played_checkbox(self, game: Game, label:str = "", *args, **kwargs):
+        changed, game.played = imgui.checkbox(f"{label}##{game.id}_played", game.played, *args, **kwargs)
         if changed:
             async_thread.run(db.update_game(game, "played"))
             self.require_sort = True
 
-    def draw_game_installed_checkbox(self, game: Game, label: str = ""):
-        changed, installed = imgui.checkbox(f"{label}##{game.id}_installed", game.installed == game.version)
+    def draw_game_installed_checkbox(self, game: Game, label: str = "", *args, **kwargs):
+        changed, installed = imgui.checkbox(f"{label}##{game.id}_installed", game.installed == game.version, *args, **kwargs)
         if changed:
             if installed:
                 game.installed = game.version
@@ -296,7 +301,7 @@ class MainGUI():
             async_thread.run(db.update_game(game, "installed"))
             self.require_sort = True
 
-    def draw_game_rating_widget(self, game: Game):
+    def draw_game_rating_widget(self, game: Game, *args, **kwargs):
         imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
@@ -306,7 +311,7 @@ class MainGUI():
             label = "󰓎"
             if i > game.rating:
                 label = "󰓒"
-            if imgui.small_button(f"{label}##{game.id}_rating_{i}"):
+            if imgui.small_button(f"{label}##{game.id}_rating_{i}", *args, **kwargs):
                 game.rating = i
                 async_thread.run(db.update_game(game, "rating"))
                 self.require_sort = True
@@ -315,23 +320,30 @@ class MainGUI():
         imgui.pop_style_var(2)
         imgui.text("")
 
-    def draw_game_open_thread_button(self, game: Game, label: str = ""):
-        if imgui.button(f"{label}##{game.id}_open_thread"):
-            pass  # TODO: open game threads
+    def draw_game_open_thread_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_open_thread"
+        if selectable:
+            if imgui.selectable(id, False, *args, **kwargs)[0]:
+                pass
+        else:
+            if imgui.button(id, *args, **kwargs):
+                pass  # TODO: open game threads
 
-    def draw_game_notes_widget(self, game: Game):
+    def draw_game_notes_widget(self, game: Game, *args, **kwargs):
         changed, new_notes = imgui.input_text_multiline(
             f"##{game.id}_notes",
             value=game.notes,
             buffer_length=9999999,
             width=imgui.get_content_region_available_width(),
-            height=100
+            height=100,
+            *args,
+            **kwargs
         )
         if changed:
             game.notes = new_notes
             async_thread.run(db.update_game(game, "notes"))
 
-    def draw_game_tags_widget(self, game: Game):
+    def draw_game_tags_widget(self, game: Game, *args, **kwargs):
         imgui.text("")
         col = (0.3, 0.3, 0.3, 1)
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
@@ -341,7 +353,7 @@ class MainGUI():
             imgui.same_line()
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + 20:
                 imgui.text("")
-            imgui.small_button(tag.name)
+            imgui.small_button(tag.name, *args, **kwargs)
         imgui.pop_style_color(3)
 
     def draw_game_info_popup(self):
@@ -646,6 +658,14 @@ class MainGUI():
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - self.style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=24)
                 # Row click callbacks
+                if imgui.begin_popup_context_item(f"##{game.id}_context"):
+                    self.draw_game_play_button(game, label="󰐊 Play", selectable=True)
+                    self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
+                    imgui.spacing()
+                    self.draw_game_played_checkbox(game, label="󰈼 Played")
+                    self.draw_game_installed_checkbox(game, label="󰅢 Installed")
+                    self.draw_game_rating_widget(game)
+                    imgui.end_popup()
                 if imgui.is_item_focused():
                     if imgui.is_item_clicked():
                         self.game_list_hitbox_click = True
