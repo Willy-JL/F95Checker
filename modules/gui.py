@@ -744,7 +744,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Browser:")
                 imgui.same_line()
-                self.draw_help_marker("All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool operates internallly. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate session just for itself.")
+                self.draw_help_marker("All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate session just for itself.")
                 imgui.table_next_column()
                 changed, value = imgui.combo("##browser", set.browser.value - 1, list(Browser.__members__.keys()))
                 if changed:
@@ -931,15 +931,50 @@ class MainGUI():
             if self.start_settings_section("Misc"):
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("BG refresh interval:")
+                imgui.text("BG refresh mins:")
                 imgui.same_line()
-                self.draw_help_marker("When F95Checker is minimized in bacckground mode it automatically refreshes periodically. This controls how often (in minutes) this happens.")
+                self.draw_help_marker("When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how often (in minutes) this happens.")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
                 changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
                 set.tray_refresh_interval = min(max(value, 15), 720)
                 if changed:
                     async_thread.run(db.update_settings("tray_refresh_interval"))
+
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Keep game path:")
+                imgui.same_line()
+                self.draw_help_marker("When a game receives an update, or when you uncheck the installed toggle, F95Checker forgets the game executable you had set. When this option is enabled it will remember it. A typical use of this setting is to have the game folder without a version number and simply replace the game files when an update comes.")
+                imgui.table_next_column()
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                changed, value = imgui.checkbox("##update_keep_executable", set.update_keep_executable)
+                if changed:
+                    set.update_keep_executable = value
+                    async_thread.run(db.update_settings("update_keep_executable"))
+
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Keep game image:")
+                imgui.same_line()
+                self.draw_help_marker(f"When a game receives an update F95Checker downloads the header image again in case it was updated. This setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")
+                imgui.table_next_column()
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
+                if changed:
+                    set.update_keep_image = value
+                    async_thread.run(db.update_settings("update_keep_image"))
+
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Ask path on add:")
+                imgui.same_line()
+                self.draw_help_marker("When this is enabled you will be asked to select a game executable right after adding the game to F95Checker.")
+                imgui.table_next_column()
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
+                if changed:
+                    set.select_executable_after_add = value
+                    async_thread.run(db.update_settings("select_executable_after_add"))
 
                 imgui.end_table()
                 imgui.spacing()
