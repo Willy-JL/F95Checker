@@ -30,7 +30,7 @@ class FilePicker:
         if dir.is_file():
             dir = dir.parent
         if dir.is_dir():
-            self.dir = dir
+            self.dir = dir.absolute()
         elif self.dir is None:
             self.dir = pathlib.Path(os.getcwd())
         self.refresh()
