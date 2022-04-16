@@ -207,6 +207,7 @@ class MainGUI():
             self.impl.process_inputs()
             if self.visible:
                 imgui.new_frame()
+                imgui.push_style_color(imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND, 0, 0, 0, 0.5)
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
                 if (size := self.io.display_size) != self.prev_size:
@@ -241,6 +242,7 @@ class MainGUI():
                 if (size := self.io.display_size) != self.prev_size:
                     self.prev_size = size
 
+                imgui.pop_style_color()
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
             glfw.swap_buffers(self.window)  # Also waits idle time, must run always to avoid useless cycles
