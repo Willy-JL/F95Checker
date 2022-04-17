@@ -683,14 +683,14 @@ class MainGUI():
                         if not imgui.is_item_hovered():
                             self.game_list_hitbox_click = False
                             if manual_sort:
-                                # Drag = swap if in manual sort mode
+                                # Left click drag = swap if in manual sort mode
                                 if imgui.get_mouse_drag_delta().y > 0 and game_i != len(self.sorted_games_ids) - 1:
                                     swap_b = game_i + 1
                                 elif game_i != 0:
                                     swap_b = game_i - 1
                                 swap_a = game_i
                     elif self.game_list_hitbox_click:
-                        # Click = open game info popup
+                        # Left click = open game info popup
                         self.game_list_hitbox_click = False
                         self.current_info_popup_game = game
                         imgui.open_popup("GameInfo")
