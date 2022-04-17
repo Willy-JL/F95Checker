@@ -7,13 +7,13 @@ import sys
 version = "9.0"
 
 if sys.platform.startswith("win"):
-    os = "windows"
+    os = Os.Windows
     data_path = "AppData/Roaming/f95checker"
 elif sys.platform.startswith("linux"):
-    os = "linux"
+    os = Os.Linux
     data_path = ".f95checker"
 elif sys.platform.startswith("darwin"):
-    os = "macos"
+    os = Os.MacOS
     data_path = "Library/Application Support/f95checker"
 else:
     print("Your system is not officially supported at the moment!\n"

@@ -11,6 +11,12 @@ class IntEnumAuto(enum.IntEnum):
         return obj
 
 
+class Os(IntEnumAuto):
+    Windows = ()
+    MacOS   = ()
+    Linux   = ()
+
+
 Browser = IntEnumAuto("Browser", " ".join([
     "None",
     "Chrome",
