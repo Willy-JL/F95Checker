@@ -4,14 +4,15 @@ import OpenGL.GL as gl
 from PIL import Image
 import configparser
 import pathlib
+import random
 import pygame
 import numpy
 import imgui
 import glfw
 import sys
+import os
 
 from modules import async_thread
-from modules import filepicker
 from modules.structs import *
 from modules import globals
 from modules import db
@@ -92,6 +93,106 @@ def pop_disabled(block_interaction=True):
     if block_interaction:
         imgui.internal.pop_item_flag()
     imgui.pop_style_var()
+
+
+class FilePicker:
+    _flags = (
+        imgui.WINDOW_NO_MOVE |
+        imgui.WINDOW_NO_RESIZE |
+        imgui.WINDOW_NO_COLLAPSE
+    )
+
+    def __init__(self, title="File picker", start_dir=None, custom_flags=0):
+        self.active = True
+        self.selected = None
+        self.dir_icon = "󰉋"
+        self.file_icon = "󰈔"
+        self.current = 0
+        self.items = []
+        self.dir = None
+        self.goto(start_dir or os.getcwd())
+        self.id = f"{title}##{str(random.random())[2:]}"
+        self.flags = custom_flags or self._flags
+        imgui.open_popup(self.id)
+
+    def goto(self, dir):
+        dir = pathlib.Path(dir)
+        if dir.is_file():
+            dir = dir.parent
+        if dir.is_dir():
+            self.dir = dir
+        elif self.dir is None:
+            self.dir = pathlib.Path(os.getcwd())
+        self.dir = self.dir.absolute()
+        self.refresh()
+
+    def refresh(self):
+        self.items.clear()
+        items = list(self.dir.iterdir())
+        items.sort(key=lambda item: item.name.lower())
+        items.sort(key=lambda item: item.is_dir(), reverse=True)
+        for item in items:
+            self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + "  " + item.name)
+
+    def tick(self):
+        if not self.active:
+            return
+        # Setup popup
+        size = imgui.get_io().display_size
+        width = size.x * 0.8
+        height = size.y * 0.8
+        imgui.set_next_window_size(width, height, imgui.ALWAYS)
+        imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
+        if imgui.begin_popup_modal(self.id, flags=self.flags):
+
+            # Up buttons
+            if imgui.button("󰁞"):
+                self.goto(self.dir.parent)
+            # Location bar
+            imgui.same_line()
+            imgui.set_next_item_width(-26 - imgui.get_style().item_spacing.x)
+            confirmed, dir = imgui.input_text(f"##location_bar_{self.id}", str(self.dir), 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+            if confirmed:
+                self.goto(dir)
+            # Refresh button
+            imgui.same_line()
+            if imgui.button("󰑐"):
+                self.refresh()
+
+            # Main list
+            if imgui.begin_child(f"##file_box_{self.id}", border=False, height=-28) or True:
+                imgui.set_next_item_width(-0.1)
+                clicked, value = imgui.listbox(f"##file_list_{self.id}", self.current, self.items, len(self.items))
+                self.current = min(max(value, 0), len(self.items) - 1)
+                item = self.items[self.current]
+                is_dir = item[0] == self.dir_icon
+                if clicked:
+                    if is_dir:
+                        self.goto(self.dir / item[3:])
+            imgui.end_child()
+
+            # Cancel button
+            if imgui.button("Cancel"):
+                self.selected = ""
+                self.active = False
+                imgui.close_current_popup()
+            # Ok button
+            imgui.same_line()
+            if is_dir:
+                push_disabled()
+            if imgui.button("Ok"):
+                self.selected = str(self.dir / item[3:])
+                self.active = False
+                imgui.close_current_popup()
+            if is_dir:
+                pop_disabled()
+            # Selected text
+            if not is_dir:
+                imgui.same_line()
+                imgui.text(f"Selected:  {item[3:]}")
+
+            imgui.end_popup()
+        return self.selected
 
 
 class MainGUI():
@@ -805,7 +906,7 @@ class MainGUI():
                         clicked = imgui.button("󰷏")
                         args_width += 26
                         if clicked:
-                            self.current_filepicker = filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable)
+                            self.current_filepicker = FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable)
                         if self.current_filepicker:
                             selected = self.current_filepicker.tick()
                             if selected is not None:
