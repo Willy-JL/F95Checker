@@ -128,11 +128,17 @@ class FilePicker:
 
     def refresh(self):
         self.items.clear()
-        items = list(self.dir.iterdir())
-        items.sort(key=lambda item: item.name.lower())
-        items.sort(key=lambda item: item.is_dir(), reverse=True)
-        for item in items:
-            self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + "  " + item.name)
+        try:
+            items = list(self.dir.iterdir())
+            if len(items) > 0:
+                items.sort(key=lambda item: item.name.lower())
+                items.sort(key=lambda item: item.is_dir(), reverse=True)
+                for item in items:
+                    self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + "  " + item.name)
+            else:
+                self.items.append("This folder is empty!")
+        except Exception:
+            self.items.append("Cannot open this folder!")
 
     def tick(self):
         if not self.active:
@@ -166,28 +172,29 @@ class FilePicker:
                 self.current = min(max(value, 0), len(self.items) - 1)
                 item = self.items[self.current]
                 is_dir = item[0] == self.dir_icon
+                is_file = item[0] == self.file_icon
                 if clicked:
                     if is_dir:
                         self.goto(self.dir / item[3:])
             imgui.end_child()
 
             # Cancel button
-            if imgui.button("Cancel"):
+            if imgui.button("󰜺 Cancel"):
                 self.selected = ""
                 self.active = False
                 imgui.close_current_popup()
             # Ok button
             imgui.same_line()
-            if is_dir:
+            if not is_file:
                 push_disabled()
-            if imgui.button("Ok"):
+            if imgui.button("󰄬 Ok"):
                 self.selected = str(self.dir / item[3:])
                 self.active = False
                 imgui.close_current_popup()
-            if is_dir:
+            if not is_file:
                 pop_disabled()
             # Selected text
-            if not is_dir:
+            if is_file:
                 imgui.same_line()
                 imgui.text(f"Selected:  {item[3:]}")
 
