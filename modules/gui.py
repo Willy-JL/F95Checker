@@ -55,7 +55,8 @@ class ImGuiImage:
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, numpy.empty(0))
         self.applied = False
 
-    def load(self):
+    def reload(self):
+        self.reset()
         image = pygame.image.load(self.path)
         surface = pygame.transform.flip(image, False, True)
         self.width, self.height = surface.get_size()
@@ -75,8 +76,7 @@ class ImGuiImage:
         if self.texture_id is None:
             self.texture_id = gl.glGenTextures(1)
         if not self.loaded:
-            self.reset()
-            self.load()
+            self.reload()
         elif not self.applied:
             self.apply()
         imgui.image(self.texture_id, *args, **kwargs)
