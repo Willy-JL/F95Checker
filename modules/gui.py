@@ -371,6 +371,15 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
+    def draw_game_more_info_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_more_info"
+        if selectable:
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+        else:
+            clicked = imgui.button(id, *args, **kwargs)
+        if clicked:
+            pass  # TODO: open info popup
+
     def draw_game_play_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
         if not game.installed:
@@ -445,6 +454,56 @@ class MainGUI():
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
             pass  # TODO: open game threads
+
+    def draw_game_select_exe_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_select_exe"
+        if selectable:
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+        else:
+            clicked = imgui.button(id, *args, **kwargs)
+        if clicked:
+            pass  # TODO: select exe
+
+    def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_unset_exe"
+        if not game.executable:
+            push_disabled()
+        if selectable:
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+        else:
+            clicked = imgui.button(id, *args, **kwargs)
+        if not game.executable:
+            pop_disabled()
+        if clicked:
+            pass  # TODO: unset exe
+
+    def draw_game_open_folder_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_open_folder"
+        if not game.executable:
+            push_disabled()
+        if selectable:
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+        else:
+            clicked = imgui.button(id, *args, **kwargs)
+        if not game.executable:
+            pop_disabled()
+        if clicked:
+            pass  # TODO: open folder
+
+    def draw_game_context_menu(self, game: Game):
+        self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)
+        imgui.separator()
+        self.draw_game_play_button(game, label="󰐊 Play", selectable=True)
+        self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
+        imgui.separator()
+        self.draw_game_select_exe_button(game, label="󰷏 Select Exe", selectable=True)
+        self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe", selectable=True)
+        self.draw_game_open_folder_button(game, label="󱞋 Open Folder", selectable=True)
+        imgui.separator()
+        self.draw_game_played_checkbox(game, label=" 󰈼 Played")
+        self.draw_game_installed_checkbox(game, label=" 󰅢 Installed")
+        imgui.separator()
+        self.draw_game_rating_widget(game)
 
     def draw_game_notes_widget(self, game: Game, *args, **kwargs):
         changed, new_notes = imgui.input_text_multiline(
@@ -774,12 +833,8 @@ class MainGUI():
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=24)
                 # Row click callbacks
                 if imgui.begin_popup_context_item(f"##{game.id}_context"):
-                    self.draw_game_play_button(game, label="󰐊 Play", selectable=True)
-                    self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
-                    imgui.spacing()
-                    self.draw_game_played_checkbox(game, label="󰈼 Played")
-                    self.draw_game_installed_checkbox(game, label="󰅢 Installed")
-                    self.draw_game_rating_widget(game)
+                    # Right click = context menu
+                    self.draw_game_context_menu(game)
                     imgui.end_popup()
                 if imgui.is_item_focused():
                     if imgui.is_item_clicked():
