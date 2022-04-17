@@ -964,18 +964,6 @@ class MainGUI():
 
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("Keep game path:")
-                imgui.same_line()
-                self.draw_help_marker("When a game receives an update, or when you uncheck the installed toggle, F95Checker forgets the game executable you had set. When this option is enabled it will remember it. A typical use of this setting is to have the game folder without a version number and simply replace the game files when an update comes.")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
-                changed, value = imgui.checkbox("##update_keep_executable", set.update_keep_executable)
-                if changed:
-                    set.update_keep_executable = value
-                    async_thread.run(db.update_settings("update_keep_executable"))
-
-                imgui.table_next_row()
-                imgui.table_next_column()
                 imgui.text("Keep game image:")
                 imgui.same_line()
                 self.draw_help_marker(f"When a game receives an update F95Checker downloads the header image again in case it was updated. This setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")

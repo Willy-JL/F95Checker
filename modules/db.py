@@ -47,7 +47,6 @@ async def connect():
                 style_corner_radius         INTEGER DEFAULT 6,
                 style_scaling               REAL    DEFAULT 1.0,
                 tray_refresh_interval       INTEGER DEFAULT 15,
-                update_keep_executable      INTEGER DEFAULT 0,
                 update_keep_image           INTEGER DEFAULT 0,
                 zoom_amount                 INTEGER DEFAULT 4,
                 zoom_enabled                INTEGER DEFAULT 1,
@@ -331,10 +330,6 @@ async def migrate_legacy(config: dict):
         if keep_image_on_game_update := options.get("keep_image_on_game_update"):
             keys.append("update_keep_image")
             values.append(int(keep_image_on_game_update))
-
-        if keep_exe_path_on_game_update := options.get("keep_exe_path_on_game_update"):
-            keys.append("update_keep_executable")
-            values.append(int(keep_exe_path_on_game_update))
 
     if style := config.get("style"):
 

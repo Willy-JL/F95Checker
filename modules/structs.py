@@ -248,7 +248,6 @@ class Settings:
     style_corner_radius         : int         = None
     style_scaling               : float       = None
     tray_refresh_interval       : int         = None
-    update_keep_executable      : bool        = None
     update_keep_image           : bool        = None
     zoom_amount                 : int         = None
     zoom_enabled                : bool        = None
