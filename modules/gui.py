@@ -371,14 +371,18 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
-    def draw_game_play_button(self, game: Game, label:str = "", selectable=False, *args, **kwargs):
+    def draw_game_play_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
+        if not game.installed:
+            push_disabled()
         if selectable:
-            if imgui.selectable(id, False, *args, **kwargs)[0]:
-                pass
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
-            if imgui.button(id, *args, **kwargs):
-                pass  # TODO: game launching
+            clicked = imgui.button(id, *args, **kwargs)
+        if not game.installed:
+            pop_disabled()
+        if clicked:
+            pass  # TODO: game launching
 
     def draw_game_engine_widget(self, game: Game, *args, **kwargs):
         col = (*EngineColors[game.engine.value], 1)
@@ -436,11 +440,11 @@ class MainGUI():
     def draw_game_open_thread_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_open_thread"
         if selectable:
-            if imgui.selectable(id, False, *args, **kwargs)[0]:
-                pass
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
-            if imgui.button(id, *args, **kwargs):
-                pass  # TODO: open game threads
+            clicked = imgui.button(id, *args, **kwargs)
+        if clicked:
+            pass  # TODO: open game threads
 
     def draw_game_notes_widget(self, game: Game, *args, **kwargs):
         changed, new_notes = imgui.input_text_multiline(
