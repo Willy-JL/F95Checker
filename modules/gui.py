@@ -633,6 +633,18 @@ class MainGUI():
             imgui.same_line()
             imgui.text(game.added_on.display)
 
+            imgui.text_disabled("Executable:")
+            imgui.same_line()
+            imgui.text(game.executable or "Not set")
+
+            imgui.text_disabled("Manage Exe:")
+            imgui.same_line()
+            self.draw_game_select_exe_button(game, label="󰷏 Select Exe")
+            imgui.same_line()
+            self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe")
+            imgui.same_line()
+            self.draw_game_open_folder_button(game, label="󱞋 Open Folder")
+
             imgui.text("")
 
             imgui.text_disabled("Notes:")
