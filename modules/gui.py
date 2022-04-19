@@ -465,7 +465,7 @@ class MainGUI():
             imgui.same_line()
         imgui.pop_style_color(3)
         imgui.pop_style_var(2)
-        imgui.text("")
+        imgui.dummy(0, 0)
 
     def draw_game_open_thread_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_open_thread"
@@ -947,6 +947,7 @@ class MainGUI():
             imgui.table_setup_column(f"##{name}_setting_value", imgui.TABLE_COLUMN_WIDTH_FIXED)
             imgui.table_next_row()
             imgui.table_set_column_index(1)
+            imgui.dummy(right_width, 1)
             imgui.push_item_width(right_width)
         return opened
 
