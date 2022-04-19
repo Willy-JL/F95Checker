@@ -5,7 +5,6 @@ from PIL import Image
 import configparser
 import pathlib
 import random
-import pygame
 import numpy
 import imgui
 import glfw
@@ -58,10 +57,11 @@ class ImGuiImage:
 
     def reload(self):
         self.reset()
-        image = pygame.image.load(self.path)
-        surface = pygame.transform.flip(image, False, True)
-        self.width, self.height = surface.get_size()
-        self.data = pygame.image.tostring(surface, "RGBA", 1)
+        image = Image.open(self.path)
+        if image.mode != "RGBA":
+            image = image.convert("RGBA")
+        self.width, self.height = image.size
+        self.data = image.tobytes("raw", "RGBA")
         self.loaded = True
 
     def apply(self):
