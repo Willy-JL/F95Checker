@@ -579,7 +579,7 @@ class MainGUI():
     def draw_game_info_popup(self):
         size = self.io.display_size
         height = size.y * 0.9
-        width = min(size.x * 0.9, height * 0.9)
+        width = min(size.x * 0.9, height * self.scaled(0.9))
         imgui.set_next_window_size(width, height)
         imgui.set_next_window_position((size.x - width) / 2, (size.y - height) / 2)
 
@@ -593,7 +593,7 @@ class MainGUI():
             avail = imgui.get_content_region_available()
             width = min(avail.x, image.width)
             height = min(width * aspect_ratio, image.height)
-            if height > (new_height := avail.y * 0.3):
+            if height > (new_height := avail.y * self.scaled(0.3)):
                 height = new_height
                 width = height * (1 / aspect_ratio)
             if width < avail.x:
