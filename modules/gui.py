@@ -103,7 +103,8 @@ def close_popup_clicking_outside():
             if not imgui.is_window_hovered(imgui.HOVERED_ROOT_AND_CHILD_WINDOWS):
                 # Popup is not hovered
                 imgui.close_current_popup()
-    return True
+                return True
+    return False
 
 
 class FilePicker:
@@ -124,7 +125,6 @@ class FilePicker:
         self.goto(start_dir or os.getcwd())
         self.id = f"{title}##{str(random.random())[2:]}"
         self.flags = custom_flags or self._flags
-        imgui.open_popup(self.id)
 
     def goto(self, dir):
         dir = pathlib.Path(dir)
@@ -160,7 +160,10 @@ class FilePicker:
         height = size.y * 0.8
         imgui.set_next_window_size(width, height, imgui.ALWAYS)
         imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-        if imgui.begin_popup_modal(self.id, True, flags=self.flags)[0] and close_popup_clicking_outside():
+        if not imgui.is_popup_open(self.id):
+            imgui.open_popup(self.id)
+        if imgui.begin_popup_modal(self.id, True, flags=self.flags)[0]:
+            close_popup_clicking_outside()
 
             # Up buttons
             if imgui.button("󰁞"):
@@ -191,8 +194,6 @@ class FilePicker:
 
             # Cancel button
             if imgui.button("󰜺 Cancel"):
-                self.selected = ""
-                self.active = False
                 imgui.close_current_popup()
             # Ok button
             imgui.same_line()
@@ -200,7 +201,6 @@ class FilePicker:
                 push_disabled()
             if imgui.button("󰄬 Ok"):
                 self.selected = str(self.dir / item[3:])
-                self.active = False
                 imgui.close_current_popup()
             if not is_file:
                 pop_disabled()
@@ -210,8 +210,9 @@ class FilePicker:
                 imgui.text(f"Selected:  {item[3:]}")
 
             imgui.end_popup()
-        else:
-            self.selected = ""
+        if not imgui.is_popup_open(self.id):
+            if self.selected is None:
+                self.selected = ""
             self.active = False
         return self.selected
 
@@ -264,7 +265,7 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.sorted_games_ids = []
         self.current_filepicker = None
-        self.current_info_popup_game = 0
+        self.current_info_popup_game = None
         self.game_list_hitbox_click = False
         self.ghost_columns_enabled_count = 0
 
@@ -568,13 +569,18 @@ class MainGUI():
         imgui.pop_style_color(3)
 
     def draw_game_info_popup(self):
+        if not self.current_info_popup_game:
+            return
         size = self.io.display_size
         height = size.y * 0.9
         width = min(size.x * 0.9, height * self.scaled(0.9))
         imgui.set_next_window_size(width, height)
         imgui.set_next_window_position((size.x - width) / 2, (size.y - height) / 2)
 
-        if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0] and close_popup_clicking_outside():
+        if not imgui.is_popup_open("Game info"):
+            imgui.open_popup("Game info")
+        if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
+            close_popup_clicking_outside()
             game = self.current_info_popup_game
 
             image = game.image
@@ -712,6 +718,8 @@ class MainGUI():
 
             imgui.pop_text_wrap_pos()
             imgui.end_popup()
+        if not imgui.is_popup_open("Game info"):
+            self.current_info_popup_game = None
 
     def draw_games_list(self):
         ghost_column_size = (self.style.frame_padding.x + self.style.cell_padding.x * 2)
@@ -907,7 +915,6 @@ class MainGUI():
                         # Left click = open game info popup
                         self.game_list_hitbox_click = False
                         self.current_info_popup_game = game
-                        imgui.open_popup("Game info")
             # Draw info popup outside loop but in same ImGui context
             self.draw_game_info_popup()
             imgui.end_table()
@@ -1003,7 +1010,8 @@ class MainGUI():
                         imgui.open_popup("Configure custom browser##browser_custom_settings")
                     size = self.io.display_size
                     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-                    if imgui.begin_popup_modal("Configure custom browser##browser_custom_settings", True, flags=self.popup_flags)[0] and close_popup_clicking_outside():
+                    if imgui.begin_popup_modal("Configure custom browser##browser_custom_settings", True, flags=self.popup_flags)[0]:
+                        close_popup_clicking_outside()
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
