@@ -804,7 +804,6 @@ class MainGUI():
                 self.require_sort = False
 
             # Loop rows
-            swap_b = None
             for game_i, id in enumerate(self.sorted_games_ids):
                 game: Game = globals.games[id]
                 imgui.table_next_row()
@@ -878,11 +877,18 @@ class MainGUI():
                             self.game_list_hitbox_click = False
                             if manual_sort:
                                 # Left click drag = swap if in manual sort mode
-                                if imgui.get_mouse_drag_delta().y > 0 and game_i != len(self.sorted_games_ids) - 1:
-                                    swap_b = game_i + 1
-                                elif game_i != 0:
-                                    swap_b = game_i - 1
-                                swap_a = game_i
+                                drag = imgui.get_mouse_drag_delta().y
+                                drag_min = imgui.get_frame_height()
+                                swap_i = None
+                                if  drag > drag_min and game_i != len(self.sorted_games_ids) - 1:
+                                    swap_i = game_i + 1
+                                elif drag < -drag_min and game_i != 0:
+                                    swap_i = game_i - 1
+                                if swap_i is not None:
+                                    imgui.reset_mouse_drag_delta()
+                                    lst = globals.settings.manual_sort_list
+                                    lst[game_i], lst[swap_i] = lst[swap_i], lst[game_i]
+                                    async_thread.run(db.update_settings("manual_sort_list"))
                     elif self.game_list_hitbox_click:
                         # Left click = open game info popup
                         self.game_list_hitbox_click = False
@@ -890,12 +896,6 @@ class MainGUI():
                         imgui.open_popup("GameInfo")
             # Draw info popup outside loop but in same ImGui context
             self.draw_game_info_popup()
-            # Apply swap
-            if swap_b is not None:
-                imgui.reset_mouse_drag_delta()
-                manual_sort_list = globals.settings.manual_sort_list
-                manual_sort_list[swap_a], manual_sort_list[swap_b] = manual_sort_list[swap_b], manual_sort_list[swap_a]
-                async_thread.run(db.update_settings("manual_sort_list"))
             imgui.end_table()
 
     def draw_games_grid(self):
