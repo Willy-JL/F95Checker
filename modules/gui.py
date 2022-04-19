@@ -990,6 +990,7 @@ class MainGUI():
                     size = self.io.display_size
                     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
                     if imgui.begin_popup("browser_custom_settings", flags=self.popup_flags):
+                        imgui.text("Configure custom browser")
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
