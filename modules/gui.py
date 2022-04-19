@@ -98,7 +98,7 @@ def pop_disabled(block_interaction=True):
 can_register_outside_click = True
 def clicked_outside_window():
     global can_register_outside_click
-    if imgui.get_io().mouse_down[0]:
+    if imgui.is_mouse_clicked():
         if not can_register_outside_click:
             return False
         pos = imgui.get_window_position()
