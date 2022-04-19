@@ -95,22 +95,15 @@ def pop_disabled(block_interaction=True):
     imgui.pop_style_var()
 
 
-can_register_outside_click = True
-def clicked_outside_window():
-    global can_register_outside_click
-    if imgui.is_mouse_clicked():
-        if not can_register_outside_click:
-            return False
-        pos = imgui.get_window_position()
-        size = imgui.get_window_size()
-        mouse = imgui.get_mouse_pos()
-        clicked_outside = not ((pos.x < mouse.x < pos.x + size.x) and (pos.y < mouse.y < pos.y + size.y))
-        if clicked_outside:
-            can_register_outside_click = False
-        return clicked_outside
-    else:
-        can_register_outside_click = True
-        return False
+def close_popup_clicking_outside():
+    if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID):
+        # This is the topmost popup
+        if imgui.is_mouse_clicked():
+            # Mouse was just clicked
+            if not imgui.is_window_hovered(imgui.HOVERED_ROOT_AND_CHILD_WINDOWS):
+                # Popup is not hovered
+                imgui.close_current_popup()
+    return True
 
 
 class FilePicker:
@@ -167,9 +160,7 @@ class FilePicker:
         height = size.y * 0.8
         imgui.set_next_window_size(width, height, imgui.ALWAYS)
         imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-        if imgui.begin_popup_modal(self.id, True, flags=self.flags)[0]:
-            if clicked_outside_window():
-                imgui.close_current_popup()
+        if imgui.begin_popup_modal(self.id, True, flags=self.flags)[0] and close_popup_clicking_outside():
 
             # Up buttons
             if imgui.button("󰁞"):
@@ -583,9 +574,7 @@ class MainGUI():
         imgui.set_next_window_size(width, height)
         imgui.set_next_window_position((size.x - width) / 2, (size.y - height) / 2)
 
-        if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
-            if clicked_outside_window():
-                imgui.close_current_popup()
+        if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0] and close_popup_clicking_outside():
             game = self.current_info_popup_game
 
             image = game.image
@@ -1014,7 +1003,7 @@ class MainGUI():
                         imgui.open_popup("Configure custom browser##browser_custom_settings")
                     size = self.io.display_size
                     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-                    if imgui.begin_popup_modal("Configure custom browser##browser_custom_settings", True, flags=self.popup_flags)[0]:
+                    if imgui.begin_popup_modal("Configure custom browser##browser_custom_settings", True, flags=self.popup_flags)[0] and close_popup_clicking_outside():
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
@@ -1034,9 +1023,6 @@ class MainGUI():
                                 set.browser_custom_executable = selected or set.browser_custom_executable
                                 async_thread.run(db.update_settings("browser_custom_executable"))
                                 self.current_filepicker = None
-                        else:
-                            if clicked_outside_window():
-                                imgui.close_current_popup()
                         imgui.text("Arguments: ")
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
