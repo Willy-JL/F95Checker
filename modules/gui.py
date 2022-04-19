@@ -1116,6 +1116,16 @@ class MainGUI():
                 imgui.end_table()
                 imgui.spacing()
 
+            if self.start_settings_section("Style", right_width):
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Interface scaling:")
+                imgui.table_next_column()
+                changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
+                set.style_scaling = min(max(value, 0.25), 4)
+                imgui.end_table()
+                imgui.spacing()
+
             if self.start_settings_section("Zoom", right_width):
                 imgui.table_next_row()
                 imgui.table_next_column()
