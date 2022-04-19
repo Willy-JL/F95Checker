@@ -422,7 +422,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            pass  # TODO: open info popup
+            self.current_info_popup_game = game
 
     def draw_game_play_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
