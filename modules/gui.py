@@ -754,7 +754,7 @@ class MainGUI():
             imgui.table_setup_column("Installed", sort)  # 12
             imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 13
             imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT)  # 14
-            imgui.table_setup_scroll_freez(0, 1)  # Sticky column headers
+            imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
 
             # Headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)

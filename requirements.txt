@@ -9,4 +9,4 @@ beautifulsoup4
 PyQt5-sip==12.8.1
 PyQtWebEngine==5.15.2
 
-git+https://github.com/pyimgui/pyimgui.git@c27d2f29b187e4453c0826140992c095500f042b
+git+https://github.com/Willy-JL/pyimgui.git@06e733d723f38fabefb42ddf9f9ffad2d5af7950
