@@ -135,6 +135,7 @@ class FilePicker:
         elif self.dir is None:
             self.dir = pathlib.Path(os.getcwd())
         self.dir = self.dir.absolute()
+        self.current = -1
         self.refresh()
 
     def refresh(self):
@@ -183,13 +184,20 @@ class FilePicker:
             if imgui.begin_child(f"##file_box_{self.id}", border=False, height=-imgui.get_frame_height_with_spacing()) or True:
                 imgui.set_next_item_width(imgui.get_content_region_available_width())
                 clicked, value = imgui.listbox(f"##file_list_{self.id}", self.current, self.items, len(self.items))
-                self.current = min(max(value, 0), len(self.items) - 1)
-                item = self.items[self.current]
-                is_dir = item[0] == self.dir_icon
-                is_file = item[0] == self.file_icon
-                if clicked:
-                    if is_dir:
-                        self.goto(self.dir / item[3:])
+                if value != -1:
+                    self.current = min(max(value, 0), len(self.items) - 1)
+                    item = self.items[self.current]
+                    is_dir = item[0] == self.dir_icon
+                    is_file = item[0] == self.file_icon
+                    if imgui.is_item_hovered() and imgui.is_mouse_double_clicked():
+                        if is_dir:
+                            self.goto(self.dir / item[3:])
+                        elif is_file:
+                            self.selected = str(self.dir / item[3:])
+                            imgui.close_current_popup()
+                else:
+                    is_dir = False
+                    is_file = False
             imgui.end_child()
 
             # Cancel button
