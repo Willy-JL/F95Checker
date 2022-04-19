@@ -95,6 +95,24 @@ def pop_disabled(block_interaction=True):
     imgui.pop_style_var()
 
 
+can_register_outside_click = True
+def clicked_outside_window():
+    global can_register_outside_click
+    if imgui.get_io().mouse_down[0]:
+        if not can_register_outside_click:
+            return False
+        pos = imgui.get_window_position()
+        size = imgui.get_window_size()
+        mouse = imgui.get_mouse_pos()
+        clicked_outside = not ((pos.x < mouse.x < pos.x + size.x) and (pos.y < mouse.y < pos.y + size.y))
+        if clicked_outside:
+            can_register_outside_click = False
+        return clicked_outside
+    else:
+        can_register_outside_click = True
+        return False
+
+
 class FilePicker:
     _flags = (
         imgui.WINDOW_NO_MOVE |
@@ -149,7 +167,9 @@ class FilePicker:
         height = size.y * 0.8
         imgui.set_next_window_size(width, height, imgui.ALWAYS)
         imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-        if imgui.begin_popup_modal(self.id, flags=self.flags):
+        if imgui.begin_popup_modal(self.id, True, flags=self.flags)[0]:
+            if clicked_outside_window():
+                imgui.close_current_popup()
 
             # Up buttons
             if imgui.button("󰁞"):
@@ -199,6 +219,9 @@ class FilePicker:
                 imgui.text(f"Selected:  {item[3:]}")
 
             imgui.end_popup()
+        else:
+            self.selected = ""
+            self.active = False
         return self.selected
 
 
@@ -237,7 +260,7 @@ class MainGUI():
         imgui.WINDOW_NO_MOVE |
         imgui.WINDOW_NO_RESIZE |
         imgui.WINDOW_NO_COLLAPSE |
-        imgui.WINDOW_NO_TITLE_BAR
+        imgui.WINDOW_ALWAYS_AUTO_RESIZE
     )
 
     def __init__(self):
@@ -560,7 +583,9 @@ class MainGUI():
         imgui.set_next_window_size(width, height)
         imgui.set_next_window_position((size.x - width) / 2, (size.y - height) / 2)
 
-        if imgui.begin_popup("GameInfo", flags=self.popup_flags):
+        if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
+            if clicked_outside_window():
+                imgui.close_current_popup()
             game = self.current_info_popup_game
 
             image = game.image
@@ -893,7 +918,7 @@ class MainGUI():
                         # Left click = open game info popup
                         self.game_list_hitbox_click = False
                         self.current_info_popup_game = game
-                        imgui.open_popup("GameInfo")
+                        imgui.open_popup("Game info")
             # Draw info popup outside loop but in same ImGui context
             self.draw_game_info_popup()
             imgui.end_table()
@@ -986,11 +1011,10 @@ class MainGUI():
                     imgui.text("Custom browser:")
                     imgui.table_next_column()
                     if imgui.button("Configure##browser_custom_popup", width=right_width):
-                        imgui.open_popup("browser_custom_settings")
+                        imgui.open_popup("Configure custom browser##browser_custom_settings")
                     size = self.io.display_size
                     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-                    if imgui.begin_popup("browser_custom_settings", flags=self.popup_flags):
-                        imgui.text("Configure custom browser")
+                    if imgui.begin_popup_modal("Configure custom browser##browser_custom_settings", True, flags=self.popup_flags)[0]:
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
@@ -1010,6 +1034,9 @@ class MainGUI():
                                 set.browser_custom_executable = selected or set.browser_custom_executable
                                 async_thread.run(db.update_settings("browser_custom_executable"))
                                 self.current_filepicker = None
+                        else:
+                            if clicked_outside_window():
+                                imgui.close_current_popup()
                         imgui.text("Arguments: ")
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
