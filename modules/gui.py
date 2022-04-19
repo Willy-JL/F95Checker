@@ -609,8 +609,9 @@ class MainGUI():
             imgui.push_text_wrap_pos()
 
 
-            with imgui.font(self.big_font):
-                imgui.text(game.name)
+            imgui.push_font(self.big_font)
+            imgui.text(game.name)
+            imgui.pop_font()
 
             self.draw_game_play_button(game, label="󰐊 Play")
             imgui.same_line()
