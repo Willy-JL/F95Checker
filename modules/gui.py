@@ -276,7 +276,6 @@ class MainGUI():
             assert type(size[0]) is int and type(size[1]) is int
         except Exception:
             size = 1280, 720
-        self.style = imgui.get_style()
 
         # Setup GLFW window
         self.window = impl_glfw_init(*size, "F95Checker")
@@ -284,6 +283,11 @@ class MainGUI():
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_iconify_callback(self.window, self.minimize)
         self.refresh_fonts()
+
+        # Load style configuration
+        self.style = imgui.get_style()
+        self.style.window_border_size = 0
+        self.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
 
     def refresh_fonts(self):
         self.io.fonts.clear()
@@ -332,7 +336,6 @@ class MainGUI():
             self.impl.process_inputs()
             if self.visible:
                 imgui.new_frame()
-                imgui.push_style_color(imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND, 0, 0, 0, 0.5)
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
                 if (size := self.io.display_size) != self.prev_size:
@@ -371,7 +374,6 @@ class MainGUI():
                 if (size := self.io.display_size) != self.prev_size:
                     self.prev_size = size
 
-                imgui.pop_style_color()
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
             if self.size_mult != globals.settings.style_scaling:
