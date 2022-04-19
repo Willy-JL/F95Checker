@@ -156,7 +156,7 @@ class FilePicker:
                 self.goto(self.dir.parent)
             # Location bar
             imgui.same_line()
-            imgui.set_next_item_width(-26 - imgui.get_style().item_spacing.x)
+            imgui.set_next_item_width(-(imgui.calc_text_size("󰑐").x + 2 * imgui.get_style().frame_padding.x) - imgui.get_style().item_spacing.x)
             confirmed, dir = imgui.input_text(f"##location_bar_{self.id}", str(self.dir), 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if confirmed:
                 self.goto(dir)
@@ -166,8 +166,8 @@ class FilePicker:
                 self.refresh()
 
             # Main list
-            if imgui.begin_child(f"##file_box_{self.id}", border=False, height=-28) or True:
-                imgui.set_next_item_width(-0.1)
+            if imgui.begin_child(f"##file_box_{self.id}", border=False, height=-imgui.get_frame_height_with_spacing()) or True:
+                imgui.set_next_item_width(imgui.get_content_region_available_width())
                 clicked, value = imgui.listbox(f"##file_list_{self.id}", self.current, self.items, len(self.items))
                 self.current = min(max(value, 0), len(self.items) - 1)
                 item = self.items[self.current]
@@ -242,6 +242,7 @@ class MainGUI():
 
     def __init__(self):
         # Variables
+        self.size_mult = 0
         self.visible = True
         self.prev_size = 0, 0
         self.status_text = ""
@@ -288,22 +289,23 @@ class MainGUI():
         self.io.fonts.clear()
         win_w, win_h = glfw.get_window_size(self.window)
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
-        font_scaling_factor = max(float(fb_w) / win_w, float(fb_h) / win_h)
+        font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
         self.io.font_global_scale = 1 / font_scaling_factor
+        self.size_mult = globals.settings.style_scaling
         self.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
-            18 * font_scaling_factor,
+            18 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         )
         self.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
-            18 * font_scaling_factor,
+            18 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1),
             glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
         )
         self.big_font = self.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
-            28 * font_scaling_factor,
+            28 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         )
         self.impl.refresh_font_texture()
@@ -320,6 +322,9 @@ class MainGUI():
         glfw.show_window(self.window)
         self.visible = True
 
+    def scaled(self, size):
+        return size * self.size_mult
+
     def main_loop(self):
         while not glfw.window_should_close(self.window):
             self.qt_loop.processEvents()
@@ -335,7 +340,7 @@ class MainGUI():
 
                 if imgui.begin("F95Checker", closable=False, flags=self.window_flags) or True:
 
-                    if imgui.begin_child("Main", width=-self.sidebar_size, height=0, border=False) or True:
+                    if imgui.begin_child("Main", width=-self.scaled(self.sidebar_size), border=False) or True:
                         if globals.settings.display_mode is DisplayMode.list:
                             self.draw_games_list()
                         elif globals.settings.display_mode is DisplayMode.grid:
@@ -344,16 +349,20 @@ class MainGUI():
                     imgui.end_child()
 
                     text = self.status_text or f"F95Checker v{globals.version} by WillyJL"
+                    _3 = self.scaled(3)
+                    _6 = self.scaled(6)
                     text_size = imgui.calc_text_size(text)
-                    text_pos = size.x - text_size.x - 6, size.y - text_size.y - 6
+                    text_pos = size.x - text_size.x - _6, size.y - text_size.y - _6
 
                     imgui.same_line(spacing=1)
-                    if imgui.begin_child("Sidebar", width=self.sidebar_size - 1, height=-text_size.y, border=False) or True:
+                    if imgui.begin_child("Sidebar", width=self.scaled(self.sidebar_size) - 1, height=-text_size.y - _3, border=False) or True:
                         self.draw_sidebar()
                     imgui.end_child()
 
-                    imgui.set_cursor_screen_pos(text_pos)
-                    if imgui.invisible_button("##status_text", *text_size):
+                    text_btn_pos = text_pos[0] - _3, text_pos[1]
+                    text_btn_size = text_size.x + _6, text_size.y + _3
+                    imgui.set_cursor_screen_pos(text_btn_pos)
+                    if imgui.invisible_button("##status_text", *text_btn_size):
                         print("aaa")
                     imgui.set_cursor_screen_pos(text_pos)
                     imgui.text(text)
@@ -365,6 +374,9 @@ class MainGUI():
                 imgui.pop_style_color()
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
+            if self.size_mult != globals.settings.style_scaling:
+                self.refresh_fonts()
+                async_thread.run(db.update_settings("style_scaling"))  # Update here in case of crash
             glfw.swap_buffers(self.window)  # Also waits idle time, must run always to avoid useless cycles
         self.impl.shutdown()
         glfw.terminate()
@@ -373,7 +385,7 @@ class MainGUI():
         imgui.text_disabled("(?)", *args, **kwargs)
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
-            imgui.push_text_wrap_pos(imgui.get_font_size() * 35)
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, self.io.display_size.x))
             imgui.text_unformatted(help_text)
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
@@ -518,7 +530,7 @@ class MainGUI():
             value=game.notes,
             buffer_length=9999999,
             width=imgui.get_content_region_available_width(),
-            height=100,
+            height=self.scaled(100),
             *args,
             **kwargs
         )
@@ -534,7 +546,7 @@ class MainGUI():
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
         for tag in game.tags:
             imgui.same_line()
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + 20:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + self.scaled(20):
                 imgui.text("")
             imgui.small_button(tag.name, *args, **kwargs)
         imgui.pop_style_color(3)
@@ -603,7 +615,7 @@ class MainGUI():
             self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
             imgui.same_line()
             self.draw_game_played_checkbox(game, label=" 󰈼 Played")
-            imgui.same_line(spacing=16)
+            imgui.same_line(spacing=self.scaled(16))
             self.draw_game_installed_checkbox(game, label=" 󰅢 Installed")
 
             imgui.text_disabled("Personal Rating:")
@@ -692,7 +704,7 @@ class MainGUI():
             "GamesList",
             column=self.game_list_column_count,
             flags=self.game_list_table_flags,
-            outer_size_height=-28
+            outer_size_height=-imgui.get_frame_height_with_spacing()
         ):
             # Setup
             imgui.table_setup_column("Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
@@ -796,7 +808,7 @@ class MainGUI():
                 column_i = 3
                 # Base row height
                 imgui.table_set_column_index(column_i)
-                imgui.button(f"##{game.id}_id")
+                imgui.button(f"##{game.id}_id", width=0.1)
                 # Play Button
                 if imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED:
                     imgui.table_set_column_index(column_i)
@@ -849,7 +861,7 @@ class MainGUI():
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - self.style.frame_padding.y)
-                imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=24)
+                imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=imgui.get_frame_height())
                 # Row click callbacks
                 if imgui.begin_popup_context_item(f"##{game.id}_context"):
                     # Right click = context menu
@@ -889,7 +901,7 @@ class MainGUI():
             "GamesGrid",
             column=4,
             flags=self.game_grid_table_flags,
-            outer_size_height=-28
+            outer_size_height=-imgui.get_frame_height_with_spacing()
         ):
             imgui.end_table()
 
@@ -916,13 +928,13 @@ class MainGUI():
             async_thread.run(db.update_settings("display_mode"))
 
         imgui.same_line()
-        imgui.set_next_item_width(-48)
+        imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.get_style().frame_padding.x) - imgui.get_style().item_spacing.x)
         imgui.input_text("##filter_add_bar", "", 9999999)
         imgui.same_line()
         if imgui.button("Add!"):
             pass  # TODO: add button functionality
 
-    def start_settings_section(self, name, collapsible=True):
+    def start_settings_section(self, name, right_width, collapsible=True):
         if collapsible:
             header = imgui.collapsing_header(f"{name}##{name}_header")[0]
         else:
@@ -933,12 +945,11 @@ class MainGUI():
             imgui.table_setup_column(f"##{name}_setting_value", imgui.TABLE_COLUMN_WIDTH_FIXED)
             imgui.table_next_row()
             imgui.table_set_column_index(1)
-            imgui.invisible_button(f"##{name}_padding", 100, 1)
-            imgui.push_item_width(100)
+            imgui.push_item_width(right_width)
         return opened
 
     def draw_sidebar(self):
-        if imgui.button("Refresh!", height=126, width=-0.1):
+        if imgui.button("Refresh!", height=self.scaled(126), width=imgui.get_content_region_available_width()):
             print("aaa")
 
         imgui.spacing()
@@ -947,10 +958,13 @@ class MainGUI():
         imgui.spacing()
         imgui.spacing()
 
-        if imgui.begin_child("Settings", width=0, height=0, border=False) or True:
+        right_width = self.scaled(100)
+        checkbox_offset = right_width - imgui.get_frame_height()
+
+        if imgui.begin_child("Settings", border=False) or True:
             set = globals.settings
 
-            if self.start_settings_section("Browser"):
+            if self.start_settings_section("Browser", right_width):
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("Browser:")
@@ -967,22 +981,22 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Custom browser:")
                     imgui.table_next_column()
-                    if imgui.button("Configure##browser_custom_popup", width=-0.1):
+                    if imgui.button("Configure##browser_custom_popup", width=right_width):
                         imgui.open_popup("browser_custom_settings")
                     size = self.io.display_size
                     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
                     if imgui.begin_popup("browser_custom_settings", flags=self.popup_flags):
                         imgui.text("Executable: ")
-                        args_width = 0
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
                         changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
-                        args_width += imgui.calculate_item_width()
                         if changed:
                             async_thread.run(db.update_settings("browser_custom_executable"))
                         imgui.same_line()
                         clicked = imgui.button("󰷏")
-                        args_width += 26
+                        imgui.same_line(spacing=0)
+                        args_width = imgui.get_cursor_pos_x() - pos
+                        imgui.dummy(0, 0)
                         if clicked:
                             self.current_filepicker = FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable)
                         if self.current_filepicker:
@@ -994,7 +1008,7 @@ class MainGUI():
                         imgui.text("Arguments: ")
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
-                        imgui.set_next_item_width(args_width + self.style.item_spacing.x)
+                        imgui.set_next_item_width(args_width)
                         changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
                         if changed:
                             async_thread.run(db.update_settings("browser_custom_arguments"))
@@ -1004,7 +1018,7 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Use private mode:")
                     imgui.table_next_column()
-                    imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                    imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                     changed, value = imgui.checkbox("##browser_private", set.browser_private)
                     if changed:
                         set.browser_private = value
@@ -1016,7 +1030,7 @@ class MainGUI():
                 imgui.same_line()
                 self.draw_help_marker("With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your browser. This might be useful if you use private mode because the page will load as if you were logged in, allowing you to see links and spoiler content without actually logging in.")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##browser_html", set.browser_html)
                 if changed:
                     set.browser_html = value
@@ -1025,12 +1039,12 @@ class MainGUI():
                 imgui.end_table()
                 imgui.spacing()
 
-            if self.start_settings_section("Refresh"):
+            if self.start_settings_section("Refresh", right_width):
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("Refresh completed games:")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##refresh_completed_games", set.refresh_completed_games)
                 if changed:
                     set.refresh_completed_games = value
@@ -1061,12 +1075,12 @@ class MainGUI():
                 imgui.end_table()
                 imgui.spacing()
 
-            if self.start_settings_section("Startup"):
+            if self.start_settings_section("Startup", right_width):
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("Refresh at startup:")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##start_refresh", set.start_refresh)
                 if changed:
                     set.start_refresh = value
@@ -1078,7 +1092,7 @@ class MainGUI():
                 imgui.same_line()
                 self.draw_help_marker("F95Checker will start in background mode, minimized in the system tray.")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##start_in_tray", set.start_in_tray)
                 if changed:
                     set.start_in_tray = value
@@ -1088,7 +1102,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Start with system:")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##start_with_system", set.start_with_system)
                 if changed:
                     set.start_with_system = value
@@ -1097,12 +1111,12 @@ class MainGUI():
                 imgui.end_table()
                 imgui.spacing()
 
-            if self.start_settings_section("Zoom"):
+            if self.start_settings_section("Zoom", right_width):
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("Zoom when hovering images:")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##zoom_enabled", set.zoom_enabled)
                 if changed:
                     set.zoom_enabled = value
@@ -1130,7 +1144,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Show zoom region:")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##zoom_region", set.zoom_region)
                 if changed:
                     set.zoom_region = value
@@ -1139,7 +1153,7 @@ class MainGUI():
                 imgui.end_table()
                 imgui.spacing()
 
-            if self.start_settings_section("Misc"):
+            if self.start_settings_section("Misc", right_width):
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("BG refresh mins:")
@@ -1157,7 +1171,7 @@ class MainGUI():
                 imgui.same_line()
                 self.draw_help_marker(f"When a game receives an update F95Checker downloads the header image again in case it was updated. This setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
                 if changed:
                     set.update_keep_image = value
@@ -1169,7 +1183,7 @@ class MainGUI():
                 imgui.same_line()
                 self.draw_help_marker("When this is enabled you will be asked to select a game executable right after adding the game to F95Checker.")
                 imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + 76)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
                 if changed:
                     set.select_executable_after_add = value
@@ -1178,12 +1192,12 @@ class MainGUI():
                 imgui.end_table()
                 imgui.spacing()
 
-            if self.start_settings_section("Minimize", collapsible=False):
+            if self.start_settings_section("Minimize", right_width, collapsible=False):
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("Switch to BG mode:")
                 imgui.table_next_column()
-                if imgui.button("Minimize##minimize", width=-0.1):
+                if imgui.button("Minimize##minimize", width=right_width):
                     self.minimize()
                 imgui.end_table()
 
