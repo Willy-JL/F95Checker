@@ -618,19 +618,21 @@ class MainGUI():
             imgui.small_button(tag.name, *args, **kwargs)
         imgui.pop_style_color(3)
 
-    def configure_next_popup(self):
-        size = self.io.display_size
-        height = size.y * 0.9
-        width = min(size.x * 0.9, height * self.scaled(0.9))
-        imgui.set_next_window_size(width, height)
-        imgui.set_next_window_position((size.x - width) / 2, (size.y - height) / 2)
+    def configure_next_popup(self, size=True, pos=True):
+        sz = self.io.display_size
+        if size:
+            height = sz.y * 0.9
+            width = min(sz.x * 0.9, height * self.scaled(0.9))
+            imgui.set_next_window_size(width, height)
+        if pos:
+            imgui.set_next_window_position(sz.x / 2, sz.y / 2, pivot_x=0.5, pivot_y=0.5)
 
     def draw_game_info_popup(self):
         if not self.current_info_popup_game:
             return
-        self.configure_next_popup()
         if not imgui.is_popup_open("Game info"):
             imgui.open_popup("Game info")
+        self.configure_next_popup(size=True, pos=True)
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
             close_popup_clicking_outside()
             game = self.current_info_popup_game
@@ -1303,12 +1305,15 @@ class MainGUI():
         imgui.end_child()
 
     def draw_about_popup(self):
-        self.configure_next_popup()
-        if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags)[0]:
+        self.configure_next_popup(size=False, pos=True)
+        if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
             close_popup_clicking_outside()
-            size = self.scaled(210)
-            pos = imgui.get_cursor_pos_x()
-            self.icon_texture.render(size, size)
+            _50 = self.scaled(50)
+            _210 = self.scaled(210)
+            imgui.begin_group()
+            imgui.dummy(_50, _210)
+            imgui.same_line()
+            self.icon_texture.render(_210, _210)
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(self.big_font)
@@ -1321,20 +1326,30 @@ class MainGUI():
             imgui.text(f"GLFW {'.'.join(str(num) for num in glfw.get_version())},  Py {glfw.__version__}")
             imgui.text(f"ImGui {imgui.get_version()},  Py {imgui.__version__}")
             imgui.text(f"Qt {QtCore.QT_VERSION_STR},  Py {QtCore.PYQT_VERSION_STR}")
-            imgui.text(f"{platform.system()}  {platform.release()}  {platform.machine()}")
+            if globals.os is Os.Linux:
+                imgui.text(f"{platform.system()} {platform.release()}")
+            elif globals.os is Os.Windows:
+                imgui.text(f"{platform.system()} {platform.release()} {platform.version()}")
+            elif globals.os is Os.MacOS:
+                imgui.text(f"{platform.system()} {platform.release()}")
+            imgui.end_group()
+            imgui.same_line()
+            imgui.dummy(_50, _210)
             imgui.end_group()
             imgui.spacing()
-            if imgui.button("󰏌 View on F95Zone"):
+            width = imgui.get_item_rect_size().x
+            btn_width = (width - 2 * self.style.item_spacing.x) / 3
+            if imgui.button("󰏌 F95Zone Thread", width=btn_width):
                 print("aaa")
             imgui.same_line()
-            if imgui.button("󰊤 View on GitHub"):
+            if imgui.button("󰊤 GitHub Repo", width=btn_width):
                 print("aaa")
             imgui.same_line()
-            if imgui.button("󰌹 Donation and Social Links"):
+            if imgui.button("󰌹 Donate + Links", width=btn_width):
                 print("aaa")
             imgui.spacing()
             imgui.spacing()
-            imgui.push_text_wrap_pos()
+            imgui.push_text_wrap_pos(width)
             imgui.text("This software is licensed under the 3rd revision of the GNU General Public License (GPLv3) and is provided to you for free. "
                        "Furthermore, due to its license, it is also free as in freedom: you are free to use, study, modify and share this software "
                        "in whatever way you wish as long as you keep the same license.")
@@ -1350,6 +1365,44 @@ class MainGUI():
             imgui.spacing()
             imgui.spacing()
             imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95Zone platform.")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("")
+            imgui.push_font(self.big_font)
+            size = imgui.calc_text_size("Cool People")
+            imgui.set_cursor_pos_x((width - size.x) / 2)
+            imgui.text("Cool People")
+            imgui.pop_font()
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Supporters:")
+            imgui.bullet_text("FaceCrap")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Contributors:")
+            imgui.bullet_text("GR3ee3N: Optimized build workflows and other PRs")
+            imgui.bullet_text("batblue: Implemented fixes for MacOS support")
+            imgui.bullet_text("ploper26: Suggested HEAD requests for refreshing")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Community:")
+            for name in [
+                "AtotehZ",
+                "unroot",
+                "abada25",
+                "d_pedestrian",
+                "yohudood",
+                "GrammerCop",
+                "ascsd",
+                "SmurfyBlue",
+                "bitogno",
+                "MillenniumEarl",
+                "DarK x Duke"
+            ]:
+                if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
+                    imgui.dummy(0, 0)
+                imgui.bullet_text(name)
+                imgui.same_line(spacing=16)
             imgui.pop_text_wrap_pos()
             imgui.end_popup()
 
