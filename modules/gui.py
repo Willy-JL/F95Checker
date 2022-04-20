@@ -60,10 +60,13 @@ class ImGuiImage:
     def reload(self):
         self.reset()
         image = Image.open(self.path)
-        if image.mode != "RGBA":
-            image = image.convert("RGBA")
+        if image.mode == "RGB":
+            self.data = image.tobytes("raw", "RGBX")
+        else:
+            if image.mode != "RGBA":
+                image = image.convert("RGBA")
+            self.data = image.tobytes("raw", "RGBA")
         self.width, self.height = image.size
-        self.data = image.tobytes("raw", "RGBA")
         self.loaded = True
 
     def apply(self):
