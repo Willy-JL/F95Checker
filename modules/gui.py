@@ -3,7 +3,9 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
 from PIL import Image
 import configparser
+import platform
 import pathlib
+import OpenGL
 import random
 import numpy
 import imgui
@@ -302,7 +304,9 @@ class MainGUI():
 
         # Setup GLFW window
         self.window = impl_glfw_init(*size, "F95Checker")
-        glfw.set_window_icon(self.window, 1, Image.open("resources/icons/icon.png"))
+        icon_path = globals.self_path / "resources/icons/icon.png"
+        self.icon_texture = ImGuiImage(icon_path)
+        glfw.set_window_icon(self.window, 1, Image.open(icon_path))
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_iconify_callback(self.window, self.minimize)
         self.refresh_fonts()
@@ -389,7 +393,8 @@ class MainGUI():
                     text_btn_size = text_size.x + _6, text_size.y + _3
                     imgui.set_cursor_screen_pos(text_btn_pos)
                     if imgui.invisible_button("##status_text", *text_btn_size):
-                        print("aaa")
+                        imgui.open_popup("About F95Checker")
+                    self.draw_about_popup()
                     imgui.set_cursor_screen_pos(text_pos)
                     imgui.text(text)
                 imgui.end()
@@ -576,15 +581,17 @@ class MainGUI():
             imgui.small_button(tag.name, *args, **kwargs)
         imgui.pop_style_color(3)
 
-    def draw_game_info_popup(self):
-        if not self.current_info_popup_game:
-            return
+    def configure_next_popup(self):
         size = self.io.display_size
         height = size.y * 0.9
         width = min(size.x * 0.9, height * self.scaled(0.9))
         imgui.set_next_window_size(width, height)
         imgui.set_next_window_position((size.x - width) / 2, (size.y - height) / 2)
 
+    def draw_game_info_popup(self):
+        if not self.current_info_popup_game:
+            return
+        self.configure_next_popup()
         if not imgui.is_popup_open("Game info"):
             imgui.open_popup("Game info")
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
@@ -1246,6 +1253,57 @@ class MainGUI():
                 imgui.end_table()
 
         imgui.end_child()
+
+    def draw_about_popup(self):
+        self.configure_next_popup()
+        if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags)[0]:
+            close_popup_clicking_outside()
+            size = self.scaled(210)
+            pos = imgui.get_cursor_pos_x()
+            self.icon_texture.render(size, size)
+            imgui.same_line()
+            imgui.begin_group()
+            imgui.push_font(self.big_font)
+            imgui.text("F95Checker")
+            imgui.pop_font()
+            imgui.text(f"Version {globals.version}")
+            imgui.text("")
+            imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+            imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
+            imgui.text(f"GLFW {'.'.join(str(num) for num in glfw.get_version())},  Py {glfw.__version__}")
+            imgui.text(f"ImGui {imgui.get_version()},  Py {imgui.__version__}")
+            imgui.text(f"Qt {QtCore.QT_VERSION_STR},  Py {QtCore.PYQT_VERSION_STR}")
+            imgui.text(f"{platform.system()}  {platform.release()}  {platform.machine()}")
+            imgui.end_group()
+            imgui.spacing()
+            if imgui.button("󰏌 View on F95Zone"):
+                print("aaa")
+            imgui.same_line()
+            if imgui.button("󰊤 View on GitHub"):
+                print("aaa")
+            imgui.same_line()
+            if imgui.button("󰌹 Donation and Social Links"):
+                print("aaa")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.push_text_wrap_pos()
+            imgui.text("This software is licensed under the 3rd revision of the GNU General Public License (GPLv3) and is provided to you for free. "
+                       "Furthermore, due to its license, it is also free as in freedom: you are free to use, study, modify and share this software "
+                       "in whatever way you wish as long as you keep the same license.")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("However, F95Checker is actively developed by one person only, WillyJL, and not with the aim of profit but out of personal "
+                       "interest and benefit for the whole F95Zone community. Donations are although greatly appreciated and aid the development "
+                       "of this software. You can find donation links above.")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("If you find bugs or have some feedback, don't be afraid to let me know either on GitHub (using issues or pull requests) "
+                       "or on F95Zone (in the thread comments or in direct messages).")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95Zone platform.")
+            imgui.pop_text_wrap_pos()
+            imgui.end_popup()
 
 
 class TrayIcon(QtWidgets.QSystemTrayIcon):
