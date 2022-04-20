@@ -1046,7 +1046,9 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Browser:")
                 imgui.same_line()
-                self.draw_help_marker("All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate session just for itself.")
+                self.draw_help_marker("All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool "
+                                      "operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate "
+                                      "session just for itself.")
                 imgui.table_next_column()
                 changed, value = imgui.combo("##browser", set.browser.value - 1, list(Browser.__members__.keys()))
                 if changed:
@@ -1106,7 +1108,9 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Download pages:")
                 imgui.same_line()
-                self.draw_help_marker("With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your browser. This might be useful if you use private mode because the page will load as if you were logged in, allowing you to see links and spoiler content without actually logging in.")
+                self.draw_help_marker("With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your "
+                                      "browser. This might be useful if you use private mode because the page will load as if you were logged in, "
+                                      "allowing you to see links and spoiler content without actually logging in.")
                 imgui.table_next_column()
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##browser_html", set.browser_html)
@@ -1132,7 +1136,9 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Refresh workers:")
                 imgui.same_line()
-                self.draw_help_marker("Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 connection at a time. Having more workers means more connections happen simultaneously, but having too many will freeze the program. In most cases 20 workers is a good compromise.")
+                self.draw_help_marker("Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
+                                      "connection at a time. Having more workers means more connections happen simultaneously, but having too many "
+                                      "will freeze the program. In most cases 20 workers is a good compromise.")
                 imgui.table_next_column()
                 changed, value = imgui.input_int("##refresh_workers", set.refresh_workers)
                 set.refresh_workers = min(max(value, 1), 100)
@@ -1143,7 +1149,9 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Request timeout:")
                 imgui.same_line()
-                self.draw_help_marker("To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. A timeout 10-30 seconds is most typical.")
+                self.draw_help_marker("To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
+                                      "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
+                                      "A timeout 10-30 seconds is most typical.")
                 imgui.table_next_column()
                 changed, value = imgui.input_int("##request_timeout", set.request_timeout)
                 set.request_timeout = min(max(value, 1), 120)
@@ -1246,7 +1254,8 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("BG refresh mins:")
                 imgui.same_line()
-                self.draw_help_marker("When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how often (in minutes) this happens.")
+                self.draw_help_marker("When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
+                                      "often (in minutes) this happens.")
                 imgui.table_next_column()
                 changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
                 set.tray_refresh_interval = min(max(value, 15), 720)
@@ -1257,7 +1266,9 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Keep game image:")
                 imgui.same_line()
-                self.draw_help_marker(f"When a game receives an update F95Checker downloads the header image again in case it was updated. This setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")
+                self.draw_help_marker("When a game receives an update F95Checker downloads the header image again in case it was updated. This "
+                                      "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
+                                      f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")
                 imgui.table_next_column()
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                 changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
