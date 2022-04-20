@@ -606,16 +606,16 @@ class MainGUI():
             async_thread.run(db.update_game(game, "notes"))
 
     def draw_game_tags_widget(self, game: Game, *args, **kwargs):
-        imgui.text("")
         col = (0.3, 0.3, 0.3, 1)
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
         for tag in game.tags:
-            imgui.same_line()
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + self.scaled(20):
-                imgui.text("")
+                imgui.dummy(0, 0)
             imgui.small_button(tag.name, *args, **kwargs)
+            imgui.same_line()
+        imgui.dummy(0, 0)
         imgui.pop_style_color(3)
 
     def configure_next_popup(self, size=True, pos=True):
