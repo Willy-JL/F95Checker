@@ -1,7 +1,7 @@
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PIL import Image, ImageSequence
 import OpenGL.GL as gl
-from PIL import Image
 import configparser
 import platform
 import pathlib
@@ -48,6 +48,12 @@ class ImGuiImage:
         self.loaded = False
         self.applied = False
         self.data = None
+        self.animated = False
+        self.current_frame = -1
+        self.frame_count = 1
+        self.frame_durations = []
+        self.frame_elapsed = 0.0
+        self.prev_time = 0.0
         self.path = path
         self.width, self.height = 1, 1
         self.texture_id = None
@@ -57,34 +63,60 @@ class ImGuiImage:
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, numpy.empty(0))
         self.applied = False
 
-    def reload(self):
-        self.reset()
-        image = Image.open(self.path)
+    @staticmethod
+    def get_rgba_pixels(image):
         if image.mode == "RGB":
-            self.data = image.tobytes("raw", "RGBX")
+            return image.tobytes("raw", "RGBX")
         else:
             if image.mode != "RGBA":
                 image = image.convert("RGBA")
-            self.data = image.tobytes("raw", "RGBA")
+            return image.tobytes("raw", "RGBA")
+
+    def reload(self):
+        self.reset()
+        image = Image.open(self.path)
         self.width, self.height = image.size
+        if hasattr(image, "n_frames") and image.n_frames > 1:
+            self.animated = True
+            self.frame_count = image.n_frames
+            self.data = []
+            for frame in ImageSequence.Iterator(image):
+                self.data.append(self.get_rgba_pixels(frame))
+                self.frame_durations.append(frame.info["duration"] / 1250)
+        else:
+            self.data = self.get_rgba_pixels(image)
         self.loaded = True
 
-    def apply(self):
+    def apply(self, data):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.data)
-        self.applied = True
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, data)
 
     def render(self, *args, **kwargs):
         if self.texture_id is None:
             self.texture_id = gl.glGenTextures(1)
         if not self.loaded:
             self.reload()
-        elif not self.applied:
-            self.apply()
+        else:
+            if self.animated:
+                if self.prev_time != (new_time := imgui.get_time()):
+                    self.prev_time = new_time
+                    self.frame_elapsed += imgui.get_io().delta_time
+                if self.frame_elapsed > self.frame_durations[max(self.current_frame, 0)]:
+                    self.frame_elapsed = 0
+                    self.applied = False
+                if not self.applied:
+                    self.current_frame += 1
+                    if self.current_frame == self.frame_count:
+                        self.current_frame = 0
+                    self.apply(self.data[self.current_frame])
+                    self.applied = True
+            elif not self.applied:
+                self.apply(self.data)
+                self.applied = True
         imgui.image(self.texture_id, *args, **kwargs)
 
 
