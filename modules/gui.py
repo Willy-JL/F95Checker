@@ -64,7 +64,7 @@ class ImGuiImage:
         self.applied = False
 
     @staticmethod
-    def get_rgba_pixels(image):
+    def get_rgba_pixels(image: Image.Image):
         if image.mode == "RGB":
             return image.tobytes("raw", "RGBX")
         else:
@@ -87,7 +87,7 @@ class ImGuiImage:
             self.data = self.get_rgba_pixels(image)
         self.loaded = True
 
-    def apply(self, data):
+    def apply(self, data: bytes):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
@@ -120,13 +120,13 @@ class ImGuiImage:
         imgui.image(self.texture_id, *args, **kwargs)
 
 
-def push_disabled(block_interaction=True):
+def push_disabled(block_interaction: bool = True):
     if block_interaction:
         imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
     imgui.push_style_var(imgui.STYLE_ALPHA, imgui.get_style().alpha *  0.5)
 
 
-def pop_disabled(block_interaction=True):
+def pop_disabled(block_interaction: bool = True):
     if block_interaction:
         imgui.internal.pop_item_flag()
     imgui.pop_style_var()
@@ -153,7 +153,7 @@ class FilePicker:
         imgui.WINDOW_NO_COLLAPSE
     )
 
-    def __init__(self, title="File picker", start_dir=None, custom_flags=0):
+    def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, custom_flags: int = 0):
         self.active = True
         self.selected = None
         self.dir_icon = "󰉋"
@@ -165,7 +165,7 @@ class FilePicker:
         self.id = f"{title}##{str(random.random())[2:]}"
         self.flags = custom_flags or self._flags
 
-    def goto(self, dir):
+    def goto(self, dir: str | pathlib.Path):
         dir = pathlib.Path(dir)
         if dir.is_file():
             dir = dir.parent
@@ -390,7 +390,7 @@ class MainGUI():
         glfw.show_window(self.window)
         self.visible = True
 
-    def scaled(self, size):
+    def scaled(self, size: int | float):
         return size * self.size_mult
 
     def main_loop(self):
@@ -457,7 +457,7 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
-    def draw_game_more_info_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+    def draw_game_more_info_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_more_info"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
@@ -466,7 +466,7 @@ class MainGUI():
         if clicked:
             self.current_info_popup_game = game
 
-    def draw_game_play_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+    def draw_game_play_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
         if not game.installed:
             push_disabled()
@@ -497,7 +497,7 @@ class MainGUI():
         else:
             imgui.text("", *args, **kwargs)
 
-    def draw_game_played_checkbox(self, game: Game, label:str = "", *args, **kwargs):
+    def draw_game_played_checkbox(self, game: Game, label: str = "", *args, **kwargs):
         changed, game.played = imgui.checkbox(f"{label}##{game.id}_played", game.played, *args, **kwargs)
         if changed:
             async_thread.run(db.update_game(game, "played"))
@@ -532,7 +532,7 @@ class MainGUI():
         imgui.pop_style_var(2)
         imgui.dummy(0, 0)
 
-    def draw_game_open_thread_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+    def draw_game_open_thread_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_open_thread"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
@@ -541,7 +541,7 @@ class MainGUI():
         if clicked:
             pass  # TODO: open game threads
 
-    def draw_game_select_exe_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+    def draw_game_select_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_select_exe"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
@@ -550,7 +550,7 @@ class MainGUI():
         if clicked:
             pass  # TODO: select exe
 
-    def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+    def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_unset_exe"
         if not game.executable:
             push_disabled()
@@ -563,7 +563,7 @@ class MainGUI():
         if clicked:
             pass  # TODO: unset exe
 
-    def draw_game_open_folder_button(self, game: Game, label: str = "", selectable=False, *args, **kwargs):
+    def draw_game_open_folder_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_open_folder"
         if not game.executable:
             push_disabled()
@@ -618,7 +618,7 @@ class MainGUI():
         imgui.dummy(0, 0)
         imgui.pop_style_color(3)
 
-    def configure_next_popup(self, size=True, pos=True):
+    def configure_next_popup(self, size: bool = True, pos: bool = True):
         sz = self.io.display_size
         if size:
             height = sz.y * 0.9
@@ -1012,7 +1012,7 @@ class MainGUI():
         if imgui.button("Add!"):
             pass  # TODO: add button functionality
 
-    def start_settings_section(self, name, right_width, collapsible=True):
+    def start_settings_section(self, name: str, right_width: int | float, collapsible: bool = True):
         if collapsible:
             header = imgui.collapsing_header(f"{name}##{name}_header")[0]
         else:

@@ -5,6 +5,7 @@ from modules import gui
 import aiosqlite
 import asyncio
 import pathlib
+import typing
 import json
 
 connection: aiosqlite.Connection = None
@@ -176,7 +177,7 @@ async def load():
         print(exc)
 
 
-def convert_py_value(value):
+def convert_py_value(value: enum.Enum | Timestamp | bool | list | typing.Any):
     if isinstance(value, enum.Enum):
         value = value.value
     elif isinstance(value, Timestamp):
