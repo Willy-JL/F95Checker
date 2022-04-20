@@ -137,7 +137,9 @@ def close_popup_clicking_outside():
         # This is the topmost popup
         if imgui.is_mouse_clicked():
             # Mouse was just clicked
-            if not imgui.is_window_hovered(imgui.HOVERED_ROOT_AND_CHILD_WINDOWS):
+            pos = imgui.get_window_position()
+            size = imgui.get_window_size()
+            if not imgui.is_mouse_hovering_rect(pos.x, pos.y, pos.x + size.x, pos.y + size.y, clip=False):
                 # Popup is not hovered
                 imgui.close_current_popup()
                 return True
