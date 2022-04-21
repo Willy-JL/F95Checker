@@ -1,7 +1,8 @@
-from modules.structs import *
-from modules.gui import *
 import pathlib
 import sys
+
+from modules.gui import MainGUI
+from modules.structs import *
 
 
 version = "9.0"

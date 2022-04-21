@@ -1,12 +1,13 @@
-from modules.structs import *
-from modules import globals
-from modules import utils
-from modules import gui
 import aiosqlite
 import asyncio
 import pathlib
 import typing
 import json
+
+from modules.structs import *
+from modules import globals
+from modules import utils
+from modules import gui
 
 connection: aiosqlite.Connection = None
 available: bool = False
