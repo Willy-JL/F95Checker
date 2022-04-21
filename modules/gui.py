@@ -44,7 +44,7 @@ def impl_glfw_init(width: int, height: int, window_name: str):
 
 
 class ImGuiImage:
-    def __init__(self, path: str | pathlib.Path):
+    def __init__(self, path: str | pathlib.Path, glob: str = ""):
         self.loaded = False
         self.applied = False
         self.data = None
@@ -54,7 +54,9 @@ class ImGuiImage:
         self.frame_durations = []
         self.frame_elapsed = 0.0
         self.prev_time = 0.0
-        self.path = path
+        self.path = pathlib.Path(path)
+        self.glob = glob
+        self.missing = False
         self.width, self.height = 1, 1
         self.texture_id = None
 
@@ -72,9 +74,26 @@ class ImGuiImage:
                 image = image.convert("RGBA")
             return image.tobytes("raw", "RGBA")
 
+    def set_missing(self):
+        self.width, self.height = imgui.calc_text_size("Image missing!")
+        self.missing = True
+        self.loaded = True
+
     def reload(self):
         self.reset()
-        image = Image.open(self.path)
+        path = self.path
+        if self.glob:
+            paths = list(path.glob(self.glob))
+            if not paths:
+                self.set_missing()
+                return
+            path = paths[0]
+        if path.is_file():
+            self.missing = False
+        else:
+            self.set_missing()
+            return
+        image = Image.open(path)
         self.width, self.height = image.size
         if hasattr(image, "n_frames") and image.n_frames > 1:
             self.animated = True
@@ -100,7 +119,7 @@ class ImGuiImage:
             self.texture_id = gl.glGenTextures(1)
         if not self.loaded:
             self.reload()
-        else:
+        elif not self.missing:
             if self.animated:
                 if self.prev_time != (new_time := imgui.get_time()):
                     self.prev_time = new_time
@@ -117,7 +136,10 @@ class ImGuiImage:
             elif not self.applied:
                 self.apply(self.data)
                 self.applied = True
-        imgui.image(self.texture_id, *args, **kwargs)
+        if self.missing:
+            imgui.text_disabled("Image missing!")
+        else:
+            imgui.image(self.texture_id, *args, **kwargs)
 
 
 def push_disabled(block_interaction: bool = True):

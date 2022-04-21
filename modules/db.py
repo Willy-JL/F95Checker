@@ -173,7 +173,7 @@ async def load():
                 else:
                     value = data_type(game[key])
                 setattr(globals.games[game["id"]], key, value)
-            globals.games[game["id"]].image = gui.ImGuiImage(globals.data_path / f"images/{game['id']}.jpg")
+            globals.games[game["id"]].image = gui.ImGuiImage(globals.data_path / "images", glob=f"{game['id']}.*")
     except Exception as exc:
         print(exc)
 
