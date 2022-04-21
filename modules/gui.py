@@ -320,7 +320,7 @@ class MainGUI():
     )
     game_grid_table_flags = (
         imgui.TABLE_SCROLL_Y |
-        imgui.TABLE_SIZING_FIXED_FIT |
+        imgui.TABLE_SIZING_FIXED_SAME |
         imgui.TABLE_NO_HOST_EXTEND_Y
     )
     popup_flags = (
@@ -1002,13 +1002,42 @@ class MainGUI():
             imgui.end_table()
 
     def draw_games_grid(self):
-        imgui.text("Placeholder")
+        count = 3
         if imgui.begin_table(
             "GamesGrid",
-            column=4,
+            column=count,
             flags=self.game_grid_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()
         ):
+            for i in range(count):
+                imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            for game_i, id in enumerate(self.sorted_games_ids):
+                game: Game = globals.games[id]
+                imgui.table_next_column()
+                img = game.image
+                size_x = imgui.get_content_region_available_width()
+                size_y = size_x / 2
+                ratio = 2
+                img_ratio = img.width / img.height
+                if img_ratio >= ratio:
+                    crop_h = img.height
+                    crop_w = crop_h * ratio
+                    crop_x = (img.width - crop_w) / 2
+                    crop_y = 0
+                    left = crop_x / img.width
+                    top = 0
+                    right = (crop_x + crop_w) / img.width
+                    bottom = 1
+                else:
+                    crop_w = img.width
+                    crop_h = crop_w / ratio
+                    crop_y = (img.height - crop_h) / 2
+                    crop_x = 0
+                    left = 0
+                    top = crop_y / img.height
+                    right = 1
+                    bottom = (crop_y + crop_h) / img.height
+                img.render(size_x, size_y, (left, top), (right, bottom))
             imgui.end_table()
 
     def draw_bottombar(self):
