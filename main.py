@@ -8,6 +8,9 @@ def main():
     from modules import logger
     logger.install()
 
+    from modules import sync_thread
+    sync_thread.setup()
+
     from modules import async_thread
     async_thread.setup()
 

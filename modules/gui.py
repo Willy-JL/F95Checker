@@ -14,6 +14,7 @@ import sys
 import os
 
 from modules import async_thread
+from modules import sync_thread
 from modules.structs import *
 from modules import globals
 from modules import db
@@ -46,6 +47,7 @@ def impl_glfw_init(width: int, height: int, window_name: str):
 class ImGuiImage:
     def __init__(self, path: str | pathlib.Path, glob: str = ""):
         self.loaded = False
+        self.loading = False
         self.applied = False
         self.data = None
         self.animated = False
@@ -78,6 +80,7 @@ class ImGuiImage:
         self.width, self.height = imgui.calc_text_size("Image missing!")
         self.missing = True
         self.loaded = True
+        self.loading = False
 
     def reload(self):
         self.reset()
@@ -105,6 +108,7 @@ class ImGuiImage:
         else:
             self.data = self.get_rgba_pixels(image)
         self.loaded = True
+        self.loading = False
 
     def apply(self, data: bytes):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
@@ -118,7 +122,9 @@ class ImGuiImage:
         if self.texture_id is None:
             self.texture_id = gl.glGenTextures(1)
         if not self.loaded:
-            self.reload()
+            if not self.loading:
+                self.loading = True
+                sync_thread.enqueue(self.reload)
         elif not self.missing:
             if self.animated:
                 if self.prev_time != (new_time := imgui.get_time()):
