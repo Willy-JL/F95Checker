@@ -515,6 +515,16 @@ class MainGUI():
         imgui.small_button(f"{game.engine.name}##{game.id}_engine", *args, **kwargs)
         imgui.pop_style_color(3)
 
+    def draw_game_version_text(self, game: Game, disabled: bool = False, *args, **kwargs):
+        if game.installed and game.installed != game.version:
+            text = f"Installed: {game.installed}  -  Latest: {game.version}"
+        else:
+            text = game.version
+        if disabled:
+            imgui.text_disabled(text, *args, **kwargs)
+        else:
+            imgui.text(text, *args, **kwargs)
+
     def draw_game_status_widget(self, game: Game, *args, **kwargs):
         if game.status is Status.Completed:
             imgui.text_colored("󰄳", 0.00, 0.85, 0.00, *args, **kwargs)
@@ -729,7 +739,7 @@ class MainGUI():
 
             imgui.text_disabled("Version:")
             imgui.same_line()
-            imgui.text(game.version)
+            self.draw_game_version_text(game)
 
             imgui.text_disabled("Status:")
             imgui.same_line()
@@ -928,7 +938,7 @@ class MainGUI():
                 imgui.text(game.name)
                 if version_enabled:
                     imgui.same_line()
-                    imgui.text_disabled(game.version)
+                    self.draw_game_version_text(game, disabled=True)
                 if status_enabled:
                     imgui.same_line()
                     self.draw_game_status_widget(game)
