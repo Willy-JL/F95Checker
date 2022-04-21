@@ -178,7 +178,8 @@ class FilePicker:
     _flags = (
         imgui.WINDOW_NO_MOVE |
         imgui.WINDOW_NO_RESIZE |
-        imgui.WINDOW_NO_COLLAPSE
+        imgui.WINDOW_NO_COLLAPSE |
+        imgui.WINDOW_ALWAYS_AUTO_RESIZE
     )
 
     def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, custom_flags: int = 0):
@@ -223,22 +224,20 @@ class FilePicker:
         if not self.active:
             return
         # Setup popup
-        size = imgui.get_io().display_size
-        width = size.x * 0.8
-        height = size.y * 0.8
-        imgui.set_next_window_size(width, height, imgui.ALWAYS)
-        imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
         if not imgui.is_popup_open(self.id):
             imgui.open_popup(self.id)
+        size = imgui.get_io().display_size
+        imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
         if imgui.begin_popup_modal(self.id, True, flags=self.flags)[0]:
             close_popup_clicking_outside()
 
+            imgui.begin_group()
             # Up buttons
             if imgui.button("󰁞"):
                 self.goto(self.dir.parent)
             # Location bar
             imgui.same_line()
-            imgui.set_next_item_width(-(imgui.calc_text_size("󰑐").x + 2 * imgui.get_style().frame_padding.x) - imgui.get_style().item_spacing.x)
+            imgui.set_next_item_width(size.x * 0.7)
             confirmed, dir = imgui.input_text(f"##location_bar_{self.id}", str(self.dir), 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if confirmed:
                 self.goto(dir)
@@ -246,10 +245,12 @@ class FilePicker:
             imgui.same_line()
             if imgui.button("󰑐"):
                 self.refresh()
+            imgui.end_group()
+            width = imgui.get_item_rect_size().x
 
             # Main list
-            if imgui.begin_child(f"##file_box_{self.id}", border=False, height=-imgui.get_frame_height_with_spacing()) or True:
-                imgui.set_next_item_width(imgui.get_content_region_available_width())
+            if imgui.begin_child(f"##file_box_{self.id}", border=False, height=size.y * 0.65, width=width) or True:
+                imgui.set_next_item_width(width)
                 clicked, value = imgui.listbox(f"##file_list_{self.id}", self.current, self.items, len(self.items))
                 if value != -1:
                     self.current = min(max(value, 0), len(self.items) - 1)
