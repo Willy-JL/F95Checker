@@ -79,11 +79,11 @@ class Status(IntEnumAuto):
 
 class Timestamp:
     def __init__(self, unix_time: int):
-        self.value = unix_time
+        self.value: int = unix_time
         if self.value == 0:
-            self.display = "N/A"
+            self.display: str = "N/A"
         else:
-            self.display = datetime.date.fromtimestamp(unix_time).strftime("%d/%m/%Y")
+            self.display: str = datetime.date.fromtimestamp(unix_time).strftime("%d/%m/%Y")
 
 
 Tag = IntEnumAuto("Tag", " ".join([
