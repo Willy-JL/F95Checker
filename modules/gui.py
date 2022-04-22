@@ -46,21 +46,21 @@ def impl_glfw_init(width: int, height: int, window_name: str):
 
 class ImGuiImage:
     def __init__(self, path: str | pathlib.Path, glob: str = ""):
-        self.loaded = False
-        self.loading = False
-        self.applied = False
-        self.data = None
-        self.animated = False
-        self.current_frame = -1
-        self.frame_count = 1
-        self.frame_durations = []
-        self.frame_elapsed = 0.0
-        self.prev_time = 0.0
-        self.path = pathlib.Path(path)
-        self.glob = glob
-        self.missing = False
+        self.glob: str = glob
+        self.frame_count: int = 1
+        self.loaded: bool = False
+        self.loading: bool = False
+        self.applied: bool = False
+        self.missing: bool = False
+        self.animated: bool = False
+        self.prev_time: float = 0.0
+        self.current_frame: int = -1
         self.width, self.height = 1, 1
-        self._texture_id = None
+        self.frame_elapsed: float = 0.0
+        self.frame_durations: list = []
+        self.data: bytes | list[bytes] = None
+        self._texture_id: numpy.uint32 = None
+        self.path: pathlib.Path = pathlib.Path(path)
 
     def reset(self):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
@@ -209,16 +209,16 @@ class FilePicker:
     )
 
     def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, custom_flags: int = 0):
-        self.active = True
-        self.selected = None
-        self.dir_icon = "󰉋"
-        self.file_icon = "󰈔"
-        self.current = 0
-        self.items = []
-        self.dir = None
+        self.current: int = 0
+        self.active: bool = True
+        self.dir_icon: str = "󰉋"
+        self.file_icon: str = "󰈔"
+        self.selected: str = None
+        self.items: list[str] = []
+        self.dir: pathlib.Path = None
+        self.flags: int = custom_flags or self._flags
+        self.id: str = f"{title}##{str(random.random())[2:]}"
         self.goto(start_dir or os.getcwd())
-        self.id = f"{title}##{str(random.random())[2:]}"
-        self.flags = custom_flags or self._flags
 
     def goto(self, dir: str | pathlib.Path):
         dir = pathlib.Path(dir)
@@ -359,17 +359,18 @@ class MainGUI():
 
     def __init__(self):
         # Variables
-        self.size_mult = 0
-        self.visible = True
-        self.prev_size = 0, 0
-        self.status_text = ""
-        self.require_sort = True
-        self.prev_manual_sort = 0
-        self.sorted_games_ids = []
-        self.current_filepicker = None
-        self.current_info_popup_game = None
-        self.game_list_hitbox_click = False
-        self.ghost_columns_enabled_count = 0
+        self.visible: bool = True
+        self.status_text: str = ""
+        self.prev_size: tuple = 0, 0
+        self.hovered_game: Game = None
+        self.require_sort: bool = True
+        self.prev_manual_sort: int = 0
+        self.size_mult: int | float = 0
+        self.sorted_games_ids: list = []
+        self.game_list_hitbox_click: bool = False
+        self.current_info_popup_game: Game = None
+        self.ghost_columns_enabled_count: int = 0
+        self.current_filepicker: FilePicker = None
 
         # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
