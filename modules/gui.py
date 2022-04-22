@@ -815,6 +815,51 @@ class MainGUI():
         if not imgui.is_popup_open("Game info"):
             self.current_info_popup_game = None
 
+    def sort(self, sort_specs, manual_sort):
+        if manual_sort != self.prev_manual_sort:
+            self.prev_manual_sort = manual_sort
+            self.require_sort = True
+        if sort_specs.specs_dirty or self.require_sort:
+            if manual_sort:
+                changed = False
+                for id in globals.settings.manual_sort_list:
+                    if id not in globals.games:
+                        globals.settings.manual_sort_list.remove(id)
+                        changed = True
+                for id in globals.games:
+                    if id not in globals.settings.manual_sort_list:
+                        globals.settings.manual_sort_list.append(id)
+                        changed = True
+                if changed:
+                    async_thread.run(db.update_settings("manual_sort_list"))
+                self.sorted_games_ids = globals.settings.manual_sort_list
+            elif sort_specs.specs_count > 0:
+                sort_spec = sort_specs.specs[0]
+                match sort_spec.column_index:
+                    case 5:  # Engine
+                        key = lambda id: globals.games[id].engine.value
+                    case 7:  # Developer
+                        key = lambda id: globals.games[id].developer.lower()
+                    case 8:  # Last Updated
+                        key = lambda id: globals.games[id].last_updated.value
+                    case 9:  # Last Played
+                        key = lambda id: globals.games[id].last_played.value
+                    case 10:  # Added On
+                        key = lambda id: globals.games[id].added_on.value
+                    case 11:  # Played
+                        key = lambda id: globals.games[id].played
+                    case 12:  # Installed
+                        key = lambda id: globals.games[id].installed == globals.games[id].version
+                    case 13:  # Rating
+                        key = lambda id: globals.games[id].rating
+                    case _:  # Name and all others
+                        key = lambda id: globals.games[id].name.lower()
+                ids = list(globals.games.keys())
+                ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
+                self.sorted_games_ids = ids
+            sort_specs.specs_dirty = False
+            self.require_sort = False
+
     def draw_games_list(self):
         ghost_column_size = (self.style.frame_padding.x + self.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
@@ -841,9 +886,6 @@ class MainGUI():
             self.ghost_columns_enabled_count += version_enabled
             self.ghost_columns_enabled_count += status_enabled
             self.ghost_columns_enabled_count += manual_sort
-            if manual_sort != self.prev_manual_sort:
-                self.prev_manual_sort = manual_sort
-                self.require_sort = True
             sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT)  # 4
             imgui.table_setup_column("Engine", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 5
@@ -878,46 +920,7 @@ class MainGUI():
 
             # Sorting
             sort_specs = imgui.table_get_sort_specs()
-            if sort_specs.specs_dirty or self.require_sort:
-                if manual_sort:
-                    changed = False
-                    for id in globals.settings.manual_sort_list:
-                        if id not in globals.games:
-                            globals.settings.manual_sort_list.remove(id)
-                            changed = True
-                    for id in globals.games:
-                        if id not in globals.settings.manual_sort_list:
-                            globals.settings.manual_sort_list.append(id)
-                            changed = True
-                    if changed:
-                        async_thread.run(db.update_settings("manual_sort_list"))
-                    self.sorted_games_ids = globals.settings.manual_sort_list
-                elif sort_specs.specs_count > 0:
-                    sort_spec = sort_specs.specs[0]
-                    match sort_spec.column_index:
-                        case 5:  # Engine
-                            key = lambda id: globals.games[id].engine.value
-                        case 7:  # Developer
-                            key = lambda id: globals.games[id].developer.lower()
-                        case 8:  # Last Updated
-                            key = lambda id: globals.games[id].last_updated.value
-                        case 9:  # Last Played
-                            key = lambda id: globals.games[id].last_played.value
-                        case 10:  # Added On
-                            key = lambda id: globals.games[id].added_on.value
-                        case 11:  # Played
-                            key = lambda id: globals.games[id].played
-                        case 12:  # Installed
-                            key = lambda id: globals.games[id].installed == globals.games[id].version
-                        case 13:  # Rating
-                            key = lambda id: globals.games[id].rating
-                        case _:  # Name and all others
-                            key = lambda id: globals.games[id].name.lower()
-                    ids = list(globals.games.keys())
-                    ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
-                    self.sorted_games_ids = ids
-                sort_specs.specs_dirty = False
-                self.require_sort = False
+            self.sort(sort_specs, manual_sort)
 
             # Loop rows
             for game_i, id in enumerate(self.sorted_games_ids):
@@ -1014,6 +1017,20 @@ class MainGUI():
             imgui.end_table()
 
     def draw_games_grid(self):
+        # Hack: get sort specs for list mode in grid mode
+        pos = imgui.get_cursor_pos_y()
+        if imgui.begin_table(
+            "GamesList",
+            column=self.game_list_column_count,
+            flags=self.game_list_table_flags,
+            outer_size_height=1
+        ):
+            sort_specs = imgui.table_get_sort_specs()
+            manual_sort = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            self.sort(sort_specs, manual_sort)
+            imgui.end_table()
+        imgui.set_cursor_pos_y(pos)
+
         count = 3
         if imgui.begin_table(
             "GamesGrid",
