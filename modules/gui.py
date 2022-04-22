@@ -5,8 +5,8 @@ import OpenGL.GL as gl
 import configparser
 import platform
 import pathlib
+import typing
 import OpenGL
-import random
 import numpy
 import imgui
 import glfw
@@ -18,6 +18,9 @@ from modules import sync_thread
 from modules.structs import *
 from modules import globals
 from modules import db
+
+io: imgui.core._IO = None
+style: imgui.core.GuiStyle = None
 
 
 def impl_glfw_init(width: int, height: int, window_name: str):
@@ -130,7 +133,7 @@ class ImGuiImage:
             if self.animated:
                 if self.prev_time != (new_time := imgui.get_time()):
                     self.prev_time = new_time
-                    self.frame_elapsed += imgui.get_io().delta_time
+                    self.frame_elapsed += io.delta_time
                 if self.frame_elapsed > self.frame_durations[max(self.current_frame, 0)]:
                     self.frame_elapsed = 0
                     self.applied = False
@@ -177,13 +180,18 @@ class ImGuiImage:
 def push_disabled(block_interaction: bool = True):
     if block_interaction:
         imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
-    imgui.push_style_var(imgui.STYLE_ALPHA, imgui.get_style().alpha *  0.5)
+    imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
 
 
 def pop_disabled(block_interaction: bool = True):
     if block_interaction:
         imgui.internal.pop_item_flag()
     imgui.pop_style_var()
+
+
+def center_next_window():
+    size = io.display_size
+    imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
 
 
 def close_popup_clicking_outside():
@@ -201,23 +209,25 @@ def close_popup_clicking_outside():
 
 
 class FilePicker:
-    _flags = (
+    flags = (
         imgui.WINDOW_NO_MOVE |
         imgui.WINDOW_NO_RESIZE |
         imgui.WINDOW_NO_COLLAPSE |
+        imgui.WINDOW_NO_SAVED_SETTINGS |
         imgui.WINDOW_ALWAYS_AUTO_RESIZE
     )
 
-    def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, custom_flags: int = 0):
+    def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_flags: int = 0):
         self.current: int = 0
+        self.title: str = title
         self.active: bool = True
         self.dir_icon: str = "󰉋"
         self.file_icon: str = "󰈔"
         self.selected: str = None
         self.items: list[str] = []
         self.dir: pathlib.Path = None
-        self.flags: int = custom_flags or self._flags
-        self.id: str = f"{title}##{str(random.random())[2:]}"
+        self.callback: typing.Callable = callback
+        self.flags: int = custom_flags or self.flags
         self.goto(start_dir or os.getcwd())
 
     def goto(self, dir: str | pathlib.Path):
@@ -246,16 +256,16 @@ class FilePicker:
         except Exception:
             self.items.append("Cannot open this folder!")
 
-    def tick(self):
+    def draw(self):
         if not self.active:
             return
         # Setup popup
-        if not imgui.is_popup_open(self.id):
-            imgui.open_popup(self.id)
-        size = imgui.get_io().display_size
-        imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-        if imgui.begin_popup_modal(self.id, True, flags=self.flags)[0]:
+        if not imgui.is_popup_open(self.title):
+            imgui.open_popup(self.title)
+        center_next_window()
+        if imgui.begin_popup_modal(self.title, True, flags=self.flags)[0]:
             close_popup_clicking_outside()
+            size = io.display_size
 
             imgui.begin_group()
             # Up buttons
@@ -264,7 +274,7 @@ class FilePicker:
             # Location bar
             imgui.same_line()
             imgui.set_next_item_width(size.x * 0.7)
-            confirmed, dir = imgui.input_text(f"##location_bar_{self.id}", str(self.dir), 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+            confirmed, dir = imgui.input_text("##location_bar", str(self.dir), 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if confirmed:
                 self.goto(dir)
             # Refresh button
@@ -275,9 +285,9 @@ class FilePicker:
             width = imgui.get_item_rect_size().x
 
             # Main list
-            if imgui.begin_child(f"##file_box_{self.id}", border=False, height=size.y * 0.65, width=width) or True:
+            if imgui.begin_child(f"##list_frame", border=False, height=size.y * 0.65, width=width) or True:
                 imgui.set_next_item_width(width)
-                clicked, value = imgui.listbox(f"##file_list_{self.id}", self.current, self.items, len(self.items))
+                clicked, value = imgui.listbox(f"##file_list", self.current, self.items, len(self.items))
                 if value != -1:
                     self.current = min(max(value, 0), len(self.items) - 1)
                     item = self.items[self.current]
@@ -312,52 +322,55 @@ class FilePicker:
                 imgui.text(f"Selected:  {item[3:]}")
 
             imgui.end_popup()
-        if not imgui.is_popup_open(self.id):
-            if self.selected is None:
-                self.selected = ""
+        if not imgui.is_popup_open(self.title):
+            if self.callback:
+                self.callback(self.selected)
             self.active = False
-        return self.selected
 
 
 class MainGUI():
-    # Constants
-    sidebar_size = 269
-    game_list_column_count = 15
-    window_flags = (
-        imgui.WINDOW_NO_MOVE |
-        imgui.WINDOW_NO_RESIZE |
-        imgui.WINDOW_NO_COLLAPSE |
-        imgui.WINDOW_NO_TITLE_BAR |
-        imgui.WINDOW_NO_SCROLLBAR |
-        imgui.WINDOW_NO_SCROLL_WITH_MOUSE
-    )
-    game_list_table_flags = (
-        imgui.TABLE_SCROLL_Y |
-        imgui.TABLE_HIDEABLE |
-        imgui.TABLE_SORTABLE |
-        imgui.TABLE_REORDERABLE |
-        imgui.TABLE_ROW_BACKGROUND |
-        imgui.TABLE_SIZING_FIXED_FIT |
-        imgui.TABLE_NO_HOST_EXTEND_Y
-    )
-    ghost_columns_flags = (
-        imgui.TABLE_COLUMN_NO_SORT |
-        imgui.TABLE_COLUMN_NO_REORDER |
-        imgui.TABLE_COLUMN_NO_HEADER_WIDTH
-    )
-    game_grid_table_flags = (
-        imgui.TABLE_SCROLL_Y |
-        imgui.TABLE_SIZING_FIXED_SAME |
-        imgui.TABLE_NO_HOST_EXTEND_Y
-    )
-    popup_flags = (
-        imgui.WINDOW_NO_MOVE |
-        imgui.WINDOW_NO_RESIZE |
-        imgui.WINDOW_NO_COLLAPSE |
-        imgui.WINDOW_ALWAYS_AUTO_RESIZE
-    )
-
     def __init__(self):
+        global io, style
+        # Constants
+        self.sidebar_size: int = 269
+        self.game_list_column_count: int = 15
+        self.window_flags: int = (
+            imgui.WINDOW_NO_MOVE |
+            imgui.WINDOW_NO_RESIZE |
+            imgui.WINDOW_NO_COLLAPSE |
+            imgui.WINDOW_NO_TITLE_BAR |
+            imgui.WINDOW_NO_SCROLLBAR |
+            imgui.WINDOW_NO_SCROLL_WITH_MOUSE
+        )
+        self.game_list_table_flags: int = (
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_HIDEABLE |
+            imgui.TABLE_SORTABLE |
+            imgui.TABLE_REORDERABLE |
+            imgui.TABLE_ROW_BACKGROUND |
+            imgui.TABLE_SIZING_FIXED_FIT |
+            imgui.TABLE_NO_HOST_EXTEND_Y
+        )
+        self.ghost_columns_flags: int = (
+            imgui.TABLE_COLUMN_NO_SORT |
+            imgui.TABLE_COLUMN_NO_REORDER |
+            imgui.TABLE_COLUMN_NO_HEADER_WIDTH
+        )
+        self.game_grid_table_flags: int = (
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_NO_HOST_EXTEND_Y |
+            imgui.TABLE_SIZING_FIXED_SAME |
+            imgui.TABLE_NO_SAVED_SETTINGS
+        )
+        self.popup_flags: int = (
+            imgui.WINDOW_NO_MOVE |
+            imgui.WINDOW_NO_RESIZE |
+            imgui.WINDOW_NO_COLLAPSE |
+            imgui.WINDOW_NO_SAVED_SETTINGS |
+            imgui.WINDOW_ALWAYS_AUTO_RESIZE
+        )
+        self.watermark_text: str = f"F95Checker v{globals.version} by WillyJL"
+
         # Variables
         self.visible: bool = True
         self.status_text: str = ""
@@ -367,6 +380,7 @@ class MainGUI():
         self.prev_manual_sort: int = 0
         self.size_mult: int | float = 0
         self.sorted_games_ids: list = []
+        self.drew_filepicker: bool = False
         self.game_list_hitbox_click: bool = False
         self.current_info_popup_game: Game = None
         self.ghost_columns_enabled_count: int = 0
@@ -379,9 +393,9 @@ class MainGUI():
 
         # Setup ImGui
         imgui.create_context()
-        self.io = imgui.get_io()
+        io = imgui.get_io()
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
-        self.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
+        io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
         try:
             # Get window size
             imgui.load_ini_settings_from_disk(self.ini_file_name.decode("utf-8"))
@@ -406,29 +420,30 @@ class MainGUI():
         self.refresh_fonts()
 
         # Load style configuration
-        self.style = imgui.get_style()
-        self.style.window_border_size = 0
-        self.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
+        style = imgui.get_style()
+        style.window_border_size = 0
+        style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
+        style.scrollbar_size = 12
 
     def refresh_fonts(self):
-        self.io.fonts.clear()
+        io.fonts.clear()
         win_w, win_h = glfw.get_window_size(self.window)
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
-        self.io.font_global_scale = 1 / font_scaling_factor
+        io.font_global_scale = 1 / font_scaling_factor
         self.size_mult = globals.settings.style_scaling
-        self.io.fonts.add_font_from_file_ttf(
+        io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
             18 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         )
-        self.io.fonts.add_font_from_file_ttf(
+        io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
             18 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1),
             glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
         )
-        self.big_font = self.io.fonts.add_font_from_file_ttf(
+        self.big_font = io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
             28 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
@@ -457,14 +472,16 @@ class MainGUI():
             self.impl.process_inputs()
             if self.visible:
                 imgui.new_frame()
+                self.drew_filepicker = False
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
-                if (size := self.io.display_size) != self.prev_size:
+                if (size := io.display_size) != self.prev_size:
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
 
                 if imgui.begin("F95Checker", closable=False, flags=self.window_flags) or True:
+                    sidebar_size = self.scaled(self.sidebar_size)
 
-                    if imgui.begin_child("Main", width=-self.scaled(self.sidebar_size), border=False) or True:
+                    if imgui.begin_child("##main_frame", width=-sidebar_size, border=False) or True:
                         self.hovered_game = None
                         if globals.settings.display_mode is DisplayMode.list:
                             self.draw_games_list()
@@ -473,28 +490,30 @@ class MainGUI():
                         self.draw_bottombar()
                     imgui.end_child()
 
-                    text = self.status_text or f"F95Checker v{globals.version} by WillyJL"
+                    text = self.status_text or self.watermark_text
                     _3 = self.scaled(3)
                     _6 = self.scaled(6)
                     text_size = imgui.calc_text_size(text)
-                    text_pos = size.x - text_size.x - _6, size.y - text_size.y - _6
+                    text_x, text_y = size.x - text_size.x - _6, size.y - text_size.y - _6
 
                     imgui.same_line(spacing=1)
-                    if imgui.begin_child("Sidebar", width=self.scaled(self.sidebar_size) - 1, height=-text_size.y - _3, border=False) or True:
+                    if imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y - _3, border=False) or True:
                         self.draw_sidebar()
                     imgui.end_child()
 
-                    text_btn_pos = text_pos[0] - _3, text_pos[1]
-                    text_btn_size = text_size.x + _6, text_size.y + _3
-                    imgui.set_cursor_screen_pos(text_btn_pos)
-                    if imgui.invisible_button("##status_text", *text_btn_size):
-                        imgui.open_popup("About F95Checker")
-                    self.draw_about_popup()
-                    imgui.set_cursor_screen_pos(text_pos)
+                    if not self.status_text:
+                        imgui.set_cursor_screen_pos((text_x - _3, text_y))
+                        if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
+                            imgui.open_popup("About F95Checker")
+                    imgui.set_cursor_screen_pos((text_x, text_y))
                     imgui.text(text)
+
+                    self.draw_game_info_popup()
+                    self.draw_filepicker_popup()
+                    self.draw_about_popup()
                 imgui.end()
 
-                if (size := self.io.display_size) != self.prev_size:
+                if (size := io.display_size) != self.prev_size:
                     self.prev_size = size
 
                 imgui.render()
@@ -511,7 +530,7 @@ class MainGUI():
         imgui.text_disabled("(?)", *args, **kwargs)
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
-            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, self.io.display_size.x))
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, io.display_size.x))
             imgui.text_unformatted(help_text)
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
@@ -679,29 +698,25 @@ class MainGUI():
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        _20 = self.scaled(20)
         for tag in game.tags:
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + self.scaled(20):
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + _20:
                 imgui.dummy(0, 0)
             imgui.small_button(tag.name, *args, **kwargs)
             imgui.same_line()
         imgui.dummy(0, 0)
         imgui.pop_style_color(3)
 
-    def configure_next_popup(self, size: bool = True, pos: bool = True):
-        sz = self.io.display_size
-        if size:
-            height = sz.y * 0.9
-            width = min(sz.x * 0.9, height * self.scaled(0.9))
-            imgui.set_next_window_size(width, height)
-        if pos:
-            imgui.set_next_window_position(sz.x / 2, sz.y / 2, pivot_x=0.5, pivot_y=0.5)
-
     def draw_game_info_popup(self):
         if not self.current_info_popup_game:
             return
         if not imgui.is_popup_open("Game info"):
             imgui.open_popup("Game info")
-        self.configure_next_popup(size=True, pos=True)
+        size = io.display_size
+        height = size.y * 0.9
+        width = min(size.x * 0.9, height * self.scaled(0.9))
+        imgui.set_next_window_size(width, height)
+        center_next_window()
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
             close_popup_clicking_outside()
             game = self.current_info_popup_game
@@ -715,14 +730,14 @@ class MainGUI():
                 height = new_height
                 width = height * (1 / aspect_ratio)
             if width < avail.x:
-                imgui.set_cursor_pos_x((avail.x - width + self.style.scrollbar_size) / 2)
+                imgui.set_cursor_pos_x((avail.x - width + style.scrollbar_size) / 2)
             image_pos = imgui.get_cursor_screen_pos()
             image.render(width, height)
             if imgui.is_item_hovered() and globals.settings.zoom_enabled:
                 size = globals.settings.zoom_size
                 zoom = globals.settings.zoom_amount
                 zoomed_size = size * zoom
-                mouse_pos = self.io.mouse_pos
+                mouse_pos = io.mouse_pos
                 ratio = image.width / width
                 x = mouse_pos.x - image_pos.x - size * 0.5
                 y = mouse_pos.y - image_pos.y - size * 0.5
@@ -844,7 +859,122 @@ class MainGUI():
         if not imgui.is_popup_open("Game info"):
             self.current_info_popup_game = None
 
-    def sort(self, sort_specs, manual_sort):
+    def draw_filepicker_popup(self):
+        if self.current_filepicker and not self.drew_filepicker:
+            self.current_filepicker.draw()
+            if not self.current_filepicker.active:
+                self.current_filepicker = None
+            self.drew_filepicker = True
+
+    def draw_about_popup(self):
+        size = io.display_size
+        imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
+        center_next_window()
+        if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
+            close_popup_clicking_outside()
+            _50 = self.scaled(50)
+            _210 = self.scaled(210)
+            imgui.begin_group()
+            imgui.dummy(_50, _210)
+            imgui.same_line()
+            self.icon_texture.render(_210, _210)
+            imgui.same_line()
+            imgui.begin_group()
+            imgui.push_font(self.big_font)
+            imgui.text("F95Checker")
+            imgui.pop_font()
+            imgui.text(f"Version {globals.version}")
+            imgui.text("")
+            imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+            imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
+            imgui.text(f"GLFW {'.'.join(str(num) for num in glfw.get_version())},  Py {glfw.__version__}")
+            imgui.text(f"ImGui {imgui.get_version()},  Py {imgui.__version__}")
+            imgui.text(f"Qt {QtCore.QT_VERSION_STR},  Py {QtCore.PYQT_VERSION_STR}")
+            if globals.os is Os.Linux:
+                imgui.text(f"{platform.system()} {platform.release()}")
+            elif globals.os is Os.Windows:
+                imgui.text(f"{platform.system()} {platform.release()} {platform.version()}")
+            elif globals.os is Os.MacOS:
+                imgui.text(f"{platform.system()} {platform.release()}")
+            imgui.end_group()
+            imgui.same_line()
+            imgui.dummy(_50, _210)
+            imgui.end_group()
+            imgui.spacing()
+            width = imgui.get_item_rect_size().x
+            btn_width = (width - 2 * style.item_spacing.x) / 3
+            if imgui.button("󰏌 F95Zone Thread", width=btn_width):
+                print("aaa")
+            imgui.same_line()
+            if imgui.button("󰊤 GitHub Repo", width=btn_width):
+                print("aaa")
+            imgui.same_line()
+            if imgui.button("󰌹 Donate + Links", width=btn_width):
+                print("aaa")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.push_text_wrap_pos(width)
+            imgui.text("This software is licensed under the 3rd revision of the GNU General Public License (GPLv3) and is provided to you for free. "
+                       "Furthermore, due to its license, it is also free as in freedom: you are free to use, study, modify and share this software "
+                       "in whatever way you wish as long as you keep the same license.")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("However, F95Checker is actively developed by one person only, WillyJL, and not with the aim of profit but out of personal "
+                       "interest and benefit for the whole F95Zone community. Donations are although greatly appreciated and aid the development "
+                       "of this software. You can find donation links above.")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("If you find bugs or have some feedback, don't be afraid to let me know either on GitHub (using issues or pull requests) "
+                       "or on F95Zone (in the thread comments or in direct messages).")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95Zone platform.")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("")
+            imgui.push_font(self.big_font)
+            size = imgui.calc_text_size("Cool People")
+            imgui.set_cursor_pos_x((width - size.x) / 2)
+            imgui.text("Cool People")
+            imgui.pop_font()
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Supporters:")
+            imgui.bullet_text("FaceCrap")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Contributors:")
+            imgui.bullet()
+            imgui.text("GR3ee3N: Optimized build workflows and other PRs")
+            imgui.bullet()
+            imgui.text("batblue: Implemented fixes for MacOS support")
+            imgui.bullet()
+            imgui.text("ploper26: Suggested HEAD requests for refreshing")
+            imgui.bullet()
+            imgui.text("ascsd: Helped with brainstorming on some issues and gave some tips")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Community:")
+            for name in [
+                "AtotehZ",
+                "unroot",
+                "abada25",
+                "d_pedestrian",
+                "yohudood",
+                "GrammerCop",
+                "SmurfyBlue",
+                "bitogno",
+                "MillenniumEarl",
+                "DarK x Duke"
+            ]:
+                if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
+                    imgui.dummy(0, 0)
+                imgui.bullet_text(name)
+                imgui.same_line(spacing=16)
+            imgui.pop_text_wrap_pos()
+            imgui.end_popup()
+
+    def sort_games(self, sort_specs, manual_sort):
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
             self.require_sort = True
@@ -890,24 +1020,22 @@ class MainGUI():
             self.require_sort = False
 
     def draw_games_list(self):
-        ghost_column_size = (self.style.frame_padding.x + self.style.cell_padding.x * 2)
+        ghost_column_size = (style.frame_padding.x + style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         if imgui.begin_table(
-            "GamesList",
+            "##game_list",
             column=self.game_list_column_count,
             flags=self.game_list_table_flags,
-            outer_size_height=-imgui.get_frame_height_with_spacing()
+            outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
             # Setup
+            # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
+            # by starting the table render before the content region.
             imgui.table_setup_column("Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
             imgui.table_setup_column("Version", self.ghost_columns_flags)  # 1
             imgui.table_setup_column("Status", self.ghost_columns_flags)  # 2
-            imgui.table_setup_column("##Separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
-            # Note: Since I am now heavily relying on ImGui for the dislay options of the games list, and the right click
-            # context menu on the column headers does not support adding custom options, I add custom toggles by adding
-            # "ghost columns", which are tiny, empty columns at the beginning of the table, and are hidden by rendering
-            # the table starting before the content region.
+            imgui.table_setup_column("##separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
             self.ghost_columns_enabled_count = 1
             manual_sort = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
@@ -915,17 +1043,17 @@ class MainGUI():
             self.ghost_columns_enabled_count += version_enabled
             self.ghost_columns_enabled_count += status_enabled
             self.ghost_columns_enabled_count += manual_sort
-            sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
+            can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT)  # 4
-            imgui.table_setup_column("Engine", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 5
-            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | sort)  # 6
-            imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 7
-            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 8
-            imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 9
-            imgui.table_setup_column("Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 10
-            imgui.table_setup_column("Played", sort)  # 11
-            imgui.table_setup_column("Installed", sort)  # 12
-            imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | sort)  # 13
+            imgui.table_setup_column("Engine", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 5
+            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
+            imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
+            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 8
+            imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 9
+            imgui.table_setup_column("Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 10
+            imgui.table_setup_column("Played", can_sort)  # 11
+            imgui.table_setup_column("Installed", can_sort)  # 12
+            imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 13
             imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT)  # 14
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
 
@@ -949,7 +1077,7 @@ class MainGUI():
 
             # Sorting
             sort_specs = imgui.table_get_sort_specs()
-            self.sort(sort_specs, manual_sort)
+            self.sort_games(sort_specs, manual_sort)
 
             # Loop rows
             for game_i, id in enumerate(self.sorted_games_ids):
@@ -1010,7 +1138,7 @@ class MainGUI():
                     self.draw_game_open_thread_button(game, label="󰏌")
                 # Row hitbox
                 imgui.same_line()
-                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - self.style.frame_padding.y)
+                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=imgui.get_frame_height())
                 if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
                     # Hover = image on refresh button
@@ -1043,43 +1171,52 @@ class MainGUI():
                         # Left click = open game info popup
                         self.game_list_hitbox_click = False
                         self.current_info_popup_game = game
-            # Draw info popup outside loop but in same ImGui context
-            self.draw_game_info_popup()
             imgui.end_table()
 
     def draw_games_grid(self):
         # Hack: get sort specs for list mode in grid mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
-            "GamesList",
+            "##game_list",
             column=self.game_list_column_count,
             flags=self.game_list_table_flags,
             outer_size_height=1
         ):
+            # Sorting
             sort_specs = imgui.table_get_sort_specs()
             manual_sort = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            self.sort(sort_specs, manual_sort)
+            self.sort_games(sort_specs, manual_sort)
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
         count = 3
         if imgui.begin_table(
-            "GamesGrid",
+            "##game_grid",
             column=count,
             flags=self.game_grid_table_flags,
-            outer_size_height=-imgui.get_frame_height_with_spacing()
+            outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
+            # Setup
             for i in range(count):
                 imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+
+            # Loop cells
             for game_i, id in enumerate(self.sorted_games_ids):
                 game: Game = globals.games[id]
                 imgui.table_next_column()
+
+                # Image
                 ratio = 2
                 width = imgui.get_content_region_available_width()
                 height = width / ratio
                 game.image.render(width, height, *game.image.crop_to_ratio(ratio))
-                if imgui.is_item_hovered():
+                if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
+                    # Hover = image on refresh button
                     self.hovered_game = game
+                if imgui.begin_popup_context_item(f"##{game.id}_context"):
+                    # Right click = context menu
+                    self.draw_game_context_menu(game)
+                    imgui.end_popup()
             imgui.end_table()
 
     def draw_bottombar(self):
@@ -1087,7 +1224,7 @@ class MainGUI():
 
         if globals.settings.display_mode is DisplayMode.grid:
             push_disabled(block_interaction=False)
-        if imgui.button("󱇘##list_mode"):
+        if imgui.button("󱇘"):
             new_display_mode = DisplayMode.list
         if globals.settings.display_mode is DisplayMode.grid:
             pop_disabled(block_interaction=False)
@@ -1095,7 +1232,7 @@ class MainGUI():
         imgui.same_line()
         if globals.settings.display_mode is DisplayMode.list:
             push_disabled(block_interaction=False)
-        if imgui.button("󱇙##grid_mode"):
+        if imgui.button("󱇙"):
             new_display_mode = DisplayMode.grid
         if globals.settings.display_mode is DisplayMode.list:
             pop_disabled(block_interaction=False)
@@ -1105,7 +1242,7 @@ class MainGUI():
             async_thread.run(db.update_settings("display_mode"))
 
         imgui.same_line()
-        imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.get_style().frame_padding.x) - imgui.get_style().item_spacing.x)
+        imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * style.frame_padding.x) - style.item_spacing.x)
         imgui.input_text("##filter_add_bar", "", 9999999)
         imgui.same_line()
         if imgui.button("Add!"):
@@ -1113,30 +1250,29 @@ class MainGUI():
 
     def start_settings_section(self, name: str, right_width: int | float, collapsible: bool = True):
         if collapsible:
-            header = imgui.collapsing_header(f"{name}##{name}_header")[0]
+            header = imgui.collapsing_header(name)[0]
         else:
             header = True
-        opened = header and imgui.begin_table(f"##{name}_settings", column=2, flags=imgui.TABLE_NO_CLIP)
+        opened = header and imgui.begin_table(f"##{name}", column=2, flags=imgui.TABLE_NO_CLIP)
         if opened:
-            imgui.table_setup_column(f"##{name}_setting_name", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-            imgui.table_setup_column(f"##{name}_setting_value", imgui.TABLE_COLUMN_WIDTH_FIXED)
+            imgui.table_setup_column(f"##{name}_left", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            imgui.table_setup_column(f"##{name}_right", imgui.TABLE_COLUMN_WIDTH_FIXED)
             imgui.table_next_row()
-            imgui.table_set_column_index(1)
+            imgui.table_set_column_index(1)  # Right
             imgui.dummy(right_width, 1)
             imgui.push_item_width(right_width)
         return opened
 
     def draw_sidebar(self):
+        width = imgui.get_content_region_available_width()
+        height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
-            width = imgui.get_content_region_available_width()
-            height = self.scaled(126)
-            ratio = width / height
             imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (0, 0))
-            clicked = imgui.image_button(game.image.texture_id, width, height, *game.image.crop_to_ratio(ratio))
+            clicked = imgui.image_button(game.image.texture_id, width, height, *game.image.crop_to_ratio(width / height))
             imgui.pop_style_var()
         else:
-            clicked = imgui.button("Refresh!", height=self.scaled(126), width=imgui.get_content_region_available_width())
+            clicked = imgui.button("Refresh!", width=width, height=height)
         if clicked:
             print("aaa")
 
@@ -1171,11 +1307,10 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Custom browser:")
                     imgui.table_next_column()
-                    if imgui.button("Configure##browser_custom_popup", width=right_width):
-                        imgui.open_popup("Configure custom browser##browser_custom_settings")
-                    size = self.io.display_size
-                    imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-                    if imgui.begin_popup_modal("Configure custom browser##browser_custom_settings", True, flags=self.popup_flags)[0]:
+                    if imgui.button("Configure", width=right_width):
+                        imgui.open_popup("Configure custom browser")
+                    center_next_window()
+                    if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
                         close_popup_clicking_outside()
                         imgui.text("Executable: ")
                         imgui.same_line()
@@ -1189,13 +1324,12 @@ class MainGUI():
                         args_width = imgui.get_cursor_pos_x() - pos
                         imgui.dummy(0, 0)
                         if clicked:
-                            self.current_filepicker = FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable)
-                        if self.current_filepicker:
-                            selected = self.current_filepicker.tick()
-                            if selected is not None:
-                                set.browser_custom_executable = selected or set.browser_custom_executable
-                                async_thread.run(db.update_settings("browser_custom_executable"))
-                                self.current_filepicker = None
+                            def callback(selected):
+                                if selected:
+                                    set.browser_custom_executable = selected
+                                    async_thread.run(db.update_settings("browser_custom_executable"))
+                            self.current_filepicker = FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
+                        self.draw_filepicker_popup()
                         imgui.text("Arguments: ")
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
@@ -1407,113 +1541,11 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Switch to BG mode:")
                 imgui.table_next_column()
-                if imgui.button("Minimize##minimize", width=right_width):
+                if imgui.button("Minimize", width=right_width):
                     self.minimize()
                 imgui.end_table()
 
         imgui.end_child()
-
-    def draw_about_popup(self):
-        self.configure_next_popup(size=False, pos=True)
-        if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
-            close_popup_clicking_outside()
-            _50 = self.scaled(50)
-            _210 = self.scaled(210)
-            imgui.begin_group()
-            imgui.dummy(_50, _210)
-            imgui.same_line()
-            self.icon_texture.render(_210, _210)
-            imgui.same_line()
-            imgui.begin_group()
-            imgui.push_font(self.big_font)
-            imgui.text("F95Checker")
-            imgui.pop_font()
-            imgui.text(f"Version {globals.version}")
-            imgui.text("")
-            imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
-            imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
-            imgui.text(f"GLFW {'.'.join(str(num) for num in glfw.get_version())},  Py {glfw.__version__}")
-            imgui.text(f"ImGui {imgui.get_version()},  Py {imgui.__version__}")
-            imgui.text(f"Qt {QtCore.QT_VERSION_STR},  Py {QtCore.PYQT_VERSION_STR}")
-            if globals.os is Os.Linux:
-                imgui.text(f"{platform.system()} {platform.release()}")
-            elif globals.os is Os.Windows:
-                imgui.text(f"{platform.system()} {platform.release()} {platform.version()}")
-            elif globals.os is Os.MacOS:
-                imgui.text(f"{platform.system()} {platform.release()}")
-            imgui.end_group()
-            imgui.same_line()
-            imgui.dummy(_50, _210)
-            imgui.end_group()
-            imgui.spacing()
-            width = imgui.get_item_rect_size().x
-            btn_width = (width - 2 * self.style.item_spacing.x) / 3
-            if imgui.button("󰏌 F95Zone Thread", width=btn_width):
-                print("aaa")
-            imgui.same_line()
-            if imgui.button("󰊤 GitHub Repo", width=btn_width):
-                print("aaa")
-            imgui.same_line()
-            if imgui.button("󰌹 Donate + Links", width=btn_width):
-                print("aaa")
-            imgui.spacing()
-            imgui.spacing()
-            imgui.push_text_wrap_pos(width)
-            imgui.text("This software is licensed under the 3rd revision of the GNU General Public License (GPLv3) and is provided to you for free. "
-                       "Furthermore, due to its license, it is also free as in freedom: you are free to use, study, modify and share this software "
-                       "in whatever way you wish as long as you keep the same license.")
-            imgui.spacing()
-            imgui.spacing()
-            imgui.text("However, F95Checker is actively developed by one person only, WillyJL, and not with the aim of profit but out of personal "
-                       "interest and benefit for the whole F95Zone community. Donations are although greatly appreciated and aid the development "
-                       "of this software. You can find donation links above.")
-            imgui.spacing()
-            imgui.spacing()
-            imgui.text("If you find bugs or have some feedback, don't be afraid to let me know either on GitHub (using issues or pull requests) "
-                       "or on F95Zone (in the thread comments or in direct messages).")
-            imgui.spacing()
-            imgui.spacing()
-            imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95Zone platform.")
-            imgui.spacing()
-            imgui.spacing()
-            imgui.text("")
-            imgui.push_font(self.big_font)
-            size = imgui.calc_text_size("Cool People")
-            imgui.set_cursor_pos_x((width - size.x) / 2)
-            imgui.text("Cool People")
-            imgui.pop_font()
-            imgui.spacing()
-            imgui.spacing()
-            imgui.text("Supporters:")
-            imgui.bullet_text("FaceCrap")
-            imgui.spacing()
-            imgui.spacing()
-            imgui.text("Contributors:")
-            imgui.bullet_text("GR3ee3N: Optimized build workflows and other PRs")
-            imgui.bullet_text("batblue: Implemented fixes for MacOS support")
-            imgui.bullet_text("ploper26: Suggested HEAD requests for refreshing")
-            imgui.spacing()
-            imgui.spacing()
-            imgui.text("Community:")
-            for name in [
-                "AtotehZ",
-                "unroot",
-                "abada25",
-                "d_pedestrian",
-                "yohudood",
-                "GrammerCop",
-                "ascsd",
-                "SmurfyBlue",
-                "bitogno",
-                "MillenniumEarl",
-                "DarK x Duke"
-            ]:
-                if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
-                    imgui.dummy(0, 0)
-                imgui.bullet_text(name)
-                imgui.same_line(spacing=16)
-            imgui.pop_text_wrap_pos()
-            imgui.end_popup()
 
 
 class TrayIcon(QtWidgets.QSystemTrayIcon):
