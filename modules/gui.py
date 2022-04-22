@@ -474,6 +474,7 @@ class MainGUI():
                 self.refresh_fonts()
                 async_thread.run(db.update_settings("style_scaling"))  # Update here in case of crash
             glfw.swap_buffers(self.window)  # Also waits idle time, must run always to avoid useless cycles
+        imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         self.impl.shutdown()
         glfw.terminate()
 
