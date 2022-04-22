@@ -383,15 +383,16 @@ class MainGUI():
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
         self.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
         try:
+            # Get window size
             imgui.load_ini_settings_from_disk(self.ini_file_name.decode("utf-8"))
             ini = imgui.save_ini_settings_to_memory()
             start = ini.find("[Window][F95Checker]")
-            end = ini.find("\n[", start)
+            assert start != -1
+            end = ini.find("\n\n", start)
+            assert end != -1
             config = configparser.RawConfigParser()
             config.read_string(ini[start:end])
             size = tuple(int(x) for x in config.get("Window][F95Checker", "Size").split(","))
-            assert type(size) is tuple and len(size) == 2
-            assert type(size[0]) is int and type(size[1]) is int
         except Exception:
             size = 1280, 720
 
