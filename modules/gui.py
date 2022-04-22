@@ -154,7 +154,7 @@ class ImGuiImage:
         else:
             imgui.image(self.texture_id, *args, **kwargs)
 
-    def crop_to_ratio(self, ratio):
+    def crop_to_ratio(self, ratio: int | float):
         img_ratio = self.width / self.height
         if img_ratio >= ratio:
             crop_h = self.height
@@ -974,7 +974,7 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             imgui.end_popup()
 
-    def sort_games(self, sort_specs, manual_sort):
+    def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs, manual_sort: int | bool):
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
             self.require_sort = True
@@ -1324,7 +1324,7 @@ class MainGUI():
                         args_width = imgui.get_cursor_pos_x() - pos
                         imgui.dummy(0, 0)
                         if clicked:
-                            def callback(selected):
+                            def callback(selected: str):
                                 if selected:
                                     set.browser_custom_executable = selected
                                     async_thread.run(db.update_settings("browser_custom_executable"))
