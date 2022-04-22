@@ -60,10 +60,10 @@ class ImGuiImage:
         self.glob = glob
         self.missing = False
         self.width, self.height = 1, 1
-        self.texture_id = None
+        self._texture_id = None
 
     def reset(self):
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, numpy.empty(0))
         self.applied = False
 
@@ -111,16 +111,17 @@ class ImGuiImage:
         self.loading = False
 
     def apply(self, data: bytes):
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, data)
 
-    def render(self, *args, **kwargs):
-        if self.texture_id is None:
-            self.texture_id = gl.glGenTextures(1)
+    @property
+    def texture_id(self):
+        if self._texture_id is None:
+            self._texture_id = gl.glGenTextures(1)
         if not self.loaded:
             if not self.loading:
                 self.loading = True
@@ -142,10 +143,35 @@ class ImGuiImage:
             elif not self.applied:
                 self.apply(self.data)
                 self.applied = True
+        return self._texture_id
+
+    def render(self, *args, **kwargs):
         if self.missing:
             imgui.text_disabled("Image missing!")
         else:
             imgui.image(self.texture_id, *args, **kwargs)
+
+    def crop_to_ratio(self, ratio):
+        img_ratio = self.width / self.height
+        if img_ratio >= ratio:
+            crop_h = self.height
+            crop_w = crop_h * ratio
+            crop_x = (self.width - crop_w) / 2
+            crop_y = 0
+            left = crop_x / self.width
+            top = 0
+            right = (crop_x + crop_w) / self.width
+            bottom = 1
+        else:
+            crop_w = self.width
+            crop_h = crop_w / ratio
+            crop_y = (self.height - crop_h) / 2
+            crop_x = 0
+            left = 0
+            top = crop_y / self.height
+            right = 1
+            bottom = (crop_y + crop_h) / self.height
+        return (left, top), (right, bottom)
 
 
 def push_disabled(block_interaction: bool = True):
@@ -437,6 +463,7 @@ class MainGUI():
                 if imgui.begin("F95Checker", closable=False, flags=self.window_flags) or True:
 
                     if imgui.begin_child("Main", width=-self.scaled(self.sidebar_size), border=False) or True:
+                        self.hovered_game = None
                         if globals.settings.display_mode is DisplayMode.list:
                             self.draw_games_list()
                         elif globals.settings.display_mode is DisplayMode.grid:
@@ -983,7 +1010,9 @@ class MainGUI():
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - self.style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=imgui.get_frame_height())
-                # Row click callbacks
+                if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
+                    # Hover = image on refresh button
+                    self.hovered_game = game
                 if imgui.begin_popup_context_item(f"##{game.id}_context"):
                     # Right click = context menu
                     self.draw_game_context_menu(game)
@@ -1044,29 +1073,13 @@ class MainGUI():
                 game: Game = globals.games[id]
                 imgui.table_next_column()
                 img = game.image
-                size_x = imgui.get_content_region_available_width()
-                size_y = size_x / 2
                 ratio = 2
-                img_ratio = img.width / img.height
-                if img_ratio >= ratio:
-                    crop_h = img.height
-                    crop_w = crop_h * ratio
-                    crop_x = (img.width - crop_w) / 2
-                    crop_y = 0
-                    left = crop_x / img.width
-                    top = 0
-                    right = (crop_x + crop_w) / img.width
-                    bottom = 1
-                else:
-                    crop_w = img.width
-                    crop_h = crop_w / ratio
-                    crop_y = (img.height - crop_h) / 2
-                    crop_x = 0
-                    left = 0
-                    top = crop_y / img.height
-                    right = 1
-                    bottom = (crop_y + crop_h) / img.height
-                img.render(size_x, size_y, (left, top), (right, bottom))
+                width = imgui.get_content_region_available_width()
+                height = width / ratio
+                game.image.render(width, height, *game.image.crop_to_ratio(ratio))
+                if imgui.is_item_hovered():
+                    self.hovered_game = game
+                break
             imgui.end_table()
 
     def draw_bottombar(self):
@@ -1114,7 +1127,17 @@ class MainGUI():
         return opened
 
     def draw_sidebar(self):
-        if imgui.button("Refresh!", height=self.scaled(126), width=imgui.get_content_region_available_width()):
+        if self.hovered_game:
+            game = self.hovered_game
+            width = imgui.get_content_region_available_width()
+            height = self.scaled(126)
+            ratio = width / height
+            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (0, 0))
+            clicked = imgui.image_button(game.image.texture_id, width, height, *game.image.crop_to_ratio(ratio))
+            imgui.pop_style_var()
+        else:
+            clicked = imgui.button("Refresh!", height=self.scaled(126), width=imgui.get_content_region_available_width())
+        if clicked:
             print("aaa")
 
         imgui.spacing()
