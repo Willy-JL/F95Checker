@@ -1074,14 +1074,12 @@ class MainGUI():
             for game_i, id in enumerate(self.sorted_games_ids):
                 game: Game = globals.games[id]
                 imgui.table_next_column()
-                img = game.image
                 ratio = 2
                 width = imgui.get_content_region_available_width()
                 height = width / ratio
                 game.image.render(width, height, *game.image.crop_to_ratio(ratio))
                 if imgui.is_item_hovered():
                     self.hovered_game = game
-                break
             imgui.end_table()
 
     def draw_bottombar(self):
