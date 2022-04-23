@@ -285,7 +285,7 @@ class FilePicker:
             width = imgui.get_item_rect_size().x
 
             # Main list
-            if imgui.begin_child(f"##list_frame", border=False, height=size.y * 0.65, width=width) or True:
+            if imgui.begin_child(f"##list_frame", border=False, width=width, height=size.y * 0.65) or True:
                 imgui.set_next_item_width(width)
                 clicked, value = imgui.listbox(f"##file_list", self.current, self.items, len(self.items))
                 if value != -1:
@@ -1189,7 +1189,9 @@ class MainGUI():
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
+        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (10, 10))
         count = 3
+        table_offset = imgui.get_cursor_screen_pos()
         if imgui.begin_table(
             "##game_grid",
             column=count,
@@ -1201,15 +1203,21 @@ class MainGUI():
                 imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
 
             # Loop cells
+            draw_list = imgui.get_window_draw_list()
             for game_i, id in enumerate(self.sorted_games_ids):
                 game: Game = globals.games[id]
                 imgui.table_next_column()
 
                 # Image
-                ratio = 2
+                ratio = 3
                 width = imgui.get_content_region_available_width()
                 height = width / ratio
-                game.image.render(width, height, *game.image.crop_to_ratio(ratio))
+                if imgui.is_rect_visible(width, height):
+                    pos = imgui.get_cursor_pos()
+                    x = pos.x + table_offset.x
+                    y = pos.y + table_offset.y - imgui.get_scroll_y()
+                    draw_list.add_image(game.image.texture_id, (x, y), (x + width, y + height), *game.image.crop_to_ratio(ratio))
+                imgui.dummy(width, height)
                 if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
                     # Hover = image on refresh button
                     self.hovered_game = game
@@ -1218,6 +1226,7 @@ class MainGUI():
                     self.draw_game_context_menu(game)
                     imgui.end_popup()
             imgui.end_table()
+        imgui.pop_style_var()
 
     def draw_bottombar(self):
         new_display_mode = None
@@ -1268,9 +1277,7 @@ class MainGUI():
         height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
-            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (0, 0))
-            clicked = imgui.image_button(game.image.texture_id, width, height, *game.image.crop_to_ratio(width / height))
-            imgui.pop_style_var()
+            clicked = imgui.image_button(game.image.texture_id, width, height, *game.image.crop_to_ratio(width / height), frame_padding=0)
         else:
             clicked = imgui.button("Refresh!", width=width, height=height)
         if clicked:
