@@ -1191,7 +1191,6 @@ class MainGUI():
 
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (10, 10))
         count = 3
-        table_offset = imgui.get_cursor_screen_pos()
         if imgui.begin_table(
             "##game_grid",
             column=count,
@@ -1213,10 +1212,8 @@ class MainGUI():
                 width = imgui.get_content_region_available_width()
                 height = width / ratio
                 if imgui.is_rect_visible(width, height):
-                    pos = imgui.get_cursor_pos()
-                    x = pos.x + table_offset.x
-                    y = pos.y + table_offset.y - imgui.get_scroll_y()
-                    draw_list.add_image(game.image.texture_id, (x, y), (x + width, y + height), *game.image.crop_to_ratio(ratio))
+                    pos = imgui.get_cursor_screen_pos()
+                    draw_list.add_image(game.image.texture_id, tuple(pos), (pos.x + width, pos.y + height), *game.image.crop_to_ratio(ratio))
                 imgui.dummy(width, height)
                 if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
                     # Hover = image on refresh button
@@ -1277,11 +1274,12 @@ class MainGUI():
         height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
-            clicked = imgui.image_button(game.image.texture_id, width, height, *game.image.crop_to_ratio(width / height), frame_padding=0)
+            pos = imgui.get_cursor_screen_pos()
+            imgui.get_window_draw_list().add_image(game.image.texture_id, tuple(pos), (pos.x + width, pos.y + height), *game.image.crop_to_ratio(width / height))
+            imgui.dummy(width, height)
         else:
-            clicked = imgui.button("Refresh!", width=width, height=height)
-        if clicked:
-            print("aaa")
+            if imgui.button("Refresh!", width=width, height=height):
+                print("aaa")
 
         imgui.spacing()
         imgui.spacing()
