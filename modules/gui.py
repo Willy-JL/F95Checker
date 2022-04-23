@@ -148,11 +148,14 @@ class ImGuiImage:
                 self.applied = True
         return self._texture_id
 
-    def render(self, *args, **kwargs):
+    def render(self, width, height, *args, **kwargs):
         if self.missing:
             imgui.text_disabled("Image missing!")
         else:
-            imgui.image(self.texture_id, *args, **kwargs)
+            if imgui.is_rect_visible(width, height):
+                imgui.image(self.texture_id, width, height, *args, **kwargs)
+            else:
+                imgui.dummy(width, height)
 
     def crop_to_ratio(self, ratio: int | float):
         img_ratio = self.width / self.height
@@ -357,8 +360,6 @@ class MainGUI():
             imgui.TABLE_COLUMN_NO_HEADER_WIDTH
         )
         self.game_grid_table_flags: int = (
-            imgui.TABLE_SCROLL_Y |
-            imgui.TABLE_NO_HOST_EXTEND_Y |
             imgui.TABLE_SIZING_FIXED_SAME |
             imgui.TABLE_NO_SAVED_SETTINGS
         )
@@ -1189,41 +1190,47 @@ class MainGUI():
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
-        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (10, 10))
         count = 3
-        if imgui.begin_table(
-            "##game_grid",
-            column=count,
-            flags=self.game_grid_table_flags,
-            outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
-        ):
-            # Setup
-            for i in range(count):
-                imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+        if imgui.begin_child("##game_grid_frame", border=False, height=-imgui.get_frame_height_with_spacing()) or True:
+            imgui.push_style_var(imgui.STYLE_CELL_PADDING, (10, 10))
+            imgui.set_cursor_pos_x(10)
+            if imgui.begin_table(
+                "##game_grid",
+                column=count,
+                flags=self.game_grid_table_flags,
+                outer_size_width=-10
+            ):
+                # Setup
+                for i in range(count):
+                    imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
 
-            # Loop cells
-            draw_list = imgui.get_window_draw_list()
-            for game_i, id in enumerate(self.sorted_games_ids):
-                game: Game = globals.games[id]
-                imgui.table_next_column()
+                # Loop cells
+                draw_list = imgui.get_window_draw_list()
+                for game_i, id in enumerate(self.sorted_games_ids):
+                    game: Game = globals.games[id]
+                    imgui.table_next_column()
 
-                # Image
-                ratio = 3
-                width = imgui.get_content_region_available_width()
-                height = width / ratio
-                if imgui.is_rect_visible(width, height):
-                    pos = imgui.get_cursor_screen_pos()
-                    draw_list.add_image(game.image.texture_id, tuple(pos), (pos.x + width, pos.y + height), *game.image.crop_to_ratio(ratio))
-                imgui.dummy(width, height)
-                if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
-                    # Hover = image on refresh button
-                    self.hovered_game = game
-                if imgui.begin_popup_context_item(f"##{game.id}_context"):
-                    # Right click = context menu
-                    self.draw_game_context_menu(game)
-                    imgui.end_popup()
-            imgui.end_table()
-        imgui.pop_style_var()
+                    # Image
+                    ratio = 3
+                    width = imgui.get_content_region_available_width()
+                    height = width / ratio
+                    if imgui.is_rect_visible(width, height):
+                        pos = imgui.get_cursor_screen_pos()
+                        pos2 = (pos.x + width, pos.y + height)
+                        crop = game.image.crop_to_ratio(ratio)
+                        rounding = globals.settings.style_corner_radius
+                        draw_list.add_image_rounded(game.image.texture_id, tuple(pos), pos2, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+                    imgui.dummy(width, height)
+                    if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
+                        # Hover = image on refresh button
+                        self.hovered_game = game
+                    if imgui.begin_popup_context_item(f"##{game.id}_context"):
+                        # Right click = context menu
+                        self.draw_game_context_menu(game)
+                        imgui.end_popup()
+                imgui.end_table()
+            imgui.pop_style_var()
+        imgui.end_child()
 
     def draw_bottombar(self):
         new_display_mode = None
@@ -1270,12 +1277,17 @@ class MainGUI():
         return opened
 
     def draw_sidebar(self):
+        set = globals.settings
+
         width = imgui.get_content_region_available_width()
         height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
             pos = imgui.get_cursor_screen_pos()
-            imgui.get_window_draw_list().add_image(game.image.texture_id, tuple(pos), (pos.x + width, pos.y + height), *game.image.crop_to_ratio(width / height))
+            pos2 = (pos.x + width, pos.y + height)
+            crop = game.image.crop_to_ratio(width / height)
+            draw_list = imgui.get_window_draw_list()
+            draw_list.add_image_rounded(game.image.texture_id, tuple(pos), pos2, *crop, rounding=set.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
             imgui.dummy(width, height)
         else:
             if imgui.button("Refresh!", width=width, height=height):
@@ -1289,9 +1301,7 @@ class MainGUI():
 
         right_width = self.scaled(100)
         checkbox_offset = right_width - imgui.get_frame_height()
-
         if imgui.begin_child("Settings", border=False) or True:
-            set = globals.settings
 
             if self.start_settings_section("Browser", right_width):
                 imgui.table_next_row()
