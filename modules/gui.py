@@ -384,7 +384,7 @@ class MainGUI():
         # Variables
         self.visible: bool = True
         self.status_text: str = ""
-        self.prev_size: tuple = 0, 0
+        self.prev_size: tuple = (0, 0)
         self.hovered_game: Game = None
         self.require_sort: bool = True
         self.prev_manual_sort: int = 0
@@ -418,7 +418,7 @@ class MainGUI():
             config.read_string(ini[start:end])
             size = tuple(int(x) for x in config.get("Window][F95Checker", "Size").split(","))
         except Exception:
-            size = 1280, 720
+            size = (1280, 720)
 
         # Setup GLFW window
         self.window = impl_glfw_init(*size, "F95Checker")
@@ -506,7 +506,8 @@ class MainGUI():
                     _3 = self.scaled(3)
                     _6 = self.scaled(6)
                     text_size = imgui.calc_text_size(text)
-                    text_x, text_y = size.x - text_size.x - _6, size.y - text_size.y - _6
+                    text_x = size.x - text_size.x - _6
+                    text_y = size.y - text_size.y - _6
 
                     imgui.same_line(spacing=1)
                     if imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y - _3, border=False) or True:
