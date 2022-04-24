@@ -1580,6 +1580,19 @@ class MainGUI():
                 imgui.table_next_column()
                 changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
                 set.style_scaling = min(max(value, 0.25), 4)
+
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Corner radius:")
+                imgui.table_next_column()
+                changed, value = imgui.input_int("##style_corner_radius", set.style_corner_radius)
+                set.style_corner_radius = min(max(value, 0), 6)
+                if changed:
+                    style.window_rounding = style.frame_rounding = style.tab_rounding = \
+                    style.child_rounding = style.grab_rounding = style.popup_rounding = \
+                    style.scrollbar_rounding = globals.settings.style_corner_radius
+                    async_thread.run(db.update_settings("style_corner_radius"))
+
                 imgui.end_table()
                 imgui.spacing()
 
