@@ -156,10 +156,13 @@ class ImGuiImage:
                 if (rounding := kwargs.pop("rounding", None)) is not None:
                     if rounding is True:
                         rounding = globals.settings.style_corner_radius
+                    flags = kwargs.pop("flags", None)
+                    if flags is None:
+                        flags = imgui.DRAW_ROUND_CORNERS_ALL
                     pos = imgui.get_cursor_screen_pos()
                     pos2 = (pos.x + width, pos.y + height)
                     draw_list = imgui.get_window_draw_list()
-                    draw_list.add_image_rounded(self.texture_id, tuple(pos), pos2, *args, rounding=rounding, **kwargs)
+                    draw_list.add_image_rounded(self.texture_id, tuple(pos), pos2, *args, rounding=rounding, flags=flags, **kwargs)
                     imgui.dummy(width, height)
                 else:
                     imgui.image(self.texture_id, width, height, *args, **kwargs)
@@ -756,7 +759,7 @@ class MainGUI():
             if width < avail.x:
                 imgui.set_cursor_pos_x((avail.x - width + style.scrollbar_size) / 2)
             image_pos = imgui.get_cursor_screen_pos()
-            image.render(width, height, rounding=True, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+            image.render(width, height, rounding=True)
             if imgui.is_item_hovered() and globals.settings.zoom_enabled:
                 size = globals.settings.zoom_size
                 zoom = globals.settings.zoom_amount
@@ -1401,7 +1404,7 @@ class MainGUI():
         height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
-            game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+            game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=True)
         else:
             if imgui.button("Refresh!", width=width, height=height):
                 print("aaa")
