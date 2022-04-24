@@ -93,6 +93,7 @@ class ImGuiImage:
             if not paths:
                 self.set_missing()
                 return
+            paths.sort(key=lambda path: path.suffix != ".gif")
             path = paths[0]
         if path.is_file():
             self.missing = False
