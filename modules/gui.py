@@ -434,8 +434,9 @@ class MainGUI():
         style.item_spacing = (style.item_spacing.y, style.item_spacing.y)
         style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
         style.scrollbar_size = 12
-        style.window_rounding = style.frame_rounding = style.popup_rounding = globals.settings.style_corner_radius
-        style.scrollbar_rounding = style.grab_rounding = style.tab_rounding = globals.settings.style_corner_radius
+        style.window_rounding = style.frame_rounding = style.tab_rounding  = \
+        style.child_rounding = style.grab_rounding = style.popup_rounding  = \
+        style.scrollbar_rounding = globals.settings.style_corner_radius
 
     def refresh_fonts(self):
         io.fonts.clear()
