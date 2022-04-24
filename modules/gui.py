@@ -153,7 +153,16 @@ class ImGuiImage:
             imgui.text_disabled("Image missing!")
         else:
             if imgui.is_rect_visible(width, height):
-                imgui.image(self.texture_id, width, height, *args, **kwargs)
+                if (rounding := kwargs.pop("rounding", None)) is not None:
+                    if rounding is True:
+                        rounding = globals.settings.style_corner_radius
+                    pos = imgui.get_cursor_screen_pos()
+                    pos2 = (pos.x + width, pos.y + height)
+                    draw_list = imgui.get_window_draw_list()
+                    draw_list.add_image_rounded(self.texture_id, tuple(pos), pos2, *args, rounding=rounding, **kwargs)
+                    imgui.dummy(width, height)
+                else:
+                    imgui.image(self.texture_id, width, height, *args, **kwargs)
             else:
                 imgui.dummy(width, height)
 
@@ -425,6 +434,8 @@ class MainGUI():
         style.window_border_size = 0
         style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
         style.scrollbar_size = 12
+        style.window_rounding = style.frame_rounding = style.popup_rounding = globals.settings.style_corner_radius
+        style.scrollbar_rounding = style.grab_rounding = style.tab_rounding = globals.settings.style_corner_radius
 
     def refresh_fonts(self):
         io.fonts.clear()
@@ -733,7 +744,7 @@ class MainGUI():
             if width < avail.x:
                 imgui.set_cursor_pos_x((avail.x - width + style.scrollbar_size) / 2)
             image_pos = imgui.get_cursor_screen_pos()
-            image.render(width, height)
+            image.render(width, height, rounding=True, flags=imgui.DRAW_ROUND_CORNERS_ALL)
             if imgui.is_item_hovered() and globals.settings.zoom_enabled:
                 size = globals.settings.zoom_size
                 zoom = globals.settings.zoom_amount
@@ -763,7 +774,7 @@ class MainGUI():
                 right = (x + size) / image.width
                 bottom = (y + size) / image.height
                 imgui.begin_tooltip()
-                image.render(zoomed_size, zoomed_size, (left, top), (right, bottom))
+                image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=True)
                 imgui.end_tooltip()
             imgui.push_text_wrap_pos()
 
@@ -878,7 +889,7 @@ class MainGUI():
             imgui.begin_group()
             imgui.dummy(_50, _210)
             imgui.same_line()
-            self.icon_texture.render(_210, _210)
+            self.icon_texture.render(_210, _210, rounding=True)
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(self.big_font)
@@ -1205,7 +1216,6 @@ class MainGUI():
                     imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
 
                 # Loop cells
-                draw_list = imgui.get_window_draw_list()
                 for game_i, id in enumerate(self.sorted_games_ids):
                     game: Game = globals.games[id]
                     imgui.table_next_column()
@@ -1214,13 +1224,7 @@ class MainGUI():
                     ratio = 3
                     width = imgui.get_content_region_available_width()
                     height = width / ratio
-                    if imgui.is_rect_visible(width, height):
-                        pos = imgui.get_cursor_screen_pos()
-                        pos2 = (pos.x + width, pos.y + height)
-                        crop = game.image.crop_to_ratio(ratio)
-                        rounding = globals.settings.style_corner_radius
-                        draw_list.add_image_rounded(game.image.texture_id, tuple(pos), pos2, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
-                    imgui.dummy(width, height)
+                    game.image.render(width, height, *game.image.crop_to_ratio(ratio), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_TOP)
                     if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
                         # Hover = image on refresh button
                         self.hovered_game = game
@@ -1283,12 +1287,7 @@ class MainGUI():
         height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
-            pos = imgui.get_cursor_screen_pos()
-            pos2 = (pos.x + width, pos.y + height)
-            crop = game.image.crop_to_ratio(width / height)
-            draw_list = imgui.get_window_draw_list()
-            draw_list.add_image_rounded(game.image.texture_id, tuple(pos), pos2, *crop, rounding=set.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
-            imgui.dummy(width, height)
+            game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_ALL)
         else:
             if imgui.button("Refresh!", width=width, height=height):
                 print("aaa")
