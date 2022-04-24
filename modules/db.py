@@ -32,6 +32,8 @@ async def connect():
                 browser_private             INTEGER DEFAULT 0,
                 browser                     INTEGER DEFAULT {Browser["None"]},
                 display_mode                INTEGER DEFAULT {DisplayMode.list},
+                grid_columns                INTEGER DEFAULT 3,
+                grid_image_ratio            REAL    DEFAULT 3.0,
                 manual_sort_list            TEXT    DEFAULT "[]",
                 refresh_completed_games     INTEGER DEFAULT 1,
                 refresh_workers             INTEGER DEFAULT 20,

@@ -237,6 +237,8 @@ class Settings:
     browser_private             : bool        = None
     browser                     : Browser     = None
     display_mode                : DisplayMode = None
+    grid_columns                : int         = None
+    grid_image_ratio            : float       = None
     manual_sort_list            : list        = None
     refresh_completed_games     : bool        = None
     refresh_workers             : int         = None

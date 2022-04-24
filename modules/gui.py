@@ -1234,18 +1234,29 @@ class MainGUI():
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
-        count = 3
-        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (10, 10))
+        column_count = globals.settings.grid_columns
+        padding = self.scaled(10)
+        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
+        min_width = (
+            style.item_spacing.x * 10 +  # Padding * (2 left + 2 right + 3 between items + idk)
+            style.frame_padding.x * 4 +  # Button padding * 2 sides * 2 buttons
+            style.item_inner_spacing.x * 2 +  # Checkbox and label spacing * 2 checkboxes
+            imgui.get_frame_height() * 2 +  # Checkbox height = width * 2 checkboxes
+            imgui.calc_text_size("󰐊 Play󰏌 Thread󰈼󰅢").x  # Text
+        )
+        avail = imgui.get_content_region_available_width()
+        while column_count > 1 and (avail - (column_count + 1) * padding) / column_count < min_width:
+            column_count -= 1
         if imgui.begin_table(
             "##game_grid",
-            column=count,
+            column=column_count,
             flags=self.game_grid_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
             # Setup
-            for i in range(count):
+            for i in range(column_count):
                 imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-            img_ratio = 3
+            img_ratio = globals.settings.grid_image_ratio
             width = None
             height = None
             _24 = self.scaled(24)
@@ -1494,6 +1505,34 @@ class MainGUI():
                 if changed:
                     set.browser_html = value
                     async_thread.run(db.update_settings("browser_html"))
+
+                imgui.end_table()
+                imgui.spacing()
+
+            if self.start_settings_section("Grid view", right_width):
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Max columns:")
+                imgui.same_line()
+                self.draw_help_marker("How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
+                                      "space to show all these columns, the number will be internally reduced to render each grid cell properly.")
+                imgui.table_next_column()
+                changed, value = imgui.input_int("##grid_columns", set.grid_columns)
+                set.grid_columns = min(max(value, 1), 10)
+                if changed:
+                    async_thread.run(db.update_settings("grid_columns"))
+
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Image ratio:")
+                imgui.same_line()
+                self.draw_help_marker("The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
+                                      "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3.")
+                imgui.table_next_column()
+                changed, value = imgui.input_float("##grid_image_ratio", set.grid_image_ratio, step=0.1, step_fast=0.5)
+                set.grid_image_ratio = min(max(value, 0.5), 5)
+                if changed:
+                    async_thread.run(db.update_settings("grid_image_ratio"))
 
                 imgui.end_table()
                 imgui.spacing()
