@@ -369,8 +369,15 @@ class MainGUI():
             imgui.TABLE_COLUMN_NO_HEADER_WIDTH
         )
         self.game_grid_table_flags: int = (
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_PAD_OUTER_X |
+            imgui.TABLE_NO_HOST_EXTEND_Y |
             imgui.TABLE_SIZING_FIXED_SAME |
             imgui.TABLE_NO_SAVED_SETTINGS
+        )
+        self.game_grid_cell_flags = (
+            imgui.WINDOW_NO_SCROLLBAR |
+            imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
         self.popup_flags: int = (
             imgui.WINDOW_NO_MOVE |
@@ -1206,39 +1213,63 @@ class MainGUI():
         imgui.set_cursor_pos_y(pos)
 
         count = 3
-        if imgui.begin_child("##game_grid_frame", border=False, height=-imgui.get_frame_height_with_spacing()) or True:
-            imgui.push_style_var(imgui.STYLE_CELL_PADDING, (10, 10))
-            imgui.set_cursor_pos_x(10)
-            if imgui.begin_table(
-                "##game_grid",
-                column=count,
-                flags=self.game_grid_table_flags,
-                outer_size_width=-10
-            ):
-                # Setup
-                for i in range(count):
-                    imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (10, 10))
+        if imgui.begin_table(
+            "##game_grid",
+            column=count,
+            flags=self.game_grid_table_flags,
+            outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
+        ):
+            # Setup
+            imgui.push_style_color(imgui.COLOR_CHILD_BACKGROUND, *style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
+            for i in range(count):
+                imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            img_ratio = 3
+            width = None
+            img_height = None
+            cell_height = None
 
-                # Loop cells
-                for game_i, id in enumerate(self.sorted_games_ids):
-                    game: Game = globals.games[id]
-                    imgui.table_next_column()
+            # Loop cells
+            for game_i, id in enumerate(self.sorted_games_ids):
+                game: Game = globals.games[id]
+                imgui.table_next_column()
 
-                    # Image
-                    ratio = 3
+                # Setup pt2
+                if width is None:
                     width = imgui.get_content_region_available_width()
-                    height = width / ratio
-                    game.image.render(width, height, *game.image.crop_to_ratio(ratio), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_TOP)
-                    if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
-                        # Hover = image on refresh button
-                        self.hovered_game = game
-                    if imgui.begin_popup_context_item(f"##{game.id}_context"):
-                        # Right click = context menu
-                        self.draw_game_context_menu(game)
-                        imgui.end_popup()
-                imgui.end_table()
-            imgui.pop_style_var()
-        imgui.end_child()
+                    img_height = width / img_ratio
+                    spacing = style.item_spacing.y
+                    cell_height = img_height + spacing + (imgui.get_text_line_height() + spacing) * 1
+
+                # Cell
+                if imgui.begin_child(f"##{game.id}_cell", width=width, height=cell_height, flags=self.game_grid_cell_flags) or True:
+                    # Image
+                    game.image.render(width, img_height, *game.image.crop_to_ratio(img_ratio), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+                    # Setup pt3
+                    imgui.indent(style.item_spacing.x * 2)
+                    # Name
+                    imgui.text(game.name)
+                imgui.end_child()
+                if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
+                    # Hover = image on refresh button
+                    self.hovered_game = game
+                if imgui.begin_popup_context_item(f"##{game.id}_context"):
+                    # Right click = context menu
+                    self.draw_game_context_menu(game)
+                    imgui.end_popup()
+                # TODO: click callbacks: drag drop and popup
+                # if imgui.begin_drag_drop_source():
+                #     imgui.set_drag_drop_payload("game_i", str(game_i).encode())
+                #     imgui.end_drag_drop_source()
+                # elif imgui.begin_drag_drop_target():
+                #     print(imgui.accept_drag_drop_payload("game_i"), game_i)
+                #     imgui.end_drag_drop_target()
+                # if imgui.is_item_clicked():
+                #     print("yeah")
+
+            imgui.pop_style_color()
+            imgui.end_table()
+        imgui.pop_style_var()
 
     def draw_bottombar(self):
         new_display_mode = None
