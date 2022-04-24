@@ -821,7 +821,7 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_status_widget(game)
 
-            imgui.text_disabled("Develoer:")
+            imgui.text_disabled("Developer:")
             imgui.same_line()
             imgui.text(game.developer)
 
