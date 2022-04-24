@@ -1247,10 +1247,10 @@ class MainGUI():
             img_ratio = 3
             width = None
             height = None
+            _24 = self.scaled(24)
             draw_list = imgui.get_window_draw_list()
             bg_col = imgui.get_color_u32_rgba(*style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
             rounding = globals.settings.style_corner_radius
-            _24 = self.scaled(24)
 
             # Loop cells
             for game_i, id in enumerate(self.sorted_games_ids):
@@ -1319,7 +1319,7 @@ class MainGUI():
                 if developer:
                     imgui.text_disabled("Developer:")
                     imgui.same_line()
-                    imgui.text(game.developer or "Developer")  # TODO: fetch game developers
+                    imgui.text(game.developer)  # TODO: fetch game developers
                 # Last Updated
                 if last_updated:
                     imgui.text_disabled("Last Updated:")
