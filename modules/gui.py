@@ -297,7 +297,7 @@ class FilePicker:
             width = imgui.get_item_rect_size().x
 
             # Main list
-            if imgui.begin_child(f"##list_frame", border=False, width=width, height=size.y * 0.65) or True:
+            if imgui.begin_child(f"##list_frame", width=width, height=size.y * 0.65) or True:
                 imgui.set_next_item_width(width)
                 clicked, value = imgui.listbox(f"##file_list", self.current, self.items, len(self.items))
                 if value != -1:
@@ -495,7 +495,7 @@ class MainGUI():
                     imgui.pop_style_var()
                     sidebar_size = self.scaled(self.sidebar_size)
 
-                    if imgui.begin_child("##main_frame", width=-sidebar_size, border=False) or True:
+                    if imgui.begin_child("##main_frame", width=-sidebar_size) or True:
                         self.hovered_game = None
                         if globals.settings.display_mode is DisplayMode.list:
                             self.draw_games_list()
@@ -512,7 +512,7 @@ class MainGUI():
                     text_y = size.y - text_size.y - _6
 
                     imgui.same_line(spacing=1)
-                    if imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y - _3, border=False) or True:
+                    if imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y - _3) or True:
                         self.draw_sidebar()
                     imgui.end_child()
 
@@ -1303,7 +1303,7 @@ class MainGUI():
 
         right_width = self.scaled(100)
         checkbox_offset = right_width - imgui.get_frame_height()
-        if imgui.begin_child("Settings", border=False) or True:
+        if imgui.begin_child("Settings") or True:
 
             if self.start_settings_section("Browser", right_width):
                 imgui.table_next_row()
