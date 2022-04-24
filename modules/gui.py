@@ -379,6 +379,11 @@ class MainGUI():
             imgui.WINDOW_NO_SCROLLBAR |
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
+        self.game_hitbox_drag_drop_flags = (
+            imgui.DRAG_DROP_ACCEPT_PEEK_ONLY |
+            imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID |
+            imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
+        )
         self.popup_flags: int = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
@@ -398,7 +403,7 @@ class MainGUI():
         self.size_mult: int | float = 0
         self.sorted_games_ids: list = []
         self.drew_filepicker: bool = False
-        self.game_list_hitbox_click: bool = False
+        self.game_hitbox_click: bool = False
         self.current_info_popup_game: Game = None
         self.ghost_columns_enabled_count: int = 0
         self.current_filepicker: FilePicker = None
@@ -1042,6 +1047,37 @@ class MainGUI():
             sort_specs.specs_dirty = False
             self.require_sort = False
 
+    def handle_game_hitbox_events(self, game: Game, game_i: int, manual_sort: bool):
+        if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
+            # Hover = image on refresh button
+            self.hovered_game = game
+            if imgui.is_item_clicked():
+                self.game_hitbox_click = True
+            if self.game_hitbox_click and not imgui.is_mouse_down():
+                # Left click = open game info popup
+                self.game_hitbox_click = False
+                self.current_info_popup_game = game
+        if manual_sort:
+            # Left click drag = swap if in manual sort mode
+            if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
+                self.game_hitbox_click = False
+                payload = game_i + 1
+                payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
+                imgui.set_drag_drop_payload("game_i", payload)
+                imgui.end_drag_drop_source()
+            if imgui.begin_drag_drop_target():
+                if payload := imgui.accept_drag_drop_payload("game_i", flags=self.game_hitbox_drag_drop_flags):
+                    payload = int.from_bytes(payload, sys.byteorder)
+                    payload = payload - 1
+                    lst = globals.settings.manual_sort_list
+                    lst[game_i], lst[payload] = lst[payload], lst[game_i]
+                    async_thread.run(db.update_settings("manual_sort_list"))
+                imgui.end_drag_drop_target()
+        if imgui.begin_popup_context_item(f"##{game.id}_context"):
+            # Right click = context menu
+            self.draw_game_context_menu(game)
+            imgui.end_popup()
+
     def draw_games_list(self):
         ghost_column_size = (style.frame_padding.x + style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
@@ -1163,37 +1199,8 @@ class MainGUI():
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=imgui.get_frame_height())
-                if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
-                    # Hover = image on refresh button
-                    self.hovered_game = game
-                if imgui.begin_popup_context_item(f"##{game.id}_context"):
-                    # Right click = context menu
-                    self.draw_game_context_menu(game)
-                    imgui.end_popup()
-                if imgui.is_item_focused():
-                    if imgui.is_item_clicked():
-                        self.game_list_hitbox_click = True
-                    if imgui.is_item_active():
-                        if not imgui.is_item_hovered():
-                            self.game_list_hitbox_click = False
-                            if manual_sort:
-                                # Left click drag = swap if in manual sort mode
-                                drag = imgui.get_mouse_drag_delta().y
-                                drag_min = imgui.get_frame_height()
-                                swap_i = None
-                                if  drag > drag_min and game_i != len(self.sorted_games_ids) - 1:
-                                    swap_i = game_i + 1
-                                elif drag < -drag_min and game_i != 0:
-                                    swap_i = game_i - 1
-                                if swap_i is not None:
-                                    imgui.reset_mouse_drag_delta()
-                                    lst = globals.settings.manual_sort_list
-                                    lst[game_i], lst[swap_i] = lst[swap_i], lst[game_i]
-                                    async_thread.run(db.update_settings("manual_sort_list"))
-                    elif self.game_list_hitbox_click:
-                        # Left click = open game info popup
-                        self.game_list_hitbox_click = False
-                        self.current_info_popup_game = game
+                self.handle_game_hitbox_events(game, game_i, manual_sort)
+
             imgui.end_table()
 
     def draw_games_grid(self):
@@ -1243,29 +1250,18 @@ class MainGUI():
 
                 # Cell
                 if imgui.begin_child(f"##{game.id}_cell", width=width, height=cell_height, flags=self.game_grid_cell_flags) or True:
+                    imgui.begin_group()
                     # Image
                     game.image.render(width, img_height, *game.image.crop_to_ratio(img_ratio), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_TOP)
                     # Setup pt3
                     imgui.indent(style.item_spacing.x * 2)
                     # Name
                     imgui.text(game.name)
+                    # Cell hitbox
+                    imgui.dummy(*imgui.get_content_region_available())
+                    imgui.end_group()
+                    self.handle_game_hitbox_events(game, game_i, manual_sort)
                 imgui.end_child()
-                if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
-                    # Hover = image on refresh button
-                    self.hovered_game = game
-                if imgui.begin_popup_context_item(f"##{game.id}_context"):
-                    # Right click = context menu
-                    self.draw_game_context_menu(game)
-                    imgui.end_popup()
-                # TODO: click callbacks: drag drop and popup
-                # if imgui.begin_drag_drop_source():
-                #     imgui.set_drag_drop_payload("game_i", str(game_i).encode())
-                #     imgui.end_drag_drop_source()
-                # elif imgui.begin_drag_drop_target():
-                #     print(imgui.accept_drag_drop_payload("game_i"), game_i)
-                #     imgui.end_drag_drop_target()
-                # if imgui.is_item_clicked():
-                #     print("yeah")
 
             imgui.pop_style_color()
             imgui.end_table()
