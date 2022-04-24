@@ -431,7 +431,7 @@ class MainGUI():
 
         # Load style configuration
         style = imgui.get_style()
-        style.window_border_size = 0
+        style.item_spacing = (style.item_spacing.y, style.item_spacing.y)
         style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
         style.scrollbar_size = 12
         style.window_rounding = style.frame_rounding = style.popup_rounding = globals.settings.style_corner_radius
@@ -490,7 +490,9 @@ class MainGUI():
                 if (size := io.display_size) != self.prev_size:
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
 
+                imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
                 if imgui.begin("F95Checker", closable=False, flags=self.window_flags) or True:
+                    imgui.pop_style_var()
                     sidebar_size = self.scaled(self.sidebar_size)
 
                     if imgui.begin_child("##main_frame", width=-sidebar_size, border=False) or True:
@@ -687,8 +689,8 @@ class MainGUI():
         self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe", selectable=True)
         self.draw_game_open_folder_button(game, label="󱞋 Open Folder", selectable=True)
         imgui.separator()
-        self.draw_game_played_checkbox(game, label=" 󰈼 Played")
-        self.draw_game_installed_checkbox(game, label=" 󰅢 Installed")
+        self.draw_game_played_checkbox(game, label="󰈼 Played")
+        self.draw_game_installed_checkbox(game, label="󰅢 Installed")
         imgui.separator()
         self.draw_game_rating_widget(game)
 
@@ -788,9 +790,9 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
             imgui.same_line()
-            self.draw_game_played_checkbox(game, label=" 󰈼 Played")
-            imgui.same_line(spacing=self.scaled(16))
-            self.draw_game_installed_checkbox(game, label=" 󰅢 Installed")
+            self.draw_game_played_checkbox(game, label="󰈼 Played")
+            imgui.same_line(spacing=self.scaled(10))
+            self.draw_game_installed_checkbox(game, label="󰅢 Installed")
 
             imgui.text_disabled("Personal Rating:")
             imgui.same_line()
