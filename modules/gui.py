@@ -1200,7 +1200,7 @@ class MainGUI():
             imgui.end_table()
 
     def draw_games_grid(self):
-        # Hack: get sort specs for list mode in grid mode
+        # Hack: get sort and column specs for list mode in grid mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
             "##game_list",
@@ -1212,6 +1212,21 @@ class MainGUI():
             sort_specs = imgui.table_get_sort_specs()
             manual_sort = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             self.sort_games(sort_specs, manual_sort)
+            # Enabled attributes
+            version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            status_enabled = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            column_i = 3
+            play_button = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            engine = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            column_i+= 1  # Name
+            developer = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            last_updated = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            last_played = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            added_on = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            played = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            installed = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            rating = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
+            open_thread = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
@@ -1224,13 +1239,15 @@ class MainGUI():
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
             # Setup
-            imgui.push_style_color(imgui.COLOR_CHILD_BACKGROUND, *style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
             for i in range(count):
                 imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
             img_ratio = 3
             width = None
-            img_height = None
-            cell_height = None
+            height = None
+            draw_list = imgui.get_window_draw_list()
+            bg_col = imgui.get_color_u32_rgba(*style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
+            rounding = globals.settings.style_corner_radius
+            _24 = self.scaled(24)
 
             # Loop cells
             for game_i, id in enumerate(self.sorted_games_ids):
@@ -1240,26 +1257,96 @@ class MainGUI():
                 # Setup pt2
                 if width is None:
                     width = imgui.get_content_region_available_width()
-                    img_height = width / img_ratio
-                    spacing = style.item_spacing.y
-                    cell_height = img_height + spacing + (imgui.get_text_line_height() + spacing) * 1
+                    height = width / img_ratio
 
                 # Cell
-                if imgui.begin_child(f"##{game.id}_cell", width=width, height=cell_height, flags=self.game_grid_cell_flags) or True:
-                    imgui.begin_group()
-                    # Image
-                    game.image.render(width, img_height, *game.image.crop_to_ratio(img_ratio), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_TOP)
-                    # Setup pt3
-                    imgui.indent(style.item_spacing.x * 2)
-                    # Name
-                    imgui.text(game.name)
-                    # Cell hitbox
-                    imgui.dummy(*imgui.get_content_region_available())
-                    imgui.end_group()
-                    self.handle_game_hitbox_events(game, game_i, manual_sort)
-                imgui.end_child()
+                pos = imgui.get_cursor_pos()
+                imgui.begin_group()
+                # Image
+                game.image.render(width, height, *game.image.crop_to_ratio(img_ratio), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+                # Setup pt3
+                imgui.indent(style.item_spacing.x * 2)
+                imgui.push_text_wrap_pos()
+                imgui.spacing()
 
-            imgui.pop_style_color()
+                # Name
+                name = game.name
+                did_wrap = imgui.calc_text_size(name).x > imgui.get_content_region_available_width()
+                imgui.text(name)
+                if version_enabled:
+                    imgui.same_line()
+                    version = self.get_game_version_text(game)
+                    if did_wrap or imgui.calc_text_size(version).x > imgui.get_content_region_available_width() - _24:
+                        imgui.dummy(0, 0)
+                    imgui.text_disabled(version)
+                if status_enabled:
+                    imgui.same_line()
+                    self.draw_game_status_widget(game)
+                # Play Button
+                did_newline = False
+                if play_button:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_play_button(game, label="󰐊 Play")
+                    did_newline = True
+                # Open Thread
+                if open_thread:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_open_thread_button(game, label="󰏌 Thread")
+                    did_newline = True
+                # Played
+                if played:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_played_checkbox(game, label="󰈼")
+                    did_newline = True
+                # Installed
+                if installed:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_installed_checkbox(game, label="󰅢")
+                    did_newline = True
+                # Engine
+                if engine:
+                    imgui.text_disabled("Engine:")
+                    imgui.same_line()
+                    self.draw_game_engine_widget(game)
+                # Developer
+                if developer:
+                    imgui.text_disabled("Developer:")
+                    imgui.same_line()
+                    imgui.text(game.developer or "Developer")  # TODO: fetch game developers
+                # Last Updated
+                if last_updated:
+                    imgui.text_disabled("Last Updated:")
+                    imgui.same_line()
+                    imgui.text(game.last_updated.display)
+                # Last Played
+                if last_played:
+                    imgui.text_disabled("Last Played:")
+                    imgui.same_line()
+                    imgui.text(game.last_played.display)
+                # Added On
+                if added_on:
+                    imgui.text_disabled("Added On:")
+                    imgui.same_line()
+                    imgui.text(game.added_on.display)
+                # Rating
+                if rating:
+                    imgui.text_disabled("Rating:")
+                    imgui.same_line()
+                    self.draw_game_rating_widget(game)
+                # Cell hitbox
+                imgui.pop_text_wrap_pos()
+                imgui.spacing()
+                imgui.spacing()
+                imgui.end_group()
+                imgui.set_cursor_pos(pos)
+                imgui.invisible_button(f"##{game.id}_hitbox", *imgui.get_item_rect_size())
+                self.handle_game_hitbox_events(game, game_i, manual_sort)
+                draw_list.add_rect_filled(*imgui.get_item_rect_min(), *imgui.get_item_rect_max(), bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+
             imgui.end_table()
         imgui.pop_style_var()
 
