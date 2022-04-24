@@ -753,7 +753,7 @@ class MainGUI():
             avail = imgui.get_content_region_available()
             width = min(avail.x, image.width)
             height = min(width * aspect_ratio, image.height)
-            if height > (new_height := avail.y * self.scaled(0.3)):
+            if height > (new_height := avail.y * self.scaled(0.4)):
                 height = new_height
                 width = height * (1 / aspect_ratio)
             if width < avail.x:
