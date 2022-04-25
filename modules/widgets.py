@@ -179,18 +179,19 @@ class ImGuiImage:
             imgui.text_disabled("Image missing!")
         else:
             if imgui.is_rect_visible(width, height):
-                if (rounding := kwargs.pop("rounding", None)) is not None:
+                if kwargs.get("rounding"):
                     flags = kwargs.pop("flags", None)
                     if flags is None:
                         flags = imgui.DRAW_ROUND_CORNERS_ALL
                     pos = imgui.get_cursor_screen_pos()
                     pos2 = (pos.x + width, pos.y + height)
                     draw_list = imgui.get_window_draw_list()
-                    draw_list.add_image_rounded(self.texture_id, tuple(pos), pos2, *args, rounding=rounding, flags=flags, **kwargs)
+                    draw_list.add_image_rounded(self.texture_id, tuple(pos), pos2, *args, flags=flags, **kwargs)
                     imgui.dummy(width, height)
                 else:
                     imgui.image(self.texture_id, width, height, *args, **kwargs)
             else:
+                # Skip if outside view
                 imgui.dummy(width, height)
 
     def crop_to_ratio(self, ratio: int | float):
