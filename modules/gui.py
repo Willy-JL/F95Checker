@@ -1,352 +1,26 @@
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PIL import Image, ImageSequence
 import OpenGL.GL as gl
+from PIL import Image
 import configparser
 import platform
-import pathlib
-import typing
 import OpenGL
-import numpy
 import imgui
 import glfw
 import sys
-import os
 
 from modules import async_thread
-from modules import sync_thread
 from modules.structs import *
+from modules.widgets import *
 from modules import globals
 from modules import db
 
-io: imgui.core._IO = None
-style: imgui.core.GuiStyle = None
-
-
-def impl_glfw_init(width: int, height: int, window_name: str):
-    # FIXME: takes quite a while to initialize on my arch linux machine
-    if not glfw.init():
-        print("Could not initialize OpenGL context")
-        sys.exit(1)
-
-    # OS X supports only forward-compatible core profiles from 3.2
-    glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-    glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-    glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-    glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
-
-    # Create a windowed mode window and its OpenGL context
-    window = glfw.create_window(width, height, window_name, None, None)
-    glfw.make_context_current(window)
-
-    if not window:
-        glfw.terminate()
-        print("Could not initialize Window")
-        sys.exit(1)
-
-    return window
-
-
-class ImGuiImage:
-    def __init__(self, path: str | pathlib.Path, glob: str = ""):
-        self.glob: str = glob
-        self.frame_count: int = 1
-        self.loaded: bool = False
-        self.loading: bool = False
-        self.applied: bool = False
-        self.missing: bool = False
-        self.animated: bool = False
-        self.prev_time: float = 0.0
-        self.current_frame: int = -1
-        self.width, self.height = 1, 1
-        self.frame_elapsed: float = 0.0
-        self.frame_durations: list = []
-        self.data: bytes | list[bytes] = None
-        self._texture_id: numpy.uint32 = None
-        self.path: pathlib.Path = pathlib.Path(path)
-
-    def reset(self):
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, numpy.empty(0))
-        self.applied = False
-
-    @staticmethod
-    def get_rgba_pixels(image: Image.Image):
-        if image.mode == "RGB":
-            return image.tobytes("raw", "RGBX")
-        else:
-            if image.mode != "RGBA":
-                image = image.convert("RGBA")
-            return image.tobytes("raw", "RGBA")
-
-    def set_missing(self):
-        self.width, self.height = imgui.calc_text_size("Image missing!")
-        self.missing = True
-        self.loaded = True
-        self.loading = False
-
-    def reload(self):
-        self.reset()
-        path = self.path
-        if self.glob:
-            paths = list(path.glob(self.glob))
-            if not paths:
-                self.set_missing()
-                return
-            paths.sort(key=lambda path: path.suffix != ".gif")
-            path = paths[0]
-        if path.is_file():
-            self.missing = False
-        else:
-            self.set_missing()
-            return
-        image = Image.open(path)
-        self.width, self.height = image.size
-        if hasattr(image, "n_frames") and image.n_frames > 1:
-            self.animated = True
-            self.frame_count = image.n_frames
-            self.data = []
-            for frame in ImageSequence.Iterator(image):
-                self.data.append(self.get_rgba_pixels(frame))
-                self.frame_durations.append(frame.info["duration"] / 1250)
-        else:
-            self.data = self.get_rgba_pixels(image)
-        self.loaded = True
-        self.loading = False
-
-    def apply(self, data: bytes):
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, data)
-
-    @property
-    def texture_id(self):
-        if self._texture_id is None:
-            self._texture_id = gl.glGenTextures(1)
-        if not self.loaded:
-            if not self.loading:
-                self.loading = True
-                sync_thread.enqueue(self.reload)
-        elif not self.missing:
-            if self.animated:
-                if self.prev_time != (new_time := imgui.get_time()):
-                    self.prev_time = new_time
-                    self.frame_elapsed += io.delta_time
-                if self.frame_elapsed > self.frame_durations[max(self.current_frame, 0)]:
-                    self.frame_elapsed = 0
-                    self.applied = False
-                if not self.applied:
-                    self.current_frame += 1
-                    if self.current_frame == self.frame_count:
-                        self.current_frame = 0
-                    self.apply(self.data[self.current_frame])
-                    self.applied = True
-            elif not self.applied:
-                self.apply(self.data)
-                self.applied = True
-        return self._texture_id
-
-    def render(self, width, height, *args, **kwargs):
-        if self.missing:
-            imgui.text_disabled("Image missing!")
-        else:
-            if imgui.is_rect_visible(width, height):
-                if (rounding := kwargs.pop("rounding", None)) is not None:
-                    if rounding is True:
-                        rounding = globals.settings.style_corner_radius
-                    flags = kwargs.pop("flags", None)
-                    if flags is None:
-                        flags = imgui.DRAW_ROUND_CORNERS_ALL
-                    pos = imgui.get_cursor_screen_pos()
-                    pos2 = (pos.x + width, pos.y + height)
-                    draw_list = imgui.get_window_draw_list()
-                    draw_list.add_image_rounded(self.texture_id, tuple(pos), pos2, *args, rounding=rounding, flags=flags, **kwargs)
-                    imgui.dummy(width, height)
-                else:
-                    imgui.image(self.texture_id, width, height, *args, **kwargs)
-            else:
-                imgui.dummy(width, height)
-
-    def crop_to_ratio(self, ratio: int | float):
-        img_ratio = self.width / self.height
-        if img_ratio >= ratio:
-            crop_h = self.height
-            crop_w = crop_h * ratio
-            crop_x = (self.width - crop_w) / 2
-            crop_y = 0
-            left = crop_x / self.width
-            top = 0
-            right = (crop_x + crop_w) / self.width
-            bottom = 1
-        else:
-            crop_w = self.width
-            crop_h = crop_w / ratio
-            crop_y = (self.height - crop_h) / 2
-            crop_x = 0
-            left = 0
-            top = crop_y / self.height
-            right = 1
-            bottom = (crop_y + crop_h) / self.height
-        return (left, top), (right, bottom)
-
-
-def push_disabled(block_interaction: bool = True):
-    if block_interaction:
-        imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
-    imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
-
-
-def pop_disabled(block_interaction: bool = True):
-    if block_interaction:
-        imgui.internal.pop_item_flag()
-    imgui.pop_style_var()
-
-
-def center_next_window():
-    size = io.display_size
-    imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-
-
-def close_popup_clicking_outside():
-    if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID):
-        # This is the topmost popup
-        if imgui.is_mouse_clicked():
-            # Mouse was just clicked
-            pos = imgui.get_window_position()
-            size = imgui.get_window_size()
-            if not imgui.is_mouse_hovering_rect(pos.x, pos.y, pos.x + size.x, pos.y + size.y, clip=False):
-                # Popup is not hovered
-                imgui.close_current_popup()
-                return True
-    return False
-
-
-class FilePicker:
-    flags = (
-        imgui.WINDOW_NO_MOVE |
-        imgui.WINDOW_NO_RESIZE |
-        imgui.WINDOW_NO_COLLAPSE |
-        imgui.WINDOW_NO_SAVED_SETTINGS |
-        imgui.WINDOW_ALWAYS_AUTO_RESIZE
-    )
-
-    def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_flags: int = 0):
-        self.current: int = 0
-        self.title: str = title
-        self.active: bool = True
-        self.dir_icon: str = "󰉋"
-        self.file_icon: str = "󰈔"
-        self.selected: str = None
-        self.items: list[str] = []
-        self.dir: pathlib.Path = None
-        self.callback: typing.Callable = callback
-        self.flags: int = custom_flags or self.flags
-        self.goto(start_dir or os.getcwd())
-
-    def goto(self, dir: str | pathlib.Path):
-        dir = pathlib.Path(dir)
-        if dir.is_file():
-            dir = dir.parent
-        if dir.is_dir():
-            self.dir = dir
-        elif self.dir is None:
-            self.dir = pathlib.Path(os.getcwd())
-        self.dir = self.dir.absolute()
-        self.current = -1
-        self.refresh()
-
-    def refresh(self):
-        self.items.clear()
-        try:
-            items = list(self.dir.iterdir())
-            if len(items) > 0:
-                items.sort(key=lambda item: item.name.lower())
-                items.sort(key=lambda item: item.is_dir(), reverse=True)
-                for item in items:
-                    self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + "  " + item.name)
-            else:
-                self.items.append("This folder is empty!")
-        except Exception:
-            self.items.append("Cannot open this folder!")
-
-    def draw(self):
-        if not self.active:
-            return
-        # Setup popup
-        if not imgui.is_popup_open(self.title):
-            imgui.open_popup(self.title)
-        center_next_window()
-        if imgui.begin_popup_modal(self.title, True, flags=self.flags)[0]:
-            close_popup_clicking_outside()
-            size = io.display_size
-
-            imgui.begin_group()
-            # Up buttons
-            if imgui.button("󰁞"):
-                self.goto(self.dir.parent)
-            # Location bar
-            imgui.same_line()
-            imgui.set_next_item_width(size.x * 0.7)
-            confirmed, dir = imgui.input_text("##location_bar", str(self.dir), 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
-            if confirmed:
-                self.goto(dir)
-            # Refresh button
-            imgui.same_line()
-            if imgui.button("󰑐"):
-                self.refresh()
-            imgui.end_group()
-            width = imgui.get_item_rect_size().x
-
-            # Main list
-            if imgui.begin_child(f"##list_frame", width=width, height=size.y * 0.65) or True:
-                imgui.set_next_item_width(width)
-                clicked, value = imgui.listbox(f"##file_list", self.current, self.items, len(self.items))
-                if value != -1:
-                    self.current = min(max(value, 0), len(self.items) - 1)
-                    item = self.items[self.current]
-                    is_dir = item[0] == self.dir_icon
-                    is_file = item[0] == self.file_icon
-                    if imgui.is_item_hovered() and imgui.is_mouse_double_clicked():
-                        if is_dir:
-                            self.goto(self.dir / item[3:])
-                        elif is_file:
-                            self.selected = str(self.dir / item[3:])
-                            imgui.close_current_popup()
-                else:
-                    is_dir = False
-                    is_file = False
-            imgui.end_child()
-
-            # Cancel button
-            if imgui.button("󰜺 Cancel"):
-                imgui.close_current_popup()
-            # Ok button
-            imgui.same_line()
-            if not is_file:
-                push_disabled()
-            if imgui.button("󰄬 Ok"):
-                self.selected = str(self.dir / item[3:])
-                imgui.close_current_popup()
-            if not is_file:
-                pop_disabled()
-            # Selected text
-            if is_file:
-                imgui.same_line()
-                imgui.text(f"Selected:  {item[3:]}")
-
-            imgui.end_popup()
-        if not imgui.is_popup_open(self.title):
-            if self.callback:
-                self.callback(self.selected)
-            self.active = False
+imgui.io = None
+imgui.style = None
 
 
 class MainGUI():
     def __init__(self):
-        global io, style
         # Constants
         self.sidebar_size: int = 269
         self.game_list_column_count: int = 15
@@ -419,9 +93,9 @@ class MainGUI():
 
         # Setup ImGui
         imgui.create_context()
-        io = imgui.get_io()
+        imgui.io = imgui.get_io()
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
-        io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
+        imgui.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
         try:
             # Get window size
             imgui.load_ini_settings_from_disk(self.ini_file_name.decode("utf-8"))
@@ -446,33 +120,33 @@ class MainGUI():
         self.refresh_fonts()
 
         # Load style configuration
-        style = imgui.get_style()
-        style.item_spacing = (style.item_spacing.y, style.item_spacing.y)
-        style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
-        style.scrollbar_size = 12
-        style.window_rounding = style.frame_rounding = style.tab_rounding  = \
-        style.child_rounding = style.grab_rounding = style.popup_rounding  = \
-        style.scrollbar_rounding = globals.settings.style_corner_radius
+        imgui.style = imgui.get_style()
+        imgui.style.item_spacing = (imgui.style.item_spacing.y, imgui.style.item_spacing.y)
+        imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
+        imgui.style.scrollbar_size = 12
+        imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding  = \
+        imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding  = \
+        imgui.style.scrollbar_rounding = globals.settings.style_corner_radius
 
     def refresh_fonts(self):
-        io.fonts.clear()
+        imgui.io.fonts.clear()
         win_w, win_h = glfw.get_window_size(self.window)
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
-        io.font_global_scale = 1 / font_scaling_factor
+        imgui.io.font_global_scale = 1 / font_scaling_factor
         self.size_mult = globals.settings.style_scaling
-        io.fonts.add_font_from_file_ttf(
+        imgui.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
             18 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         )
-        io.fonts.add_font_from_file_ttf(
+        imgui.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
             18 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1),
             glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
         )
-        self.big_font = io.fonts.add_font_from_file_ttf(
+        self.big_font = imgui.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
             28 * font_scaling_factor * self.size_mult,
             font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
@@ -504,7 +178,7 @@ class MainGUI():
                 self.drew_filepicker = False
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
-                if (size := io.display_size) != self.prev_size:
+                if (size := imgui.io.display_size) != self.prev_size:
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
 
                 imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
@@ -545,7 +219,7 @@ class MainGUI():
                     self.draw_about_popup()
                 imgui.end()
 
-                if (size := io.display_size) != self.prev_size:
+                if (size := imgui.io.display_size) != self.prev_size:
                     self.prev_size = size
 
                 imgui.render()
@@ -562,7 +236,7 @@ class MainGUI():
         imgui.text_disabled("(?)", *args, **kwargs)
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
-            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, io.display_size.x))
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
             imgui.text_unformatted(help_text)
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
@@ -740,7 +414,7 @@ class MainGUI():
             return
         if not imgui.is_popup_open("Game info"):
             imgui.open_popup("Game info")
-        size = io.display_size
+        size = imgui.io.display_size
         height = size.y * 0.9
         width = min(size.x * 0.9, height * self.scaled(0.9))
         imgui.set_next_window_size(width, height)
@@ -759,14 +433,14 @@ class MainGUI():
                 height = new_height
                 width = height * (1 / aspect_ratio)
             if width < avail.x:
-                imgui.set_cursor_pos_x((avail.x - width + style.scrollbar_size) / 2)
+                imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
             image_pos = imgui.get_cursor_screen_pos()
-            image.render(width, height, rounding=True)
+            image.render(width, height, rounding=globals.settings.style_corner_radius)
 
             if imgui.is_item_hovered():
                 # Image popup
                 if imgui.is_mouse_down():
-                    size = io.display_size
+                    size = imgui.io.display_size
                     if aspect_ratio > size.y / size.x:
                         height = size.y - self.scaled(10)
                         width = height / aspect_ratio
@@ -786,7 +460,7 @@ class MainGUI():
                     size = globals.settings.zoom_size
                     zoom = globals.settings.zoom_amount
                     zoomed_size = size * zoom
-                    mouse_pos = io.mouse_pos
+                    mouse_pos = imgui.io.mouse_pos
                     ratio = image.width / width
                     x = mouse_pos.x - image_pos.x - size * 0.5
                     y = mouse_pos.y - image_pos.y - size * 0.5
@@ -811,7 +485,7 @@ class MainGUI():
                     right = (x + size) / image.width
                     bottom = (y + size) / image.height
                     imgui.begin_tooltip()
-                    image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=True)
+                    image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=globals.settings.style_corner_radius)
                     imgui.end_tooltip()
             imgui.push_text_wrap_pos()
 
@@ -916,7 +590,7 @@ class MainGUI():
             self.drew_filepicker = True
 
     def draw_about_popup(self):
-        size = io.display_size
+        size = imgui.io.display_size
         imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
         center_next_window()
         if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
@@ -926,7 +600,7 @@ class MainGUI():
             imgui.begin_group()
             imgui.dummy(_50, _210)
             imgui.same_line()
-            self.icon_texture.render(_210, _210, rounding=True)
+            self.icon_texture.render(_210, _210, rounding=globals.settings.style_corner_radius)
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(self.big_font)
@@ -951,7 +625,7 @@ class MainGUI():
             imgui.end_group()
             imgui.spacing()
             width = imgui.get_item_rect_size().x
-            btn_width = (width - 2 * style.item_spacing.x) / 3
+            btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
             if imgui.button("󰏌 F95Zone Thread", width=btn_width):
                 print("aaa")
             imgui.same_line()
@@ -1100,7 +774,7 @@ class MainGUI():
             imgui.end_popup()
 
     def draw_games_list(self):
-        ghost_column_size = (style.frame_padding.x + style.cell_padding.x * 2)
+        ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         if imgui.begin_table(
@@ -1218,7 +892,7 @@ class MainGUI():
                     self.draw_game_open_thread_button(game, label="󰏌")
                 # Row hitbox
                 imgui.same_line()
-                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - style.frame_padding.y)
+                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=imgui.get_frame_height())
                 self.handle_game_hitbox_events(game, game_i, manual_sort)
 
@@ -1259,9 +933,9 @@ class MainGUI():
         padding = self.scaled(10)
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
         min_width = (
-            style.item_spacing.x * 10 +  # Padding * (2 left + 2 right + 3 between items + idk)
-            style.frame_padding.x * 4 +  # Button padding * 2 sides * 2 buttons
-            style.item_inner_spacing.x * 2 +  # Checkbox and label spacing * 2 checkboxes
+            imgui.style.item_spacing.x * 10 +  # Padding * (2 left + 2 right + 3 between items + idk)
+            imgui.style.frame_padding.x * 4 +  # Button padding * 2 sides * 2 buttons
+            imgui.style.item_inner_spacing.x * 2 +  # Checkbox and label spacing * 2 checkboxes
             imgui.get_frame_height() * 2 +  # Checkbox height = width * 2 checkboxes
             imgui.calc_text_size("󰐊 Play󰏌 Thread󰈼󰅢").x  # Text
         )
@@ -1282,7 +956,7 @@ class MainGUI():
             height = None
             _24 = self.scaled(24)
             draw_list = imgui.get_window_draw_list()
-            bg_col = imgui.get_color_u32_rgba(*style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
+            bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
             rounding = globals.settings.style_corner_radius
 
             # Loop cells
@@ -1299,9 +973,9 @@ class MainGUI():
                 pos = imgui.get_cursor_pos()
                 imgui.begin_group()
                 # Image
-                game.image.render(width, height, *game.image.crop_to_ratio(img_ratio), rounding=True, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+                game.image.render(width, height, *game.image.crop_to_ratio(img_ratio), rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
                 # Setup pt3
-                imgui.indent(style.item_spacing.x * 2)
+                imgui.indent(imgui.style.item_spacing.x * 2)
                 imgui.push_text_wrap_pos()
                 imgui.spacing()
 
@@ -1409,7 +1083,7 @@ class MainGUI():
             async_thread.run(db.update_settings("display_mode"))
 
         imgui.same_line()
-        imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * style.frame_padding.x) - style.item_spacing.x)
+        imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         imgui.input_text("##filter_add_bar", "", 9999999)
         imgui.same_line()
         if imgui.button("Add!"):
@@ -1437,7 +1111,7 @@ class MainGUI():
         height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
-            game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=True)
+            game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=globals.settings.style_corner_radius)
         else:
             if imgui.button("Refresh!", width=width, height=height):
                 print("aaa")
@@ -1649,9 +1323,9 @@ class MainGUI():
                 changed, value = imgui.input_int("##style_corner_radius", set.style_corner_radius)
                 set.style_corner_radius = min(max(value, 0), 6)
                 if changed:
-                    style.window_rounding = style.frame_rounding = style.tab_rounding = \
-                    style.child_rounding = style.grab_rounding = style.popup_rounding = \
-                    style.scrollbar_rounding = globals.settings.style_corner_radius
+                    imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding = \
+                    imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding = \
+                    imgui.style.scrollbar_rounding = globals.settings.style_corner_radius
                     async_thread.run(db.update_settings("style_corner_radius"))
 
                 imgui.end_table()
