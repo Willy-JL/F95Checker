@@ -53,11 +53,11 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_SAME |
             imgui.TABLE_NO_SAVED_SETTINGS
         )
-        self.game_grid_cell_flags = (
+        self.game_grid_cell_flags: int = (
             imgui.WINDOW_NO_SCROLLBAR |
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
-        self.game_hitbox_drag_drop_flags = (
+        self.game_hitbox_drag_drop_flags: int = (
             imgui.DRAG_DROP_ACCEPT_PEEK_ONLY |
             imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID |
             imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
@@ -111,7 +111,7 @@ class MainGUI():
             size = (1280, 720)
 
         # Setup GLFW window
-        self.window = impl_glfw_init(*size, "F95Checker")
+        self.window: glfw._GLFWwindow = impl_glfw_init(*size, "F95Checker")
         icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = ImGuiImage(icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))

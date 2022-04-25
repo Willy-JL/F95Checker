@@ -2,6 +2,8 @@ import dataclasses
 import datetime
 import enum
 
+from modules.widgets import ImGuiImage
+
 
 class IntEnumAuto(enum.IntEnum):
     def __new__(cls, *args):
@@ -265,23 +267,23 @@ class Settings:
 
 @dataclasses.dataclass
 class Game:
-    id                : int       = None
-    name              : str       = None
-    version           : str       = None
-    developer         : str       = None
-    engine            : Engine    = None
-    status            : Status    = None
-    url               : str       = None
-    added_on          : Timestamp = None
-    last_updated      : Timestamp = None
-    last_full_refresh : int       = None
-    last_played       : Timestamp = None
-    rating            : int       = None
-    played            : bool      = None
-    installed         : str       = None
-    executable        : str       = None
-    description       : str       = None
-    changelog         : str       = None
-    tags              : list[Tag] = None
-    notes             : str       = None
-    image                         = None
+    id                : int        = None
+    name              : str        = None
+    version           : str        = None
+    developer         : str        = None
+    engine            : Engine     = None
+    status            : Status     = None
+    url               : str        = None
+    added_on          : Timestamp  = None
+    last_updated      : Timestamp  = None
+    last_full_refresh : int        = None
+    last_played       : Timestamp  = None
+    rating            : int        = None
+    played            : bool       = None
+    installed         : str        = None
+    executable        : str        = None
+    description       : str        = None
+    changelog         : str        = None
+    tags              : list[Tag]  = None
+    notes             : str        = None
+    image             : ImGuiImage = None

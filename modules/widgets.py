@@ -87,7 +87,7 @@ class ImGuiImage:
         self.frame_durations: list = None
         self.data: bytes | list[bytes] = None
         self._texture_id: numpy.uint32 = None
-        self.path: pathlib.Path = pathlib.Path(path)
+        self.path = pathlib.Path(path)
 
     def reset(self):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)

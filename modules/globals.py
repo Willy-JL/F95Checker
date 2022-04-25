@@ -43,4 +43,4 @@ tool_page         = domain + "/threads/44173/"
 # Will get initialized later
 gui: MainGUI = None
 settings: Settings = None
-games: dict[Game] = None
+games: dict[int, Game] = None
