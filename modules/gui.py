@@ -749,6 +749,7 @@ class MainGUI():
             close_popup_clicking_outside()
             game = self.current_info_popup_game
 
+            # Image
             image = game.image
             aspect_ratio = image.height / image.width
             avail = imgui.get_content_region_available()
@@ -761,37 +762,57 @@ class MainGUI():
                 imgui.set_cursor_pos_x((avail.x - width + style.scrollbar_size) / 2)
             image_pos = imgui.get_cursor_screen_pos()
             image.render(width, height, rounding=True)
-            if imgui.is_item_hovered() and globals.settings.zoom_enabled:
-                size = globals.settings.zoom_size
-                zoom = globals.settings.zoom_amount
-                zoomed_size = size * zoom
-                mouse_pos = io.mouse_pos
-                ratio = image.width / width
-                x = mouse_pos.x - image_pos.x - size * 0.5
-                y = mouse_pos.y - image_pos.y - size * 0.5
-                if x < 0:
-                    x = 0
-                elif x > (new_x := width - size):
-                    x = new_x
-                if y < 0:
-                    y = 0
-                elif y > (new_y := height - size):
-                    y = new_y
-                if globals.settings.zoom_region:
-                    rect_x = x + image_pos.x
-                    rect_y = y + image_pos.y
-                    draw_list = imgui.get_window_draw_list()
-                    draw_list.add_rect(rect_x, rect_y, rect_x + size, rect_y + size, imgui.get_color_u32_rgba(1, 1, 1, 1), thickness=2)
-                x *= ratio
-                y *= ratio
-                size *= ratio
-                left = x / image.width
-                top = y / image.height
-                right = (x + size) / image.width
-                bottom = (y + size) / image.height
-                imgui.begin_tooltip()
-                image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=True)
-                imgui.end_tooltip()
+
+            if imgui.is_item_hovered():
+                # Image popup
+                if imgui.is_mouse_down():
+                    size = io.display_size
+                    if aspect_ratio > size.y / size.x:
+                        height = size.y - self.scaled(10)
+                        width = height / aspect_ratio
+                    else:
+                        width = size.x - self.scaled(10)
+                        height = width * aspect_ratio
+                    # imgui.set_next_window_size(width, height)
+                    x = (size.x - width) / 2
+                    y = (size.y - height) / 2
+                    rounding = globals.settings.style_corner_radius
+                    flags = imgui.DRAW_ROUND_CORNERS_ALL
+                    pos2 = (x + width, y + height)
+                    fg_draw_list = imgui.get_foreground_draw_list()
+                    fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
+                # Zoom
+                elif globals.settings.zoom_enabled:
+                    size = globals.settings.zoom_size
+                    zoom = globals.settings.zoom_amount
+                    zoomed_size = size * zoom
+                    mouse_pos = io.mouse_pos
+                    ratio = image.width / width
+                    x = mouse_pos.x - image_pos.x - size * 0.5
+                    y = mouse_pos.y - image_pos.y - size * 0.5
+                    if x < 0:
+                        x = 0
+                    elif x > (new_x := width - size):
+                        x = new_x
+                    if y < 0:
+                        y = 0
+                    elif y > (new_y := height - size):
+                        y = new_y
+                    if globals.settings.zoom_region:
+                        rect_x = x + image_pos.x
+                        rect_y = y + image_pos.y
+                        draw_list = imgui.get_window_draw_list()
+                        draw_list.add_rect(rect_x, rect_y, rect_x + size, rect_y + size, imgui.get_color_u32_rgba(1, 1, 1, 1), thickness=2)
+                    x *= ratio
+                    y *= ratio
+                    size *= ratio
+                    left = x / image.width
+                    top = y / image.height
+                    right = (x + size) / image.width
+                    bottom = (y + size) / image.height
+                    imgui.begin_tooltip()
+                    image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=True)
+                    imgui.end_tooltip()
             imgui.push_text_wrap_pos()
 
 
