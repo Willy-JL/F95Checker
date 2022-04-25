@@ -1,21 +1,21 @@
-import queue as queuem
+import queue as _queue
 import threading
 import typing
 import time
 
-queue: queuem.Queue = None
+fn_queue: _queue.Queue = None
 thread: threading.Thread = None
 
 
 def setup():
-    global queue, thread
+    global fn_queue, thread
 
-    queue = queuem.Queue()
+    fn_queue = _queue.Queue()
 
     def run_loop():
         while True:
-            if queue.not_empty:
-                queue.get()()
+            if fn_queue.not_empty:
+                fn_queue.get()()
             else:
                 time.sleep(0.1)
 
@@ -23,5 +23,5 @@ def setup():
     thread.start()
 
 
-def enqueue(fn: typing.Callable):
-    queue.put(fn)
+def queue(fn: typing.Callable):
+    fn_queue.put(fn)
