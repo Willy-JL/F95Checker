@@ -182,41 +182,41 @@ class MainGUI():
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
 
                 imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
-                if imgui.begin("F95Checker", closable=False, flags=self.window_flags) or True:
-                    imgui.pop_style_var()
-                    sidebar_size = self.scaled(self.sidebar_size)
+                imgui.begin("F95Checker", closable=False, flags=self.window_flags)
+                imgui.pop_style_var()
+                sidebar_size = self.scaled(self.sidebar_size)
 
-                    if imgui.begin_child("##main_frame", width=-sidebar_size) or True:
-                        self.hovered_game = None
-                        if globals.settings.display_mode is DisplayMode.list:
-                            self.draw_games_list()
-                        elif globals.settings.display_mode is DisplayMode.grid:
-                            self.draw_games_grid()
-                        self.draw_bottombar()
-                    imgui.end_child()
+                imgui.begin_child("##main_frame", width=-sidebar_size)
+                self.hovered_game = None
+                if globals.settings.display_mode is DisplayMode.list:
+                    self.draw_games_list()
+                elif globals.settings.display_mode is DisplayMode.grid:
+                    self.draw_games_grid()
+                self.draw_bottombar()
+                imgui.end_child()
 
-                    text = self.status_text or self.watermark_text
-                    _3 = self.scaled(3)
-                    _6 = self.scaled(6)
-                    text_size = imgui.calc_text_size(text)
-                    text_x = size.x - text_size.x - _6
-                    text_y = size.y - text_size.y - _6
+                text = self.status_text or self.watermark_text
+                _3 = self.scaled(3)
+                _6 = self.scaled(6)
+                text_size = imgui.calc_text_size(text)
+                text_x = size.x - text_size.x - _6
+                text_y = size.y - text_size.y - _6
 
-                    imgui.same_line(spacing=1)
-                    if imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y - _3) or True:
-                        self.draw_sidebar()
-                    imgui.end_child()
+                imgui.same_line(spacing=1)
+                imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y - _3)
+                self.draw_sidebar()
+                imgui.end_child()
 
-                    if not self.status_text:
-                        imgui.set_cursor_screen_pos((text_x - _3, text_y))
-                        if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
-                            imgui.open_popup("About F95Checker")
-                    imgui.set_cursor_screen_pos((text_x, text_y))
-                    imgui.text(text)
+                if not self.status_text:
+                    imgui.set_cursor_screen_pos((text_x - _3, text_y))
+                    if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
+                        imgui.open_popup("About F95Checker")
+                imgui.set_cursor_screen_pos((text_x, text_y))
+                imgui.text(text)
 
-                    self.draw_game_info_popup()
-                    self.draw_filepicker_popup()
-                    self.draw_about_popup()
+                self.draw_game_info_popup()
+                self.draw_filepicker_popup()
+                self.draw_about_popup()
                 imgui.end()
 
                 if (size := imgui.io.display_size) != self.prev_size:
@@ -1162,305 +1162,305 @@ class MainGUI():
 
         right_width = self.scaled(100)
         checkbox_offset = right_width - imgui.get_frame_height()
-        if imgui.begin_child("Settings") or True:
+        imgui.begin_child("Settings")
 
-            if self.start_settings_section("Browser", right_width):
+        if self.start_settings_section("Browser", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Browser:")
+            imgui.same_line()
+            self.draw_help_marker("All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool "
+                                    "operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate "
+                                    "session just for itself.")
+            imgui.table_next_column()
+            changed, value = imgui.combo("##browser", set.browser.value - 1, list(Browser.__members__.keys()))
+            if changed:
+                set.browser = Browser(value + 1)
+                async_thread.run(db.update_settings("browser"))
+
+            if set.browser is Browser.Custom:
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("Browser:")
-                imgui.same_line()
-                self.draw_help_marker("All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool "
-                                      "operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate "
-                                      "session just for itself.")
+                imgui.text("Custom browser:")
                 imgui.table_next_column()
-                changed, value = imgui.combo("##browser", set.browser.value - 1, list(Browser.__members__.keys()))
-                if changed:
-                    set.browser = Browser(value + 1)
-                    async_thread.run(db.update_settings("browser"))
-
-                if set.browser is Browser.Custom:
-                    imgui.table_next_row()
-                    imgui.table_next_column()
-                    imgui.text("Custom browser:")
-                    imgui.table_next_column()
-                    if imgui.button("Configure", width=right_width):
-                        imgui.open_popup("Configure custom browser")
-                    center_next_window()
-                    if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
-                        close_popup_clicking_outside()
-                        imgui.text("Executable: ")
-                        imgui.same_line()
-                        pos = imgui.get_cursor_pos_x()
-                        changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
-                        if changed:
-                            async_thread.run(db.update_settings("browser_custom_executable"))
-                        imgui.same_line()
-                        clicked = imgui.button("󰷏")
-                        imgui.same_line(spacing=0)
-                        args_width = imgui.get_cursor_pos_x() - pos
-                        imgui.dummy(0, 0)
-                        if clicked:
-                            def callback(selected: str):
-                                if selected:
-                                    set.browser_custom_executable = selected
-                                    async_thread.run(db.update_settings("browser_custom_executable"))
-                            self.current_filepicker = FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
-                        self.draw_filepicker_popup()
-                        imgui.text("Arguments: ")
-                        imgui.same_line()
-                        imgui.set_cursor_pos_x(pos)
-                        imgui.set_next_item_width(args_width)
-                        changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
-                        if changed:
-                            async_thread.run(db.update_settings("browser_custom_arguments"))
-                        imgui.end_popup()
-                else:
-                    imgui.table_next_row()
-                    imgui.table_next_column()
-                    imgui.text("Use private mode:")
-                    imgui.table_next_column()
-                    imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                    changed, value = imgui.checkbox("##browser_private", set.browser_private)
+                if imgui.button("Configure", width=right_width):
+                    imgui.open_popup("Configure custom browser")
+                center_next_window()
+                if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
+                    close_popup_clicking_outside()
+                    imgui.text("Executable: ")
+                    imgui.same_line()
+                    pos = imgui.get_cursor_pos_x()
+                    changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
                     if changed:
-                        set.browser_private = value
-                        async_thread.run(db.update_settings("browser_private"))
-
+                        async_thread.run(db.update_settings("browser_custom_executable"))
+                    imgui.same_line()
+                    clicked = imgui.button("󰷏")
+                    imgui.same_line(spacing=0)
+                    args_width = imgui.get_cursor_pos_x() - pos
+                    imgui.dummy(0, 0)
+                    if clicked:
+                        def callback(selected: str):
+                            if selected:
+                                set.browser_custom_executable = selected
+                                async_thread.run(db.update_settings("browser_custom_executable"))
+                        self.current_filepicker = FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
+                    self.draw_filepicker_popup()
+                    imgui.text("Arguments: ")
+                    imgui.same_line()
+                    imgui.set_cursor_pos_x(pos)
+                    imgui.set_next_item_width(args_width)
+                    changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
+                    if changed:
+                        async_thread.run(db.update_settings("browser_custom_arguments"))
+                    imgui.end_popup()
+            else:
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("Download pages:")
-                imgui.same_line()
-                self.draw_help_marker("With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your "
-                                      "browser. This might be useful if you use private mode because the page will load as if you were logged in, "
-                                      "allowing you to see links and spoiler content without actually logging in.")
+                imgui.text("Use private mode:")
                 imgui.table_next_column()
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##browser_html", set.browser_html)
+                changed, value = imgui.checkbox("##browser_private", set.browser_private)
                 if changed:
-                    set.browser_html = value
-                    async_thread.run(db.update_settings("browser_html"))
+                    set.browser_private = value
+                    async_thread.run(db.update_settings("browser_private"))
 
-                imgui.end_table()
-                imgui.spacing()
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Download pages:")
+            imgui.same_line()
+            self.draw_help_marker("With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your "
+                                    "browser. This might be useful if you use private mode because the page will load as if you were logged in, "
+                                    "allowing you to see links and spoiler content without actually logging in.")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##browser_html", set.browser_html)
+            if changed:
+                set.browser_html = value
+                async_thread.run(db.update_settings("browser_html"))
 
-            if self.start_settings_section("Grid view", right_width):
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Max columns:")
-                imgui.same_line()
-                self.draw_help_marker("How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
-                                      "space to show all these columns, the number will be internally reduced to render each grid cell properly.")
-                imgui.table_next_column()
-                changed, value = imgui.input_int("##grid_columns", set.grid_columns)
-                set.grid_columns = min(max(value, 1), 10)
-                if changed:
-                    async_thread.run(db.update_settings("grid_columns"))
+            imgui.end_table()
+            imgui.spacing()
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Image ratio:")
-                imgui.same_line()
-                self.draw_help_marker("The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
-                                      "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3.")
-                imgui.table_next_column()
-                changed, value = imgui.input_float("##grid_image_ratio", set.grid_image_ratio, step=0.1, step_fast=0.5)
-                set.grid_image_ratio = min(max(value, 0.5), 5)
-                if changed:
-                    async_thread.run(db.update_settings("grid_image_ratio"))
+        if self.start_settings_section("Grid view", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Max columns:")
+            imgui.same_line()
+            self.draw_help_marker("How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
+                                    "space to show all these columns, the number will be internally reduced to render each grid cell properly.")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##grid_columns", set.grid_columns)
+            set.grid_columns = min(max(value, 1), 10)
+            if changed:
+                async_thread.run(db.update_settings("grid_columns"))
 
-                imgui.end_table()
-                imgui.spacing()
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Image ratio:")
+            imgui.same_line()
+            self.draw_help_marker("The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
+                                    "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3.")
+            imgui.table_next_column()
+            changed, value = imgui.input_float("##grid_image_ratio", set.grid_image_ratio, step=0.1, step_fast=0.5)
+            set.grid_image_ratio = min(max(value, 0.5), 5)
+            if changed:
+                async_thread.run(db.update_settings("grid_image_ratio"))
 
-            if self.start_settings_section("Refresh", right_width):
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Refresh completed games:")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##refresh_completed_games", set.refresh_completed_games)
-                if changed:
-                    set.refresh_completed_games = value
-                    async_thread.run(db.update_settings("refresh_completed_games"))
+            imgui.end_table()
+            imgui.spacing()
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Refresh workers:")
-                imgui.same_line()
-                self.draw_help_marker("Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
-                                      "connection at a time. Having more workers means more connections happen simultaneously, but having too many "
-                                      "will freeze the program. In most cases 20 workers is a good compromise.")
-                imgui.table_next_column()
-                changed, value = imgui.input_int("##refresh_workers", set.refresh_workers)
-                set.refresh_workers = min(max(value, 1), 100)
-                if changed:
-                    async_thread.run(db.update_settings("refresh_workers"))
+        if self.start_settings_section("Refresh", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Refresh completed games:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##refresh_completed_games", set.refresh_completed_games)
+            if changed:
+                set.refresh_completed_games = value
+                async_thread.run(db.update_settings("refresh_completed_games"))
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Request timeout:")
-                imgui.same_line()
-                self.draw_help_marker("To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
-                                      "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
-                                      "A timeout 10-30 seconds is most typical.")
-                imgui.table_next_column()
-                changed, value = imgui.input_int("##request_timeout", set.request_timeout)
-                set.request_timeout = min(max(value, 1), 120)
-                if changed:
-                    async_thread.run(db.update_settings("request_timeout"))
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Refresh workers:")
+            imgui.same_line()
+            self.draw_help_marker("Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
+                                    "connection at a time. Having more workers means more connections happen simultaneously, but having too many "
+                                    "will freeze the program. In most cases 20 workers is a good compromise.")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##refresh_workers", set.refresh_workers)
+            set.refresh_workers = min(max(value, 1), 100)
+            if changed:
+                async_thread.run(db.update_settings("refresh_workers"))
 
-                imgui.end_table()
-                imgui.spacing()
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Request timeout:")
+            imgui.same_line()
+            self.draw_help_marker("To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
+                                    "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
+                                    "A timeout 10-30 seconds is most typical.")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##request_timeout", set.request_timeout)
+            set.request_timeout = min(max(value, 1), 120)
+            if changed:
+                async_thread.run(db.update_settings("request_timeout"))
 
-            if self.start_settings_section("Startup", right_width):
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Refresh at startup:")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##start_refresh", set.start_refresh)
-                if changed:
-                    set.start_refresh = value
-                    async_thread.run(db.update_settings("start_refresh"))
+            imgui.end_table()
+            imgui.spacing()
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Start minimized:")
-                imgui.same_line()
-                self.draw_help_marker("F95Checker will start in background mode, minimized in the system tray.")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##start_in_tray", set.start_in_tray)
-                if changed:
-                    set.start_in_tray = value
-                    async_thread.run(db.update_settings("start_in_tray"))
+        if self.start_settings_section("Startup", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Refresh at startup:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##start_refresh", set.start_refresh)
+            if changed:
+                set.start_refresh = value
+                async_thread.run(db.update_settings("start_refresh"))
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Start with system:")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##start_with_system", set.start_with_system)
-                if changed:
-                    set.start_with_system = value
-                    async_thread.run(db.update_settings("start_with_system"))
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Start minimized:")
+            imgui.same_line()
+            self.draw_help_marker("F95Checker will start in background mode, minimized in the system tray.")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##start_in_tray", set.start_in_tray)
+            if changed:
+                set.start_in_tray = value
+                async_thread.run(db.update_settings("start_in_tray"))
 
-                imgui.end_table()
-                imgui.spacing()
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Start with system:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##start_with_system", set.start_with_system)
+            if changed:
+                set.start_with_system = value
+                async_thread.run(db.update_settings("start_with_system"))
 
-            if self.start_settings_section("Style", right_width):
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Interface scaling:")
-                imgui.table_next_column()
-                changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
-                set.style_scaling = min(max(value, 0.25), 4)
+            imgui.end_table()
+            imgui.spacing()
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Corner radius:")
-                imgui.table_next_column()
-                changed, value = imgui.input_int("##style_corner_radius", set.style_corner_radius)
-                set.style_corner_radius = min(max(value, 0), 6)
-                if changed:
-                    imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding = \
-                    imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding = \
-                    imgui.style.scrollbar_rounding = globals.settings.style_corner_radius
-                    async_thread.run(db.update_settings("style_corner_radius"))
+        if self.start_settings_section("Style", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Interface scaling:")
+            imgui.table_next_column()
+            changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
+            set.style_scaling = min(max(value, 0.25), 4)
 
-                imgui.end_table()
-                imgui.spacing()
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Corner radius:")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##style_corner_radius", set.style_corner_radius)
+            set.style_corner_radius = min(max(value, 0), 6)
+            if changed:
+                imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding = \
+                imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding = \
+                imgui.style.scrollbar_rounding = globals.settings.style_corner_radius
+                async_thread.run(db.update_settings("style_corner_radius"))
 
-            if self.start_settings_section("Zoom", right_width):
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Zoom when hovering images:")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##zoom_enabled", set.zoom_enabled)
-                if changed:
-                    set.zoom_enabled = value
-                    async_thread.run(db.update_settings("zoom_enabled"))
+            imgui.end_table()
+            imgui.spacing()
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Zoom amount:")
-                imgui.table_next_column()
-                changed, value = imgui.input_int("##zoom_amount", set.zoom_amount)
-                set.zoom_amount = min(max(value, 1), 20)
-                if changed:
-                    async_thread.run(db.update_settings("zoom_amount"))
+        if self.start_settings_section("Zoom", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Zoom when hovering images:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##zoom_enabled", set.zoom_enabled)
+            if changed:
+                set.zoom_enabled = value
+                async_thread.run(db.update_settings("zoom_enabled"))
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Zoom region size:")
-                imgui.table_next_column()
-                changed, value = imgui.input_int("##zoom_size", set.zoom_size)
-                set.zoom_size = min(max(value, 16), 1024)
-                if changed:
-                    async_thread.run(db.update_settings("zoom_size"))
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Zoom amount:")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##zoom_amount", set.zoom_amount)
+            set.zoom_amount = min(max(value, 1), 20)
+            if changed:
+                async_thread.run(db.update_settings("zoom_amount"))
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Show zoom region:")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##zoom_region", set.zoom_region)
-                if changed:
-                    set.zoom_region = value
-                    async_thread.run(db.update_settings("zoom_region"))
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Zoom region size:")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##zoom_size", set.zoom_size)
+            set.zoom_size = min(max(value, 16), 1024)
+            if changed:
+                async_thread.run(db.update_settings("zoom_size"))
 
-                imgui.end_table()
-                imgui.spacing()
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Show zoom region:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##zoom_region", set.zoom_region)
+            if changed:
+                set.zoom_region = value
+                async_thread.run(db.update_settings("zoom_region"))
 
-            if self.start_settings_section("Misc", right_width):
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("BG refresh mins:")
-                imgui.same_line()
-                self.draw_help_marker("When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
-                                      "often (in minutes) this happens.")
-                imgui.table_next_column()
-                changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
-                set.tray_refresh_interval = min(max(value, 15), 720)
-                if changed:
-                    async_thread.run(db.update_settings("tray_refresh_interval"))
+            imgui.end_table()
+            imgui.spacing()
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Keep game image:")
-                imgui.same_line()
-                self.draw_help_marker("When a game receives an update F95Checker downloads the header image again in case it was updated. This "
-                                      "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
-                                      f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
-                if changed:
-                    set.update_keep_image = value
-                    async_thread.run(db.update_settings("update_keep_image"))
+        if self.start_settings_section("Misc", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("BG refresh mins:")
+            imgui.same_line()
+            self.draw_help_marker("When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
+                                    "often (in minutes) this happens.")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
+            set.tray_refresh_interval = min(max(value, 15), 720)
+            if changed:
+                async_thread.run(db.update_settings("tray_refresh_interval"))
 
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Ask path on add:")
-                imgui.same_line()
-                self.draw_help_marker("When this is enabled you will be asked to select a game executable right after adding the game to F95Checker.")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
-                if changed:
-                    set.select_executable_after_add = value
-                    async_thread.run(db.update_settings("select_executable_after_add"))
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Keep game image:")
+            imgui.same_line()
+            self.draw_help_marker("When a game receives an update F95Checker downloads the header image again in case it was updated. This "
+                                    "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
+                                    f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
+            if changed:
+                set.update_keep_image = value
+                async_thread.run(db.update_settings("update_keep_image"))
 
-                imgui.end_table()
-                imgui.spacing()
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Ask path on add:")
+            imgui.same_line()
+            self.draw_help_marker("When this is enabled you will be asked to select a game executable right after adding the game to F95Checker.")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
+            if changed:
+                set.select_executable_after_add = value
+                async_thread.run(db.update_settings("select_executable_after_add"))
 
-            if self.start_settings_section("Minimize", right_width, collapsible=False):
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Switch to BG mode:")
-                imgui.table_next_column()
-                if imgui.button("Minimize", width=right_width):
-                    self.minimize()
-                imgui.end_table()
+            imgui.end_table()
+            imgui.spacing()
+
+        if self.start_settings_section("Minimize", right_width, collapsible=False):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Switch to BG mode:")
+            imgui.table_next_column()
+            if imgui.button("Minimize", width=right_width):
+                self.minimize()
+            imgui.end_table()
 
         imgui.end_child()
 
