@@ -169,11 +169,23 @@ class MainGUI():
         return size * self.size_mult
 
     def main_loop(self):
+        scroll_energy = 0.0
         while not glfw.window_should_close(self.window):
             self.qt_loop.processEvents()
             glfw.poll_events()
             self.impl.process_inputs()
             if self.visible:
+
+                # Smooth scrolling (must be before new_frame())
+                scroll_energy += imgui.io.mouse_wheel
+                if abs(scroll_energy) > 0.1:
+                    scroll_now = scroll_energy / 8
+                    scroll_energy -= scroll_now
+                else:
+                    scroll_now = 0.0
+                    scroll_energy = 0.0
+                imgui.io.mouse_wheel = scroll_now
+
                 imgui.new_frame()
                 self.drew_filepicker = False
 
