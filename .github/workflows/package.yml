@@ -98,12 +98,6 @@ jobs:
         with:
           files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ matrix.os }}.zip"
 
-      - name: "Purge old artifacts"
-        uses: "kolpav/purge-artifacts-action@v1"
-        with:
-          token: "${{ secrets.GITHUB_TOKEN }}"
-          expire-in: 0
-
       - name: "Delete skipped workflow runs"
         if: "github.event_name == 'release'"
         uses: "Willy-JL/delete-skipped-workflow-runs@main"
