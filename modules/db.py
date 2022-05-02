@@ -1,3 +1,4 @@
+import configparser
 import aiosqlite
 import asyncio
 import pathlib
@@ -255,8 +256,7 @@ async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0
 
 async def migrate_legacy_ini(path: str | pathlib.Path):  # Pre v7.0
     try:
-        from configparser import RawConfigParser
-        old_config = RawConfigParser()
+        old_config = configparser.RawConfigParser()
         old_config.read(path)
         config = {}
         config["options"] = {}
