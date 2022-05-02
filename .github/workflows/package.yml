@@ -29,7 +29,7 @@ jobs:
           - "3.10.4"
         cx-freeze:
           - "6.10"
-    name: "${{ runner.os }}"
+    name: "${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ PACKAGE')"
     steps:
@@ -100,7 +100,7 @@ jobs:
           files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ runner.os }}.zip"
 
   source:
-    name: "Source"
+    name: "source"
     runs-on: "ubuntu-latest"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ PACKAGE')"
     steps:
