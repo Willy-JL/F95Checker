@@ -1,19 +1,19 @@
-name: Package
+name: "Package"
 
 on:
   push:
     branches:
-      - master
-      - main
-      - dev
+      - "master"
+      - "main"
+      - "dev"
   workflow_dispatch:
     branches:
-      - master
-      - main
-      - dev
+      - "master"
+      - "main"
+      - "dev"
   release:
     types:
-      - published
+      - "published"
 
 jobs:
 
@@ -22,89 +22,89 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - windows-latest
-          - ubuntu-latest
-          - macos-latest
+          - "windows-latest"
+          - "ubuntu-latest"
+          - "macos-latest"
         python: 3.10.4
         cx-freeze: 6.10
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    if: github.event_name != "push" || contains(github.event.head_commit.message, "+ PACKAGE")
+    name: "Build ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ PACKAGE')"
     steps:
 
-      - name: Set git to use lf
+      - name: "Set git to use lf"
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: Get short sha string
-        uses: benjlevesque/short-sha@v1.2
-        id: short-sha
+      - name: "Get short sha string"
+        uses: "benjlevesque/short-sha@v1.2"
+        id: "short-sha"
         with:
           length: 7
 
-      - name: Setup python
-        uses: actions/setup-python@v2
+      - name: "Setup python"
+        uses: "actions/setup-python@v2"
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "${{ matrix.python }}"
 
-      - name: Clone cx_Freeze source
-        uses: actions/checkout@v2
+      - name: "Clone cx_Freeze source"
+        uses: "actions/checkout@v2"
         with:
-          repository: 'marcelotduarte/cx_Freeze'
-          ref: ${{ matrix.cx-freeze }}
-          path: './cx_Freeze'
+          repository: "marcelotduarte/cx_Freeze"
+          ref: "${{ matrix.cx-freeze }}"
+          path: "./cx_Freeze"
 
-      - name: Build cx_Freeze bootloader
+      - name: "Build cx_Freeze bootloader"
         run: |
           cd ./cx_Freeze
           python -m pip install -e .
 
-      - name: Clone repo
-        uses: actions/checkout@v2
+      - name: "Clone repo"
+        uses: "actions/checkout@v2"
         with:
-          path: './src'
+          path: "./src"
 
-      - name: Build
+      - name: "Build"
         run: |
           cd ./src
           python -m pip install -r requirements.txt
           python build.py build
 
-      - name: Zip commit package
-        if: github.event_name != "release"
-        shell: cmd
-        run: 7z a -r ./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ matrix.os }}.zip ./src/dist/*
+      - name: "Zip commit package"
+        if: "github.event_name != 'release'"
+        run: |
+          7z a -r ./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ matrix.os }}.zip ./src/dist/*
 
-      - name: Upload commit artifact
-        if: github.event_name != "release"
-        uses: actions/upload-artifact@v2
+      - name: "Upload commit artifact"
+        if: "github.event_name != 'release'"
+        uses: "actions/upload-artifact@v2"
         with:
-          name: ${{ matrix.os }}
-          path: ./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ matrix.os }}.zip
+          name: "${{ matrix.os }}"
+          path: "./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ matrix.os }}.zip"
 
-      - name: Zip release package
-        if: github.event_name == "release"
-        shell: cmd
-        run: 7z a -r ./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ matrix.os }}.zip ./src/dist/*
+      - name: "Zip release package"
+        if: "github.event_name == 'release'"
+        run: |
+          7z a -r ./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ matrix.os }}.zip ./src/dist/*
 
-      - name: Upload release artifact
-        if: github.event_name == "release"
-        uses: softprops/action-gh-release@v1
+      - name: "Upload release artifact"
+        if: "github.event_name == 'release'"
+        uses: "softprops/action-gh-release@v1"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
-          files: ./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ matrix.os }}.zip
+          files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ matrix.os }}.zip"
 
-      - name: Purge old artifacts
-        uses: kolpav/purge-artifacts-action@v1
+      - name: "Purge old artifacts"
+        uses: "kolpav/purge-artifacts-action@v1"
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: "${{ secrets.GITHUB_TOKEN }}"
           expire-in: 0
 
-      - name: Delete skipped workflow runs
-        if: github.event_name == "release"
-        uses: Willy-JL/delete-skipped-workflow-runs@main
+      - name: "Delete skipped workflow runs"
+        if: "github.event_name == 'release'"
+        uses: "Willy-JL/delete-skipped-workflow-runs@main"
         with:
           retain_days: 0
           keep_minimum_runs: 0
