@@ -1,12 +1,6 @@
-clint
-qasync
-aiohttp
+git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0[glfw]
 pywin32 ; sys_platform == 'win32'
-aiofiles
-PyQt5==5.15.2
-soupsieve>=2.1
-beautifulsoup4
-PyQt5-sip==12.8.1
-PyQtWebEngine==5.15.2
-
-git+https://github.com/Willy-JL/pyimgui.git@add_image_rounded
+aiosqlite
+Pillow
+PyQt6
+numpy

@@ -2,10 +2,5 @@
 .vscode/
 venv/
 __pycache__/
-work/
-temp/
-build/
 dist/
-F95Checker.spec
-*.log
 log.txt
