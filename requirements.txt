@@ -1,6 +1,8 @@
-git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0[glfw]
+git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
 pywin32 ; sys_platform == 'win32'
 aiosqlite
+PyOpenGL
 Pillow
 PyQt6
 numpy
+glfw
