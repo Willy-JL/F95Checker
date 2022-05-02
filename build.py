@@ -3,7 +3,7 @@ import sys
 
 
 base = None
-if sys.platform == "win32":
+if sys.platform.startswith("win"):
     # Hide console on Windows
     base = "Win32GUI"
 
@@ -22,6 +22,15 @@ cx_Freeze.setup(
         "build_exe": {
             "build_exe": "dist",
             "optimize": 2,
+            "packages": [
+                "aiosqlite",
+                "OpenGL",
+                "imgui",
+                "PyQt6",
+                "numpy",
+                "glfw",
+                "PIL",
+            ] + (["win32api", "win32event", "winerror"] if sys.platform.startswith("win") else []),
             "include_files": [
                 "resources",
                 "LICENSE"
