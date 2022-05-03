@@ -91,7 +91,7 @@ class ImGuiImage:
 
     def reset(self):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, numpy.empty(0))
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, b"\x00\x00\x00\xff")
         self.applied = False
 
     @staticmethod
