@@ -2,11 +2,13 @@
 from contextlib import contextmanager
 import typing
 import sys
+import os
 
 # Backup original functionality
-_stdout: typing.TextIO = sys.stdout
-_stderr: typing.TextIO = sys.stderr
-_stdin:  typing.TextIO = sys.stdin
+_devnull = open(os.devnull, "w")
+_stdout: typing.TextIO = sys.stdout or _devnull
+_stderr: typing.TextIO = sys.stderr or _devnull
+_stdin:  typing.TextIO = sys.stdin or _devnull
 
 # Used to temporarily stop output to log file
 _pause_file_output_count: int = 0
