@@ -68,11 +68,20 @@ jobs:
         with:
           path: "./src"
 
+      - name: "Install requirements"
+        run: |
+          cd ./src
+          python -m pip install -U -r requirements.txt
+
       - name: "Build"
         run: |
           cd ./src
-          python -m pip install -r requirements.txt
-          python build.py build
+          python setup.py build
+
+      - name: "Resolve symlinks"
+        run: |
+          cd ./src
+          find dist -type l -exec sed -i '' {} \;
 
       - name: "Zip commit package"
         if: "github.event_name != 'release'"

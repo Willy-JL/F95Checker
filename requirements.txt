@@ -7,4 +7,3 @@ Pillow
 PyQt6
 numpy
 glfw
-cffi
