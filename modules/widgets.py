@@ -127,12 +127,12 @@ class ImGuiImage:
         self.width, self.height = image.size
         if hasattr(image, "n_frames") and image.n_frames > 1:
             self.animated = True
-            self.frame_count = image.n_frames
             self.data = []
             self.frame_durations = []
             for frame in ImageSequence.Iterator(image):
                 self.data.append(self.get_rgba_pixels(frame))
                 self.frame_durations.append(frame.info["duration"] / 1250)
+            self.frame_count = len(self.data)
         else:
             self.data = self.get_rgba_pixels(image)
         self.loaded = True
