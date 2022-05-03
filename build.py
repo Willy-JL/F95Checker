@@ -23,14 +23,8 @@ cx_Freeze.setup(
             "build_exe": "dist",
             "optimize": 1,
             "packages": [
-                "aiosqlite",
                 "OpenGL",
-                "imgui",
-                "PyQt6",
-                "numpy",
-                "glfw",
-                "PIL",
-            ] + (["win32api", "win32event", "winerror"] if sys.platform.startswith("win") else []),
+            ],
             "include_files": [
                 "resources",
                 "LICENSE"
