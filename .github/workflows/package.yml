@@ -79,9 +79,10 @@ jobs:
           python setup.py build
 
       - name: "Resolve symlinks"
+        if: "runner.os != 'Windows'"
         run: |
           cd ./src
-          find dist -type l -exec sed -i '' {} \;
+          find dist -type l -exec sed -i '' {} \; -exec echo {} \;
 
       - name: "Zip commit package"
         if: "github.event_name != 'release'"
