@@ -1,11 +1,29 @@
 import pathlib
 import sys
 
+version = "9.0"
+
+frozen = getattr(sys, "frozen", False)
+
+if frozen:
+    self_path = pathlib.Path(sys.executable).parent
+else:
+    self_path = pathlib.Path(__file__).parent.parent
+
+domain = "https://f95zone.to"
+check_login_page  = domain + "/account/"
+login_page        = domain + "/login/"
+login_endpoint    = domain + "/login/login"
+two_step_endpoint = domain + "/login/two-step"
+notif_endpoint    = domain + "/conversations/popup"
+qsearch_endpoint  = domain + "/quicksearch"
+alerts_page       = domain + "/account/alerts/"
+inbox_page        = domain + "/conversations/"
+tool_page         = domain + "/threads/44173/"
+
+
 from modules.gui import MainGUI
 from modules.structs import *
-
-
-version = "9.0"
 
 if sys.platform.startswith("win"):
     os = Os.Windows
@@ -22,23 +40,6 @@ else:
     sys.exit(1)
 data_path = pathlib.Path.home() / data_path
 data_path.mkdir(parents=True, exist_ok=True)
-
-self_path = pathlib.Path(
-    sys.executable
-    if getattr(sys, "frozen", False) else
-    __file__
-).parent.parent
-
-domain = "https://f95zone.to"
-check_login_page  = domain + "/account/"
-login_page        = domain + "/login/"
-login_endpoint    = domain + "/login/login"
-two_step_endpoint = domain + "/login/two-step"
-notif_endpoint    = domain + "/conversations/popup"
-qsearch_endpoint  = domain + "/quicksearch"
-alerts_page       = domain + "/account/alerts/"
-inbox_page        = domain + "/conversations/"
-tool_page         = domain + "/threads/44173/"
 
 # Will get initialized later
 gui: MainGUI = None
