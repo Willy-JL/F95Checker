@@ -13,6 +13,12 @@ if sys.platform.startswith("linux"):
     # Bundle libffi.so on Linux
     bin_includes.append(find_library("ffi"))
 
+icon = "resources/icons/icon"
+if sys.platform.startswith("win"):
+    icon += ".ico"
+else:
+    icon += ".png"
+
 cx_Freeze.setup(
     name="F95Checker",
     description="An update checker tool for (NSFW) games on the F95Zone platform",
@@ -21,7 +27,7 @@ cx_Freeze.setup(
             script="main.py",
             base=base,
             target_name="F95Checker",
-            icon="resources/icons/icon.png"
+            icon=icon
         )
     ],
     options={
