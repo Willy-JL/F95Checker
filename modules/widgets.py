@@ -110,7 +110,6 @@ class ImGuiImage:
         self.loading = False
 
     def reload(self):
-        self.reset()
         path = self.path
         if self.glob:
             paths = list(path.glob(self.glob))
@@ -154,6 +153,7 @@ class ImGuiImage:
         if not self.loaded:
             if not self.loading:
                 self.loading = True
+                self.reset()
                 sync_thread.queue(self.reload)
         elif not self.missing:
             if self.animated:
