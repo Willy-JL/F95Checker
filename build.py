@@ -21,7 +21,7 @@ cx_Freeze.setup(
     options={
         "build_exe": {
             "build_exe": "dist",
-            "optimize": 2,
+            "optimize": 1,
             "packages": [
                 "aiosqlite",
                 "OpenGL",
