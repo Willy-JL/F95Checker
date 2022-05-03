@@ -8,6 +8,9 @@ if "-c" in sys.argv:
 
 
 def main():
+    # Must import globals first to fix load paths when frozen
+    from modules import globals
+
     from modules import singleton
     singleton.lock("F95Checker")
 
@@ -24,7 +27,7 @@ def main():
     async_thread.run(db.connect(), wait=True)
     async_thread.run(db.load(), wait=True)
 
-    from modules import globals, gui
+    from modules import gui
     globals.gui = gui.MainGUI()
 
     globals.gui.main_loop()
