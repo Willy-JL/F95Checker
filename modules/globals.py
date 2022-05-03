@@ -1,5 +1,6 @@
 import pathlib
 import sys
+import os
 
 version = "9.0"
 
@@ -9,6 +10,11 @@ if frozen:
     self_path = pathlib.Path(sys.executable).parent
 else:
     self_path = pathlib.Path(__file__).parent.parent
+
+if frozen and sys.platform.startswith("linux"):
+    library = self_path / f"lib/glfw/{os.environ.get('XDG_SESSION_TYPE')}/libglfw.so"
+    if library.is_file():
+        os.environ["PYGLFW_LIBRARY"] = str(library)
 
 domain = "https://f95zone.to"
 check_login_page  = domain + "/account/"
