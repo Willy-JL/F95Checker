@@ -56,6 +56,7 @@ async def connect():
                 style_scaling               REAL    DEFAULT 1.0,
                 tray_refresh_interval       INTEGER DEFAULT 15,
                 update_keep_image           INTEGER DEFAULT 0,
+                vsync_ratio                 INTEGER DEFAULT 1,
                 zoom_amount                 INTEGER DEFAULT 4,
                 zoom_enabled                INTEGER DEFAULT 1,
                 zoom_region                 INTEGER DEFAULT 1,

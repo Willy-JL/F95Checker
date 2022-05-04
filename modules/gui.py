@@ -117,6 +117,7 @@ class MainGUI():
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_iconify_callback(self.window, self.minimize)
+        glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
         # Load style configuration
@@ -181,7 +182,7 @@ class MainGUI():
                 if globals.settings.scroll_smooth:
                     scroll_energy += imgui.io.mouse_wheel
                     if abs(scroll_energy) > 0.1:
-                        scroll_now = scroll_energy / 8
+                        scroll_now = scroll_energy * imgui.io.delta_time * 8
                         scroll_energy -= scroll_now
                     else:
                         scroll_now = 0.0
@@ -1418,6 +1419,22 @@ class MainGUI():
             set.scroll_amount = min(max(value, 0.1), 10)
             if changed:
                 async_thread.run(db.update_settings("scroll_amount"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Vsync ratio:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "Vsync means that the framerate should be synced to the one your monitor uses. The ratio modifies this behavior. "
+                "A ratio of 0 means uncapped framerate, while all other numbers indicate the ratio between screen and app FPS. "
+                "For example a ratio of 2 means the app refreshes every 2nd monitor frame, resulting in half the framerate."
+            )
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##vsync_ratio", set.vsync_ratio)
+            set.vsync_ratio = min(max(value, 0), 10)
+            if changed:
+                glfw.swap_interval(set.vsync_ratio)
+                async_thread.run(db.update_settings("vsync_ratio"))
 
             imgui.table_next_row()
             imgui.table_next_column()

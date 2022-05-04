@@ -262,6 +262,7 @@ class Settings:
     style_scaling               : float       = None
     tray_refresh_interval       : int         = None
     update_keep_image           : bool        = None
+    vsync_ratio                 : int         = None
     zoom_amount                 : int         = None
     zoom_enabled                : bool        = None
     zoom_region                 : bool        = None
