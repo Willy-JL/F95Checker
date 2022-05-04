@@ -37,6 +37,7 @@ async def connect():
                 grid_columns                INTEGER DEFAULT 3,
                 grid_image_ratio            REAL    DEFAULT 3.0,
                 manual_sort_list            TEXT    DEFAULT "[]",
+                minimize_on_close           INTEGER DEFAULT 0,
                 refresh_completed_games     INTEGER DEFAULT 1,
                 refresh_workers             INTEGER DEFAULT 20,
                 request_timeout             INTEGER DEFAULT 30,

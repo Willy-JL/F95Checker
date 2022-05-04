@@ -243,6 +243,7 @@ class Settings:
     grid_columns                : int         = None
     grid_image_ratio            : float       = None
     manual_sort_list            : list        = None
+    minimize_on_close           : bool        = None
     refresh_completed_games     : bool        = None
     refresh_workers             : int         = None
     request_timeout             : int         = None

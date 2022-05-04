@@ -116,7 +116,7 @@ class MainGUI():
         self.icon_texture = ImGuiImage(icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
         self.impl = GlfwRenderer(self.window)
-        glfw.set_window_iconify_callback(self.window, self.minimize)
+        glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
@@ -157,9 +157,13 @@ class MainGUI():
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
 
+    def close_callback(self, *args, **kwargs):
+        if globals.settings.minimize_on_close:
+            self.minimize()
+            glfw.set_window_should_close(self.window, False)
+
     def minimize(self, *args, **kwargs):
         glfw.hide_window(self.window)
-        glfw.focus_window(self.window)
         self.visible = False
 
     def show(self, *args, **kwargs):
@@ -1368,6 +1372,20 @@ class MainGUI():
             imgui.table_next_column()
             changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
             set.style_scaling = min(max(value, 0.25), 4)
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("BG mode on close:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "When closing the window F95Checker will instead minimize to background mode. Quit the app via the tray icon."
+            )
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##minimize_on_close", set.minimize_on_close)
+            if changed:
+                set.minimize_on_close = value
+                async_thread.run(db.update_settings("minimize_on_close"))
 
             imgui.table_next_row()
             imgui.table_next_column()
