@@ -244,12 +244,12 @@ class MainGUI():
         self.impl.shutdown()
         glfw.terminate()
 
-    def draw_help_marker(self, help_text: str, *args, **kwargs):
-        imgui.text_disabled("(?)", *args, **kwargs)
+    def draw_hover_text(self, hover_text: str, text: str = "(?)", *args, **kwargs):
+        imgui.text_disabled(text, *args, **kwargs)
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-            imgui.text_unformatted(help_text)
+            imgui.text_unformatted(hover_text)
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
@@ -437,67 +437,76 @@ class MainGUI():
 
             # Image
             image = game.image
-            aspect_ratio = image.height / image.width
             avail = imgui.get_content_region_available()
-            width = min(avail.x, image.width)
-            height = min(width * aspect_ratio, image.height)
-            if height > (new_height := avail.y * self.scaled(0.4)):
-                height = new_height
-                width = height * (1 / aspect_ratio)
-            if width < avail.x:
+            if image.missing:
+                text = "Image missing!"
+                width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-            image_pos = imgui.get_cursor_screen_pos()
-            image.render(width, height, rounding=globals.settings.style_corner_radius)
+                self.draw_hover_text(
+                    text=text,
+                    hover_text="Run a full refresh to try downloading it again!"
+                )
+            else:
+                aspect_ratio = image.height / image.width
+                width = min(avail.x, image.width)
+                height = min(width * aspect_ratio, image.height)
+                if height > (new_height := avail.y * self.scaled(0.4)):
+                    height = new_height
+                    width = height * (1 / aspect_ratio)
+                if width < avail.x:
+                    imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
+                image_pos = imgui.get_cursor_screen_pos()
+                image.render(width, height, rounding=globals.settings.style_corner_radius)
 
-            if imgui.is_item_hovered():
-                # Image popup
-                if imgui.is_mouse_down():
-                    size = imgui.io.display_size
-                    if aspect_ratio > size.y / size.x:
-                        height = size.y - self.scaled(10)
-                        width = height / aspect_ratio
-                    else:
-                        width = size.x - self.scaled(10)
-                        height = width * aspect_ratio
-                    x = (size.x - width) / 2
-                    y = (size.y - height) / 2
-                    rounding = globals.settings.style_corner_radius
-                    flags = imgui.DRAW_ROUND_CORNERS_ALL
-                    pos2 = (x + width, y + height)
-                    fg_draw_list = imgui.get_foreground_draw_list()
-                    fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
-                # Zoom
-                elif globals.settings.zoom_enabled:
-                    size = globals.settings.zoom_size
-                    zoom = globals.settings.zoom_amount
-                    zoomed_size = size * zoom
-                    mouse_pos = imgui.io.mouse_pos
-                    ratio = image.width / width
-                    x = mouse_pos.x - image_pos.x - size * 0.5
-                    y = mouse_pos.y - image_pos.y - size * 0.5
-                    if x < 0:
-                        x = 0
-                    elif x > (new_x := width - size):
-                        x = new_x
-                    if y < 0:
-                        y = 0
-                    elif y > (new_y := height - size):
-                        y = new_y
-                    if globals.settings.zoom_region:
-                        rect_x = x + image_pos.x
-                        rect_y = y + image_pos.y
-                        draw_list = imgui.get_window_draw_list()
-                        draw_list.add_rect(rect_x, rect_y, rect_x + size, rect_y + size, imgui.get_color_u32_rgba(1, 1, 1, 1), thickness=2)
-                    x *= ratio
-                    y *= ratio
-                    size *= ratio
-                    left = x / image.width
-                    top = y / image.height
-                    right = (x + size) / image.width
-                    bottom = (y + size) / image.height
-                    imgui.begin_tooltip()
-                    image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=globals.settings.style_corner_radius)
-                    imgui.end_tooltip()
+                if imgui.is_item_hovered():
+                    # Image popup
+                    if imgui.is_mouse_down():
+                        size = imgui.io.display_size
+                        if aspect_ratio > size.y / size.x:
+                            height = size.y - self.scaled(10)
+                            width = height / aspect_ratio
+                        else:
+                            width = size.x - self.scaled(10)
+                            height = width * aspect_ratio
+                        x = (size.x - width) / 2
+                        y = (size.y - height) / 2
+                        rounding = globals.settings.style_corner_radius
+                        flags = imgui.DRAW_ROUND_CORNERS_ALL
+                        pos2 = (x + width, y + height)
+                        fg_draw_list = imgui.get_foreground_draw_list()
+                        fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
+                    # Zoom
+                    elif globals.settings.zoom_enabled:
+                        size = globals.settings.zoom_size
+                        zoom = globals.settings.zoom_amount
+                        zoomed_size = size * zoom
+                        mouse_pos = imgui.io.mouse_pos
+                        ratio = image.width / width
+                        x = mouse_pos.x - image_pos.x - size * 0.5
+                        y = mouse_pos.y - image_pos.y - size * 0.5
+                        if x < 0:
+                            x = 0
+                        elif x > (new_x := width - size):
+                            x = new_x
+                        if y < 0:
+                            y = 0
+                        elif y > (new_y := height - size):
+                            y = new_y
+                        if globals.settings.zoom_region:
+                            rect_x = x + image_pos.x
+                            rect_y = y + image_pos.y
+                            draw_list = imgui.get_window_draw_list()
+                            draw_list.add_rect(rect_x, rect_y, rect_x + size, rect_y + size, imgui.get_color_u32_rgba(1, 1, 1, 1), thickness=2)
+                        x *= ratio
+                        y *= ratio
+                        size *= ratio
+                        left = x / image.width
+                        top = y / image.height
+                        right = (x + size) / image.width
+                        bottom = (y + size) / image.height
+                        imgui.begin_tooltip()
+                        image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=globals.settings.style_corner_radius)
+                        imgui.end_tooltip()
             imgui.push_text_wrap_pos()
 
 
@@ -668,7 +677,7 @@ class MainGUI():
             imgui.text("")
             imgui.push_font(self.big_font)
             size = imgui.calc_text_size("Cool People")
-            imgui.set_cursor_pos_x((width - size.x) / 2)
+            imgui.set_cursor_pos_x((width - size.x + imgui.style.scrollbar_size) / 2)
             imgui.text("Cool People")
             imgui.pop_font()
             imgui.spacing()
@@ -1008,7 +1017,20 @@ class MainGUI():
                 pos = imgui.get_cursor_pos()
                 imgui.begin_group()
                 # Image
-                game.image.render(width, height, *game.image.crop_to_ratio(img_ratio), rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+                if game.image.missing:
+                    text = "Image missing!"
+                    text_size = imgui.calc_text_size(text)
+                    if text_size.x < width:
+                        text_pos = imgui.get_cursor_pos()
+                        imgui.set_cursor_pos(((width - text_size.x) / 2, height / 2))
+                        self.draw_hover_text(
+                            text=text,
+                            hover_text="Run a full refresh to try downloading it again!"
+                        )
+                        imgui.set_cursor_pos(text_pos)
+                    imgui.dummy(width, height)
+                else:
+                    game.image.render(width, height, *game.image.crop_to_ratio(img_ratio), rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
                 # Setup pt3
                 imgui.indent(indent)
                 imgui.push_text_wrap_pos()
@@ -1161,7 +1183,10 @@ class MainGUI():
         height = self.scaled(126)
         if self.hovered_game:
             game = self.hovered_game
-            game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=globals.settings.style_corner_radius)
+            if game.image.missing:
+                imgui.button("Image missing!", width=width, height=height)
+            else:
+                game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=globals.settings.style_corner_radius)
         else:
             if imgui.button("Refresh!", width=width, height=height):
                 print("aaa")
@@ -1181,9 +1206,11 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Browser:")
             imgui.same_line()
-            self.draw_help_marker("All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool "
-                                    "operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate "
-                                    "session just for itself.")
+            self.draw_hover_text(
+                "All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool "
+                "operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate "
+                "session just for itself."
+            )
             imgui.table_next_column()
             changed, value = imgui.combo("##browser", set.browser.value - 1, list(Browser.__members__.keys()))
             if changed:
@@ -1241,9 +1268,11 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Download pages:")
             imgui.same_line()
-            self.draw_help_marker("With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your "
-                                    "browser. This might be useful if you use private mode because the page will load as if you were logged in, "
-                                    "allowing you to see links and spoiler content without actually logging in.")
+            self.draw_hover_text(
+                "With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your "
+                "browser. This might be useful if you use private mode because the page will load as if you were logged in, "
+                "allowing you to see links and spoiler content without actually logging in."
+            )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
             changed, value = imgui.checkbox("##browser_html", set.browser_html)
@@ -1259,8 +1288,10 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Max columns:")
             imgui.same_line()
-            self.draw_help_marker("How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
-                                    "space to show all these columns, the number will be internally reduced to render each grid cell properly.")
+            self.draw_hover_text(
+                "How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
+                "space to show all these columns, the number will be internally reduced to render each grid cell properly."
+            )
             imgui.table_next_column()
             changed, value = imgui.input_int("##grid_columns", set.grid_columns)
             set.grid_columns = min(max(value, 1), 10)
@@ -1271,8 +1302,10 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Image ratio:")
             imgui.same_line()
-            self.draw_help_marker("The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
-                                    "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3.")
+            self.draw_hover_text(
+                "The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
+                "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3."
+            )
             imgui.table_next_column()
             changed, value = imgui.input_float("##grid_image_ratio", set.grid_image_ratio, step=0.1, step_fast=0.5)
             set.grid_image_ratio = min(max(value, 0.5), 5)
@@ -1297,9 +1330,11 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Refresh workers:")
             imgui.same_line()
-            self.draw_help_marker("Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
-                                    "connection at a time. Having more workers means more connections happen simultaneously, but having too many "
-                                    "will freeze the program. In most cases 20 workers is a good compromise.")
+            self.draw_hover_text(
+                "Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
+                "connection at a time. Having more workers means more connections happen simultaneously, but having too many "
+                "will freeze the program. In most cases 20 workers is a good compromise."
+            )
             imgui.table_next_column()
             changed, value = imgui.input_int("##refresh_workers", set.refresh_workers)
             set.refresh_workers = min(max(value, 1), 100)
@@ -1310,9 +1345,11 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Request timeout:")
             imgui.same_line()
-            self.draw_help_marker("To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
-                                    "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
-                                    "A timeout 10-30 seconds is most typical.")
+            self.draw_hover_text(
+                "To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
+                "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
+                "A timeout 10-30 seconds is most typical."
+            )
             imgui.table_next_column()
             changed, value = imgui.input_int("##request_timeout", set.request_timeout)
             set.request_timeout = min(max(value, 1), 120)
@@ -1337,7 +1374,9 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Start minimized:")
             imgui.same_line()
-            self.draw_help_marker("F95Checker will start in background mode, minimized in the system tray.")
+            self.draw_hover_text(
+                "F95Checker will start in background mode, minimized in the system tray."
+            )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
             changed, value = imgui.checkbox("##start_in_tray", set.start_in_tray)
@@ -1428,8 +1467,10 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("BG refresh mins:")
             imgui.same_line()
-            self.draw_help_marker("When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
-                                    "often (in minutes) this happens.")
+            self.draw_hover_text(
+                "When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
+                "often (in minutes) this happens."
+            )
             imgui.table_next_column()
             changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
             set.tray_refresh_interval = min(max(value, 15), 720)
@@ -1440,9 +1481,11 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Keep game image:")
             imgui.same_line()
-            self.draw_help_marker("When a game receives an update F95Checker downloads the header image again in case it was updated. This "
-                                    "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
-                                    f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'}).")
+            self.draw_hover_text(
+                "When a game receives an update F95Checker downloads the header image again in case it was updated. This "
+                "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
+                f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'})."
+            )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
             changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
@@ -1454,7 +1497,9 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Ask path on add:")
             imgui.same_line()
-            self.draw_help_marker("When this is enabled you will be asked to select a game executable right after adding the game to F95Checker.")
+            self.draw_hover_text(
+                "When this is enabled you will be asked to select a game executable right after adding the game to F95Checker."
+            )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
             changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
