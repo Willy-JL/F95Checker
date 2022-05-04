@@ -17,7 +17,7 @@ def bundle_libs(*libs):
             bin_includes.append(name)
 
 if sys.platform.startswith("linux"):
-    bundle_libs("ffi", "glfw")
+    bundle_libs("ffi")
 
 icon = "resources/icons/icon"
 if sys.platform.startswith("win"):
