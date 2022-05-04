@@ -1419,6 +1419,12 @@ class MainGUI():
             if changed:
                 async_thread.run(db.update_settings("scroll_amount"))
 
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text(f"Current framerate:")
+            imgui.table_next_column()
+            imgui.text(str(round(imgui.io.framerate, 3)))
+
             imgui.end_table()
             imgui.spacing()
 
