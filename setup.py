@@ -8,10 +8,16 @@ if sys.platform.startswith("win"):
     # Hide console on Windows
     base = "Win32GUI"
 
+
 bin_includes = []
+
+def bundle_libs(*libs):
+    for lib in libs:
+        if name := find_library(lib):
+            bin_includes.append(name)
+
 if sys.platform.startswith("linux"):
-    bin_includes.append(find_library("ffi"))
-    bin_includes.append(find_library("glfw"))
+    bundle_libs("ffi", "glfw")
 
 icon = "resources/icons/icon"
 if sys.platform.startswith("win"):
