@@ -2,6 +2,7 @@ from PIL import Image, ImageSequence
 import OpenGL.GL as gl
 import pathlib
 import typing
+import string
 import imgui
 import numpy
 import glfw
@@ -236,6 +237,10 @@ class FilePicker:
         self.dir: pathlib.Path = None
         self.callback: typing.Callable = callback
         self.flags: int = custom_flags or self.flags
+        self.windows: bool = sys.platform.startswith("win")
+        if self.windows:
+            self.drives: list[str] = []
+            self.current_drive: int = 0
         self.goto(start_dir or os.getcwd())
 
     def goto(self, dir: str | pathlib.Path):
@@ -267,6 +272,16 @@ class FilePicker:
                 self.items.append("This folder is empty!")
         except Exception:
             self.items.append("Cannot open this folder!")
+        if self.windows:
+            self.drives.clear()
+            i = 0
+            for letter in string.ascii_uppercase:
+                drive = f"{letter}:\\"
+                if pathlib.Path(drive).exists():
+                    i += 1
+                    self.drives.append(drive)
+                    if str(self.dir).startswith(drive):
+                        self.current_drive = i
         if selected in self.items:
             self.current = self.items.index(selected)
         else:
@@ -292,6 +307,12 @@ class FilePicker:
             # Up buttons
             if imgui.button("󰁞"):
                 self.goto(self.dir.parent)
+            # Drive selector
+            if self.windows:
+                imgui.same_line()
+                changed, value = imgui.combo("##drive_selector", self.current_drive, self.drives)
+                if changed:
+                    self.goto(self.drives[value])
             # Location bar
             imgui.same_line()
             imgui.set_next_item_width(size.x * 0.7)
