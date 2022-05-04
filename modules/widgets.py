@@ -251,6 +251,10 @@ class FilePicker:
         self.refresh()
 
     def refresh(self):
+        if self.current != -1:
+            selected = self.items[self.current]
+        else:
+            selected = ""
         self.items.clear()
         try:
             items = list(self.dir.iterdir())
@@ -263,6 +267,10 @@ class FilePicker:
                 self.items.append("This folder is empty!")
         except Exception:
             self.items.append("Cannot open this folder!")
+        if selected in self.items:
+            self.current = self.items.index(selected)
+        else:
+            self.current = -1
 
     def draw(self):
         if not self.active:
