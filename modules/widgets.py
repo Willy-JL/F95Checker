@@ -177,7 +177,7 @@ class ImGuiImage:
         if self.missing:
             return
         if imgui.is_rect_visible(width, height):
-            if kwargs.get("rounding"):
+            if "rounding" in kwargs:
                 flags = kwargs.pop("flags", None)
                 if flags is None:
                     flags = imgui.DRAW_ROUND_CORNERS_ALL
