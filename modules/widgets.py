@@ -306,9 +306,8 @@ class FilePicker:
             width = imgui.get_item_rect_size().x
 
             # Main list
-            imgui.begin_child(f"##list_frame", width=width, height=size.y * 0.65)
             imgui.set_next_item_width(width)
-            clicked, value = imgui.listbox(f"##file_list", self.current, self.items, len(self.items))
+            clicked, value = imgui.listbox(f"##file_list", self.current, self.items, (size.y * 0.65) / imgui.get_frame_height())
             if value != -1:
                 self.current = min(max(value, 0), len(self.items) - 1)
                 item = self.items[self.current]
@@ -323,7 +322,6 @@ class FilePicker:
             else:
                 is_dir = False
                 is_file = False
-            imgui.end_child()
 
             # Cancel button
             if imgui.button("󰜺 Cancel"):
