@@ -230,6 +230,7 @@ class FilePicker:
         self.active: bool = True
         self.dir_icon: str = "󰉋"
         self.file_icon: str = "󰈔"
+        self.elapsed: float = 0.0
         self.selected: str = None
         self.items: list[str] = []
         self.dir: pathlib.Path = None
@@ -266,6 +267,11 @@ class FilePicker:
     def draw(self):
         if not self.active:
             return
+        # Auto refresh
+        self.elapsed += imgui.io.delta_time
+        if self.elapsed > 2:
+            self.elapsed = 0.0
+            self.refresh()
         # Setup popup
         if not imgui.is_popup_open(self.title):
             imgui.open_popup(self.title)
