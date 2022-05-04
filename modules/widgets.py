@@ -274,7 +274,7 @@ class FilePicker:
             self.items.append("Cannot open this folder!")
         if self.windows:
             self.drives.clear()
-            i = 0
+            i = -1
             for letter in string.ascii_uppercase:
                 drive = f"{letter}:\\"
                 if pathlib.Path(drive).exists():
@@ -310,6 +310,7 @@ class FilePicker:
             # Drive selector
             if self.windows:
                 imgui.same_line()
+                imgui.set_next_item_width(imgui.get_font_size() * 4)
                 changed, value = imgui.combo("##drive_selector", self.current_drive, self.drives)
                 if changed:
                     self.goto(self.drives[value])
