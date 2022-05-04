@@ -18,10 +18,14 @@ def bundle_libs(*libs):
 
 if sys.platform.startswith("linux"):
     bundle_libs("ffi")
+elif sys.platform.startswith("darwin"):
+    bundle_libs("intl")
 
 icon = "resources/icons/icon"
 if sys.platform.startswith("win"):
     icon += ".ico"
+elif sys.platform.startswith("darwin"):
+    icon += ".icns"
 else:
     icon += ".png"
 
@@ -38,7 +42,6 @@ cx_Freeze.setup(
     ],
     options={
         "build_exe": {
-            "build_exe": "dist",
             "optimize": 1,
             "packages": [
                 "OpenGL",
@@ -50,6 +53,10 @@ cx_Freeze.setup(
             ],
             "silent_level": 1,
             "include_msvcr": True
+        },
+        "bdist_mac": {
+            "iconfile": icon,
+            "bundle_name": "F95Checker"
         }
     }
 )
