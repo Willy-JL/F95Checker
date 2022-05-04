@@ -141,8 +141,8 @@ class ImGuiImage:
         gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
         gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, data)
 
     @property
@@ -192,9 +192,9 @@ class ImGuiImage:
             # Skip if outside view
             imgui.dummy(width, height)
 
-    def crop_to_ratio(self, ratio: int | float):
+    def crop_to_ratio(self, ratio: int | float, fit: bool = False):
         img_ratio = self.width / self.height
-        if img_ratio >= ratio:
+        if (img_ratio >= ratio) != fit:
             crop_h = self.height
             crop_w = crop_h * ratio
             crop_x = (self.width - crop_w) / 2

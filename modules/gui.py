@@ -1030,7 +1030,8 @@ class MainGUI():
                         imgui.set_cursor_pos(text_pos)
                     imgui.dummy(width, height)
                 else:
-                    game.image.render(width, height, *game.image.crop_to_ratio(img_ratio), rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+                    crop = game.image.crop_to_ratio(img_ratio, fit=globals.settings.fit_images)
+                    game.image.render(width, height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
                 # Setup pt3
                 imgui.indent(indent)
                 imgui.push_text_wrap_pos()
@@ -1186,7 +1187,8 @@ class MainGUI():
             if game.image.missing:
                 imgui.button("Image missing!", width=width, height=height)
             else:
-                game.image.render(width, height, *game.image.crop_to_ratio(width / height), rounding=globals.settings.style_corner_radius)
+                crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
         else:
             if imgui.button("Refresh!", width=width, height=height):
                 print("aaa")
@@ -1315,6 +1317,79 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
+        if self.start_settings_section("Images", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Fit images:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "Fit images instead of cropping. When cropping the images fill all the space they have available, cutting "
+                "off the sides a bit. When fitting the images you see the whole image but it has some empty space at the sides."
+            )
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##fit_images", set.fit_images)
+            if changed:
+                set.fit_images = value
+                async_thread.run(db.update_settings("fit_images"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Keep game image:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "When a game receives an update F95Checker downloads the header image again in case it was updated. This "
+                "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
+                f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'})."
+            )
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
+            if changed:
+                set.update_keep_image = value
+                async_thread.run(db.update_settings("update_keep_image"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Zoom on hover:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##zoom_enabled", set.zoom_enabled)
+            if changed:
+                set.zoom_enabled = value
+                async_thread.run(db.update_settings("zoom_enabled"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Zoom amount:")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##zoom_amount", set.zoom_amount)
+            set.zoom_amount = min(max(value, 1), 20)
+            if changed:
+                async_thread.run(db.update_settings("zoom_amount"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Zoom region size:")
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##zoom_size", set.zoom_size)
+            set.zoom_size = min(max(value, 16), 1024)
+            if changed:
+                async_thread.run(db.update_settings("zoom_size"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Show zoom region:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##zoom_region", set.zoom_region)
+            if changed:
+                set.zoom_region = value
+                async_thread.run(db.update_settings("zoom_region"))
+
+            imgui.end_table()
+            imgui.spacing()
+
         if self.start_settings_section("Refresh", right_width):
             imgui.table_next_row()
             imgui.table_next_column()
@@ -1355,6 +1430,20 @@ class MainGUI():
             set.request_timeout = min(max(value, 1), 120)
             if changed:
                 async_thread.run(db.update_settings("request_timeout"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("BG refresh mins:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
+                "often (in minutes) this happens."
+            )
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
+            set.tray_refresh_interval = min(max(value, 15), 720)
+            if changed:
+                async_thread.run(db.update_settings("tray_refresh_interval"))
 
             imgui.end_table()
             imgui.spacing()
@@ -1420,79 +1509,7 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
-        if self.start_settings_section("Zoom", right_width):
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Zoom when hovering images:")
-            imgui.table_next_column()
-            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##zoom_enabled", set.zoom_enabled)
-            if changed:
-                set.zoom_enabled = value
-                async_thread.run(db.update_settings("zoom_enabled"))
-
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Zoom amount:")
-            imgui.table_next_column()
-            changed, value = imgui.input_int("##zoom_amount", set.zoom_amount)
-            set.zoom_amount = min(max(value, 1), 20)
-            if changed:
-                async_thread.run(db.update_settings("zoom_amount"))
-
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Zoom region size:")
-            imgui.table_next_column()
-            changed, value = imgui.input_int("##zoom_size", set.zoom_size)
-            set.zoom_size = min(max(value, 16), 1024)
-            if changed:
-                async_thread.run(db.update_settings("zoom_size"))
-
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Show zoom region:")
-            imgui.table_next_column()
-            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##zoom_region", set.zoom_region)
-            if changed:
-                set.zoom_region = value
-                async_thread.run(db.update_settings("zoom_region"))
-
-            imgui.end_table()
-            imgui.spacing()
-
         if self.start_settings_section("Misc", right_width):
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("BG refresh mins:")
-            imgui.same_line()
-            self.draw_hover_text(
-                "When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
-                "often (in minutes) this happens."
-            )
-            imgui.table_next_column()
-            changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
-            set.tray_refresh_interval = min(max(value, 15), 720)
-            if changed:
-                async_thread.run(db.update_settings("tray_refresh_interval"))
-
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Keep game image:")
-            imgui.same_line()
-            self.draw_hover_text(
-                "When a game receives an update F95Checker downloads the header image again in case it was updated. This "
-                "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
-                f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'})."
-            )
-            imgui.table_next_column()
-            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
-            if changed:
-                set.update_keep_image = value
-                async_thread.run(db.update_settings("update_keep_image"))
-
             imgui.table_next_row()
             imgui.table_next_column()
             imgui.text("Ask path on add:")

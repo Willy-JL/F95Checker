@@ -33,6 +33,7 @@ async def connect():
                 browser_private             INTEGER DEFAULT 0,
                 browser                     INTEGER DEFAULT {Browser["None"]},
                 display_mode                INTEGER DEFAULT {DisplayMode.list},
+                fit_images                  INTEGER DEFAULT 0,
                 grid_columns                INTEGER DEFAULT 3,
                 grid_image_ratio            REAL    DEFAULT 3.0,
                 manual_sort_list            TEXT    DEFAULT "[]",
