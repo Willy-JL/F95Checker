@@ -374,6 +374,8 @@ async def migrate_legacy(config: dict):
 
     if games := config.get("games"):
         for id, game in games.items():
+            if not id.isnumeric():
+                continue
             keys = ["id"]
             values = [int(id)]
 
