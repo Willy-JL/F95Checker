@@ -10,8 +10,8 @@ if sys.platform.startswith("win"):
 
 bin_includes = []
 if sys.platform.startswith("linux"):
-    # Bundle libffi.so on Linux
     bin_includes.append(find_library("ffi"))
+    bin_includes.append(find_library("glfw"))
 
 icon = "resources/icons/icon"
 if sys.platform.startswith("win"):

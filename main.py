@@ -3,7 +3,7 @@ import sys
 
 # Mimic python's -c flag to evaluate code
 if "-c" in sys.argv:
-    eval(sys.argv[sys.argv.index("-c") + 1])
+    exec(sys.argv[sys.argv.index("-c") + 1])
     sys.exit(0)
 
 
