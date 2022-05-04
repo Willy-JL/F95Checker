@@ -176,15 +176,17 @@ class MainGUI():
             self.impl.process_inputs()
             if self.visible:
 
-                # Smooth scrolling (must be before new_frame())
-                scroll_energy += imgui.io.mouse_wheel
-                if abs(scroll_energy) > 0.1:
-                    scroll_now = scroll_energy / 8
-                    scroll_energy -= scroll_now
-                else:
-                    scroll_now = 0.0
-                    scroll_energy = 0.0
-                imgui.io.mouse_wheel = scroll_now
+                # Scroll modifiers (must be before new_frame())
+                imgui.io.mouse_wheel *= globals.settings.scroll_amount
+                if globals.settings.scroll_smooth:
+                    scroll_energy += imgui.io.mouse_wheel
+                    if abs(scroll_energy) > 0.1:
+                        scroll_now = scroll_energy / 8
+                        scroll_energy -= scroll_now
+                    else:
+                        scroll_now = 0.0
+                        scroll_energy = 0.0
+                    imgui.io.mouse_wheel = scroll_now
 
                 imgui.new_frame()
                 self.drew_filepicker = False
@@ -1285,38 +1287,6 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
-        if self.start_settings_section("Grid view", right_width):
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Max columns:")
-            imgui.same_line()
-            self.draw_hover_text(
-                "How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
-                "space to show all these columns, the number will be internally reduced to render each grid cell properly."
-            )
-            imgui.table_next_column()
-            changed, value = imgui.input_int("##grid_columns", set.grid_columns)
-            set.grid_columns = min(max(value, 1), 10)
-            if changed:
-                async_thread.run(db.update_settings("grid_columns"))
-
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Image ratio:")
-            imgui.same_line()
-            self.draw_hover_text(
-                "The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
-                "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3."
-            )
-            imgui.table_next_column()
-            changed, value = imgui.input_float("##grid_image_ratio", set.grid_image_ratio, step=0.1, step_fast=0.5)
-            set.grid_image_ratio = min(max(value, 0.5), 5)
-            if changed:
-                async_thread.run(db.update_settings("grid_image_ratio"))
-
-            imgui.end_table()
-            imgui.spacing()
-
         if self.start_settings_section("Images", right_width):
             imgui.table_next_row()
             imgui.table_next_column()
@@ -1386,6 +1356,68 @@ class MainGUI():
             if changed:
                 set.zoom_region = value
                 async_thread.run(db.update_settings("zoom_region"))
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if self.start_settings_section("Interface", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Interface scaling:")
+            imgui.table_next_column()
+            changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
+            set.style_scaling = min(max(value, 0.25), 4)
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Grid max columns:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
+                "space to show all these columns, the number will be internally reduced to render each grid cell properly."
+            )
+            imgui.table_next_column()
+            changed, value = imgui.input_int("##grid_columns", set.grid_columns)
+            set.grid_columns = min(max(value, 1), 10)
+            if changed:
+                async_thread.run(db.update_settings("grid_columns"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Grid image ratio:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
+                "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3."
+            )
+            imgui.table_next_column()
+            changed, value = imgui.input_float("##grid_image_ratio", set.grid_image_ratio, step=0.1, step_fast=0.5)
+            set.grid_image_ratio = min(max(value, 0.5), 5)
+            if changed:
+                async_thread.run(db.update_settings("grid_image_ratio"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Smooth scrolling:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##scroll_smooth", set.scroll_smooth)
+            if changed:
+                set.scroll_smooth = value
+                async_thread.run(db.update_settings("scroll_smooth"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Scroll amount:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "Multiplier for how much a single scroll event should actually scroll. Default is 1."
+            )
+            imgui.table_next_column()
+            changed, value = imgui.input_float("##scroll_amount", set.scroll_amount, step=0.1, step_fast=0.5)
+            set.scroll_amount = min(max(value, 0.1), 10)
+            if changed:
+                async_thread.run(db.update_settings("scroll_amount"))
 
             imgui.end_table()
             imgui.spacing()
@@ -1487,13 +1519,6 @@ class MainGUI():
             imgui.spacing()
 
         if self.start_settings_section("Style", right_width):
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Interface scaling:")
-            imgui.table_next_column()
-            changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
-            set.style_scaling = min(max(value, 0.25), 4)
-
             imgui.table_next_row()
             imgui.table_next_column()
             imgui.text("Corner radius:")

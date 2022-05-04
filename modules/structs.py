@@ -246,6 +246,8 @@ class Settings:
     refresh_completed_games     : bool        = None
     refresh_workers             : int         = None
     request_timeout             : int         = None
+    scroll_amount               : float       = None
+    scroll_smooth               : bool        = None
     select_executable_after_add : bool        = None
     start_in_tray               : bool        = None
     start_refresh               : bool        = None
