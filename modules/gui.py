@@ -255,6 +255,8 @@ class MainGUI():
                     async_thread.run(db.update_settings("style_scaling"))  # Update here in case of crash
                 glfw.swap_buffers(self.window)  # Also waits idle time
             else:
+                scroll_energy = 0.0
+                imgui.io.mouse_wheel = 0
                 time.sleep(0.1)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         self.impl.shutdown()
