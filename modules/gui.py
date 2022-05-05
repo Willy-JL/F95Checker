@@ -1194,6 +1194,8 @@ class MainGUI():
 
     def draw_sidebar(self):
         set = globals.settings
+        right_width = self.scaled(118)
+        checkbox_offset = right_width - imgui.get_frame_height()
 
         width = imgui.get_content_region_available_width()
         height = self.scaled(126)
@@ -1214,8 +1216,6 @@ class MainGUI():
         imgui.spacing()
         imgui.spacing()
 
-        right_width = self.scaled(100)
-        checkbox_offset = right_width - imgui.get_frame_height()
         imgui.begin_child("Settings")
 
         if self.start_settings_section("Browser", right_width):
@@ -1397,7 +1397,7 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Grid max columns:")
+            imgui.text("Grid columns:")
             imgui.same_line()
             self.draw_hover_text(
                 "How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
@@ -1411,7 +1411,7 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Grid image ratio:")
+            imgui.text("Grid img ratio:")
             imgui.same_line()
             self.draw_hover_text(
                 "The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
@@ -1484,7 +1484,7 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Refresh workers:")
+            imgui.text("Workers:")
             imgui.same_line()
             self.draw_hover_text(
                 "Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
@@ -1499,7 +1499,7 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Request timeout:")
+            imgui.text("Timeout:")
             imgui.same_line()
             self.draw_hover_text(
                 "To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
@@ -1514,7 +1514,7 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("BG refresh mins:")
+            imgui.text("BG interval:")
             imgui.same_line()
             self.draw_hover_text(
                 "When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
@@ -1604,7 +1604,7 @@ class MainGUI():
         if self.start_settings_section("Minimize", right_width, collapsible=False):
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Switch to BG mode:")
+            imgui.text("Switch to BG:")
             imgui.table_next_column()
             if imgui.button("Minimize", width=right_width):
                 self.minimize()
