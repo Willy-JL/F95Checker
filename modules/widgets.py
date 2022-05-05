@@ -71,6 +71,26 @@ def close_popup_clicking_outside():
 
 # Widgets
 
+def star_rating(id: str, current: int, *args, **kwargs):
+    value = current
+    imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
+    imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
+    imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
+    imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (0, 0))
+    imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (0, 0))
+    for i in range(1, 6):
+        label = "󰓎"
+        if i > current:
+            label = "󰓒"
+        if imgui.small_button(f"{label}##{id}_{i}", *args, **kwargs):
+            value = i if current != i else 0
+        imgui.same_line()
+    imgui.pop_style_color(3)
+    imgui.pop_style_var(2)
+    imgui.dummy(0, 0)
+    return value != current, value
+
+
 class ImGuiImage:
     def __init__(self, path: str | pathlib.Path, glob: str = ""):
         self.width: int = 1

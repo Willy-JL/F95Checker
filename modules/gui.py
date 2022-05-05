@@ -331,23 +331,11 @@ class MainGUI():
             self.require_sort = True
 
     def draw_game_rating_widget(self, game: Game, *args, **kwargs):
-        imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
-        imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (0, 0))
-        imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (0, 0))
-        for i in range(1, 6):
-            label = "󰓎"
-            if i > game.rating:
-                label = "󰓒"
-            if imgui.small_button(f"{label}##{game.id}_rating_{i}", *args, **kwargs):
-                game.rating = i
-                async_thread.run(db.update_game(game, "rating"))
-                self.require_sort = True
-            imgui.same_line()
-        imgui.pop_style_color(3)
-        imgui.pop_style_var(2)
-        imgui.dummy(0, 0)
+        changed, value = star_rating(f"{game.id}_rating", game.rating)
+        if changed:
+            game.rating = value
+            async_thread.run(db.update_game(game, "rating"))
+            self.require_sort = True
 
     def draw_game_open_thread_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_open_thread"
