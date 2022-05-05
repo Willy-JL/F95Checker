@@ -6,6 +6,7 @@ import configparser
 import platform
 import OpenGL
 import imgui
+import time
 import glfw
 import sys
 
@@ -73,6 +74,7 @@ class MainGUI():
 
         # Variables
         self.visible: bool = True
+        self.focused: bool = True
         self.status_text: str = ""
         self.prev_size: tuple = (0, 0)
         self.hovered_game: Game = None
@@ -117,6 +119,7 @@ class MainGUI():
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_close_callback(self.window, self.close_callback)
+        glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
@@ -157,10 +160,13 @@ class MainGUI():
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
 
-    def close_callback(self, *args, **kwargs):
+    def close_callback(self, window: glfw._GLFWwindow):
         if globals.settings.minimize_on_close:
             self.minimize()
             glfw.set_window_should_close(self.window, False)
+
+    def focus_callback(self, window: glfw._GLFWwindow, focused: int):
+        self.focused = focused
 
     def minimize(self, *args, **kwargs):
         glfw.hide_window(self.window)
@@ -179,7 +185,7 @@ class MainGUI():
             self.qt_loop.processEvents()
             glfw.poll_events()
             self.impl.process_inputs()
-            if self.visible:
+            if self.visible and self.focused:
 
                 # Scroll modifiers (must be before new_frame())
                 imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -243,10 +249,12 @@ class MainGUI():
 
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
-            if self.size_mult != globals.settings.style_scaling:
-                self.refresh_fonts()
-                async_thread.run(db.update_settings("style_scaling"))  # Update here in case of crash
-            glfw.swap_buffers(self.window)  # Also waits idle time, must run always to avoid useless cycles
+                if self.size_mult != globals.settings.style_scaling:
+                    self.refresh_fonts()
+                    async_thread.run(db.update_settings("style_scaling"))  # Update here in case of crash
+                glfw.swap_buffers(self.window)  # Also waits idle time
+            else:
+                time.sleep(0.1)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         self.impl.shutdown()
         glfw.terminate()
