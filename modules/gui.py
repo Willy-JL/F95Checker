@@ -83,6 +83,7 @@ class MainGUI():
         self.size_mult: int | float = 0
         self.sorted_games_ids: list = []
         self.drew_filepicker: bool = False
+        self.filter_by = FilterMode["None"]
         self.game_hitbox_click: bool = False
         self.current_info_popup_game: Game = None
         self.ghost_columns_enabled_count: int = 0
@@ -228,7 +229,7 @@ class MainGUI():
                 text_y = size.y - text_size.y - _6
 
                 imgui.same_line(spacing=1)
-                imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y - _3)
+                imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y)
                 self.draw_sidebar()
                 imgui.end_child()
 
@@ -762,10 +763,27 @@ class MainGUI():
                 ids = list(globals.games.keys())
                 ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
                 self.sorted_games_ids = ids
+            match self.filter_by.value:
+                case FilterMode.Engine.value:
+                    filter_by = lambda id: FilterMode.Engine.invert != (globals.games[id].engine is FilterMode.Engine.by)
+                case FilterMode.Status.value:
+                    filter_by = lambda id: FilterMode.Status.invert != (globals.games[id].status is FilterMode.Status.by)
+                case FilterMode.Rating.value:
+                    filter_by = lambda id: FilterMode.Rating.invert != (globals.games[id].rating == FilterMode.Rating.by)
+                case FilterMode.Played.value:
+                    filter_by = lambda id: FilterMode.Played.invert != (globals.games[id].played is True)
+                case FilterMode.Installed.value:
+                    filter_by = lambda id: FilterMode.Installed.invert != (globals.games[id].installed == globals.games[id].version)
+                case FilterMode.Tag.value:
+                    filter_by = lambda id: FilterMode.Tag.invert != (FilterMode.Tag.by in globals.games[id].tags)
+                case _:
+                    filter_by = None
+            if filter_by is not None:
+                self.sorted_games_ids = list(filter(filter_by, self.sorted_games_ids))
             sort_specs.specs_dirty = False
             self.require_sort = False
 
-    def handle_game_hitbox_events(self, game: Game, game_i: int, manual_sort: bool):
+    def handle_game_hitbox_events(self, game: Game, game_i: int, manual_sort: bool, not_filtering: bool):
         if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
             # Hover = image on refresh button
             self.hovered_game = game
@@ -775,7 +793,7 @@ class MainGUI():
                 # Left click = open game info popup
                 self.game_hitbox_click = False
                 self.current_info_popup_game = game
-        if manual_sort:
+        if manual_sort and not_filtering:
             # Left click drag = swap if in manual sort mode
             if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
                 self.game_hitbox_click = False
@@ -870,6 +888,7 @@ class MainGUI():
             # Sorting
             sort_specs = imgui.table_get_sort_specs()
             self.sort_games(sort_specs, manual_sort)
+            not_filtering = self.filter_by is FilterMode["None"]
 
             # Loop rows
             frame_height = imgui.get_frame_height()
@@ -936,7 +955,7 @@ class MainGUI():
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
-                self.handle_game_hitbox_events(game, game_i, manual_sort)
+                self.handle_game_hitbox_events(game, game_i, manual_sort, not_filtering)
 
             imgui.end_table()
 
@@ -953,6 +972,7 @@ class MainGUI():
             sort_specs = imgui.table_get_sort_specs()
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             self.sort_games(sort_specs, manual_sort)
+            not_filtering = self.filter_by is FilterMode["None"]
             # Enabled attributes
             version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
@@ -1128,7 +1148,7 @@ class MainGUI():
                 if imgui.is_rect_visible(width, cell_height):
                     # Skip if outside view
                     imgui.invisible_button(f"##{game.id}_hitbox", width, cell_height)
-                    self.handle_game_hitbox_events(game, game_i, manual_sort)
+                    self.handle_game_hitbox_events(game, game_i, manual_sort, not_filtering)
                     pos = imgui.get_item_rect_min()
                     pos2 = imgui.get_item_rect_max()
                     draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
@@ -1198,13 +1218,83 @@ class MainGUI():
             if imgui.button("Refresh!", width=width, height=height):
                 print("aaa")
 
-        imgui.spacing()
-        imgui.spacing()
-        imgui.text(f"Total games count: {len(globals.games)}")
-        imgui.spacing()
-        imgui.spacing()
-
         imgui.begin_child("Settings")
+
+        if self.start_settings_section("Filter", right_width, collapsible=False):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text(f"Total games count: {len(globals.games)}")
+            imgui.spacing()
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Filter by:")
+            imgui.table_next_column()
+            changed, value = imgui.combo("##filter_by", self.filter_by.value - 1, list(FilterMode.__members__.keys()))
+            filtering = value != 0
+            if changed:
+                self.filter_by = FilterMode(value + 1)
+                self.require_sort = True
+
+            if self.filter_by is FilterMode.Engine:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Filter by engine:")
+                imgui.table_next_column()
+                changed, value = imgui.combo("##filter_engine", FilterMode.Engine.by.value - 1, list(Engine.__members__.keys()))
+                if changed:
+                    FilterMode.Engine.by = Engine(value + 1)
+                    self.require_sort = True
+
+            if self.filter_by is FilterMode.Status:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Filter by status:")
+                imgui.table_next_column()
+                changed, value = imgui.combo("##filter_status", FilterMode.Status.by.value - 1, list(Status.__members__.keys()))
+                if changed:
+                    FilterMode.Status.by = Status(value + 1)
+                    self.require_sort = True
+
+            if self.filter_by is FilterMode.Rating:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Filter by rating:")
+                imgui.table_next_column()
+                changed, value = star_rating(f"filter_rating", FilterMode.Rating.by)
+                if changed:
+                    FilterMode.Rating.by = value
+                    self.require_sort = True
+                imgui.spacing()
+
+            if self.filter_by is FilterMode.Tag:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Filter by tag:")
+                imgui.table_next_column()
+                changed, value = imgui.combo("##filter_tag", FilterMode.Tag.by.value - 1, list(Tag.__members__.keys()))
+                if changed:
+                    FilterMode.Tag.by = Tag(value + 1)
+                    self.require_sort = True
+
+            if filtering:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Invert filter:")
+                imgui.table_next_column()
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+                changed, value = imgui.checkbox("##filter_invert", self.filter_by.invert)
+                if changed:
+                    self.filter_by.invert = value
+                    self.require_sort = True
+
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text(f"Filtered games count: {len(self.sorted_games_ids)}")
+                imgui.spacing()
+
+            imgui.end_table()
+            imgui.spacing()
 
         if self.start_settings_section("Browser", right_width):
             imgui.table_next_row()
@@ -1452,9 +1542,8 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text(f"Current framerate:")
-            imgui.table_next_column()
-            imgui.text(str(round(imgui.io.framerate, 3)))
+            imgui.text(f"Current framerate: {round(imgui.io.framerate, 3)}")
+            imgui.spacing()
 
             imgui.end_table()
             imgui.spacing()

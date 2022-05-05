@@ -231,6 +231,33 @@ Tag = IntEnumAuto("Tag", " ".join([
 ]))
 
 
+FilterMode = IntEnumAuto("FilterMode", " ".join([
+    "None",
+    "Engine",
+    "Status",
+    "Rating",
+    "Played",
+    "Installed",
+    "Tag"
+]))
+
+FilterMode.Engine.by = Engine.ADRIFT
+FilterMode.Engine.invert = False
+
+FilterMode.Status.by = Status.Normal
+FilterMode.Status.invert = False
+
+FilterMode.Rating.by = 0
+FilterMode.Rating.invert = False
+
+FilterMode.Played.invert = False
+
+FilterMode.Installed.invert = False
+
+FilterMode.Tag.by = Tag["2d-game"]
+FilterMode.Tag.invert = False
+
+
 @dataclasses.dataclass
 class Settings:
     browser_custom_arguments    : str         = None
