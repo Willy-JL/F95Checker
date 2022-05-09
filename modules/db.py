@@ -159,8 +159,9 @@ async def close():
 
 # Committing should save to disk, but for some reason it only does so after closing
 async def save():
-    await close()
-    await connect()
+    pass  # Temporary while things are not final
+    # await close()
+    # await connect()
 
 
 async def save_loop():
