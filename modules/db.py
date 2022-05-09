@@ -163,6 +163,12 @@ async def save():
     await connect()
 
 
+async def save_loop():
+    while True:
+        await asyncio.sleep(30)
+        await save()
+
+
 def sql_to_py(value: str | int | float, data_type: typing.Type):
     if data_type == list:
         value = json.loads(value)
@@ -454,6 +460,7 @@ async def migrate_legacy(config: dict):
                     VALUES
                     ({", ".join("?" * len(values))})
                 """, tuple(values))
+        await save()
     except Exception:
         print(utils.get_traceback())
         sys.exit(1)

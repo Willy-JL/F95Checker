@@ -26,6 +26,7 @@ def main():
     from modules import db
     async_thread.run(db.connect(), wait=True)
     async_thread.run(db.load(), wait=True)
+    async_thread.run(db.save_loop())
 
     from modules import gui
     globals.gui = gui.MainGUI()
