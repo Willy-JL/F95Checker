@@ -260,62 +260,62 @@ FilterMode.Tag.invert = False
 
 @dataclasses.dataclass
 class Settings:
-    browser_custom_arguments    : str         = None
-    browser_custom_executable   : str         = None
-    browser_html                : bool        = None
-    browser_private             : bool        = None
-    browser                     : Browser     = None
-    display_mode                : DisplayMode = None
-    fit_images                  : bool        = None
-    grid_columns                : int         = None
-    grid_image_ratio            : float       = None
-    manual_sort_list            : list        = None
-    minimize_on_close           : bool        = None
-    refresh_completed_games     : bool        = None
-    refresh_workers             : int         = None
-    request_timeout             : int         = None
-    scroll_amount               : float       = None
-    scroll_smooth               : bool        = None
-    select_executable_after_add : bool        = None
-    start_in_tray               : bool        = None
-    start_refresh               : bool        = None
-    start_with_system           : bool        = None
-    style_accent                : str         = None
-    style_alt_bg                : str         = None
-    style_bg                    : str         = None
-    style_btn_border            : str         = None
-    style_btn_disabled          : str         = None
-    style_btn_hover             : str         = None
-    style_corner_radius         : int         = None
-    style_scaling               : float       = None
-    tray_refresh_interval       : int         = None
-    update_keep_image           : bool        = None
-    vsync_ratio                 : int         = None
-    zoom_amount                 : int         = None
-    zoom_enabled                : bool        = None
-    zoom_region                 : bool        = None
-    zoom_size                   : int         = None
+    browser_custom_arguments    : str
+    browser_custom_executable   : str
+    browser_html                : bool
+    browser_private             : bool
+    browser                     : Browser
+    display_mode                : DisplayMode
+    fit_images                  : bool
+    grid_columns                : int
+    grid_image_ratio            : float
+    manual_sort_list            : list
+    minimize_on_close           : bool
+    refresh_completed_games     : bool
+    refresh_workers             : int
+    request_timeout             : int
+    scroll_amount               : float
+    scroll_smooth               : bool
+    select_executable_after_add : bool
+    start_in_tray               : bool
+    start_refresh               : bool
+    start_with_system           : bool
+    style_accent                : str
+    style_alt_bg                : str
+    style_bg                    : str
+    style_btn_border            : str
+    style_btn_disabled          : str
+    style_btn_hover             : str
+    style_corner_radius         : int
+    style_scaling               : float
+    tray_refresh_interval       : int
+    update_keep_image           : bool
+    vsync_ratio                 : int
+    zoom_amount                 : int
+    zoom_enabled                : bool
+    zoom_region                 : bool
+    zoom_size                   : int
 
 
 @dataclasses.dataclass
 class Game:
-    id                : int        = None
-    name              : str        = None
-    version           : str        = None
-    developer         : str        = None
-    engine            : Engine     = None
-    status            : Status     = None
-    url               : str        = None
-    added_on          : Timestamp  = None
-    last_updated      : Timestamp  = None
-    last_full_refresh : int        = None
-    last_played       : Timestamp  = None
-    rating            : int        = None
-    played            : bool       = None
-    installed         : str        = None
-    executable        : str        = None
-    description       : str        = None
-    changelog         : str        = None
-    tags              : list[Tag]  = None
-    notes             : str        = None
-    image             : ImGuiImage = None
+    id                : int
+    name              : str
+    version           : str
+    developer         : str
+    engine            : Engine
+    status            : Status
+    url               : str
+    added_on          : Timestamp
+    last_updated      : Timestamp
+    last_full_refresh : int
+    last_played       : Timestamp
+    rating            : int
+    played            : bool
+    installed         : str
+    executable        : str
+    description       : str
+    changelog         : str
+    tags              : list[Tag]
+    notes             : str
+    image             : ImGuiImage

@@ -4,6 +4,7 @@ import asyncio
 import pathlib
 import typing
 import json
+import sys
 
 from modules.structs import *
 from modules import globals
@@ -103,8 +104,9 @@ async def connect():
                 await migrate_legacy_json(path)
             elif (path := globals.data_path / "config.ini").is_file():
                 await migrate_legacy_ini(path)
-    except Exception as exc:
-        print(exc)
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
 
 
 async def _wait_connection():
@@ -113,7 +115,11 @@ async def _wait_connection():
 
 
 async def wait_connection():
-    await asyncio.wait_for(_wait_connection(), timeout=30)
+    try:
+        await asyncio.wait_for(_wait_connection(), timeout=30)
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
 
 
 async def execute(request: str, *args):
@@ -132,15 +138,23 @@ async def _wait_pending():
 
 
 async def wait_pending():
-    await asyncio.wait_for(_wait_pending(), timeout=30)
+    try:
+        await asyncio.wait_for(_wait_pending(), timeout=30)
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
 
 
 async def close():
     global available
     available = False
-    await wait_pending()
-    await connection.commit()
-    await connection.close()
+    try:
+        await wait_pending()
+        await connection.commit()
+        await connection.close()
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
 
 
 # Committing should save to disk, but for some reason it only does so after closing
@@ -149,22 +163,27 @@ async def save():
     await connect()
 
 
+def sql_to_py(value: str | int | float, data_type: typing.Type):
+    if data_type == list:
+        value = json.loads(value)
+        if hasattr(data_type, "__args__"):
+            content_type = data_type.__args__[0]
+            value = [content_type(x) for x in value]
+    else:
+        value = data_type(value)
+    return value
+
+
 async def load():
     try:
-        globals.settings = Settings()
         cursor = await execute("""
             SELECT *
             FROM settings
         """)
-        settings = await cursor.fetchone()
-        for key in settings.keys():
-            data_type = Settings.__annotations__.get(key)
-            if data_type:
-                if data_type == list:
-                    value = json.loads(settings[key])
-                else:
-                    value = data_type(settings[key])
-                setattr(globals.settings, key, value)
+        types = Settings.__annotations__
+        settings = dict(await cursor.fetchone())
+        settings = {key: sql_to_py(value, types[key]) for key, value in settings.items() if key in types}
+        globals.settings = Settings(**settings)
 
         globals.games = {}
         cursor = await execute("""
@@ -172,31 +191,25 @@ async def load():
             FROM games
         """)
         games = await cursor.fetchall()
+        types = Game.__annotations__
         for game in games:
-            globals.games[game["id"]] = Game()
-            for key in game.keys():
-                data_type = Game.__annotations__[key]
-                if data_type == list[Tag]:
-                    value = [Tag(x) for x in json.loads(game[key])]
-                else:
-                    value = data_type(game[key])
-                setattr(globals.games[game["id"]], key, value)
-            globals.games[game["id"]].image = gui.ImGuiImage(globals.data_path / "images", glob=f"{game['id']}.*")
-    except Exception as exc:
-        print(exc)
+            game = dict(game)
+            game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
+            game["image"] = gui.ImGuiImage(globals.data_path / "images", glob=f"{game['id']}.*")
+            globals.games[game["id"]] = Game(**game)
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
 
 
-def convert_py_value(value: enum.Enum | Timestamp | bool | list | typing.Any):
-    if isinstance(value, enum.Enum):
-        value = value.value
-    elif isinstance(value, Timestamp):
+def py_to_sql(value: enum.Enum | Timestamp | bool | list | typing.Any):
+    if hasattr(value, "value"):
         value = value.value
     elif isinstance(value, bool):
         value = int(value)
     elif isinstance(value, list):
-        for i, x in enumerate(value):
-            if isinstance(x, enum.Enum):
-                value[i] = x.value
+        value = list(value)
+        value = [item.value if hasattr(item, "value") else item for item in value]
         value = json.dumps(value)
     return value
 
@@ -205,7 +218,7 @@ async def update_game(game: Game, *keys: list[str]):
     values = []
 
     for key in keys:
-        value = convert_py_value(getattr(game, key))
+        value = py_to_sql(getattr(game, key))
         values.append(value)
 
     await execute(f"""
@@ -220,7 +233,7 @@ async def update_settings(*keys: list[str]):
     values = []
 
     for key in keys:
-        value = convert_py_value(getattr(globals.settings, key))
+        value = py_to_sql(getattr(globals.settings, key))
         values.append(value)
 
     await execute(f"""
@@ -255,8 +268,9 @@ async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0
                 for key, value in config["game_data"][game]:
                     config["games"][id].setdefault(key, value)
         await migrate_legacy(config)
-    except Exception as exc:
-        print(exc)
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
 
 
 async def migrate_legacy_ini(path: str | pathlib.Path):  # Pre v7.0
@@ -294,147 +308,152 @@ async def migrate_legacy_ini(path: str | pathlib.Path):  # Pre v7.0
             config["games"][id].setdefault("updated_time", 0.0)
             config["games"][id].setdefault("changelog",    old_config.get       (game, 'changelog',    fallback=''   ))
         await migrate_legacy(config)
-    except Exception as exc:
-        print(exc)
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
 
 
 async def migrate_legacy(config: dict):
-    keys = []
-    values = []
+    try:
+        keys = []
+        values = []
 
-    if options := config.get("options"):
+        if options := config.get("options"):
 
-        if browser := options.get("browser"):
-            keys.append("browser")
-            values.append(Browser[{
-                "none":    "None",
-                "chrome":  "Chrome",
-                "firefox": "Firefox",
-                "brave":   "Brave",
-                "edge":    "Edge",
-                "opera":   "Opera",
-                "operagx": "OperaGX"
-            }[browser]].value)
+            if browser := options.get("browser"):
+                keys.append("browser")
+                values.append(Browser[{
+                    "none":    "None",
+                    "chrome":  "Chrome",
+                    "firefox": "Firefox",
+                    "brave":   "Brave",
+                    "edge":    "Edge",
+                    "opera":   "Opera",
+                    "operagx": "OperaGX"
+                }[browser]].value)
 
-        if private_browser := options.get("private_browser"):
-            keys.append("browser_private")
-            values.append(int(private_browser))
+            if private_browser := options.get("private_browser"):
+                keys.append("browser_private")
+                values.append(int(private_browser))
 
-        if open_html := options.get("open_html"):
-            keys.append("browser_html")
-            values.append(int(open_html))
+            if open_html := options.get("open_html"):
+                keys.append("browser_html")
+                values.append(int(open_html))
 
-        if start_refresh := options.get("start_refresh"):
-            keys.append("start_refresh")
-            values.append(int(start_refresh))
+            if start_refresh := options.get("start_refresh"):
+                keys.append("start_refresh")
+                values.append(int(start_refresh))
 
-        if bg_mode_delay_mins := options.get("bg_mode_delay_mins"):
-            keys.append("tray_refresh_interval")
-            values.append(bg_mode_delay_mins)
+            if bg_mode_delay_mins := options.get("bg_mode_delay_mins"):
+                keys.append("tray_refresh_interval")
+                values.append(bg_mode_delay_mins)
 
-        if refresh_completed_games := options.get("refresh_completed_games"):
-            keys.append("refresh_completed_games")
-            values.append(int(refresh_completed_games))
+            if refresh_completed_games := options.get("refresh_completed_games"):
+                keys.append("refresh_completed_games")
+                values.append(int(refresh_completed_games))
 
-        if keep_image_on_game_update := options.get("keep_image_on_game_update"):
-            keys.append("update_keep_image")
-            values.append(int(keep_image_on_game_update))
+            if keep_image_on_game_update := options.get("keep_image_on_game_update"):
+                keys.append("update_keep_image")
+                values.append(int(keep_image_on_game_update))
 
-    if style := config.get("style"):
+        if style := config.get("style"):
 
-        if back := style.get("back"):
-            keys.append("style_bg")
-            values.append(back)
+            if back := style.get("back"):
+                keys.append("style_bg")
+                values.append(back)
 
-        if alt := style.get("alt"):
-            keys.append("style_alt_bg")
-            values.append(alt)
+            if alt := style.get("alt"):
+                keys.append("style_alt_bg")
+                values.append(alt)
 
-        if accent := style.get("accent"):
-            keys.append("style_accent")
-            values.append(accent)
+            if accent := style.get("accent"):
+                keys.append("style_accent")
+                values.append(accent)
 
-        if border := style.get("border"):
-            keys.append("style_btn_border")
-            values.append(border)
+            if border := style.get("border"):
+                keys.append("style_btn_border")
+                values.append(border)
 
-        if hover := style.get("hover"):
-            keys.append("style_btn_hover")
-            values.append(hover)
+            if hover := style.get("hover"):
+                keys.append("style_btn_hover")
+                values.append(hover)
 
-        if disabled := style.get("disabled"):
-            keys.append("style_btn_disabled")
-            values.append(disabled)
+            if disabled := style.get("disabled"):
+                keys.append("style_btn_disabled")
+                values.append(disabled)
 
-    await execute(f"""
-        UPDATE settings
-        SET
-            {", ".join(f"{key} = ?" for key in keys)}
-        WHERE _=0
-    """, tuple(values))
+        await execute(f"""
+            UPDATE settings
+            SET
+                {", ".join(f"{key} = ?" for key in keys)}
+            WHERE _=0
+        """, tuple(values))
 
-    if games := config.get("games"):
-        for id, game in games.items():
-            if not id.isnumeric():
-                continue
-            keys = ["id"]
-            values = [int(id)]
+        if games := config.get("games"):
+            for id, game in games.items():
+                if not id.isnumeric():
+                    continue
+                keys = ["id"]
+                values = [int(id)]
 
-            if name := game.get("name"):
-                keys.append("name")
-                values.append(name)
+                if name := game.get("name"):
+                    keys.append("name")
+                    values.append(name)
 
-            if version := game.get("version"):
-                keys.append("version")
-                values.append(version)
-
-            if status := game.get("status"):
-                keys.append("status")
-                values.append(Status[{
-                    "none":      "Normal",
-                    "completed": "Completed",
-                    "onhold":    "OnHold",
-                    "abandoned": "Abandoned"
-                }[status]].value)
-
-            if installed := game.get("installed"):
-                keys.append("installed")
-                if installed and type(version) is str:
+                if version := game.get("version"):
+                    keys.append("version")
                     values.append(version)
-                else:
-                    values.append("")
 
-            if played := game.get("played"):
-                keys.append("played")
-                values.append(int(played))
+                if status := game.get("status"):
+                    keys.append("status")
+                    values.append(Status[{
+                        "none":      "Normal",
+                        "completed": "Completed",
+                        "onhold":    "OnHold",
+                        "abandoned": "Abandoned"
+                    }[status]].value)
 
-            if exe_path := game.get("exe_path"):
-                keys.append("executable")
-                values.append(exe_path)
+                if installed := game.get("installed"):
+                    keys.append("installed")
+                    if installed and type(version) is str:
+                        values.append(version)
+                    else:
+                        values.append("")
 
-            if link := game.get("link"):
-                keys.append("url")
-                values.append(link)
+                if played := game.get("played"):
+                    keys.append("played")
+                    values.append(int(played))
 
-            if add_time := game.get("add_time"):
-                keys.append("added_on")
-                values.append(int(add_time))
+                if exe_path := game.get("exe_path"):
+                    keys.append("executable")
+                    values.append(exe_path)
 
-            if updated_time := game.get("updated_time"):
-                keys.append("last_updated")
-                values.append(int(updated_time))
+                if link := game.get("link"):
+                    keys.append("url")
+                    values.append(link)
 
-            if changelog := game.get("changelog"):
-                keys.append("changelog")
-                values.append(changelog)
+                if add_time := game.get("add_time"):
+                    keys.append("added_on")
+                    values.append(int(add_time))
 
-            if notes := game.get("notes"):
-                keys.append("notes")
-                values.append(notes)
+                if updated_time := game.get("updated_time"):
+                    keys.append("last_updated")
+                    values.append(int(updated_time))
 
-            await execute(f"""
-                INSERT INTO games
-                ({", ".join(keys)})
-                VALUES
-                ({", ".join("?" * len(values))})
-            """, tuple(values))
+                if changelog := game.get("changelog"):
+                    keys.append("changelog")
+                    values.append(changelog)
+
+                if notes := game.get("notes"):
+                    keys.append("notes")
+                    values.append(notes)
+
+                await execute(f"""
+                    INSERT INTO games
+                    ({", ".join(keys)})
+                    VALUES
+                    ({", ".join("?" * len(values))})
+                """, tuple(values))
+    except Exception:
+        print(utils.get_traceback())
+        sys.exit(1)
