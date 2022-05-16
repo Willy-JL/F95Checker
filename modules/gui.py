@@ -10,11 +10,9 @@ import time
 import glfw
 import sys
 
-from modules import async_thread
-from modules.structs import *
-from modules.widgets import *
-from modules import globals
-from modules import db
+from modules.structs import Browser, Engine, EngineColors, DisplayMode, FilterMode, Game, Os, Status, Tag
+from modules.remote import async_thread, filepicker, imagehelper, ratingwidget
+from modules import globals, db, utils
 
 imgui.io = None
 imgui.style = None
@@ -87,7 +85,7 @@ class MainGUI():
         self.game_hitbox_click: bool = False
         self.current_info_popup_game: Game = None
         self.ghost_columns_enabled_count: int = 0
-        self.current_filepicker: FilePicker = None
+        self.current_filepicker: filepicker.FilePicker = None
 
         # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
@@ -114,9 +112,9 @@ class MainGUI():
             size = (1280, 720)
 
         # Setup GLFW window
-        self.window: glfw._GLFWwindow = impl_glfw_init(*size, "F95Checker")
+        self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
         icon_path = globals.self_path / "resources/icons/icon.png"
-        self.icon_texture = ImGuiImage(icon_path)
+        self.icon_texture = imagehelper.ImageHelper(icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_close_callback(self.window, self.close_callback)
@@ -283,13 +281,13 @@ class MainGUI():
     def draw_game_play_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
         if not game.installed:
-            push_disabled()
+            utils.push_disabled()
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if not game.installed:
-            pop_disabled()
+            utils.pop_disabled()
         if clicked:
             pass  # TODO: game launching
 
@@ -334,7 +332,7 @@ class MainGUI():
             self.require_sort = True
 
     def draw_game_rating_widget(self, game: Game, *args, **kwargs):
-        changed, value = star_rating(f"{game.id}_rating", game.rating)
+        changed, value = ratingwidget.ratingwidget(f"{game.id}_rating", game.rating)
         if changed:
             game.rating = value
             async_thread.run(db.update_game(game, "rating"))
@@ -361,26 +359,26 @@ class MainGUI():
     def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_unset_exe"
         if not game.executable:
-            push_disabled()
+            utils.push_disabled()
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if not game.executable:
-            pop_disabled()
+            utils.pop_disabled()
         if clicked:
             pass  # TODO: unset exe
 
     def draw_game_open_folder_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_open_folder"
         if not game.executable:
-            push_disabled()
+            utils.push_disabled()
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if not game.executable:
-            pop_disabled()
+            utils.pop_disabled()
         if clicked:
             pass  # TODO: open folder
 
@@ -436,9 +434,9 @@ class MainGUI():
         height = size.y * 0.9
         width = min(size.x * 0.9, height * self.scaled(0.9))
         imgui.set_next_window_size(width, height)
-        center_next_window()
+        utils.center_next_window()
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
-            close_popup_clicking_outside()
+            utils.close_popup_clicking_outside()
             game = self.current_info_popup_game
 
             # Image
@@ -618,9 +616,9 @@ class MainGUI():
     def draw_about_popup(self):
         size = imgui.io.display_size
         imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
-        center_next_window()
+        utils.center_next_window()
         if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
-            close_popup_clicking_outside()
+            utils.close_popup_clicking_outside()
             _50 = self.scaled(50)
             _210 = self.scaled(210)
             imgui.begin_group()
@@ -1162,19 +1160,19 @@ class MainGUI():
         new_display_mode = None
 
         if globals.settings.display_mode is DisplayMode.grid:
-            push_disabled(block_interaction=False)
+            utils.push_disabled(block_interaction=False)
         if imgui.button("󱇘"):
             new_display_mode = DisplayMode.list
         if globals.settings.display_mode is DisplayMode.grid:
-            pop_disabled(block_interaction=False)
+            utils.pop_disabled(block_interaction=False)
 
         imgui.same_line()
         if globals.settings.display_mode is DisplayMode.list:
-            push_disabled(block_interaction=False)
+            utils.push_disabled(block_interaction=False)
         if imgui.button("󱇙"):
             new_display_mode = DisplayMode.grid
         if globals.settings.display_mode is DisplayMode.list:
-            pop_disabled(block_interaction=False)
+            utils.pop_disabled(block_interaction=False)
 
         if new_display_mode is not None:
             globals.settings.display_mode = new_display_mode
@@ -1263,7 +1261,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Filter by rating:")
                 imgui.table_next_column()
-                changed, value = star_rating(f"filter_rating", FilterMode.Rating.by)
+                changed, value = ratingwidget.ratingwidget(f"filter_rating", FilterMode.Rating.by)
                 if changed:
                     FilterMode.Rating.by = value
                     self.require_sort = True
@@ -1321,9 +1319,9 @@ class MainGUI():
                 imgui.table_next_column()
                 if imgui.button("Configure", width=right_width):
                     imgui.open_popup("Configure custom browser")
-                center_next_window()
+                utils.center_next_window()
                 if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
-                    close_popup_clicking_outside()
+                    utils.close_popup_clicking_outside()
                     imgui.text("Executable: ")
                     imgui.same_line()
                     pos = imgui.get_cursor_pos_x()
@@ -1340,7 +1338,7 @@ class MainGUI():
                             if selected:
                                 set.browser_custom_executable = selected
                                 async_thread.run(db.update_settings("browser_custom_executable"))
-                        self.current_filepicker = FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
+                        self.current_filepicker = filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
                     self.draw_filepicker_popup()
                     imgui.text("Arguments: ")
                     imgui.same_line()

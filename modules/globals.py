@@ -28,8 +28,8 @@ inbox_page        = domain + "/conversations/"
 tool_page         = domain + "/threads/44173/"
 
 
+from modules.structs import Game, Os, Settings
 from modules.gui import MainGUI
-from modules.structs import *
 
 if sys.platform.startswith("win"):
     os = Os.Windows

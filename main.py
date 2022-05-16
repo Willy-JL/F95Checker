@@ -11,17 +11,15 @@ def main():
     # Must import globals first to fix load paths when frozen
     from modules import globals
 
-    from modules import singleton
+    from modules.remote import singleton
     singleton.lock("F95Checker")
 
-    from modules import logger
+    from modules.remote import logger
     logger.install()
 
-    from modules import sync_thread
-    sync_thread.setup()
-
-    from modules import async_thread
+    from modules.remote import async_thread, sync_thread
     async_thread.setup()
+    sync_thread.setup()
 
     from modules import db
     async_thread.run(db.connect(), wait=True)

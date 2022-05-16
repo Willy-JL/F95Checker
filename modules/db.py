@@ -3,13 +3,13 @@ import aiosqlite
 import asyncio
 import pathlib
 import typing
+import enum
 import json
 import sys
 
-from modules.structs import *
-from modules import globals
-from modules import utils
-from modules import gui
+from modules.structs import Browser, DisplayMode, Engine, Game, Settings, Status, Timestamp
+from modules.remote import imagehelper
+from modules import globals, utils
 
 connection: aiosqlite.Connection = None
 available: bool = False
@@ -202,7 +202,7 @@ async def load():
         for game in games:
             game = dict(game)
             game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
-            game["image"] = gui.ImGuiImage(globals.data_path / "images", glob=f"{game['id']}.*")
+            game["image"] = imagehelper.ImageHelper(globals.data_path / "images", glob=f"{game['id']}.*")
             globals.games[game["id"]] = Game(**game)
     except Exception:
         print(utils.get_traceback())

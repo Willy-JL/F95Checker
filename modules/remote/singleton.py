@@ -46,3 +46,11 @@ def lock(app_id: str):
             sys.exit(1)
     else:
         raise FileExistsError("This instance was already assigned a singleton!")
+
+
+# Example usage
+if __name__ == "__main__":
+    import singleton  # This script is designed as a module you import
+    singleton.lock("SomeCoolProgram")
+
+# Full credits to this answer on stackoverflow https://stackoverflow.com/a/66002139

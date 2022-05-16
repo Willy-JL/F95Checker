@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import enum
 
-from modules.widgets import ImGuiImage
+from modules.remote import imagehelper
 
 
 class IntEnumAuto(enum.IntEnum):
@@ -318,4 +318,4 @@ class Game:
     changelog         : str
     tags              : list[Tag]
     notes             : str
-    image             : ImGuiImage
+    image             : imagehelper.ImageHelper
