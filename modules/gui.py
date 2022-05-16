@@ -610,7 +610,7 @@ class MainGUI():
 
     def draw_filepicker_popup(self):
         if self.current_filepicker and not self.drew_filepicker:
-            self.current_filepicker.draw()
+            self.current_filepicker.tick()
             if not self.current_filepicker.active:
                 self.current_filepicker = None
             self.drew_filepicker = True

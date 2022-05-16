@@ -236,6 +236,7 @@ class ImGuiImage:
         return (left, top), (right, bottom)
 
 
+# https://gist.github.com/Willy-JL/82137493896d385a74d148534691b6e1
 class FilePicker:
     flags = (
         imgui.WINDOW_NO_MOVE |
@@ -245,23 +246,25 @@ class FilePicker:
         imgui.WINDOW_ALWAYS_AUTO_RESIZE
     )
 
-    def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_flags: int = 0):
+    def __init__(self, title: str = "File picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags: int = 0):
         self.current: int = 0
         self.title: str = title
         self.active: bool = True
-        self.dir_icon: str = "󰉋"
-        self.file_icon: str = "󰈔"
         self.elapsed: float = 0.0
         self.selected: str = None
         self.items: list[str] = []
+        self.dir_icon: str = "󰉋  "
+        self.file_icon: str = "󰈔  "
         self.dir: pathlib.Path = None
         self.callback: typing.Callable = callback
-        self.flags: int = custom_flags or self.flags
+        self.flags: int = custom_popup_flags or self.flags
         self.windows: bool = sys.platform.startswith("win")
         if self.windows:
             self.drives: list[str] = []
             self.current_drive: int = 0
         self.goto(start_dir or os.getcwd())
+        self.io = imgui.get_io()
+        self.style = imgui.get_style()
 
     def goto(self, dir: str | pathlib.Path):
         dir = pathlib.Path(dir)
@@ -284,10 +287,10 @@ class FilePicker:
         try:
             items = list(self.dir.iterdir())
             if len(items) > 0:
-                items.sort(key=lambda item: item.name.lower())
-                items.sort(key=lambda item: item.is_dir(), reverse=True)
+                items.sort(key=lambda item: item.name.lower())  # Sort alphabetically
+                items.sort(key=lambda item: item.is_dir(), reverse=True)  # Sort dirs first
                 for item in items:
-                    self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + "  " + item.name)
+                    self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + item.name)
             else:
                 self.items.append("This folder is empty!")
         except Exception:
@@ -307,24 +310,24 @@ class FilePicker:
         else:
             self.current = -1
 
-    def draw(self):
+    def tick(self):
         if not self.active:
             return
         # Auto refresh
-        self.elapsed += imgui.io.delta_time
+        self.elapsed += self.io.delta_time
         if self.elapsed > 2:
             self.elapsed = 0.0
             self.refresh()
         # Setup popup
         if not imgui.is_popup_open(self.title):
             imgui.open_popup(self.title)
-        center_next_window()
+        size = self.io.display_size
+        imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
         if imgui.begin_popup_modal(self.title, True, flags=self.flags)[0]:
-            close_popup_clicking_outside()
-            size = imgui.io.display_size
+            size = self.io.display_size
 
             imgui.begin_group()
-            # Up buttons
+            # Up button
             if imgui.button("󰁞"):
                 self.goto(self.dir.parent)
             # Drive selector
@@ -353,13 +356,13 @@ class FilePicker:
             if value != -1:
                 self.current = min(max(value, 0), len(self.items) - 1)
                 item = self.items[self.current]
-                is_dir = item[0] == self.dir_icon
-                is_file = item[0] == self.file_icon
+                is_dir = item.startswith(self.dir_icon)
+                is_file = item.startswith(self.file_icon)
                 if imgui.is_item_hovered() and imgui.is_mouse_double_clicked():
                     if is_dir:
-                        self.goto(self.dir / item[3:])
+                        self.goto(self.dir / item[len(self.dir_icon):])
                     elif is_file:
-                        self.selected = str(self.dir / item[3:])
+                        self.selected = str(self.dir / item[len(self.file_icon):])
                         imgui.close_current_popup()
             else:
                 is_dir = False
@@ -371,16 +374,18 @@ class FilePicker:
             # Ok button
             imgui.same_line()
             if not is_file:
-                push_disabled()
+                imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
+                imgui.push_style_var(imgui.STYLE_ALPHA, self.style.alpha *  0.5)
             if imgui.button("󰄬 Ok"):
-                self.selected = str(self.dir / item[3:])
+                self.selected = str(self.dir / item[len(self.file_icon):])
                 imgui.close_current_popup()
             if not is_file:
-                pop_disabled()
+                imgui.internal.pop_item_flag()
+                imgui.pop_style_var()
             # Selected text
             if is_file:
                 imgui.same_line()
-                imgui.text(f"Selected:  {item[3:]}")
+                imgui.text(f"Selected:  {item[len(self.file_icon):]}")
 
             imgui.end_popup()
         if not imgui.is_popup_open(self.title):
