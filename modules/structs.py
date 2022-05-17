@@ -258,6 +258,12 @@ FilterMode.Tag.by = Tag["2d-game"]
 FilterMode.Tag.invert = False
 
 
+class MsgBox(IntEnumAuto):
+    info  = ()
+    warn  = ()
+    error = ()
+
+
 @dataclasses.dataclass
 class Settings:
     browser_custom_arguments    : str

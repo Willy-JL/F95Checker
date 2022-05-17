@@ -47,7 +47,8 @@ else:
 data_path = pathlib.Path.home() / data_path
 data_path.mkdir(parents=True, exist_ok=True)
 
-# Will get initialized later
+# Variables
 gui: MainGUI = None
+popup_stack: list = []
 settings: Settings = None
 games: dict[int, Game] = None

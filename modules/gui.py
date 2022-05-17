@@ -11,7 +11,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, Engine, EngineColors, DisplayMode, FilterMode, Game, Os, Status, Tag
+from modules.structs import Browser, Engine, EngineColors, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag
 from modules.remote import async_thread, filepicker, imagehelper, ratingwidget
 from modules import globals, db, utils
 
@@ -74,7 +74,6 @@ class MainGUI():
         # Variables
         self.visible: bool = True
         self.focused: bool = True
-        self.popup_stack: list = []
         self.hovered_game: Game = None
         self.require_sort: bool = True
         self.prev_manual_sort: int = 0
@@ -1358,7 +1357,7 @@ class MainGUI():
                 imgui.text("Custom browser:")
                 imgui.table_next_column()
                 if imgui.button("Configure", width=right_width):
-                    self.popup_stack.append(self.draw_custom_browser_popup)
+                    globals.popup_stack.append(self.draw_custom_browser_popup)
             else:
                 imgui.table_next_row()
                 imgui.table_next_column()
