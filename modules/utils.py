@@ -1,9 +1,69 @@
 import OpenGL.GL as gl
+import subprocess
 import traceback
+import pathlib
 import imgui
 import glfw
+import stat
 import sys
 import re
+import os
+
+from modules.structs import Os
+from modules import globals
+
+
+def launch(path: str | pathlib.Path):
+    exe = pathlib.Path(path).absolute()
+    if not exe.is_file():
+        raise FileNotFoundError()
+
+    if globals.os is Os.Windows:
+        # Open with default app
+        os.startfile(str(exe))
+    else:
+        mode = exe.stat().st_mode
+        executable = not (mode & stat.S_IEXEC < stat.S_IEXEC)
+        if not executable:
+            with exe.open("r") as f:
+                if f.read(2) == "#!":
+                    # Make executable if shebang is present
+                    exe.chmod(mode | stat.S_IEXEC)
+                    executable = True
+        if (exe.parent / "renpy").is_dir():
+            # Make all needed renpy libs executable
+            for file in (exe.parent / "lib").glob("**/*"):
+                if file.is_file() and not file.suffix:
+                    mode = file.stat().st_mode
+                    if mode & stat.S_IEXEC < stat.S_IEXEC:
+                        file.chmod(mode | stat.S_IEXEC)
+        if executable:
+            # Run as executable
+            subprocess.Popen(
+                [
+                    str(exe)
+                ],
+                cwd=str(exe.parent),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        else:
+            # Open with default app
+            if globals.os is Os.Linux:
+                open_util = "xdg-open"
+            elif globals.os is Os.MacOS:
+                open_util = "open"
+            subprocess.Popen(
+                [
+                    open_util,
+                    str(exe)
+                ],
+                cwd=str(exe.parent),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
 
 
 def extract_thread_ids(text: str):
@@ -21,6 +81,7 @@ def get_traceback():
     return tb
 
 
+# https://github.com/pyimgui/pyimgui/blob/24219a8d4338b6e197fa22af97f5f06d3b1fe9f7/doc/examples/integrations_glfw3.py
 def impl_glfw_init(width: int, height: int, window_name: str):
     # FIXME: takes quite a while to initialize on my arch linux machine
     if not glfw.init():

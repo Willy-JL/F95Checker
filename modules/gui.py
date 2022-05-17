@@ -291,7 +291,7 @@ class MainGUI():
         if not game.installed:
             utils.pop_disabled()
         if clicked:
-            pass  # TODO: game launching
+            utils.launch(game.executable)
 
     def draw_game_engine_widget(self, game: Game, *args, **kwargs):
         col = (*EngineColors[game.engine.value], 1)
