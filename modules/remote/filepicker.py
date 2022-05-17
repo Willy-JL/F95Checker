@@ -136,6 +136,7 @@ class FilePicker:
                     elif is_file:
                         self.selected = str(self.dir / item[len(self.file_icon):])
                         imgui.close_current_popup()
+                        closed = True
             else:
                 is_dir = False
                 is_file = False
@@ -143,6 +144,7 @@ class FilePicker:
             # Cancel button
             if imgui.button("󰜺 Cancel"):
                 imgui.close_current_popup()
+                closed = True
             # Ok button
             imgui.same_line()
             if not is_file:
@@ -151,6 +153,7 @@ class FilePicker:
             if imgui.button("󰄬 Ok"):
                 self.selected = str(self.dir / item[len(self.file_icon):])
                 imgui.close_current_popup()
+                closed = True
             if not is_file:
                 imgui.internal.pop_item_flag()
                 imgui.pop_style_var()
@@ -165,7 +168,7 @@ class FilePicker:
             if self.callback:
                 self.callback(self.selected)
             self.active = False
-        return opened
+        return opened, closed
 
 
 # Example usage

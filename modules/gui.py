@@ -3,6 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
 from PIL import Image
 import configparser
+import functools
 import platform
 import OpenGL
 import imgui
@@ -73,19 +74,16 @@ class MainGUI():
         # Variables
         self.visible: bool = True
         self.focused: bool = True
-        self.prev_size: tuple = (0, 0)
+        self.popup_stack: list = []
         self.hovered_game: Game = None
         self.require_sort: bool = True
         self.prev_manual_sort: int = 0
         self.size_mult: int | float = 0
         self.sorted_games_ids: list = []
+        self.prev_size: tuple[int] = (0, 0)
         self.filter_by = FilterMode["None"]
-        self.about_popup_open: bool = False
         self.game_hitbox_click: bool = False
-        self.current_info_popup_game: Game = None
         self.ghost_columns_enabled_count: int = 0
-        self.custom_browser_settings_open: bool = False
-        self.current_filepicker: filepicker.FilePicker = None
 
         # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
@@ -232,17 +230,17 @@ class MainGUI():
 
                 imgui.set_cursor_screen_pos((text_x - _3, text_y))
                 if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
-                    self.about_popup_open = True
+                    self.popup_stack.append(self.draw_about_popup)
                 imgui.set_cursor_screen_pos((text_x, text_y))
                 imgui.text(text)
 
-                open_popup_count = (
-                    self.draw_about_popup() +
-                    self.draw_game_info_popup() +
-                    self.draw_custom_browser_popup() +
-                    self.draw_filepicker_popup()
-                )
-                # This is done separately to allow stacking popups
+                open_popup_count = 0
+                for popup_func in self.popup_stack:
+                    opened, closed =  popup_func()
+                    if closed:
+                        self.popup_stack.remove(popup_func)
+                    open_popup_count += opened
+                # Popups are closed all at the end to allow stacking
                 for _ in range(open_popup_count):
                     imgui.end_popup()
                 imgui.end()
@@ -280,7 +278,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            self.current_info_popup_game = game
+            self.popup_stack.append(functools.partial(self.draw_game_info_popup, game))
 
     def draw_game_play_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
@@ -429,9 +427,7 @@ class MainGUI():
         imgui.dummy(0, 0)
         imgui.pop_style_color(3)
 
-    def draw_game_info_popup(self):
-        if not self.current_info_popup_game:
-            return 0
+    def draw_game_info_popup(self, game: Game):
         if not imgui.is_popup_open("Game info"):
             imgui.open_popup("Game info")
         closed = False
@@ -443,7 +439,6 @@ class MainGUI():
         utils.center_next_window()
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
             closed = utils.close_popup_clicking_outside()
-            game = self.current_info_popup_game
 
             # Image
             image = game.image
@@ -611,21 +606,9 @@ class MainGUI():
         else:
             opened = 0
             closed = True
-        if closed:
-            self.current_info_popup_game = None
-        return opened
-
-    def draw_filepicker_popup(self):
-        if self.current_filepicker:
-            opened = self.current_filepicker.tick()
-            if not self.current_filepicker.active:
-                self.current_filepicker = None
-            return opened
-        return 0
+        return opened, closed
 
     def draw_about_popup(self):
-        if not self.about_popup_open:
-            return 0
         if not imgui.is_popup_open("About F95Checker"):
             imgui.open_popup("About F95Checker")
         closed = False
@@ -738,13 +721,9 @@ class MainGUI():
         else:
             opened = 0
             closed = True
-        if closed:
-            self.about_popup_open = False
-        return opened
+        return opened, closed
 
     def draw_custom_browser_popup(self):
-        if not self.custom_browser_settings_open:
-            return 0
         if not imgui.is_popup_open("Configure custom browser"):
             imgui.open_popup("Configure custom browser")
         closed = False
@@ -769,7 +748,7 @@ class MainGUI():
                     if selected:
                         set.browser_custom_executable = selected
                         async_thread.run(db.update_settings("browser_custom_executable"))
-                self.current_filepicker = filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
+                self.popup_stack.append(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
             imgui.text("Arguments: ")
             imgui.same_line()
             imgui.set_cursor_pos_x(pos)
@@ -780,9 +759,7 @@ class MainGUI():
         else:
             opened = 0
             closed = True
-        if closed:
-            self.custom_browser_settings_open = False
-        return opened
+        return opened, closed
 
     def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs, manual_sort: int | bool):
         if manual_sort != self.prev_manual_sort:
@@ -855,7 +832,7 @@ class MainGUI():
             if self.game_hitbox_click and not imgui.is_mouse_down():
                 # Left click = open game info popup
                 self.game_hitbox_click = False
-                self.current_info_popup_game = game
+                self.popup_stack.append(functools.partial(self.draw_game_info_popup, game))
         if manual_sort and not_filtering:
             # Left click drag = swap if in manual sort mode
             if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
@@ -1381,7 +1358,7 @@ class MainGUI():
                 imgui.text("Custom browser:")
                 imgui.table_next_column()
                 if imgui.button("Configure", width=right_width):
-                    self.custom_browser_settings_open = True
+                    self.popup_stack.append(self.draw_custom_browser_popup)
             else:
                 imgui.table_next_row()
                 imgui.table_next_column()
