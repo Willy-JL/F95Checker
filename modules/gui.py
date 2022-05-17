@@ -73,7 +73,6 @@ class MainGUI():
         # Variables
         self.visible: bool = True
         self.focused: bool = True
-        self.status_text: str = ""
         self.prev_size: tuple = (0, 0)
         self.hovered_game: Game = None
         self.require_sort: bool = True
@@ -219,7 +218,7 @@ class MainGUI():
                 self.draw_bottombar()
                 imgui.end_child()
 
-                text = self.status_text or self.watermark_text
+                text = self.watermark_text  # TODO: add status message logic
                 _3 = self.scaled(3)
                 _6 = self.scaled(6)
                 text_size = imgui.calc_text_size(text)
@@ -231,10 +230,9 @@ class MainGUI():
                 self.draw_sidebar()
                 imgui.end_child()
 
-                if not self.status_text:
-                    imgui.set_cursor_screen_pos((text_x - _3, text_y))
-                    if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
-                        self.about_popup_open = True
+                imgui.set_cursor_screen_pos((text_x - _3, text_y))
+                if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
+                    self.about_popup_open = True
                 imgui.set_cursor_screen_pos((text_x, text_y))
                 imgui.text(text)
 
