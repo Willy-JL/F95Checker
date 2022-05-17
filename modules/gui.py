@@ -295,7 +295,31 @@ class MainGUI():
         if not game.installed:
             utils.pop_disabled()
         if clicked:
-            utils.launch(game.executable)
+            def launch_game():
+                if not game.executable:
+                    return
+                try:
+                    utils.launch(game.executable)
+                except FileNotFoundError:
+                    def reset_callback():
+                        game.executable = ""
+                        async_thread.run(db.update_game(game, "executable"))
+                    buttons = {
+                        "󰄬 Yes": reset_callback,
+                        "󰜺 No": None
+                    }
+                    globals.popup_stack.append(functools.partial(self.draw_msgbox, "File not found!", "The selected executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons))
+                except Exception:
+                    globals.popup_stack.append(functools.partial(self.draw_msgbox, "Oops!", f"Something went wrong launching {game.name}:\n\n{utils.get_traceback()}", MsgBox.error))
+            if not game.executable:
+                def select_callback(selected):
+                    if selected:
+                        game.executable = selected
+                        async_thread.run(db.update_game(game, "executable"))
+                        launch_game()
+                globals.popup_stack.append(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
+            else:
+                launch_game()
 
     def draw_game_engine_widget(self, game: Game, *args, **kwargs):
         col = (*EngineColors[game.engine.value], 1)
@@ -351,6 +375,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
+            globals.popup_stack.append(functools.partial(self.draw_msgbox, "Warning!", "Hello world!", type=MsgBox.info))
             pass  # TODO: open game threads
 
     def draw_game_select_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
