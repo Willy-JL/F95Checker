@@ -375,7 +375,6 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            globals.popup_stack.append(functools.partial(self.draw_msgbox, "Warning!", "Hello world!", type=MsgBox.info))
             pass  # TODO: open game threads
 
     def draw_game_select_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
@@ -385,7 +384,11 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            pass  # TODO: select exe
+            def select_callback(selected):
+                if selected:
+                    game.executable = selected
+                    async_thread.run(db.update_game(game, "executable"))
+            globals.popup_stack.append(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
 
     def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_unset_exe"
@@ -398,7 +401,8 @@ class MainGUI():
         if not game.executable:
             utils.pop_disabled()
         if clicked:
-            pass  # TODO: unset exe
+            game.executable = ""
+            async_thread.run(db.update_game(game, "executable"))
 
     def draw_game_open_folder_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_open_folder"
