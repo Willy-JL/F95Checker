@@ -397,11 +397,13 @@ async def migrate_legacy(config: dict):
         """, tuple(values))
 
         if games := config.get("games"):
-            for id, game in games.items():
-                if not id.isnumeric():
+            for game in games.values():
+                id = utils.extract_thread_ids(game["link"])
+                if not id:
                     continue
+                id = id[0]
                 keys = ["id"]
-                values = [int(id)]
+                values = [id]
 
                 if name := game.get("name"):
                     keys.append("name")
