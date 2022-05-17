@@ -6,6 +6,8 @@ import imgui
 import sys
 import os
 
+from modules import utils
+
 
 class FilePicker:
     flags = (
@@ -80,7 +82,7 @@ class FilePicker:
 
     def tick(self):
         if not self.active:
-            return
+            return 0
         io = imgui.get_io()
         # Auto refresh
         self.elapsed += io.delta_time
@@ -90,9 +92,12 @@ class FilePicker:
         # Setup popup
         if not imgui.is_popup_open(self.title):
             imgui.open_popup(self.title)
+        closed = False
+        opened = 1
         size = io.display_size
         imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
         if imgui.begin_popup_modal(self.title, True, flags=self.flags)[0]:
+            closed = utils.close_popup_clicking_outside()
             imgui.begin_group()
             # Up button
             if imgui.button("󰁞"):
@@ -153,12 +158,14 @@ class FilePicker:
             if is_file:
                 imgui.same_line()
                 imgui.text(f"Selected:  {item[len(self.file_icon):]}")
-
-            imgui.end_popup()
-        if not imgui.is_popup_open(self.title):
+        else:
+            opened = 0
+            closed = True
+        if closed:
             if self.callback:
                 self.callback(self.selected)
             self.active = False
+        return opened
 
 
 # Example usage

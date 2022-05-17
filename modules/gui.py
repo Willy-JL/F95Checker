@@ -80,11 +80,12 @@ class MainGUI():
         self.prev_manual_sort: int = 0
         self.size_mult: int | float = 0
         self.sorted_games_ids: list = []
-        self.drew_filepicker: bool = False
         self.filter_by = FilterMode["None"]
+        self.about_popup_open: bool = False
         self.game_hitbox_click: bool = False
         self.current_info_popup_game: Game = None
         self.ghost_columns_enabled_count: int = 0
+        self.custom_browser_settings_open: bool = False
         self.current_filepicker: filepicker.FilePicker = None
 
         # Setup Qt objects
@@ -199,7 +200,6 @@ class MainGUI():
                     imgui.io.mouse_wheel = scroll_now
 
                 imgui.new_frame()
-                self.drew_filepicker = False
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
                 if (size := imgui.io.display_size) != self.prev_size:
@@ -234,13 +234,19 @@ class MainGUI():
                 if not self.status_text:
                     imgui.set_cursor_screen_pos((text_x - _3, text_y))
                     if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
-                        imgui.open_popup("About F95Checker")
+                        self.about_popup_open = True
                 imgui.set_cursor_screen_pos((text_x, text_y))
                 imgui.text(text)
 
-                self.draw_game_info_popup()
-                self.draw_filepicker_popup()
-                self.draw_about_popup()
+                open_popup_count = (
+                    self.draw_about_popup() +
+                    self.draw_game_info_popup() +
+                    self.draw_custom_browser_popup() +
+                    self.draw_filepicker_popup()
+                )
+                # This is done separately to allow stacking popups
+                for _ in range(open_popup_count):
+                    imgui.end_popup()
                 imgui.end()
 
                 if (size := imgui.io.display_size) != self.prev_size:
@@ -427,16 +433,18 @@ class MainGUI():
 
     def draw_game_info_popup(self):
         if not self.current_info_popup_game:
-            return
+            return 0
         if not imgui.is_popup_open("Game info"):
             imgui.open_popup("Game info")
+        closed = False
+        opened = 1
         size = imgui.io.display_size
         height = size.y * 0.9
         width = min(size.x * 0.9, height * self.scaled(0.9))
         imgui.set_next_window_size(width, height)
         utils.center_next_window()
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
-            utils.close_popup_clicking_outside()
+            closed = utils.close_popup_clicking_outside()
             game = self.current_info_popup_game
 
             # Image
@@ -602,23 +610,33 @@ class MainGUI():
                 imgui.text_unformatted("Either this game doesn't have a changelog, or the thread is not formatted properly!")
 
             imgui.pop_text_wrap_pos()
-            imgui.end_popup()
-        if not imgui.is_popup_open("Game info"):
+        else:
+            opened = 0
+            closed = True
+        if closed:
             self.current_info_popup_game = None
+        return opened
 
     def draw_filepicker_popup(self):
-        if self.current_filepicker and not self.drew_filepicker:
-            self.current_filepicker.tick()
+        if self.current_filepicker:
+            opened = self.current_filepicker.tick()
             if not self.current_filepicker.active:
                 self.current_filepicker = None
-            self.drew_filepicker = True
+            return opened
+        return 0
 
     def draw_about_popup(self):
+        if not self.about_popup_open:
+            return 0
+        if not imgui.is_popup_open("About F95Checker"):
+            imgui.open_popup("About F95Checker")
+        closed = False
+        opened = 1
         size = imgui.io.display_size
         imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
         utils.center_next_window()
         if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
-            utils.close_popup_clicking_outside()
+            closed = utils.close_popup_clicking_outside()
             _50 = self.scaled(50)
             _210 = self.scaled(210)
             imgui.begin_group()
@@ -719,7 +737,54 @@ class MainGUI():
                 imgui.bullet_text(name)
                 imgui.same_line(spacing=16)
             imgui.pop_text_wrap_pos()
-            imgui.end_popup()
+        else:
+            opened = 0
+            closed = True
+        if closed:
+            self.about_popup_open = False
+        return opened
+
+    def draw_custom_browser_popup(self):
+        if not self.custom_browser_settings_open:
+            return 0
+        if not imgui.is_popup_open("Configure custom browser"):
+            imgui.open_popup("Configure custom browser")
+        closed = False
+        opened = 1
+        utils.center_next_window()
+        if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
+            closed = utils.close_popup_clicking_outside()
+            set = globals.settings
+            imgui.text("Executable: ")
+            imgui.same_line()
+            pos = imgui.get_cursor_pos_x()
+            changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
+            if changed:
+                async_thread.run(db.update_settings("browser_custom_executable"))
+            imgui.same_line()
+            clicked = imgui.button("󰷏")
+            imgui.same_line(spacing=0)
+            args_width = imgui.get_cursor_pos_x() - pos
+            imgui.dummy(0, 0)
+            if clicked:
+                def callback(selected: str):
+                    if selected:
+                        set.browser_custom_executable = selected
+                        async_thread.run(db.update_settings("browser_custom_executable"))
+                self.current_filepicker = filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
+            imgui.text("Arguments: ")
+            imgui.same_line()
+            imgui.set_cursor_pos_x(pos)
+            imgui.set_next_item_width(args_width)
+            changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
+            if changed:
+                async_thread.run(db.update_settings("browser_custom_arguments"))
+        else:
+            opened = 0
+            closed = True
+        if closed:
+            self.custom_browser_settings_open = False
+        return opened
 
     def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs, manual_sort: int | bool):
         if manual_sort != self.prev_manual_sort:
@@ -1318,36 +1383,7 @@ class MainGUI():
                 imgui.text("Custom browser:")
                 imgui.table_next_column()
                 if imgui.button("Configure", width=right_width):
-                    imgui.open_popup("Configure custom browser")
-                utils.center_next_window()
-                if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
-                    utils.close_popup_clicking_outside()
-                    imgui.text("Executable: ")
-                    imgui.same_line()
-                    pos = imgui.get_cursor_pos_x()
-                    changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
-                    if changed:
-                        async_thread.run(db.update_settings("browser_custom_executable"))
-                    imgui.same_line()
-                    clicked = imgui.button("󰷏")
-                    imgui.same_line(spacing=0)
-                    args_width = imgui.get_cursor_pos_x() - pos
-                    imgui.dummy(0, 0)
-                    if clicked:
-                        def callback(selected: str):
-                            if selected:
-                                set.browser_custom_executable = selected
-                                async_thread.run(db.update_settings("browser_custom_executable"))
-                        self.current_filepicker = filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback)
-                    self.draw_filepicker_popup()
-                    imgui.text("Arguments: ")
-                    imgui.same_line()
-                    imgui.set_cursor_pos_x(pos)
-                    imgui.set_next_item_width(args_width)
-                    changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
-                    if changed:
-                        async_thread.run(db.update_settings("browser_custom_arguments"))
-                    imgui.end_popup()
+                    self.custom_browser_settings_open = True
             else:
                 imgui.table_next_row()
                 imgui.table_next_column()
