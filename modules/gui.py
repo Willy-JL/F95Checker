@@ -498,7 +498,7 @@ class MainGUI():
             imgui.dummy(0, 0)
             imgui.end_group()
             imgui.spacing()
-            btns_width = sum(imgui.calc_text_size(key).x for key in buttons.keys()) + (2 * len(buttons) * imgui.style.frame_padding.x) + (imgui.style.item_spacing.x * (len(buttons) - 1))
+            btns_width = sum(imgui.calc_text_size(label).x for label in buttons) + (2 * len(buttons) * imgui.style.frame_padding.x) + (imgui.style.item_spacing.x * (len(buttons) - 1))
             cur_pos_x = imgui.get_cursor_pos_x()
             new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btns_width
             if new_pos_x > cur_pos_x:
@@ -888,7 +888,7 @@ class MainGUI():
                         key = lambda id: globals.games[id].rating
                     case _:  # Name and all others
                         key = lambda id: globals.games[id].name.lower()
-                ids = list(globals.games.keys())
+                ids = list(globals.games)
                 ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
                 self.sorted_games_ids = ids
             match self.filter_by.value:
@@ -1358,7 +1358,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Filter by:")
             imgui.table_next_column()
-            changed, value = imgui.combo("##filter_by", self.filter_by.value - 1, list(FilterMode.__members__.keys()))
+            changed, value = imgui.combo("##filter_by", self.filter_by.value - 1, list(FilterMode._members_))
             filtering = value != 0
             if changed:
                 self.filter_by = FilterMode(value + 1)
@@ -1369,7 +1369,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Filter by engine:")
                 imgui.table_next_column()
-                changed, value = imgui.combo("##filter_engine", FilterMode.Engine.by.value - 1, list(Engine.__members__.keys()))
+                changed, value = imgui.combo("##filter_engine", FilterMode.Engine.by.value - 1, list(Engine._members_))
                 if changed:
                     FilterMode.Engine.by = Engine(value + 1)
                     self.require_sort = True
@@ -1379,7 +1379,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Filter by status:")
                 imgui.table_next_column()
-                changed, value = imgui.combo("##filter_status", FilterMode.Status.by.value - 1, list(Status.__members__.keys()))
+                changed, value = imgui.combo("##filter_status", FilterMode.Status.by.value - 1, list(Status._members_))
                 if changed:
                     FilterMode.Status.by = Status(value + 1)
                     self.require_sort = True
@@ -1400,7 +1400,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text("Filter by tag:")
                 imgui.table_next_column()
-                changed, value = imgui.combo("##filter_tag", FilterMode.Tag.by.value - 1, list(Tag.__members__.keys()))
+                changed, value = imgui.combo("##filter_tag", FilterMode.Tag.by.value - 1, list(Tag._members_))
                 if changed:
                     FilterMode.Tag.by = Tag(value + 1)
                     self.require_sort = True
