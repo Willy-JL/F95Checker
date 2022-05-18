@@ -193,7 +193,7 @@ class MainGUI():
                 if globals.settings.scroll_smooth:
                     scroll_energy += imgui.io.mouse_wheel
                     if abs(scroll_energy) > 0.1:
-                        scroll_now = scroll_energy * imgui.io.delta_time * 8
+                        scroll_now = scroll_energy * imgui.io.delta_time * globals.settings.scroll_smooth_speed
                         scroll_energy -= scroll_now
                     else:
                         scroll_now = 0.0
@@ -1622,6 +1622,25 @@ class MainGUI():
             if changed:
                 set.scroll_smooth = value
                 async_thread.run(db.update_settings("scroll_smooth"))
+
+            if not set.scroll_smooth:
+                utils.push_disabled()
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Smooth speed:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "How fast or slow the smooth scrolling animation is. Default is 8."
+            )
+            imgui.table_next_column()
+            changed, value = imgui.input_float("##scroll_smooth_speed", set.scroll_smooth_speed, step=0.25, step_fast=1.0)
+            set.scroll_smooth_speed = min(max(value, 0.1), 50)
+            if changed:
+                async_thread.run(db.update_settings("scroll_smooth_speed"))
+
+            if not set.scroll_smooth:
+                utils.pop_disabled()
 
             imgui.table_next_row()
             imgui.table_next_column()

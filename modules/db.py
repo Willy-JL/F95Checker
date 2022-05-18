@@ -44,6 +44,7 @@ async def connect():
                 request_timeout             INTEGER DEFAULT 30,
                 scroll_amount               REAL    DEFAULT 1,
                 scroll_smooth               INTEGER DEFAULT 1,
+                scroll_smooth_speed         REAL    DEFAULT 8,
                 select_executable_after_add INTEGER DEFAULT 0,
                 start_in_tray               INTEGER DEFAULT 0,
                 start_refresh               INTEGER DEFAULT 0,

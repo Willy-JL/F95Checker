@@ -279,6 +279,7 @@ class Settings:
     request_timeout             : int
     scroll_amount               : float
     scroll_smooth               : bool
+    scroll_smooth_speed         : float
     select_executable_after_add : bool
     start_in_tray               : bool
     start_refresh               : bool
