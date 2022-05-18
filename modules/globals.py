@@ -71,6 +71,22 @@ else:
                     candidates = None  # OperaGX is not yet available for linux
                 case _:
                     candidates = None
+        elif os is Os.MacOS:
+            match browser.value:
+                case Browser.Chrome.value:
+                    candidates = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+                case Browser.Firefox.value:
+                    candidates = ["/Applications/Firefox.app/Contents/MacOS/firefox"]
+                case Browser.Brave.value:
+                    candidates = ["/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"]
+                case Browser.Edge.value:
+                    candidates = None  # Edge is not yet available for macos
+                case Browser.Opera.value:
+                    candidates = ["/Applications/Opera.app/Contents/MacOS/Opera"]
+                case Browser.Opera_GX.value:
+                    candidates = ["/Applications/Opera GX.app/Contents/MacOS/Opera"]
+                case _:
+                    candidates = None
         if candidates:
             for candidate in candidates:
                 if path := shutil.which(candidate):
