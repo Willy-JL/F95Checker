@@ -32,7 +32,7 @@ async def connect():
                 browser_custom_executable   TEXT    DEFAULT "",
                 browser_html                INTEGER DEFAULT 0,
                 browser_private             INTEGER DEFAULT 0,
-                browser                     INTEGER DEFAULT {Browser["None"]},
+                browser                     INTEGER DEFAULT {Browser._None},
                 display_mode                INTEGER DEFAULT {DisplayMode.list},
                 fit_images                  INTEGER DEFAULT 0,
                 grid_columns                INTEGER DEFAULT 3,
@@ -193,7 +193,7 @@ async def load():
         settings = {key: sql_to_py(value, types[key]) for key, value in settings.items() if key in types}
         globals.settings = Settings(**settings)
         if globals.settings.browser.name not in globals.browsers:
-            globals.settings.browser = Browser["None"]
+            globals.settings.browser = Browser._None
         globals.browser_idx = globals.browsers.index(globals.settings.browser.name)
 
         globals.games = {}
@@ -333,15 +333,15 @@ async def migrate_legacy(config: dict):
 
             if browser := options.get("browser"):
                 keys.append("browser")
-                values.append(Browser[{
-                    "none":    "None",
-                    "chrome":  "Chrome",
-                    "firefox": "Firefox",
-                    "brave":   "Brave",
-                    "edge":    "Edge",
-                    "opera":   "Opera",
-                    "operagx": "OperaGX"
-                }[browser]].value)
+                values.append({
+                    "none":    Browser._None,
+                    "chrome":  Browser.Chrome,
+                    "firefox": Browser.Firefox,
+                    "brave":   Browser.Brave,
+                    "edge":    Browser.Edge,
+                    "opera":   Browser.Opera,
+                    "operagx": Browser.Opera_GX
+                }[browser].value)
 
             if private_browser := options.get("private_browser"):
                 keys.append("browser_private")

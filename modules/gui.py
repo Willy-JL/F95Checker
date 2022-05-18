@@ -80,7 +80,7 @@ class MainGUI():
         self.size_mult: int | float = 0
         self.sorted_games_ids: list = []
         self.prev_size: tuple[int] = (0, 0)
-        self.filter_by = FilterMode["None"]
+        self.filter_by = FilterMode._None
         self.game_hitbox_click: bool = False
         self.ghost_columns_enabled_count: int = 0
 
@@ -1016,7 +1016,7 @@ class MainGUI():
             # Sorting
             sort_specs = imgui.table_get_sort_specs()
             self.sort_games(sort_specs, manual_sort)
-            not_filtering = self.filter_by is FilterMode["None"]
+            not_filtering = self.filter_by is FilterMode._None
 
             # Loop rows
             frame_height = imgui.get_frame_height()
@@ -1100,7 +1100,7 @@ class MainGUI():
             sort_specs = imgui.table_get_sort_specs()
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             self.sort_games(sort_specs, manual_sort)
-            not_filtering = self.filter_by is FilterMode["None"]
+            not_filtering = self.filter_by is FilterMode._None
             # Enabled attributes
             version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
@@ -1437,11 +1437,11 @@ class MainGUI():
             imgui.table_next_column()
             changed, value = imgui.combo("##browser", globals.browser_idx, globals.browsers)
             if changed:
-                set.browser = Browser[globals.browsers[value]]
+                set.browser = Browser._members_[globals.browsers[value]]
                 globals.browser_idx = value
                 async_thread.run(db.update_settings("browser"))
 
-            if set.browser is Browser["None"]:
+            if set.browser is Browser._None:
                 utils.push_disabled()
 
             if set.browser is Browser.Custom:
@@ -1478,7 +1478,7 @@ class MainGUI():
                 set.browser_html = value
                 async_thread.run(db.update_settings("browser_html"))
 
-            if set.browser is Browser["None"]:
+            if set.browser is Browser._None:
                 utils.pop_disabled()
 
             imgui.end_table()

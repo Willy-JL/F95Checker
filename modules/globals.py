@@ -48,11 +48,12 @@ else:
 data_path = pathlib.Path.home() / data_path
 data_path.mkdir(parents=True, exist_ok=True)
 
-browsers = ["None"]
+browsers = []
+browsers.append(Browser._None.name)
 if sys.platform.startswith("win"):
     pass
 else:
-    for browser in Browser.__members__.values():
+    for browser in list(Browser):
         browser.path = ""
         if os is Os.Linux:
             match browser.value:
@@ -66,7 +67,7 @@ else:
                     candidates = ["microsoft-edge-stable", "microsoft-edge", "edge-stable", "edge-browser", "edge"]
                 case Browser.Opera.value:
                     candidates = ["opera-stable", "opera-browser", "opera"]
-                case Browser.OperaGX.value:
+                case Browser.Opera_GX.value:
                     candidates = None  # OperaGX is not yet available for linux
                 case _:
                     candidates = None
@@ -76,7 +77,7 @@ else:
                     browser.path = path
                     browsers.append(browser.name)
                     break
-browsers.append("Custom")
+browsers.append(Browser.Custom.name)
 
 # Variables
 gui: MainGUI = None
