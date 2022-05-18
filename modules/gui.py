@@ -1441,6 +1441,9 @@ class MainGUI():
                 globals.browser_idx = value
                 async_thread.run(db.update_settings("browser"))
 
+            if set.browser is Browser["None"]:
+                utils.push_disabled()
+
             if set.browser is Browser.Custom:
                 imgui.table_next_row()
                 imgui.table_next_column()
@@ -1474,6 +1477,9 @@ class MainGUI():
             if changed:
                 set.browser_html = value
                 async_thread.run(db.update_settings("browser_html"))
+
+            if set.browser is Browser["None"]:
+                utils.pop_disabled()
 
             imgui.end_table()
             imgui.spacing()
@@ -1520,6 +1526,9 @@ class MainGUI():
                 set.zoom_enabled = value
                 async_thread.run(db.update_settings("zoom_enabled"))
 
+            if not set.zoom_enabled:
+                utils.push_disabled()
+
             imgui.table_next_row()
             imgui.table_next_column()
             imgui.text("Zoom amount:")
@@ -1547,6 +1556,9 @@ class MainGUI():
             if changed:
                 set.zoom_region = value
                 async_thread.run(db.update_settings("zoom_region"))
+
+            if not set.zoom_enabled:
+                utils.pop_disabled()
 
             imgui.end_table()
             imgui.spacing()
@@ -1709,7 +1721,7 @@ class MainGUI():
         if self.start_settings_section("Startup", right_width):
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Refresh at startup:")
+            imgui.text("Refresh at start:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
             changed, value = imgui.checkbox("##start_refresh", set.start_refresh)
