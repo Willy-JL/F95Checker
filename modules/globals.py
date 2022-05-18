@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import sys
 import os
 
@@ -28,7 +29,7 @@ inbox_page        = domain + "/conversations/"
 tool_page         = domain + "/threads/44173/"
 
 
-from modules.structs import Game, Os, Settings
+from modules.structs import Browser, Game, Os, Settings
 from modules.gui import MainGUI
 
 if sys.platform.startswith("win"):
@@ -47,8 +48,39 @@ else:
 data_path = pathlib.Path.home() / data_path
 data_path.mkdir(parents=True, exist_ok=True)
 
+browsers = ["None"]
+if sys.platform.startswith("win"):
+    pass
+else:
+    for browser in Browser.__members__.values():
+        browser.path = ""
+        if os is Os.Linux:
+            match browser.value:
+                case Browser.Chrome.value:
+                    candidates = ["chromium-stable", "chromium-browser", "chromium", "google-chrome-stable", "chrome-stable", "chrome-browser", "google-chrome", "chrome"]
+                case Browser.Firefox.value:
+                    candidates = ["firefox-stable", "firefox"]
+                case Browser.Brave.value:
+                    candidates = ["brave-stable", "brave-browser", "brave"]
+                case Browser.Edge.value:
+                    candidates = ["microsoft-edge-stable", "microsoft-edge", "edge-stable", "edge-browser", "edge"]
+                case Browser.Opera.value:
+                    candidates = ["opera-stable", "opera-browser", "opera"]
+                case Browser.OperaGX.value:
+                    candidates = None  # OperaGX is not yet available for linux
+                case _:
+                    candidates = None
+        if candidates:
+            for candidate in candidates:
+                if path := shutil.which(candidate):
+                    browser.path = path
+                    browsers.append(browser.name)
+                    break
+browsers.append("Custom")
+
 # Variables
 gui: MainGUI = None
+browser_idx: int = 0
 popup_stack: list = []
 settings: Settings = None
 games: dict[int, Game] = None
