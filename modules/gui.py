@@ -11,7 +11,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, Engine, EngineColors, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag
+from modules.structs import Browser, Engine, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag
 from modules.remote import async_thread, filepicker, imagehelper, ratingwidget
 from modules import globals, db, utils
 
@@ -322,7 +322,7 @@ class MainGUI():
                 launch_game()
 
     def draw_game_engine_widget(self, game: Game, *args, **kwargs):
-        col = (*EngineColors[game.engine.value], 1)
+        col = (*game.engine.color, 1)
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)

@@ -53,23 +53,20 @@ Engine = IntEnumAuto("Engine", " ".join([
     "WolfRPG"
 ]))
 
-
-EngineColors = {
-    Engine.ADRIFT       .value: (33  / 255, 150 / 255, 243 / 255),
-    Engine.Flash        .value: (97  / 255, 97  / 255, 97  / 255),
-    Engine.HTML         .value: (104 / 255, 159 / 255, 56  / 255),
-    Engine.Java         .value: (82  / 255, 166 / 255, 176 / 255),
-    Engine.Other        .value: (139 / 255, 195 / 255, 74  / 255),
-    Engine.QSP          .value: (211 / 255, 47  / 255, 47  / 255),
-    Engine.RAGS         .value: (255 / 255, 152 / 255, 0   / 255),
-    Engine.RPGM         .value: (33  / 255, 150 / 255, 243 / 255),
-    Engine.RenPy        .value: (176 / 255, 105 / 255, 232 / 255),
-    Engine.Tads         .value: (33  / 255, 150 / 255, 243 / 255),
-    Engine.Unity        .value: (254 / 255, 89  / 255, 1   / 255),
-    Engine.UnrealEngine .value: (13  / 255, 71  / 255, 161 / 255),
-    Engine.WebGL        .value: (254 / 255, 89  / 255, 1   / 255),
-    Engine.WolfRPG      .value: (76  / 255, 175 / 255, 80  / 255)
-}
+Engine.ADRIFT      .color = (33  / 255, 150 / 255, 243 / 255)
+Engine.Flash       .color = (97  / 255, 97  / 255, 97  / 255)
+Engine.HTML        .color = (104 / 255, 159 / 255, 56  / 255)
+Engine.Java        .color = (82  / 255, 166 / 255, 176 / 255)
+Engine.Other       .color = (139 / 255, 195 / 255, 74  / 255)
+Engine.QSP         .color = (211 / 255, 47  / 255, 47  / 255)
+Engine.RAGS        .color = (255 / 255, 152 / 255, 0   / 255)
+Engine.RPGM        .color = (33  / 255, 150 / 255, 243 / 255)
+Engine.RenPy       .color = (176 / 255, 105 / 255, 232 / 255)
+Engine.Tads        .color = (33  / 255, 150 / 255, 243 / 255)
+Engine.Unity       .color = (254 / 255, 89  / 255, 1   / 255)
+Engine.UnrealEngine.color = (13  / 255, 71  / 255, 161 / 255)
+Engine.WebGL       .color = (254 / 255, 89  / 255, 1   / 255)
+Engine.WolfRPG     .color = (76  / 255, 175 / 255, 80  / 255)
 
 
 class Status(IntEnumAuto):
