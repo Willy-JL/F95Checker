@@ -391,7 +391,7 @@ class MainGUI():
         if not game.executable:
             utils.pop_disabled()
         if clicked:
-            pass  # TODO: open folder
+            utils.open_game_folder(game)
 
     def draw_game_context_menu(self, game: Game):
         self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)

@@ -16,6 +16,35 @@ from modules.remote import async_thread, filepicker
 from modules import globals, db
 
 
+def open_game_folder(game: Game):
+    dir = pathlib.Path(game.executable).absolute().parent
+    if not dir.is_dir():
+        def reset_callback():
+            game.executable = ""
+            async_thread.run(db.update_game(game, "executable"))
+        buttons = {
+            "󰄬 Yes": reset_callback,
+            "󰜺 No": None
+        }
+        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "No such folder!", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons))
+    if globals.os is Os.Windows:
+        os.startfile(str(dir))  # TODO: Needs testing
+    else:
+        if globals.os is Os.Linux:
+            open_util = "xdg-open"
+        elif globals.os is Os.MacOS:
+            open_util = "open"
+        subprocess.Popen(
+            [
+                open_util,
+                str(dir)
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+
 def launch_game_exe(path: str | pathlib.Path):
     exe = pathlib.Path(path).absolute()
     if not exe.is_file():
