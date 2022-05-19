@@ -1195,16 +1195,17 @@ class MainGUI():
                         )
                         imgui.set_cursor_pos(text_pos)
                     imgui.dummy(width, height)
+                    showed_img = True
                 else:
                     crop = game.image.crop_to_ratio(img_ratio, fit=globals.settings.fit_images)
-                    game.image.render(width, height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+                    showed_img = game.image.render(width, height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
                 # Setup pt3
                 imgui.indent(indent)
                 imgui.push_text_wrap_pos()
                 imgui.spacing()
 
                 # Remove button
-                if self.edit_mode:
+                if showed_img and self.edit_mode:
                     old_pos = imgui.get_cursor_pos()
                     imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
                     self.draw_game_remove_button(game, label="󰩺")

@@ -134,9 +134,11 @@ class ImageHelper:
                 imgui.dummy(width, height)
             else:
                 imgui.image(self.texture_id, width, height, *args, **kwargs)
+            return True
         else:
             # Skip if outside view
             imgui.dummy(width, height)
+            return False
 
     def crop_to_ratio(self, ratio: int | float, fit: bool = False):
         img_ratio = self.width / self.height
