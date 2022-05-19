@@ -3,6 +3,7 @@ import subprocess
 import traceback
 import functools
 import pathlib
+import shlex
 import imgui
 import glfw
 import stat
@@ -100,10 +101,13 @@ def open_webpage(url: str):
     set = globals.settings
     if set.browser is Browser._None:
         globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Browser", "Please select a browser in order to open webpages!", MsgBox.warn))
+        return
     # TODO: download pages
+    name = set.browser.name
     if set.browser is Browser.Custom:
+        name = "your browser"
         path = set.browser_custom_executable
-        args = set.browser_custom_arguments  # FIXME: separate
+        args = shlex.split(set.browser_custom_arguments)
     else:
         path = set.browser.path
         args = []
@@ -121,7 +125,7 @@ def open_webpage(url: str):
             stderr=subprocess.DEVNULL
         )
     except Exception:
-        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Oops!", f"Something went wrong opening {set.browser.name}:\n\n{get_traceback()}", MsgBox.error))
+        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Oops!", f"Something went wrong opening {name}:\n\n{get_traceback()}", MsgBox.error))
 
 
 def extract_thread_ids(text: str):
