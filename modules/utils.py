@@ -1,6 +1,7 @@
 import OpenGL.GL as gl
 import subprocess
 import traceback
+import functools
 import pathlib
 import imgui
 import glfw
@@ -9,8 +10,9 @@ import sys
 import re
 import os
 
-from modules.structs import Os
-from modules import globals
+from modules.structs import Browser, Game, MsgBox, Os
+from modules.remote import async_thread, filepicker
+from modules import globals, db
 
 
 def launch(path: str | pathlib.Path):
@@ -64,6 +66,34 @@ def launch(path: str | pathlib.Path):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+
+
+def open_webpage(url: str):
+    set = globals.settings
+    if set.browser is Browser._None:
+        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Browser", "Please select a browser in order to open webpages!", MsgBox.warn))
+    # TODO: download pages
+    if set.browser is Browser.Custom:
+        path = set.browser_custom_executable
+        args = set.browser_custom_arguments  # FIXME: separate
+    else:
+        path = set.browser.path
+        args = []
+        if set.browser_private:
+            args.append(set.browser.private)
+    try:
+        subprocess.Popen(
+            [
+                path,
+                *args,
+                url
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    except Exception:
+        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Oops!", f"Something went wrong opening {set.browser.name}:\n\n{get_traceback()}", MsgBox.error))
 
 
 def extract_thread_ids(text: str):

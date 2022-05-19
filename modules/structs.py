@@ -50,6 +50,13 @@ class Browser(EnumNameHack, IntEnum):
     Opera_GX = 6
     Custom   = 7
 
+Browser.Chrome  .private = "-incognito"
+Browser.Firefox .private = "-private-window"
+Browser.Brave   .private = "-incognito"
+Browser.Edge    .private = "-inprivate"
+Browser.Opera   .private = "-private"
+Browser.Opera_GX.private = "-private"
+
 
 class DisplayMode(IntEnum):
     list = 1

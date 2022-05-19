@@ -375,7 +375,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            pass  # TODO: open game threads
+            utils.open_webpage(game.url)
 
     def draw_game_select_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_select_exe"
@@ -738,13 +738,13 @@ class MainGUI():
             width = imgui.get_item_rect_size().x
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
             if imgui.button("󰏌 F95Zone Thread", width=btn_width):
-                print("aaa")
+                utils.open_webpage(globals.tool_url)
             imgui.same_line()
             if imgui.button("󰊤 GitHub Repo", width=btn_width):
-                print("aaa")
+                utils.open_webpage(globals.github_url)
             imgui.same_line()
             if imgui.button("󰌹 Donate + Links", width=btn_width):
-                print("aaa")
+                utils.open_webpage(globals.developer_url)
             imgui.spacing()
             imgui.spacing()
             imgui.push_text_wrap_pos(width)

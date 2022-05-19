@@ -26,7 +26,9 @@ notif_endpoint    = domain + "/conversations/popup"
 qsearch_endpoint  = domain + "/quicksearch"
 alerts_page       = domain + "/account/alerts/"
 inbox_page        = domain + "/conversations/"
-tool_page         = domain + "/threads/44173/"
+tool_url          = domain + "/threads/44173/"
+github_url        = "https://github.com/Willy-JL/F95Checker"
+developer_url     = "https://linktr.ee/WillyJL"
 
 
 from modules.structs import Browser, Game, Os, Settings
