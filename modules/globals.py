@@ -90,6 +90,8 @@ if sys.platform.startswith("win"):
                     break
                 except Exception:
                     pass
+        if browser.path[0] == '"' and browser.path [-1] == '"':
+            browser.path = browser.path[1:-1]
 else:
     for browser in list(Browser):
         browser.path = ""
