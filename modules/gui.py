@@ -13,7 +13,7 @@ import sys
 
 from modules.structs import Browser, Engine, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag
 from modules.remote import async_thread, filepicker, imagehelper, ratingwidget
-from modules import globals, db, utils
+from modules import globals, callbacks, db, utils
 
 imgui.io = None
 imgui.style = None
@@ -74,6 +74,7 @@ class MainGUI():
         # Variables
         self.visible: bool = True
         self.focused: bool = True
+        self.edit_mode: bool = False
         self.hovered_game: Game = None
         self.require_sort: bool = True
         self.prev_manual_sort: int = 0
@@ -297,7 +298,7 @@ class MainGUI():
         if not game.installed:
             utils.pop_disabled()
         if clicked:
-            utils.launch_game_exe(game)
+            callbacks.launch_game_exe(game)
 
     def draw_game_engine_widget(self, game: Game, *args, **kwargs):
         col = (*game.engine.color, 1)
@@ -353,7 +354,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            utils.open_webpage(game.url)
+            callbacks.open_webpage(game.url)
 
     def draw_game_remove_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_remove"
@@ -362,10 +363,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            id = game.id
-            del globals.games[id]
-            self.require_sort = True
-            async_thread.run(db.remove_game(id))
+            callbacks.remove_game(game)
 
     def draw_game_select_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_select_exe"
@@ -405,7 +403,7 @@ class MainGUI():
         if not game.executable:
             utils.pop_disabled()
         if clicked:
-            utils.open_game_folder(game)
+            callbacks.open_game_folder(game)
 
     def draw_game_context_menu(self, game: Game):
         self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)
@@ -614,8 +612,11 @@ class MainGUI():
             self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
             imgui.same_line()
             self.draw_game_played_checkbox(game, label="󰈼 Played")
-            imgui.same_line(spacing=self.scaled(10))
+            _10 = self.scaled(10)
+            imgui.same_line(spacing=_10)
             self.draw_game_installed_checkbox(game, label="󰅢 Installed")
+            imgui.same_line(spacing=_10)
+            self.draw_game_remove_button(game, label="󰩺 Remove")
 
             imgui.text_disabled("Personal Rating:")
             imgui.same_line()
@@ -740,13 +741,13 @@ class MainGUI():
             width = imgui.get_item_rect_size().x
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
             if imgui.button("󰏌 F95Zone Thread", width=btn_width):
-                utils.open_webpage(globals.tool_url)
+                callbacks.open_webpage(globals.tool_url)
             imgui.same_line()
             if imgui.button("󰊤 GitHub Repo", width=btn_width):
-                utils.open_webpage(globals.github_url)
+                callbacks.open_webpage(globals.github_url)
             imgui.same_line()
             if imgui.button("󰌹 Donate + Links", width=btn_width):
-                utils.open_webpage(globals.developer_url)
+                callbacks.open_webpage(globals.developer_url)
             imgui.spacing()
             imgui.spacing()
             imgui.push_text_wrap_pos(width)
@@ -1045,6 +1046,9 @@ class MainGUI():
                     self.draw_game_engine_widget(game)
                 # Name
                 imgui.table_set_column_index(name)
+                if self.edit_mode:
+                    self.draw_game_remove_button(game, label="󰩺")
+                    imgui.same_line()
                 imgui.text(game.name)
                 if version_enabled:
                     imgui.same_line()
@@ -1199,6 +1203,12 @@ class MainGUI():
                 imgui.push_text_wrap_pos()
                 imgui.spacing()
 
+                # Remove button
+                if self.edit_mode:
+                    old_pos = imgui.get_cursor_pos()
+                    imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
+                    self.draw_game_remove_button(game, label="󰩺")
+                    imgui.set_cursor_pos(old_pos)
                 # Name
                 name = game.name
                 did_wrap = imgui.calc_text_size(name).x > imgui.get_content_region_available_width()
@@ -1695,6 +1705,43 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
+        if self.start_settings_section("Manage", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Ask path on add:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "When this is enabled you will be asked to select a game executable right after adding the game to F95Checker."
+            )
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
+            if changed:
+                set.select_executable_after_add = value
+                async_thread.run(db.update_settings("select_executable_after_add"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Show remove button:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##edit_mode", self.edit_mode)
+            if changed:
+                self.edit_mode = value
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Confirm when removing:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##confirm_on_remove", set.confirm_on_remove)
+            if changed:
+                set.confirm_on_remove = value
+                async_thread.run(db.update_settings("confirm_on_remove"))
+
+            imgui.end_table()
+            imgui.spacing()
+
         if self.start_settings_section("Refresh", right_width):
             imgui.table_next_row()
             imgui.table_next_column()
@@ -1803,24 +1850,6 @@ class MainGUI():
                 imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding = \
                 imgui.style.scrollbar_rounding = globals.settings.style_corner_radius
                 async_thread.run(db.update_settings("style_corner_radius"))
-
-            imgui.end_table()
-            imgui.spacing()
-
-        if self.start_settings_section("Misc", right_width):
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text("Ask path on add:")
-            imgui.same_line()
-            self.draw_hover_text(
-                "When this is enabled you will be asked to select a game executable right after adding the game to F95Checker."
-            )
-            imgui.table_next_column()
-            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
-            if changed:
-                set.select_executable_after_add = value
-                async_thread.run(db.update_settings("select_executable_after_add"))
 
             imgui.end_table()
             imgui.spacing()

@@ -33,6 +33,7 @@ async def connect():
                 browser_html                INTEGER DEFAULT 0,
                 browser_private             INTEGER DEFAULT 0,
                 browser                     INTEGER DEFAULT {Browser._None},
+                confirm_on_remove           INTEGER DEFAULT 1,
                 display_mode                INTEGER DEFAULT {DisplayMode.list},
                 fit_images                  INTEGER DEFAULT 0,
                 grid_columns                INTEGER DEFAULT 3,

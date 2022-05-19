@@ -300,6 +300,7 @@ class Settings:
     browser_html                : bool
     browser_private             : bool
     browser                     : Browser
+    confirm_on_remove           : bool
     display_mode                : DisplayMode
     fit_images                  : bool
     grid_columns                : int
