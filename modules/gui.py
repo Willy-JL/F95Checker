@@ -23,7 +23,7 @@ class MainGUI():
     def __init__(self):
         # Constants
         self.sidebar_size: int = 269
-        self.game_list_column_count: int = 15
+        self.game_list_column_count: int = 16
         self.window_flags: int = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
@@ -408,18 +408,28 @@ class MainGUI():
         imgui.separator()
         self.draw_game_rating_widget(game)
 
-    def draw_game_notes_widget(self, game: Game, *args, **kwargs):
-        changed, new_notes = imgui.input_text_multiline(
-            f"##{game.id}_notes",
-            value=game.notes,
-            buffer_length=9999999,
-            width=imgui.get_content_region_available_width(),
-            height=self.scaled(100),
-            *args,
-            **kwargs
-        )
+    def draw_game_notes_widget(self, game: Game, multiline: bool = True, width: int | float = None, *args, **kwargs):
+        if multiline:
+            changed, value = imgui.input_text_multiline(
+                f"##{game.id}_notes",
+                value=game.notes,
+                buffer_length=9999999,
+                width=width or imgui.get_content_region_available_width(),
+                height=self.scaled(100),
+                *args,
+                **kwargs
+            )
+        else:
+            imgui.set_next_item_width(width or imgui.get_content_region_available_width())
+            changed, value = imgui.input_text(
+                f"##{game.id}_notes",
+                value=game.notes,
+                buffer_length=9999999,
+                *args,
+                **kwargs
+            )
         if changed:
-            game.notes = new_notes
+            game.notes = value
             async_thread.run(db.update_game(game, "notes"))
 
     def draw_game_tags_widget(self, game: Game, *args, **kwargs):
@@ -955,6 +965,7 @@ class MainGUI():
             imgui.table_setup_column("Installed", can_sort)  # 12
             imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 13
             imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT)  # 14
+            imgui.table_setup_column("Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT)  # 15
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
 
             # Enabled columns
@@ -970,6 +981,7 @@ class MainGUI():
             installed    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             rating       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             open_thread  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
+            notes        = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
 
             # Headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
@@ -996,6 +1008,7 @@ class MainGUI():
 
             # Loop rows
             frame_height = imgui.get_frame_height()
+            notes_width = 10 * frame_height
             for game_i, id in enumerate(self.sorted_games_ids):
                 game: Game = globals.games[id]
                 imgui.table_next_row()
@@ -1055,6 +1068,10 @@ class MainGUI():
                 if open_thread:
                     imgui.table_set_column_index(open_thread)
                     self.draw_game_open_thread_button(game, label="󰏌")
+                # Notes
+                if notes:
+                    imgui.table_set_column_index(notes)
+                    self.draw_game_notes_widget(game, multiline=False, width=notes_width)
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -1092,8 +1109,9 @@ class MainGUI():
             installed       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             rating          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             open_thread     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            notes           = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             button_row = play_button or open_thread or played or installed
-            data_rows = engine + developer + last_updated + last_played + added_on + rating
+            data_rows = engine + developer + last_updated + last_played + added_on + rating + notes
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
@@ -1121,6 +1139,7 @@ class MainGUI():
                 imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
             img_ratio = globals.settings.grid_image_ratio
             width = None
+            notes_width = None
             height = None
             _24 = self.scaled(24)
             draw_list = imgui.get_window_draw_list()
@@ -1239,6 +1258,11 @@ class MainGUI():
                             imgui.text_disabled("Rating:")
                             imgui.same_line()
                             self.draw_game_rating_widget(game)
+                        # Notes
+                        if notes:
+                            if not notes_width:
+                                notes_width = width - 2 * (imgui.get_cursor_pos_x() - pos.x)
+                            self.draw_game_notes_widget(game, multiline=False, width=notes_width)
                     else:
                         # Skip if outside view
                         imgui.dummy(0, data_height)
