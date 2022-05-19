@@ -15,7 +15,7 @@ from modules.remote import async_thread, filepicker
 from modules import globals, db
 
 
-def launch(path: str | pathlib.Path):
+def launch_game_exe(path: str | pathlib.Path):
     exe = pathlib.Path(path).absolute()
     if not exe.is_file():
         raise FileNotFoundError()
@@ -66,6 +66,34 @@ def launch(path: str | pathlib.Path):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+
+
+def launch(game: Game):
+    def launch_game():
+        if not game.executable:
+            return
+        try:
+            launch_game_exe(game.executable)
+        except FileNotFoundError:
+            def reset_callback():
+                game.executable = ""
+                async_thread.run(db.update_game(game, "executable"))
+            buttons = {
+                "󰄬 Yes": reset_callback,
+                "󰜺 No": None
+            }
+            globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "File not found!", "The selected executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons))
+        except Exception:
+            globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Oops!", f"Something went wrong launching {game.name}:\n\n{get_traceback()}", MsgBox.error))
+    if not game.executable:
+        def select_callback(selected):
+            if selected:
+                game.executable = selected
+                async_thread.run(db.update_game(game, "executable"))
+                launch_game()
+        globals.popup_stack.append(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
+    else:
+        launch_game()
 
 
 def open_webpage(url: str):
