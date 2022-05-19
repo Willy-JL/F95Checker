@@ -255,6 +255,13 @@ async def update_settings(*keys: list[str]):
     """, tuple(values))
 
 
+async def remove_game(id: int):
+    await execute(f"""
+        DELETE FROM games
+        WHERE id={id}
+    """)
+
+
 async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0
     try:
         with open(path, encoding="utf-8") as f:

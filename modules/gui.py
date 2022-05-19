@@ -355,6 +355,18 @@ class MainGUI():
         if clicked:
             utils.open_webpage(game.url)
 
+    def draw_game_remove_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+        id = f"{label}##{game.id}_remove"
+        if selectable:
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+        else:
+            clicked = imgui.button(id, *args, **kwargs)
+        if clicked:
+            id = game.id
+            del globals.games[id]
+            self.require_sort = True
+            async_thread.run(db.remove_game(id))
+
     def draw_game_select_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_select_exe"
         if selectable:
@@ -409,6 +421,8 @@ class MainGUI():
         self.draw_game_installed_checkbox(game, label="󰅢 Installed")
         imgui.separator()
         self.draw_game_rating_widget(game)
+        imgui.separator()
+        self.draw_game_remove_button(game, label="󰩺 Remove", selectable=True)
 
     def draw_game_notes_widget(self, game: Game, multiline: bool = True, width: int | float = None, *args, **kwargs):
         if multiline:
