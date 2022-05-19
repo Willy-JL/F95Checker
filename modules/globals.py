@@ -51,7 +51,45 @@ data_path.mkdir(parents=True, exist_ok=True)
 browsers = []
 browsers.append(Browser._None.name)
 if sys.platform.startswith("win"):
-    pass
+    import winreg
+    local_machine = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+    current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+    start_menu_internet = "SOFTWARE\\Clients\\StartMenuInternet"
+    open_command = "shell\\open\\command"
+    for browser in list(Browser):
+        browser.path = ""
+        match browser.value:
+            case Browser.Chrome.value:
+                candidates = ["Google Chrome"]
+            case Browser.Firefox.value:
+                candidates = ["Firefox-308046B0AF4A39CB"]
+            case Browser.Brave.value:
+                candidates = ["Brave"]
+            case Browser.Edge.value:
+                candidates = ["Microsoft Edge"]
+            case Browser.Opera.value:
+                candidates = ["OperaStable"]
+            case Browser.Opera_GX.value:
+                candidates = ["Opera GXStable"]
+            case _:
+                candidates = None
+        if candidates:
+            for candidate in candidates:
+                reg_key = f"{start_menu_internet}\\{candidate}\\{open_command}"
+                try:
+                    path = winreg.QueryValue(local_machine, reg_key)
+                    browser.path = path
+                    browsers.append(browser.name)
+                    break
+                except Exception:
+                    pass
+                try:
+                    path = winreg.QueryValue(current_user, reg_key)
+                    browser.path = path
+                    browsers.append(browser.name)
+                    break
+                except Exception:
+                    pass
 else:
     for browser in list(Browser):
         browser.path = ""
