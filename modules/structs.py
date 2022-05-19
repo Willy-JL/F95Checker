@@ -1,4 +1,5 @@
 import dataclasses
+import functools
 import datetime
 import enum
 
@@ -277,12 +278,19 @@ class MsgBox(IntEnum, EnumAutoValue):
 
 
 class Timestamp:
-    def __init__(self, unix_time: int):
-        self.value: int = unix_time
+    def __init__(self, unix_time: int | float, invalid: str = "N/A", format: str = "%d/%m/%Y"):
+        self.invalid: str = invalid
+        self.format: str = format
+        self.display: str = ""
+        self.value: int = 0
+        self.update(unix_time)
+
+    def update(self, unix_time: int | float):
+        self.value = int(unix_time)
         if self.value == 0:
-            self.display: str = "N/A"
+            self.display = self.invalid
         else:
-            self.display: str = datetime.date.fromtimestamp(unix_time).strftime("%d/%m/%Y")
+            self.display = datetime.date.fromtimestamp(unix_time).strftime(self.format)
 
 
 @dataclasses.dataclass
@@ -335,9 +343,9 @@ class Game:
     status            : Status
     url               : str
     added_on          : Timestamp
-    last_updated      : Timestamp
+    last_updated      : functools.partial(Timestamp, invalid="Unknown")
     last_full_refresh : int
-    last_played       : Timestamp
+    last_played       : functools.partial(Timestamp, invalid="Never")
     rating            : int
     played            : bool
     installed         : str

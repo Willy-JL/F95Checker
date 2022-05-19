@@ -6,6 +6,7 @@ import pathlib
 import shlex
 import imgui
 import glfw
+import time
 import stat
 import sys
 import re
@@ -45,7 +46,7 @@ def open_game_folder(game: Game):
         )
 
 
-def launch_game_exe(path: str | pathlib.Path):
+def _launch(path: str | pathlib.Path):
     exe = pathlib.Path(path).absolute()
     if not exe.is_file():
         raise FileNotFoundError()
@@ -98,12 +99,14 @@ def launch_game_exe(path: str | pathlib.Path):
             )
 
 
-def launch(game: Game):
-    def launch_game():
+def launch_game_exe(game: Game):
+    def _launch_game():
         if not game.executable:
             return
         try:
-            launch_game_exe(game.executable)
+            _launch(game.executable)
+            game.last_played.update(time.time())
+            async_thread.run(db.update_game(game, "last_played"))
         except FileNotFoundError:
             def reset_callback():
                 game.executable = ""
@@ -120,10 +123,10 @@ def launch(game: Game):
             if selected:
                 game.executable = selected
                 async_thread.run(db.update_game(game, "executable"))
-                launch_game()
+                _launch_game()
         globals.popup_stack.append(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
     else:
-        launch_game()
+        _launch_game()
 
 
 def open_webpage(url: str):
