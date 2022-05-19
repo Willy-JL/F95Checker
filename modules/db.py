@@ -172,7 +172,7 @@ async def save_loop():
 
 
 def sql_to_py(value: str | int | float, data_type: typing.Type):
-    if hasattr(data_type, "__name__") and data_type.__name__ == "list":
+    if getattr(data_type, "__name__", None) == "list":
         value = json.loads(value)
         if hasattr(data_type, "__args__"):
             content_type = data_type.__args__[0]
