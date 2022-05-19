@@ -110,6 +110,8 @@ class MainGUI():
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
+        if globals.settings.start_in_tray:
+            self.minimize()
         icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = imagehelper.ImageHelper(icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
