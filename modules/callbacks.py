@@ -1,5 +1,4 @@
 import subprocess
-import functools
 import pathlib
 import shlex
 import time
@@ -80,16 +79,16 @@ def launch_game_exe(game: Game):
                 "󰄬 Yes": reset_callback,
                 "󰜺 No": None
             }
-            globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "File not found!", "The selected executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons))
+            utils.push_popup(globals.gui.draw_msgbox, "File not found!", "The selected executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
         except Exception:
-            globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Oops!", f"Something went wrong launching {game.name}:\n\n{utils.get_traceback()}", MsgBox.error))
+            utils.push_popup(globals.gui.draw_msgbox, "Oops!", f"Something went wrong launching {game.name}:\n\n{utils.get_traceback()}", MsgBox.error)
     if not game.executable:
         def select_callback(selected):
             if selected:
                 game.executable = selected
                 async_thread.run(db.update_game(game, "executable"))
                 _launch_game()
-        globals.popup_stack.append(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
+        utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
     else:
         _launch_game()
 
@@ -104,7 +103,7 @@ def open_game_folder(game: Game):
             "󰄬 Yes": reset_callback,
             "󰜺 No": None
         }
-        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "No such folder!", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons))
+        utils.push_popup(globals.gui.draw_msgbox, "No such folder!", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
     if globals.os is Os.Windows:
         os.startfile(str(dir))  # TODO: Needs testing
     else:
@@ -126,7 +125,7 @@ def open_game_folder(game: Game):
 def open_webpage(url: str):
     set = globals.settings
     if set.browser is Browser._None:
-        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Browser", "Please select a browser in order to open webpages!", MsgBox.warn))
+        utils.push_popup(globals.gui.draw_msgbox, "Browser", "Please select a browser in order to open webpages!", MsgBox.warn)
         return
     # TODO: download pages
     name = set.browser.name
@@ -151,7 +150,7 @@ def open_webpage(url: str):
             stderr=subprocess.DEVNULL
         )
     except Exception:
-        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Oops!", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error))
+        utils.push_popup(globals.gui.draw_msgbox, "Oops!", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error)
 
 
 def remove_game(game: Game):
@@ -170,6 +169,6 @@ def remove_game(game: Game):
             "󰄬 Yes": remove_callback,
             "󰜺 No": None
         }
-        globals.popup_stack.append(functools.partial(globals.gui.draw_msgbox, "Remove game", f"Are you sure you want to remove {game.name} from your list?", MsgBox.warn, buttons))
+        utils.push_popup(globals.gui.draw_msgbox, "Remove game", f"Are you sure you want to remove {game.name} from your list?", MsgBox.warn, buttons)
     else:
         remove_callback()

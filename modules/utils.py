@@ -1,9 +1,20 @@
 import OpenGL.GL as gl
+import functools
 import traceback
 import imgui
 import glfw
 import sys
 import re
+
+from modules import globals
+
+
+def push_popup(*args):
+    if len(args) > 1:
+        popup_func = functools.partial(*args)
+    else:
+        popup_func = args[0]
+    globals.popup_stack.append(popup_func)
 
 
 def extract_thread_ids(text: str):

@@ -237,7 +237,7 @@ class MainGUI():
 
                 imgui.set_cursor_screen_pos((text_x - _3, text_y))
                 if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
-                    globals.popup_stack.append(self.draw_about_popup)
+                    utils.push_popup(self.draw_about_popup)
                 imgui.set_cursor_screen_pos((text_x, text_y))
                 imgui.text(text)
 
@@ -285,7 +285,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            globals.popup_stack.append(functools.partial(self.draw_game_info_popup, game))
+            utils.push_popup(self.draw_game_info_popup, game)
 
     def draw_game_play_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
@@ -376,7 +376,7 @@ class MainGUI():
                 if selected:
                     game.executable = selected
                     async_thread.run(db.update_game(game, "executable"))
-            globals.popup_stack.append(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
+            utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
 
     def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_unset_exe"
@@ -839,7 +839,7 @@ class MainGUI():
                     if selected:
                         set.browser_custom_executable = selected
                         async_thread.run(db.update_settings("browser_custom_executable"))
-                globals.popup_stack.append(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
+                utils.push_popup(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
             imgui.text("Arguments: ")
             imgui.same_line()
             imgui.set_cursor_pos_x(pos)
@@ -923,7 +923,7 @@ class MainGUI():
             if self.game_hitbox_click and not imgui.is_mouse_down():
                 # Left click = open game info popup
                 self.game_hitbox_click = False
-                globals.popup_stack.append(functools.partial(self.draw_game_info_popup, game))
+                utils.push_popup(self.draw_game_info_popup, game)
         if manual_sort and not_filtering:
             # Left click drag = swap if in manual sort mode
             if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
@@ -1477,7 +1477,7 @@ class MainGUI():
                 imgui.text("Custom browser:")
                 imgui.table_next_column()
                 if imgui.button("Configure", width=right_width):
-                    globals.popup_stack.append(self.draw_custom_browser_popup)
+                    utils.push_popup(self.draw_custom_browser_popup)
             else:
                 imgui.table_next_row()
                 imgui.table_next_column()
