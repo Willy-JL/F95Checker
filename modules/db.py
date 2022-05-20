@@ -207,7 +207,7 @@ async def load():
         for game in games:
             game = dict(game)
             game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
-            game["image"] = imagehelper.ImageHelper(globals.data_path / "images", glob=f"{game['id']}.*")
+            game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
             globals.games[game["id"]] = Game(**game)
     except Exception:
         print(utils.get_traceback())

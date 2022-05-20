@@ -10,7 +10,8 @@ frozen = getattr(sys, "frozen", False)
 if frozen:
     self_path = pathlib.Path(sys.executable).parent
 else:
-    self_path = pathlib.Path(__file__).parent.parent
+    import main
+    self_path = pathlib.Path(main.__file__).parent
 
 if frozen and sys.platform.startswith("linux"):
     library = self_path / f"lib/glfw/{os.environ.get('XDG_SESSION_TYPE')}/libglfw.so"
@@ -49,6 +50,8 @@ else:
     sys.exit(1)
 data_path = pathlib.Path.home() / data_path
 data_path.mkdir(parents=True, exist_ok=True)
+images_path = data_path / "images"
+images_path.mkdir(parents=True, exist_ok=True)
 
 browsers = []
 browsers.append(Browser._None.name)

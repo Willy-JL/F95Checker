@@ -159,7 +159,7 @@ def remove_game(game: Game):
         del globals.games[id]
         globals.gui.require_sort = True
         async_thread.run(db.remove_game(id))
-        for img in (globals.data_path / "images").glob(f"{id}.*"):
+        for img in globals.images_path.glob(f"{id}.*"):
             try:
                 img.unlink()
             except Exception:
