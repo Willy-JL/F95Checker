@@ -1831,10 +1831,9 @@ class MainGUI():
             imgui.text("Start with system:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##start_with_system", set.start_with_system)
+            changed, value = imgui.checkbox("##start_with_system", globals.start_with_system)
             if changed:
-                set.start_with_system = value
-                async_thread.run(db.update_settings("start_with_system"))
+                callbacks.update_start_with_system(value)
 
             imgui.end_table()
             imgui.spacing()

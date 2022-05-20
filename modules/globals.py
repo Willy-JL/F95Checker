@@ -1,5 +1,8 @@
+import configparser
+import plistlib
 import pathlib
 import shutil
+import shlex
 import sys
 import os
 
@@ -139,6 +142,45 @@ else:
                     browsers.append(browser.name)
                     break
 browsers.append(Browser.Custom.name)
+
+if frozen:
+    start_cmd = sys.executable
+else:
+    import main
+    start_cmd = shlex.join([sys.executable, main.__file__])
+
+if os is Os.Windows:
+    autostart = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\F95Checker"
+    import winreg
+    current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+    try:
+        value = winreg.QueryValue(current_user, autostart)
+        start_with_system = value == start_cmd
+    except Exception:
+        start_with_system = False
+elif os is Os.Linux:
+    autostart_dir = pathlib.Path.home() / ".config/autostart"
+    autostart_dir.mkdir(parents=True, exist_ok=True)
+    autostart = autostart_dir / "F95Checker.desktop"
+    try:
+        config = configparser.RawConfigParser()
+        config.optionxform = lambda option: option
+        config.read(autostart)
+        value = config.get("Desktop Entry", "Exec")
+        start_with_system = value == start_cmd
+    except Exception:
+        start_with_system = False
+elif os is Os.MacOS:
+    autostart_dir = pathlib.Path.home() / "Library/LaunchAgents"
+    autostart_dir.mkdir(parents=True, exist_ok=True)
+    autostart = autostart_dir / "F95Checker.plist"
+    try:
+        with autostart.open("rb") as fp:
+            plist = plistlib.load(fp)
+        value = shlex.join(plist["ProgramArguments"])
+        start_with_system = value == start_cmd
+    except Exception:
+        start_with_system = False
 
 # Variables
 gui: MainGUI = None

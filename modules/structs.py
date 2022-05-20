@@ -316,7 +316,6 @@ class Settings:
     select_executable_after_add : bool
     start_in_tray               : bool
     start_refresh               : bool
-    start_with_system           : bool
     style_accent                : str
     style_alt_bg                : str
     style_bg                    : str

@@ -1,4 +1,6 @@
+import configparser
 import subprocess
+import plistlib
 import pathlib
 import shlex
 import time
@@ -8,6 +10,42 @@ import os
 from modules.structs import Browser, Game, MsgBox, Os
 from modules.remote import async_thread, filepicker
 from modules import globals, db, utils
+
+
+def update_start_with_system(toggle: bool):
+    try:
+        if toggle:
+            if globals.os is Os.Windows:
+                import winreg
+                current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+                winreg.SetValue(current_user, globals.autostart, winreg.REG_SZ, globals.start_cmd)
+            elif globals.os is Os.Linux:
+                config = configparser.RawConfigParser()
+                config.optionxform = lambda option: option
+                config.add_section("Desktop Entry")
+                config.set("Desktop Entry", "Name", "F95Checker")
+                config.set("Desktop Entry", "Comment", "An update checker tool for (NSFW) games on the F95Zone platform")
+                config.set("Desktop Entry", "Type", "Application")
+                config.set("Desktop Entry", "Exec", globals.start_cmd)
+                with globals.autostart.open("w") as fp:
+                    config.write(fp, space_around_delimiters=False)
+            elif globals.os is Os.MacOS:
+                plist = {
+                    "Label": "F95Checker",
+                    "ProgramArguments": shlex.split(globals.start_cmd)
+                }
+                with globals.autostart.open("wb") as fp:
+                    plistlib.dump(plist, fp)
+        else:
+            if globals.os is Os.Windows:
+                import winreg
+                current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+                winreg.SetValue(current_user, globals.autostart, winreg.REG_SZ, "")
+            elif globals.os is Os.Linux or globals.os is Os.MacOS:
+                globals.autostart.unlink()
+        globals.start_with_system = toggle
+    except Exception:
+            utils.push_popup(globals.gui.draw_msgbox, "Oops!", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
 
 
 def _launch(path: str | pathlib.Path):

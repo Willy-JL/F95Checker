@@ -49,7 +49,6 @@ async def connect():
                 select_executable_after_add INTEGER DEFAULT 0,
                 start_in_tray               INTEGER DEFAULT 0,
                 start_refresh               INTEGER DEFAULT 0,
-                start_with_system           INTEGER DEFAULT 0,
                 style_accent                TEXT    DEFAULT "#da1e2e",
                 style_alt_bg                TEXT    DEFAULT "#141414",
                 style_bg                    TEXT    DEFAULT "#181818",
