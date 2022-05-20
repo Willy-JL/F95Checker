@@ -105,13 +105,13 @@ class ImageHelper:
                 if self.prev_time != (new_time := imgui.get_time()):
                     self.prev_time = new_time
                     self.frame_elapsed += imgui.get_io().delta_time
-                if self.frame_elapsed > self.frame_durations[max(self.current_frame, 0)]:
-                    self.frame_elapsed = 0
-                    self.applied = False
+                    while (excess := self.frame_elapsed - self.frame_durations[max(self.current_frame, 0)]) > 0:
+                        self.frame_elapsed = excess
+                        self.applied = False
+                        self.current_frame += 1
+                        if self.current_frame == self.frame_count:
+                            self.current_frame = 0
                 if not self.applied:
-                    self.current_frame += 1
-                    if self.current_frame == self.frame_count:
-                        self.current_frame = 0
                     self.apply(self.data[self.current_frame])
                     self.applied = True
             elif not self.applied:
