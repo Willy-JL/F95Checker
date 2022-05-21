@@ -1,16 +1,8 @@
 name: "Build"
 
 on:
-  push:
-    branches:
-      - "master"
-      - "main"
-      - "dev"
   workflow_dispatch:
-    branches:
-      - "master"
-      - "main"
-      - "dev"
+  push:
   release:
     types:
       - "published"
