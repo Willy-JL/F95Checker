@@ -126,7 +126,7 @@ def launch_game_exe(game: Game):
                 game.executable = selected
                 async_thread.run(db.update_game(game, "executable"))
                 _launch_game()
-        utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
+        utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
     else:
         _launch_game()
 

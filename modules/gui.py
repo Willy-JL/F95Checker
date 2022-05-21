@@ -376,7 +376,7 @@ class MainGUI():
                 if selected:
                     game.executable = selected
                     async_thread.run(db.update_game(game, "executable"))
-            utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", callback=select_callback).tick)
+            utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
 
     def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
         id = f"{label}##{game.id}_unset_exe"
@@ -1720,6 +1720,22 @@ class MainGUI():
             if changed:
                 set.select_executable_after_add = value
                 async_thread.run(db.update_settings("select_executable_after_add"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Default exe dir:")
+            imgui.same_line()
+            self.draw_hover_text(
+                f"This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all your games in the same folder (as you should).\n\nCurrent value: {set.exe_default_dir or 'Unset'}",
+                text="(...)"
+            )
+            imgui.table_next_column()
+            if imgui.button("Choose", width=right_width):
+                def select_callback(selected):
+                    if selected:
+                        set.default_exe_dir = selected
+                        async_thread.run(db.update_settings("default_exe_dir"))
+                utils.push_popup(filepicker.FilePicker("Selecte default exe dir", dir_picker=True, callback=select_callback).tick)
 
             imgui.table_next_row()
             imgui.table_next_column()

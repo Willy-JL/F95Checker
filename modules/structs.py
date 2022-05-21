@@ -302,6 +302,7 @@ class Settings:
     browser                     : Browser
     confirm_on_remove           : bool
     display_mode                : DisplayMode
+    default_exe_dir             : str
     fit_images                  : bool
     grid_columns                : int
     grid_image_ratio            : float
