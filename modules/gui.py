@@ -1726,7 +1726,7 @@ class MainGUI():
             imgui.text("Default exe dir:")
             imgui.same_line()
             self.draw_hover_text(
-                f"This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all your games in the same folder (as you should).\n\nCurrent value: {set.exe_default_dir or 'Unset'}",
+                f"This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all your games in the same folder (as you should).\n\nCurrent value: {set.default_exe_dir or 'Unset'}",
                 text="(...)"
             )
             imgui.table_next_column()
