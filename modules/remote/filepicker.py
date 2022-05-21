@@ -178,6 +178,11 @@ class FilePicker:
         return opened, closed
 
 
+class DirPicker(FilePicker):
+    def __init__(self, title: str = "Directory picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags: int = 0):
+        super().__init__(title=title, dir_picker=True, start_dir=start_dir, callback=callback, custom_popup_flags=custom_popup_flags)
+
+
 # Example usage
 if __name__ == "__main__":
     global path

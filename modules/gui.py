@@ -1735,7 +1735,7 @@ class MainGUI():
                     if selected:
                         set.default_exe_dir = selected
                         async_thread.run(db.update_settings("default_exe_dir"))
-                utils.push_popup(filepicker.FilePicker("Selecte default exe dir", dir_picker=True, callback=select_callback).tick)
+                utils.push_popup(filepicker.DirPicker("Selecte default exe dir", callback=select_callback).tick)
 
             imgui.table_next_row()
             imgui.table_next_column()
