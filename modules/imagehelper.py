@@ -5,7 +5,7 @@ import pathlib
 import imgui
 import numpy
 
-from modules.remote import sync_thread
+from modules import sync_thread
 
 
 class ImageHelper:

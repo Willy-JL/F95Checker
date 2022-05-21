@@ -8,8 +8,7 @@ import stat
 import os
 
 from modules.structs import Browser, Game, MsgBox, Os
-from modules.remote import async_thread, filepicker
-from modules import globals, db, utils
+from modules import globals, async_thread, db, filepicker, utils
 
 
 def update_start_with_system(toggle: bool):

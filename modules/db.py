@@ -8,8 +8,7 @@ import json
 import sys
 
 from modules.structs import Browser, DisplayMode, Engine, Game, Settings, Status, Timestamp
-from modules.remote import imagehelper
-from modules import globals, utils
+from modules import globals, imagehelper, utils
 
 connection: aiosqlite.Connection = None
 available: bool = False

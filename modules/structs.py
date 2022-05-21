@@ -3,7 +3,7 @@ import functools
 import datetime
 import enum
 
-from modules.remote import imagehelper
+from modules import imagehelper
 
 
 class EnumNameHack(enum.Enum):

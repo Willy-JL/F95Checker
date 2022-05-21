@@ -12,8 +12,7 @@ import glfw
 import sys
 
 from modules.structs import Browser, Engine, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag
-from modules.remote import async_thread, filepicker, imagehelper, ratingwidget
-from modules import globals, callbacks, db, utils
+from modules import globals, async_thread, callbacks, db, filepicker, imagehelper, ratingwidget, utils
 
 imgui.io = None
 imgui.style = None
