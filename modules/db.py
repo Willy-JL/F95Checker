@@ -5,9 +5,8 @@ import pathlib
 import typing
 import enum
 import json
-import sys
 
-from modules.structs import Browser, DisplayMode, Game, Settings, Status, Timestamp, Type
+from modules.structs import Browser, DisplayMode, Game, MsgBox, Settings, Status, Timestamp, Type
 from modules import globals, imagehelper, utils
 
 connection: aiosqlite.Connection = None
@@ -16,98 +15,92 @@ pending: int = 0
 
 
 async def connect():
-    try:
-        global available, connection
+    global available, connection
 
-        migrate = not (globals.data_path / "db.sqlite3").is_file()
-        # connection = await aiosqlite.connect(globals.data_path / "db.sqlite3")
-        connection = await aiosqlite.connect(":memory:")  # Temporary while things are not final
-        connection.row_factory = aiosqlite.Row  # Return sqlite3.Row instead of tuple
+    migrate = not (globals.data_path / "db.sqlite3").is_file()
+    # connection = await aiosqlite.connect(globals.data_path / "db.sqlite3")
+    connection = await aiosqlite.connect(":memory:")  # Temporary while things are not final
+    connection.row_factory = aiosqlite.Row  # Return sqlite3.Row instead of tuple
 
-        await connection.execute(f"""
-            CREATE TABLE IF NOT EXISTS settings (
-                _                           INTEGER PRIMARY KEY CHECK (_=0),
-                browser_custom_arguments    TEXT    DEFAULT "",
-                browser_custom_executable   TEXT    DEFAULT "",
-                browser_html                INTEGER DEFAULT 0,
-                browser_private             INTEGER DEFAULT 0,
-                browser                     INTEGER DEFAULT {Browser._None},
-                confirm_on_remove           INTEGER DEFAULT 1,
-                display_mode                INTEGER DEFAULT {DisplayMode.list},
-                default_exe_dir             TEXT    DEFAULT "",
-                fit_images                  INTEGER DEFAULT 0,
-                grid_columns                INTEGER DEFAULT 3,
-                grid_image_ratio            REAL    DEFAULT 3.0,
-                manual_sort_list            TEXT    DEFAULT "[]",
-                minimize_on_close           INTEGER DEFAULT 0,
-                refresh_completed_games     INTEGER DEFAULT 1,
-                refresh_workers             INTEGER DEFAULT 20,
-                request_timeout             INTEGER DEFAULT 30,
-                scroll_amount               REAL    DEFAULT 1,
-                scroll_smooth               INTEGER DEFAULT 1,
-                scroll_smooth_speed         REAL    DEFAULT 8,
-                select_executable_after_add INTEGER DEFAULT 0,
-                start_in_tray               INTEGER DEFAULT 0,
-                start_refresh               INTEGER DEFAULT 0,
-                style_accent                TEXT    DEFAULT "#da1e2e",
-                style_alt_bg                TEXT    DEFAULT "#141414",
-                style_bg                    TEXT    DEFAULT "#181818",
-                style_btn_border            TEXT    DEFAULT "#454545",
-                style_btn_disabled          TEXT    DEFAULT "#232323",
-                style_btn_hover             TEXT    DEFAULT "#747474",
-                style_corner_radius         INTEGER DEFAULT 6,
-                style_scaling               REAL    DEFAULT 1.0,
-                tray_refresh_interval       INTEGER DEFAULT 15,
-                update_keep_image           INTEGER DEFAULT 0,
-                vsync_ratio                 INTEGER DEFAULT 1,
-                zoom_amount                 INTEGER DEFAULT 4,
-                zoom_enabled                INTEGER DEFAULT 1,
-                zoom_region                 INTEGER DEFAULT 1,
-                zoom_size                   INTEGER DEFAULT 64
-            )
-        """)
-        await connection.execute("""
-            INSERT INTO settings
-            (_)
-            VALUES
-            (0)
-            ON CONFLICT DO NOTHING
-        """)
+    await connection.execute(f"""
+        CREATE TABLE IF NOT EXISTS settings (
+            _                           INTEGER PRIMARY KEY CHECK (_=0),
+            browser_custom_arguments    TEXT    DEFAULT "",
+            browser_custom_executable   TEXT    DEFAULT "",
+            browser_html                INTEGER DEFAULT 0,
+            browser_private             INTEGER DEFAULT 0,
+            browser                     INTEGER DEFAULT {Browser._None},
+            confirm_on_remove           INTEGER DEFAULT 1,
+            display_mode                INTEGER DEFAULT {DisplayMode.list},
+            default_exe_dir             TEXT    DEFAULT "",
+            fit_images                  INTEGER DEFAULT 0,
+            grid_columns                INTEGER DEFAULT 3,
+            grid_image_ratio            REAL    DEFAULT 3.0,
+            manual_sort_list            TEXT    DEFAULT "[]",
+            minimize_on_close           INTEGER DEFAULT 0,
+            refresh_completed_games     INTEGER DEFAULT 1,
+            refresh_workers             INTEGER DEFAULT 20,
+            request_timeout             INTEGER DEFAULT 30,
+            scroll_amount               REAL    DEFAULT 1,
+            scroll_smooth               INTEGER DEFAULT 1,
+            scroll_smooth_speed         REAL    DEFAULT 8,
+            select_executable_after_add INTEGER DEFAULT 0,
+            start_in_tray               INTEGER DEFAULT 0,
+            start_refresh               INTEGER DEFAULT 0,
+            style_accent                TEXT    DEFAULT "#da1e2e",
+            style_alt_bg                TEXT    DEFAULT "#141414",
+            style_bg                    TEXT    DEFAULT "#181818",
+            style_btn_border            TEXT    DEFAULT "#454545",
+            style_btn_disabled          TEXT    DEFAULT "#232323",
+            style_btn_hover             TEXT    DEFAULT "#747474",
+            style_corner_radius         INTEGER DEFAULT 6,
+            style_scaling               REAL    DEFAULT 1.0,
+            tray_refresh_interval       INTEGER DEFAULT 15,
+            update_keep_image           INTEGER DEFAULT 0,
+            vsync_ratio                 INTEGER DEFAULT 1,
+            zoom_amount                 INTEGER DEFAULT 4,
+            zoom_enabled                INTEGER DEFAULT 1,
+            zoom_region                 INTEGER DEFAULT 1,
+            zoom_size                   INTEGER DEFAULT 64
+        )
+    """)
+    await connection.execute("""
+        INSERT INTO settings
+        (_)
+        VALUES
+        (0)
+        ON CONFLICT DO NOTHING
+    """)
 
-        await connection.execute(f"""
-            CREATE TABLE IF NOT EXISTS games (
-                id                INTEGER PRIMARY KEY,
-                name              TEXT    DEFAULT "",
-                version           TEXT    DEFAULT "",
-                developer         TEXT    DEFAULT "",
-                type              INTEGER DEFAULT {Type.Others},
-                status            INTEGER DEFAULT {Status.Normal},
-                url               TEXT    DEFAULT "",
-                added_on          INTEGER DEFAULT 0,
-                last_updated      INTEGER DEFAULT 0,
-                last_full_refresh INTEGER DEFAULT 0,
-                last_played       INTEGER DEFAULT 0,
-                rating            INTEGER DEFAULT 0,
-                played            INTEGER DEFAULT 0,
-                installed         TEXT    DEFAULT "",
-                executable        TEXT    DEFAULT "",
-                description       TEXT    DEFAULT "",
-                changelog         TEXT    DEFAULT "",
-                tags              TEXT    DEFAULT "[]",
-                notes             TEXT    DEFAULT ""
-            )
-        """)
+    await connection.execute(f"""
+        CREATE TABLE IF NOT EXISTS games (
+            id                INTEGER PRIMARY KEY,
+            name              TEXT    DEFAULT "",
+            version           TEXT    DEFAULT "",
+            developer         TEXT    DEFAULT "",
+            type              INTEGER DEFAULT {Type.Others},
+            status            INTEGER DEFAULT {Status.Normal},
+            url               TEXT    DEFAULT "",
+            added_on          INTEGER DEFAULT 0,
+            last_updated      INTEGER DEFAULT 0,
+            last_full_refresh INTEGER DEFAULT 0,
+            last_played       INTEGER DEFAULT 0,
+            rating            INTEGER DEFAULT 0,
+            played            INTEGER DEFAULT 0,
+            installed         TEXT    DEFAULT "",
+            executable        TEXT    DEFAULT "",
+            description       TEXT    DEFAULT "",
+            changelog         TEXT    DEFAULT "",
+            tags              TEXT    DEFAULT "[]",
+            notes             TEXT    DEFAULT ""
+        )
+    """)
 
-        available = True
+    available = True
 
-        if migrate:
-            if (path := globals.data_path / "f95checker.json").is_file():
-                await migrate_legacy_json(path)
-            elif (path := globals.data_path / "config.ini").is_file():
-                await migrate_legacy_ini(path)
-    except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
+    if migrate:
+        if (path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file():
+            await migrate_legacy(path)
 
 
 async def _wait_connection():
@@ -116,11 +109,7 @@ async def _wait_connection():
 
 
 async def wait_connection():
-    try:
-        await asyncio.wait_for(_wait_connection(), timeout=30)
-    except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
+    await asyncio.wait_for(_wait_connection(), timeout=5)
 
 
 async def execute(request: str, *args):
@@ -139,23 +128,15 @@ async def _wait_pending():
 
 
 async def wait_pending():
-    try:
-        await asyncio.wait_for(_wait_pending(), timeout=30)
-    except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
+    await asyncio.wait_for(_wait_pending(), timeout=5)
 
 
 async def close():
     global available
     available = False
-    try:
-        await wait_pending()
-        await connection.commit()
-        await connection.close()
-    except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
+    await wait_pending()
+    await connection.commit()
+    await connection.close()
 
 
 # Committing should save to disk, but for some reason it only does so after closing
@@ -183,34 +164,30 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
 
 
 async def load():
-    try:
-        cursor = await execute("""
-            SELECT *
-            FROM settings
-        """)
-        types = Settings.__annotations__
-        settings = dict(await cursor.fetchone())
-        settings = {key: sql_to_py(value, types[key]) for key, value in settings.items() if key in types}
-        globals.settings = Settings(**settings)
-        if globals.settings.browser.name not in globals.browsers:
-            globals.settings.browser = Browser._None
-        globals.browser_idx = globals.browsers.index(globals.settings.browser.name)
+    types = Settings.__annotations__
+    cursor = await execute("""
+        SELECT *
+        FROM settings
+    """)
+    settings = dict(await cursor.fetchone())
+    settings = {key: sql_to_py(value, types[key]) for key, value in settings.items() if key in types}
+    globals.settings = Settings(**settings)
+    if globals.settings.browser.name not in globals.browsers:
+        globals.settings.browser = Browser._None
+    globals.browser_idx = globals.browsers.index(globals.settings.browser.name)
 
-        globals.games = {}
-        cursor = await execute("""
-            SELECT *
-            FROM games
-        """)
-        games = await cursor.fetchall()
-        types = Game.__annotations__
-        for game in games:
-            game = dict(game)
-            game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
-            game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
-            globals.games[game["id"]] = Game(**game)
-    except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
+    globals.games = {}
+    types = Game.__annotations__
+    cursor = await execute("""
+        SELECT *
+        FROM games
+    """)
+    games = await cursor.fetchall()
+    for game in games:
+        game = dict(game)
+        game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
+        game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
+        globals.games[game["id"]] = Game(**game)
 
 
 def py_to_sql(value: enum.Enum | Timestamp | bool | list | typing.Any):
@@ -262,53 +239,15 @@ async def remove_game(id: int):
     """)
 
 
-async def migrate_legacy_json(path: str | pathlib.Path):  # Pre v9.0
-    try:
-        with open(path, encoding="utf-8") as f:
-            config = json.load(f)
-        if type(config.get("game_list")) is list and type(config.get("game_data")) is dict:  # Pre v8.0
-            config.setdefault("games", {})
-            for game in config["game_list"]:
-                if not game:
-                    continue
-                link = config["game_data"][game]["link"]
-                if not link:
-                    continue
-                if link.startswith("/"):
-                    link = globals.domain + link
-                id = utils.extract_thread_ids(link)
-                if not id:
-                    continue
-                id = str(id[0])
-                config["games"].setdefault(id, {})
-                config["games"][id].setdefault("name", game)
-                config["games"][id].setdefault("link", link)
-                for key, value in config["game_data"][game]:
-                    config["games"][id].setdefault(key, value)
-        await migrate_legacy(config)
-    except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
-
-
-async def migrate_legacy_ini(path: str | pathlib.Path):  # Pre v7.0
-    try:
-        old_config = configparser.RawConfigParser()
-        old_config.read(path)
-        config = {}
-        config["options"] = {}
-        config["options"]["browser"]            = old_config.get(       'options', 'browser',       fallback=''    )
-        config["options"]["private_browser"]    = old_config.getboolean('options', 'private',       fallback=False )
-        config["options"]["open_html"]          = old_config.getboolean('options', 'open_html',     fallback=False )
-        config["options"]["start_refresh"]      = old_config.getboolean('options', 'start_refresh', fallback=False )
-        config["options"]["bg_mode_delay_mins"] = old_config.getint(    'options', 'delay',         fallback=15    )
-        config["style"] = {}
-        config["style"]["accent"] = old_config.get('options', 'accent', fallback='#da1e2e')
-        config["games"] = {}
-        for game in old_config.get('games', 'game_list').split('/'):
+def legacy_json_to_dict(path: str | pathlib.Path):  # Pre v9.0
+    with open(path, encoding="utf-8") as f:
+        config = json.load(f)
+    if type(config.get("game_list")) is list and type(config.get("game_data")) is dict:  # Pre v8.0
+        config.setdefault("games", {})
+        for game in config["game_list"]:
             if not game:
                 continue
-            link = old_config.get(game, 'link', fallback='')
+            link = config["game_data"][game]["link"]
             if not link:
                 continue
             if link.startswith("/"):
@@ -318,21 +257,62 @@ async def migrate_legacy_ini(path: str | pathlib.Path):  # Pre v7.0
                 continue
             id = str(id[0])
             config["games"].setdefault(id, {})
-            config["games"][id].setdefault("name",         game                                                       )
-            config["games"][id].setdefault("version",      old_config.get       (game, 'version',      fallback=''   ))
-            config["games"][id].setdefault("installed",    old_config.getboolean(game, 'installed',    fallback=False))
-            config["games"][id].setdefault("link",         link                                                       )
-            config["games"][id].setdefault("add_time",     old_config.getfloat  (game, 'add_time',     fallback=0.0  ))
-            config["games"][id].setdefault("updated_time", 0.0)
-            config["games"][id].setdefault("changelog",    old_config.get       (game, 'changelog',    fallback=''   ))
-        await migrate_legacy(config)
-    except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
+            config["games"][id].setdefault("name", game)
+            config["games"][id].setdefault("link", link)
+            for key, value in config["game_data"][game]:
+                config["games"][id].setdefault(key, value)
+    return config
 
 
-async def migrate_legacy(config: dict):
+def legacy_ini_to_dict(path: str | pathlib.Path):  # Pre v7.0
+    old_config = configparser.RawConfigParser()
+    old_config.read(path)
+    config = {}
+    config["options"] = {}
+    config["options"]["browser"]            = old_config.get(       'options', 'browser',       fallback=''    )
+    config["options"]["private_browser"]    = old_config.getboolean('options', 'private',       fallback=False )
+    config["options"]["open_html"]          = old_config.getboolean('options', 'open_html',     fallback=False )
+    config["options"]["start_refresh"]      = old_config.getboolean('options', 'start_refresh', fallback=False )
+    config["options"]["bg_mode_delay_mins"] = old_config.getint(    'options', 'delay',         fallback=15    )
+    config["style"] = {}
+    config["style"]["accent"] = old_config.get('options', 'accent', fallback='#da1e2e')
+    config["games"] = {}
+    for game in old_config.get('games', 'game_list').split('/'):
+        if not game:
+            continue
+        link = old_config.get(game, 'link', fallback='')
+        if not link:
+            continue
+        if link.startswith("/"):
+            link = globals.domain + link
+        id = utils.extract_thread_ids(link)
+        if not id:
+            continue
+        id = str(id[0])
+        config["games"].setdefault(id, {})
+        config["games"][id].setdefault("name",         game                                                       )
+        config["games"][id].setdefault("version",      old_config.get       (game, 'version',      fallback=''   ))
+        config["games"][id].setdefault("installed",    old_config.getboolean(game, 'installed',    fallback=False))
+        config["games"][id].setdefault("link",         link                                                       )
+        config["games"][id].setdefault("add_time",     old_config.getfloat  (game, 'add_time',     fallback=0.0  ))
+        config["games"][id].setdefault("updated_time", 0.0)
+        config["games"][id].setdefault("changelog",    old_config.get       (game, 'changelog',    fallback=''   ))
+    return config
+
+
+async def migrate_legacy(config: str | pathlib.Path | dict):
     try:
+        if isinstance(config, str):
+            config = pathlib.Path(config)
+        if isinstance(config, pathlib.Path):
+            path = config
+            if path.suffix == ".json":
+                config = legacy_json_to_dict(path)
+            elif path.suffix == ".ini":
+                config = legacy_ini_to_dict(path)
+            else:
+                utils.push_popup(globals.gui.draw_msgbox, "Unsupported format!", f"Could not migrate {str(path)}\n The only supported formats are .json and .ini!", MsgBox.warn)
+                return
         keys = []
         values = []
 
@@ -476,5 +456,4 @@ async def migrate_legacy(config: dict):
                 """, tuple(values))
         await save()
     except Exception:
-        print(utils.get_traceback())
-        sys.exit(1)
+        utils.push_popup(globals.gui.draw_msgbox, "Oops!", f"Something went wrong migrating {str(path)}:\n\n{utils.get_traceback()}", MsgBox.error)
