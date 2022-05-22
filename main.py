@@ -22,8 +22,8 @@ def main():
     sync_thread.setup()
 
     from modules import db
-    async_thread.run(db.connect(), wait=True)
-    async_thread.run(db.load(), wait=True)
+    async_thread.wait(db.connect())
+    async_thread.wait(db.load())
     async_thread.run(db.save_loop())
 
     from modules import gui
@@ -31,7 +31,7 @@ def main():
 
     globals.gui.main_loop()
 
-    async_thread.run(db.close(), wait=True)
+    async_thread.wait(db.close())
 
 
 if __name__ == "__main__":

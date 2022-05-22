@@ -21,14 +21,18 @@ def setup():
     thread.start()
 
 
-def run(coroutine: typing.Coroutine, wait: bool = False):
+def run(coroutine: typing.Coroutine):
     future = asyncio.run_coroutine_threadsafe(coroutine, loop)
-    if wait:
-        while not future.done():
-            time.sleep(0.1)
-        return future.result
-    else:
-        return future
+    return future
+
+
+def wait(coroutine: typing.Coroutine):
+    future = run(coroutine)
+    while future.running():
+        time.sleep(0.1)
+    if exception := future.exception():
+        raise exception
+    return future.result
 
 
 # Example usage
@@ -46,4 +50,4 @@ if __name__ == "__main__":
 
     # You can also wait for the task to complete:
     for i in range(10):
-        async_thread.run(wait_and_say_hello(i), wait=True)
+        async_thread.wait(wait_and_say_hello(i))
