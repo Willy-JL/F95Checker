@@ -64,36 +64,60 @@ class DisplayMode(IntEnum):
     grid = 2
 
 
-class Engine(EnumNameHack, IntEnum):
-    ADRIFT        = 1
-    Flash         = 2
-    HTML          = 3
-    Java          = 4
-    Other         = 5
-    QSP           = 6
-    RAGS          = 7
-    RPGM          = 8
-    RenPy         = 9
-    Tads          = 10
-    Unity         = 11
-    Unreal_Engine = 12
-    WebGL         = 13
-    WolfRPG       = 14
+class Type(EnumNameHack, IntEnum):
+    Others        = 1
+    ADRIFT        = 2
+    Cheat_mod     = 3
+    Collection    = 4
+    Flash         = 5
+    HTML          = 6
+    Java          = 7
+    Manga         = 8
+    Mod           = 9
+    QSP           = 10
+    RAGS          = 11
+    READ_ME       = 12
+    RPGM          = 13
+    RenPy         = 14
+    Request       = 15
+    SiteRip       = 16
+    Tads          = 17
+    Tool          = 18
+    Tutorial      = 19
+    Unity         = 20
+    Unreal_Engine = 21
+    WebGL         = 22
+    Wolf_RPG      = 23
 
-Engine.ADRIFT       .color = (33  / 255, 150 / 255, 243 / 255)
-Engine.Flash        .color = (97  / 255, 97  / 255, 97  / 255)
-Engine.HTML         .color = (104 / 255, 159 / 255, 56  / 255)
-Engine.Java         .color = (82  / 255, 166 / 255, 176 / 255)
-Engine.Other        .color = (139 / 255, 195 / 255, 74  / 255)
-Engine.QSP          .color = (211 / 255, 47  / 255, 47  / 255)
-Engine.RAGS         .color = (255 / 255, 152 / 255, 0   / 255)
-Engine.RPGM         .color = (33  / 255, 150 / 255, 243 / 255)
-Engine.RenPy        .color = (176 / 255, 105 / 255, 232 / 255)
-Engine.Tads         .color = (33  / 255, 150 / 255, 243 / 255)
-Engine.Unity        .color = (254 / 255, 89  / 255, 1   / 255)
-Engine.Unreal_Engine.color = (13  / 255, 71  / 255, 161 / 255)
-Engine.WebGL        .color = (254 / 255, 89  / 255, 1   / 255)
-Engine.WolfRPG      .color = (76  / 255, 175 / 255, 80  / 255)
+def hex_to_rgb_0_1(hex):
+    r = int(hex[1:3], base=16) / 255
+    g = int(hex[3:5], base=16) / 255
+    b = int(hex[5:7], base=16) / 255
+    return (r, g, b)
+
+Type.Others       .color = hex_to_rgb_0_1("#8BC34A")
+Type.ADRIFT       .color = hex_to_rgb_0_1("#2196F3")
+Type.Cheat_mod    .color = hex_to_rgb_0_1("#D32F2F")
+Type.Collection   .color = hex_to_rgb_0_1("#616161")
+Type.Flash        .color = hex_to_rgb_0_1("#616161")
+Type.HTML         .color = hex_to_rgb_0_1("#689F38")
+Type.Java         .color = hex_to_rgb_0_1("#52A6B0")
+Type.Manga        .color = hex_to_rgb_0_1("#03A9F4")
+Type.Mod          .color = hex_to_rgb_0_1("#BA4545")
+Type.QSP          .color = hex_to_rgb_0_1("#D32F2F")
+Type.RAGS         .color = hex_to_rgb_0_1("#FF9800")
+Type.READ_ME      .color = hex_to_rgb_0_1("#DC143C")
+Type.RPGM         .color = hex_to_rgb_0_1("#2196F3")
+Type.RenPy        .color = hex_to_rgb_0_1("#B069E8")
+Type.Request      .color = hex_to_rgb_0_1("#D32F2F")
+Type.SiteRip      .color = hex_to_rgb_0_1("#8BC34A")
+Type.Tads         .color = hex_to_rgb_0_1("#2196F3")
+Type.Tool         .color = hex_to_rgb_0_1("#EC5555")
+Type.Tutorial     .color = hex_to_rgb_0_1("#EC5555")
+Type.Unity        .color = hex_to_rgb_0_1("#FE5901")
+Type.Unreal_Engine.color = hex_to_rgb_0_1("#0D47A1")
+Type.WebGL        .color = hex_to_rgb_0_1("#FE5901")
+Type.Wolf_RPG     .color = hex_to_rgb_0_1("#4CAF50")
 
 
 class Status(IntEnum):
@@ -247,15 +271,15 @@ class Tag(EnumNameHack, IntEnum):
 
 class FilterMode(EnumNameHack, IntEnum, EnumAutoValue):
     _None     = ()
-    Engine    = ()
-    Status    = ()
-    Rating    = ()
-    Played    = ()
     Installed = ()
+    Played    = ()
+    Rating    = ()
+    Status    = ()
     Tag       = ()
+    Type      = ()
 
-FilterMode.Engine.by = Engine.ADRIFT
-FilterMode.Engine.invert = False
+FilterMode.Type.by = Type.ADRIFT
+FilterMode.Type.invert = False
 
 FilterMode.Status.by = Status.Normal
 FilterMode.Status.invert = False
@@ -340,7 +364,7 @@ class Game:
     name              : str
     version           : str
     developer         : str
-    engine            : Engine
+    type              : Type
     status            : Status
     url               : str
     added_on          : Timestamp

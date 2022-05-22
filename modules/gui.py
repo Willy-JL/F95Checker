@@ -11,7 +11,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, Engine, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag
+from modules.structs import Browser, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag, Type
 from modules import globals, async_thread, callbacks, db, filepicker, imagehelper, ratingwidget, utils
 
 imgui.io = None
@@ -326,12 +326,12 @@ class MainGUI():
         if clicked:
             callbacks.launch_game_exe(game)
 
-    def draw_game_engine_widget(self, game: Game, *args, **kwargs):
-        col = (*game.engine.color, 1)
+    def draw_game_type_widget(self, game: Game, *args, **kwargs):
+        col = (*game.type.color, 1)
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
-        imgui.small_button(f"{game.engine.name}##{game.id}_engine", *args, **kwargs)
+        imgui.small_button(f"{game.type.name}##{game.id}_type", *args, **kwargs)
         imgui.pop_style_color(3)
 
     def get_game_version_text(self, game: Game):
@@ -662,9 +662,9 @@ class MainGUI():
             imgui.same_line()
             imgui.text(game.developer)
 
-            imgui.text_disabled("Engine:")
+            imgui.text_disabled("Type:")
             imgui.same_line()
-            self.draw_game_engine_widget(game)
+            self.draw_game_type_widget(game)
 
             imgui.text_disabled("Last Updated:")
             imgui.same_line()
@@ -900,8 +900,8 @@ class MainGUI():
             elif sort_specs.specs_count > 0:
                 sort_spec = sort_specs.specs[0]
                 match sort_spec.column_index:
-                    case 5:  # Engine
-                        key = lambda id: globals.games[id].engine.value
+                    case 5:  # Type
+                        key = lambda id: globals.games[id].type.value
                     case 7:  # Developer
                         key = lambda id: globals.games[id].developer.lower()
                     case 8:  # Last Updated
@@ -922,8 +922,8 @@ class MainGUI():
                 ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
                 self.sorted_games_ids = ids
             match self.filter_by.value:
-                case FilterMode.Engine.value:
-                    filter_by = lambda id: FilterMode.Engine.invert != (globals.games[id].engine is FilterMode.Engine.by)
+                case FilterMode.Type.value:
+                    filter_by = lambda id: FilterMode.Type.invert != (globals.games[id].type is FilterMode.Type.by)
                 case FilterMode.Status.value:
                     filter_by = lambda id: FilterMode.Status.invert != (globals.games[id].status is FilterMode.Status.by)
                 case FilterMode.Rating.value:
@@ -999,7 +999,7 @@ class MainGUI():
             can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             # Regular columns
             imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT)  # 4
-            imgui.table_setup_column("Engine", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 5
+            imgui.table_setup_column("Type", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 5
             imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
             imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
             imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 8
@@ -1015,7 +1015,7 @@ class MainGUI():
             # Enabled columns
             column_i = 3
             play_button  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            engine       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
+            type         = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             name = column_i = column_i + 1  # Name is always enabled
             developer    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             last_updated = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
@@ -1067,10 +1067,10 @@ class MainGUI():
                 if play_button:
                     imgui.table_set_column_index(play_button)
                     self.draw_game_play_button(game, label="󰐊")
-                # Engine
-                if engine:
-                    imgui.table_set_column_index(engine)
-                    self.draw_game_engine_widget(game)
+                # Type
+                if type:
+                    imgui.table_set_column_index(type)
+                    self.draw_game_type_widget(game)
                 # Name
                 imgui.table_set_column_index(name)
                 if self.edit_mode:
@@ -1146,7 +1146,7 @@ class MainGUI():
             status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             column_i = 3
             play_button     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            engine          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            type            = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             column_i += 1  # Name
             developer       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             last_updated    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
@@ -1158,7 +1158,7 @@ class MainGUI():
             open_thread     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             notes           = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             button_row = play_button or open_thread or played or installed
-            data_rows = engine + developer + last_updated + last_played + added_on + rating + notes
+            data_rows = type + developer + last_updated + last_played + added_on + rating + notes
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
@@ -1282,11 +1282,11 @@ class MainGUI():
                         imgui.dummy(0, frame_height)
                 if data_rows:
                     if imgui.is_rect_visible(width, data_height):
-                        # Engine
-                        if engine:
-                            imgui.text_disabled("Engine:")
+                        # Type
+                        if type:
+                            imgui.text_disabled("Type:")
                             imgui.same_line()
-                            self.draw_game_engine_widget(game)
+                            self.draw_game_type_widget(game)
                         # Developer
                         if developer:
                             imgui.text_disabled("Developer:")
@@ -1418,14 +1418,14 @@ class MainGUI():
                 self.filter_by = FilterMode(value + 1)
                 self.require_sort = True
 
-            if self.filter_by is FilterMode.Engine:
+            if self.filter_by is FilterMode.Type:
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("Filter by engine:")
+                imgui.text("Filter by type:")
                 imgui.table_next_column()
-                changed, value = imgui.combo("##filter_engine", FilterMode.Engine.by.value - 1, list(Engine._members_))
+                changed, value = imgui.combo("##filter_type", FilterMode.Type.by.value - 1, list(Type._members_))
                 if changed:
-                    FilterMode.Engine.by = Engine(value + 1)
+                    FilterMode.Type.by = Type(value + 1)
                     self.require_sort = True
 
             if self.filter_by is FilterMode.Status:

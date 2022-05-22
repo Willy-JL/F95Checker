@@ -7,7 +7,7 @@ import enum
 import json
 import sys
 
-from modules.structs import Browser, DisplayMode, Engine, Game, Settings, Status, Timestamp
+from modules.structs import Browser, DisplayMode, Game, Settings, Status, Timestamp, Type
 from modules import globals, imagehelper, utils
 
 connection: aiosqlite.Connection = None
@@ -80,7 +80,7 @@ async def connect():
                 name              TEXT    DEFAULT "",
                 version           TEXT    DEFAULT "",
                 developer         TEXT    DEFAULT "",
-                engine            INTEGER DEFAULT {Engine.Other},
+                type              INTEGER DEFAULT {Type.Others},
                 status            INTEGER DEFAULT {Status.Normal},
                 url               TEXT    DEFAULT "",
                 added_on          INTEGER DEFAULT 0,
