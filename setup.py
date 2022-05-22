@@ -45,6 +45,7 @@ cx_Freeze.setup(
             "optimize": 1,
             "packages": [
                 "OpenGL",
+                "OpenGL_accelerate"
             ],
             "bin_includes": bin_includes,
             "include_files": [
