@@ -810,7 +810,9 @@ class MainGUI():
             imgui.bullet()
             imgui.text("GR3ee3N: Optimized build workflows and other PRs")
             imgui.bullet()
-            imgui.text("batblue: Implemented fixes for MacOS support")
+            imgui.text("batblue: MacOS suppport and feedback guy")
+            imgui.bullet()
+            imgui.text("unroot: Linux support and feedback guy")
             imgui.bullet()
             imgui.text("ploper26: Suggested HEAD requests for refreshing")
             imgui.bullet()
@@ -820,7 +822,6 @@ class MainGUI():
             imgui.text("Community:")
             for name in [
                 "AtotehZ",
-                "unroot",
                 "abada25",
                 "d_pedestrian",
                 "yohudood",
