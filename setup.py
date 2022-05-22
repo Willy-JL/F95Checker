@@ -1,5 +1,6 @@
 from ctypes.util import find_library
 import cx_Freeze
+import pathlib
 import sys
 
 
@@ -21,7 +22,8 @@ if sys.platform.startswith("linux"):
 elif sys.platform.startswith("darwin"):
     bundle_libs("intl")
 
-icon = "resources/icons/icon"
+path = pathlib.Path(__file__).absolute().parent
+icon = str(path / "resources/icons/icon")
 if sys.platform.startswith("win"):
     icon += ".ico"
 elif sys.platform.startswith("darwin"):
@@ -34,7 +36,7 @@ cx_Freeze.setup(
     description="An update checker tool for (NSFW) games on the F95Zone platform",
     executables=[
         cx_Freeze.Executable(
-            script="main.py",
+            script=path / "main.py",
             base=base,
             target_name="F95Checker",
             icon=icon
@@ -49,8 +51,8 @@ cx_Freeze.setup(
             ],
             "bin_includes": bin_includes,
             "include_files": [
-                "resources",
-                "LICENSE"
+                path / "resources",
+                path / "LICENSE"
             ],
             "silent_level": 1,
             "include_msvcr": True

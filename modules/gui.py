@@ -1917,9 +1917,9 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             QtWidgets.QSystemTrayIcon.ActivationReason.Trigger
         ]
         self.main_gui = main_gui
-        self.idle_icon = QtGui.QIcon('resources/icons/icon.png')
-        self.paused_icon = QtGui.QIcon('resources/icons/paused.png')
-        self.refresh_icon = QtGui.QIcon('resources/icons/refreshing.png')
+        self.idle_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/icon.png'))
+        self.paused_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/paused.png'))
+        self.refresh_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/refreshing.png'))
         super().__init__(self.idle_icon)
 
         self.watermark = QtGui.QAction(f"F95Checker v{globals.version}")
