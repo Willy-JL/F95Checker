@@ -79,8 +79,9 @@ class MainGUI():
         self.prev_manual_sort: int = 0
         self.size_mult: int | float = 0
         self.sorted_games_ids: list = []
-        self.prev_size: tuple[int] = (0, 0)
         self.filter_by = FilterMode._None
+        self.prev_size: tuple[int] = (0, 0)
+        self.screen_pos: tuple[int] = (0, 0)
         self.game_hitbox_click: bool = False
         self.ghost_columns_enabled_count: int = 0
 
@@ -96,8 +97,9 @@ class MainGUI():
         imgui.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
         try:
             # Get window size
-            imgui.load_ini_settings_from_disk(self.ini_file_name.decode("utf-8"))
-            ini = imgui.save_ini_settings_to_memory()
+            with open(self.ini_file_name.decode("utf-8"), "r") as fp:
+                ini = fp.read()
+            imgui.load_ini_settings_from_memory(ini)
             start = ini.find("[Window][F95Checker]")
             assert start != -1
             end = ini.find("\n\n", start)
@@ -105,11 +107,15 @@ class MainGUI():
             config = configparser.RawConfigParser()
             config.read_string(ini[start:end])
             size = tuple(int(x) for x in config.get("Window][F95Checker", "Size").split(","))
+            pos = tuple(int(x) for x in config.get("Window][F95Checker", "ScreenPos").split(","))
         except Exception:
             size = (1280, 720)
+            pos = None
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
+        if pos:
+            glfw.set_window_pos(self.window, *pos)
         if globals.settings.start_in_tray:
             self.minimize()
         icon_path = globals.self_path / "resources/icons/icon.png"
@@ -118,6 +124,7 @@ class MainGUI():
         self.impl = GlfwRenderer(self.window)
         glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
+        glfw.set_window_pos_callback(self.window, self.pos_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
@@ -171,12 +178,17 @@ class MainGUI():
     def focus_callback(self, window: glfw._GLFWwindow, focused: int):
         self.focused = focused
 
+    def pos_callback(self, window: glfw._GLFWwindow, x: int, y: int):
+        self.screen_pos = (x, y)
+
     def minimize(self, *args, **kwargs):
+        self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
         self.visible = False
 
     def show(self, *args, **kwargs):
         glfw.show_window(self.window)
+        glfw.set_window_pos(self.window, *self.screen_pos)
         self.visible = True
 
     def scaled(self, size: int | float):
@@ -265,6 +277,21 @@ class MainGUI():
                 imgui.io.mouse_wheel = 0
                 time.sleep(0.1)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
+        ini = imgui.save_ini_settings_to_memory()
+        try:
+            start = ini.find("[Window][F95Checker]")
+            assert start != -1
+            end = ini.find("\n\n", start)
+            assert end != -1
+            if "ScreenPos=" not in ini[start:end]:
+                insert = ini.find("\n", start)
+                new_ini = ini[:insert] + f"\nScreenPos={self.screen_pos[0]},{self.screen_pos[1]}" + ini[insert:]
+            else:
+                new_ini = ini
+        except Exception:
+            new_ini = ini
+        with open(self.ini_file_name.decode("utf-8"), "w") as fp:
+            fp.write(new_ini)
         self.impl.shutdown()
         glfw.terminate()
 
