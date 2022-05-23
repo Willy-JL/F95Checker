@@ -9,6 +9,7 @@ def ratingwidget(id: str, current: int, num_stars: int = 5, *args, **kwargs):
     imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
     imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (0, 0))
     imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (0, 0))
+    imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
     for i in range(1, num_stars + 1):
         label = "󰓎"  # Filled / selected star
         if i > current:
@@ -18,7 +19,7 @@ def ratingwidget(id: str, current: int, num_stars: int = 5, *args, **kwargs):
         imgui.same_line()
     value = min(max(value, 0), num_stars)
     imgui.pop_style_color(3)
-    imgui.pop_style_var(2)
+    imgui.pop_style_var(3)
     imgui.dummy(0, 0)
     return value != current, value
 
