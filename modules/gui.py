@@ -896,14 +896,14 @@ class MainGUI():
                 # Left click = open game info popup
                 self.game_hitbox_click = False
                 utils.push_popup(self.draw_game_info_popup, game)
+        # Left click drag = swap if in manual sort mode
+        if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
+            self.game_hitbox_click = False
+            payload = game_i + 1
+            payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
+            imgui.set_drag_drop_payload("game_i", payload)
+            imgui.end_drag_drop_source()
         if manual_sort and not_filtering:
-            # Left click drag = swap if in manual sort mode
-            if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
-                self.game_hitbox_click = False
-                payload = game_i + 1
-                payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
-                imgui.set_drag_drop_payload("game_i", payload)
-                imgui.end_drag_drop_source()
             if imgui.begin_drag_drop_target():
                 if payload := imgui.accept_drag_drop_payload("game_i", flags=self.game_hitbox_drag_drop_flags):
                     payload = int.from_bytes(payload, sys.byteorder)
