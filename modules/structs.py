@@ -3,7 +3,7 @@ import functools
 import datetime
 import enum
 
-from modules import imagehelper
+from modules import imagehelper, utils
 
 
 class EnumNameHack(enum.Enum):
@@ -89,35 +89,29 @@ class Type(EnumNameHack, IntEnum):
     WebGL         = 22
     Wolf_RPG      = 23
 
-def hex_to_rgb_0_1(hex):
-    r = int(hex[1:3], base=16) / 255
-    g = int(hex[3:5], base=16) / 255
-    b = int(hex[5:7], base=16) / 255
-    return (r, g, b)
-
-Type.Others       .color = hex_to_rgb_0_1("#8BC34A")
-Type.ADRIFT       .color = hex_to_rgb_0_1("#2196F3")
-Type.Cheat_mod    .color = hex_to_rgb_0_1("#D32F2F")
-Type.Collection   .color = hex_to_rgb_0_1("#616161")
-Type.Flash        .color = hex_to_rgb_0_1("#616161")
-Type.HTML         .color = hex_to_rgb_0_1("#689F38")
-Type.Java         .color = hex_to_rgb_0_1("#52A6B0")
-Type.Manga        .color = hex_to_rgb_0_1("#03A9F4")
-Type.Mod          .color = hex_to_rgb_0_1("#BA4545")
-Type.QSP          .color = hex_to_rgb_0_1("#D32F2F")
-Type.RAGS         .color = hex_to_rgb_0_1("#FF9800")
-Type.READ_ME      .color = hex_to_rgb_0_1("#DC143C")
-Type.RPGM         .color = hex_to_rgb_0_1("#2196F3")
-Type.RenPy        .color = hex_to_rgb_0_1("#B069E8")
-Type.Request      .color = hex_to_rgb_0_1("#D32F2F")
-Type.SiteRip      .color = hex_to_rgb_0_1("#8BC34A")
-Type.Tads         .color = hex_to_rgb_0_1("#2196F3")
-Type.Tool         .color = hex_to_rgb_0_1("#EC5555")
-Type.Tutorial     .color = hex_to_rgb_0_1("#EC5555")
-Type.Unity        .color = hex_to_rgb_0_1("#FE5901")
-Type.Unreal_Engine.color = hex_to_rgb_0_1("#0D47A1")
-Type.WebGL        .color = hex_to_rgb_0_1("#FE5901")
-Type.Wolf_RPG     .color = hex_to_rgb_0_1("#4CAF50")
+Type.Others       .color = utils.hex_to_rgb_0_1("#8BC34A")
+Type.ADRIFT       .color = utils.hex_to_rgb_0_1("#2196F3")
+Type.Cheat_mod    .color = utils.hex_to_rgb_0_1("#D32F2F")
+Type.Collection   .color = utils.hex_to_rgb_0_1("#616161")
+Type.Flash        .color = utils.hex_to_rgb_0_1("#616161")
+Type.HTML         .color = utils.hex_to_rgb_0_1("#689F38")
+Type.Java         .color = utils.hex_to_rgb_0_1("#52A6B0")
+Type.Manga        .color = utils.hex_to_rgb_0_1("#03A9F4")
+Type.Mod          .color = utils.hex_to_rgb_0_1("#BA4545")
+Type.QSP          .color = utils.hex_to_rgb_0_1("#D32F2F")
+Type.RAGS         .color = utils.hex_to_rgb_0_1("#FF9800")
+Type.READ_ME      .color = utils.hex_to_rgb_0_1("#DC143C")
+Type.RPGM         .color = utils.hex_to_rgb_0_1("#2196F3")
+Type.RenPy        .color = utils.hex_to_rgb_0_1("#B069E8")
+Type.Request      .color = utils.hex_to_rgb_0_1("#D32F2F")
+Type.SiteRip      .color = utils.hex_to_rgb_0_1("#8BC34A")
+Type.Tads         .color = utils.hex_to_rgb_0_1("#2196F3")
+Type.Tool         .color = utils.hex_to_rgb_0_1("#EC5555")
+Type.Tutorial     .color = utils.hex_to_rgb_0_1("#EC5555")
+Type.Unity        .color = utils.hex_to_rgb_0_1("#FE5901")
+Type.Unreal_Engine.color = utils.hex_to_rgb_0_1("#0D47A1")
+Type.WebGL        .color = utils.hex_to_rgb_0_1("#FE5901")
+Type.Wolf_RPG     .color = utils.hex_to_rgb_0_1("#4CAF50")
 
 
 class Status(IntEnum):

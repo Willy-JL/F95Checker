@@ -9,6 +9,17 @@ import re
 from modules import globals
 
 
+def hex_to_rgb_0_1(hex):
+    r = int(hex[1:3], base=16) / 255
+    g = int(hex[3:5], base=16) / 255
+    b = int(hex[5:7], base=16) / 255
+    if len(hex) > 7:
+        a = int(hex[7:9], base=16) / 255
+        return (r, g, b, a)
+    else:
+        return (r, g, b)
+
+
 def push_popup(*args):
     if len(args) > 1:
         popup_func = functools.partial(*args)
