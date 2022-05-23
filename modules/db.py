@@ -7,7 +7,7 @@ import enum
 import json
 
 from modules.structs import Browser, DisplayMode, Game, MsgBox, Settings, Status, Timestamp, Type
-from modules import globals, imagehelper, utils
+from modules import globals, imagehelper, msgbox, utils
 
 connection: aiosqlite.Connection = None
 available: bool = False
@@ -311,7 +311,7 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
             elif path.suffix == ".ini":
                 config = legacy_ini_to_dict(path)
             else:
-                utils.push_popup(globals.gui.draw_msgbox, "Unsupported format!", f"Could not migrate {str(path)}\n The only supported formats are .json and .ini!", MsgBox.warn)
+                utils.push_popup(msgbox.msgbox, "Unsupported format!", f"Could not migrate {str(path)}\n The only supported formats are .json and .ini!", MsgBox.warn)
                 return
         keys = []
         values = []
@@ -456,4 +456,4 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                 """, tuple(values))
         await save()
     except Exception:
-        utils.push_popup(globals.gui.draw_msgbox, "Oops!", f"Something went wrong migrating {str(path)}:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong migrating {str(path)}:\n\n{utils.get_traceback()}", MsgBox.error)
