@@ -1143,6 +1143,8 @@ class MainGUI():
 
             # Loop cells
             for game_i, id in enumerate(self.sorted_games_ids):
+                draw_list.channels_split(2)
+                draw_list.channels_set_current(1)
                 game: Game = globals.games[id]
                 imgui.table_next_column()
 
@@ -1270,6 +1272,7 @@ class MainGUI():
                 imgui.spacing()
                 imgui.spacing()
                 imgui.end_group()
+                draw_list.channels_set_current(0)
                 imgui.set_cursor_pos(pos)
                 cell_height = imgui.get_item_rect_size().y
                 if imgui.is_rect_visible(width, cell_height):
@@ -1279,6 +1282,7 @@ class MainGUI():
                     pos = imgui.get_item_rect_min()
                     pos2 = imgui.get_item_rect_max()
                     draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+                draw_list.channels_merge()
 
             imgui.end_table()
         imgui.pop_style_var()
