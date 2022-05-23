@@ -63,7 +63,6 @@ jobs:
       - name: "Install requirements"
         run: |
           cd ./src
-          python -m pip install -U numpy
           python -m pip install -U -r requirements.txt
 
       - name: "Build"
