@@ -45,8 +45,10 @@ cx_Freeze.setup(
     options={
         "build_exe": {
             "optimize": 1,
+            "includes": [
+                "OpenGL_accelerate.numpy_formathandler"
+            ],
             "packages": [
-                "OpenGL_accelerate",
                 "OpenGL"
             ],
             "bin_includes": bin_includes,
