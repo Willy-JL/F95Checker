@@ -1,9 +1,9 @@
-git+https://github.com/mcfletch/pyopengl.git#subdirectory=accelerate
-git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
-git+https://github.com/mcfletch/pyopengl.git
-pywin32 ; sys_platform == 'win32'
-aiosqlite
-Pillow
-PyQt6
-numpy
 glfw
+numpy
+PyQt6
+Pillow
+aiosqlite
+pywin32 ; sys_platform == 'win32'
+git+https://github.com/mcfletch/pyopengl.git
+git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
+git+https://github.com/mcfletch/pyopengl.git#subdirectory=accelerate
