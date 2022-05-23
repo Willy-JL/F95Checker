@@ -173,7 +173,7 @@ elif os is Os.Linux:
 elif os is Os.MacOS:
     autostart_dir = pathlib.Path.home() / "Library/LaunchAgents"
     autostart_dir.mkdir(parents=True, exist_ok=True)
-    autostart = autostart_dir / "F95Checker.plist"
+    autostart = autostart_dir / "com.github.f95checker.plist"
     try:
         with autostart.open("rb") as fp:
             plist = plistlib.load(fp)

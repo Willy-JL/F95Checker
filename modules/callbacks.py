@@ -30,8 +30,11 @@ def update_start_with_system(toggle: bool):
                     config.write(fp, space_around_delimiters=False)
             elif globals.os is Os.MacOS:
                 plist = {
-                    "Label": "F95Checker",
-                    "ProgramArguments": shlex.split(globals.start_cmd)
+                    "Label": "com.github.f95checker",
+                    "ProgramArguments": shlex.split(globals.start_cmd),
+                    "KeepAlive": True,
+                    "OnDemand": False,
+                    "RunAtLoad": True
                 }
                 with globals.autostart.open("wb") as fp:
                     plistlib.dump(plist, fp)
