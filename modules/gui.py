@@ -2004,7 +2004,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Restore defaults:")
             imgui.table_next_column()
-            if imgui.button("Restore"):
+            if imgui.button("Restore", width=right_width):
                 set.style_corner_radius = DefaultStyle.corner_radius
                 set.style_accent        = DefaultStyle.accent
                 set.style_alt_bg        = DefaultStyle.alt_bg
