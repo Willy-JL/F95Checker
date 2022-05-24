@@ -575,9 +575,7 @@ class MainGUI():
         closed = False
         opened = 1
         size = imgui.io.display_size
-        height = size.y * 0.9
-        width = min(size.x * 0.9, height * self.scaled(0.9))
-        imgui.set_next_window_size(width, height)
+        imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
         utils.center_next_window()
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
             closed = utils.close_popup_clicking_outside()
