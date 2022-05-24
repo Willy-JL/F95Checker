@@ -133,29 +133,9 @@ class MainGUI():
         imgui.style.item_spacing = (imgui.style.item_spacing.y, imgui.style.item_spacing.y)
         imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
         imgui.style.scrollbar_size = 12
-        imgui.style.window_rounding = \
-            imgui.style.tab_rounding  = \
-            imgui.style.grab_rounding = \
-            imgui.style.frame_rounding = \
-            imgui.style.child_rounding = \
-            imgui.style.popup_rounding  = \
-            imgui.style.scrollbar_rounding = \
-            globals.settings.style_corner_radius
         imgui.style.frame_border_size = 1
-        imgui.style.colors[imgui.COLOR_BUTTON] = \
-            imgui.style.colors[imgui.COLOR_HEADER] = \
-            imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND] = \
-            imgui.style.colors[imgui.COLOR_CHILD_BACKGROUND] = \
-            imgui.style.colors[imgui.COLOR_POPUP_BACKGROUND] = \
-            imgui.style.colors[imgui.COLOR_TITLE_BACKGROUND] = \
-            imgui.style.colors[imgui.COLOR_WINDOW_BACKGROUND] = \
-            imgui.style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = \
-            imgui.style.colors[imgui.COLOR_SCROLLBAR_BACKGROUND] = \
-            utils.hex_to_rgb_0_1("#090909FF")
-        imgui.style.colors[imgui.COLOR_TABLE_HEADER_BACKGROUND] = \
-            imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT] = \
-            utils.hex_to_rgb_0_1("#101010FF")
-        imgui.style.colors[imgui.COLOR_CHECK_MARK] = \
+        globals.settings.style_accent = \
+            imgui.style.colors[imgui.COLOR_CHECK_MARK] = \
             imgui.style.colors[imgui.COLOR_TAB_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_SLIDER_GRAB] = \
             imgui.style.colors[imgui.COLOR_TAB_HOVERED] = \
@@ -173,13 +153,48 @@ class MainGUI():
             imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_TITLE_BACKGROUND_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_TEXT_SELECTED_BACKGROUND] = \
-            utils.hex_to_rgb_0_1("#D4202EFF")
-            # utils.hex_to_rgb_0_1("#0766DAFF")
-        imgui.style.colors[imgui.COLOR_TAB] = \
+        globals.settings.style_accent
+        style_accent_dim = \
+            imgui.style.colors[imgui.COLOR_TAB] = \
             imgui.style.colors[imgui.COLOR_RESIZE_GRIP] = \
             imgui.style.colors[imgui.COLOR_TAB_UNFOCUSED] = \
             imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND_HOVERED] = \
-            (*imgui.style.colors[imgui.COLOR_BUTTON_HOVERED][:3], 0.25)
+        (*globals.settings.style_accent[:3], 0.25)
+        globals.settings.style_alt_bg = \
+            imgui.style.colors[imgui.COLOR_TABLE_HEADER_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT] = \
+        globals.settings.style_alt_bg
+        globals.settings.style_bg = \
+            imgui.style.colors[imgui.COLOR_BUTTON] = \
+            imgui.style.colors[imgui.COLOR_HEADER] = \
+            imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_CHILD_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_POPUP_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_TITLE_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_WINDOW_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_SCROLLBAR_BACKGROUND] = \
+        globals.settings.style_bg
+        globals.settings.style_border = \
+            imgui.style.colors[imgui.COLOR_BORDER] = \
+            imgui.style.colors[imgui.COLOR_SEPARATOR] = \
+        globals.settings.style_border
+        globals.settings.style_corner_radius = \
+            imgui.style.tab_rounding  = \
+            imgui.style.grab_rounding = \
+            imgui.style.frame_rounding = \
+            imgui.style.child_rounding = \
+            imgui.style.popup_rounding = \
+            imgui.style.window_rounding = \
+            imgui.style.scrollbar_rounding = \
+        globals.settings.style_corner_radius
+        globals.settings.style_text = \
+            imgui.style.colors[imgui.COLOR_TEXT] = \
+        globals.settings.style_text
+        globals.settings.style_text_dim = \
+            imgui.style.colors[imgui.COLOR_TEXT_DISABLED] = \
+        globals.settings.style_text_dim
+        # Custom checkbox style
         imgui._checkbox = imgui.checkbox
         def checkbox(label: str, state: bool):
             if state:
@@ -191,6 +206,7 @@ class MainGUI():
                 imgui.pop_style_color(3)
             return result
         imgui.checkbox = checkbox
+        # Custom combo style
         imgui._combo = imgui.combo
         def combo(*args, **kwargs):
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
@@ -198,7 +214,6 @@ class MainGUI():
             imgui.pop_style_color()
             return result
         imgui.combo = combo
-        # TODO: text, text disabled. border color
 
     def refresh_fonts(self):
         imgui.io.fonts.clear()
@@ -206,7 +221,7 @@ class MainGUI():
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
         imgui.io.font_global_scale = 1 / font_scaling_factor
-        self.size_mult = globals.settings.style_scaling
+        self.size_mult = globals.settings.interface_scaling
         imgui.io.fonts.add_font_from_file_ttf(
             str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
             18 * font_scaling_factor * self.size_mult,
@@ -331,9 +346,9 @@ class MainGUI():
 
                 imgui.render()
                 self.impl.render(imgui.get_draw_data())
-                if self.size_mult != globals.settings.style_scaling:
+                if self.size_mult != globals.settings.interface_scaling:
                     self.refresh_fonts()
-                    async_thread.run(db.update_settings("style_scaling"))  # Update here in case of crash
+                    async_thread.run(db.update_settings("interface_scaling"))  # Update here in case of crash
                 glfw.swap_buffers(self.window)  # Also waits idle time
             else:
                 scroll_energy = 0.0
@@ -390,7 +405,7 @@ class MainGUI():
             callbacks.launch_game_exe(game)
 
     def draw_game_type_widget(self, game: Game, *args, **kwargs):
-        col = (*game.type.color, 1)
+        col = game.type.color
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
@@ -1644,8 +1659,8 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Interface scaling:")
             imgui.table_next_column()
-            changed, value = imgui.input_float("##style_scaling", set.style_scaling, step=0.05, step_fast=0.25)
-            set.style_scaling = min(max(value, 0.25), 4)
+            changed, value = imgui.input_float("##interface_scaling", set.interface_scaling, step=0.05, step_fast=0.25)
+            set.interface_scaling = min(max(value, 0.25), 4)
 
             imgui.table_next_row()
             imgui.table_next_column()

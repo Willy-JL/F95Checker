@@ -89,29 +89,29 @@ class Type(EnumNameHack, IntEnum):
     WebGL         = 22
     Wolf_RPG      = 23
 
-Type.Others       .color = utils.hex_to_rgb_0_1("#8BC34A")
-Type.ADRIFT       .color = utils.hex_to_rgb_0_1("#2196F3")
-Type.Cheat_mod    .color = utils.hex_to_rgb_0_1("#D32F2F")
-Type.Collection   .color = utils.hex_to_rgb_0_1("#616161")
-Type.Flash        .color = utils.hex_to_rgb_0_1("#616161")
-Type.HTML         .color = utils.hex_to_rgb_0_1("#689F38")
-Type.Java         .color = utils.hex_to_rgb_0_1("#52A6B0")
-Type.Manga        .color = utils.hex_to_rgb_0_1("#03A9F4")
-Type.Mod          .color = utils.hex_to_rgb_0_1("#BA4545")
-Type.QSP          .color = utils.hex_to_rgb_0_1("#D32F2F")
-Type.RAGS         .color = utils.hex_to_rgb_0_1("#FF9800")
-Type.READ_ME      .color = utils.hex_to_rgb_0_1("#DC143C")
-Type.RPGM         .color = utils.hex_to_rgb_0_1("#2196F3")
-Type.RenPy        .color = utils.hex_to_rgb_0_1("#B069E8")
-Type.Request      .color = utils.hex_to_rgb_0_1("#D32F2F")
-Type.SiteRip      .color = utils.hex_to_rgb_0_1("#8BC34A")
-Type.Tads         .color = utils.hex_to_rgb_0_1("#2196F3")
-Type.Tool         .color = utils.hex_to_rgb_0_1("#EC5555")
-Type.Tutorial     .color = utils.hex_to_rgb_0_1("#EC5555")
-Type.Unity        .color = utils.hex_to_rgb_0_1("#FE5901")
-Type.Unreal_Engine.color = utils.hex_to_rgb_0_1("#0D47A1")
-Type.WebGL        .color = utils.hex_to_rgb_0_1("#FE5901")
-Type.Wolf_RPG     .color = utils.hex_to_rgb_0_1("#4CAF50")
+Type.Others       .color = utils.hex_to_rgba_0_1("#8BC34A")
+Type.ADRIFT       .color = utils.hex_to_rgba_0_1("#2196F3")
+Type.Cheat_mod    .color = utils.hex_to_rgba_0_1("#D32F2F")
+Type.Collection   .color = utils.hex_to_rgba_0_1("#616161")
+Type.Flash        .color = utils.hex_to_rgba_0_1("#616161")
+Type.HTML         .color = utils.hex_to_rgba_0_1("#689F38")
+Type.Java         .color = utils.hex_to_rgba_0_1("#52A6B0")
+Type.Manga        .color = utils.hex_to_rgba_0_1("#03A9F4")
+Type.Mod          .color = utils.hex_to_rgba_0_1("#BA4545")
+Type.QSP          .color = utils.hex_to_rgba_0_1("#D32F2F")
+Type.RAGS         .color = utils.hex_to_rgba_0_1("#FF9800")
+Type.READ_ME      .color = utils.hex_to_rgba_0_1("#DC143C")
+Type.RPGM         .color = utils.hex_to_rgba_0_1("#2196F3")
+Type.RenPy        .color = utils.hex_to_rgba_0_1("#B069E8")
+Type.Request      .color = utils.hex_to_rgba_0_1("#D32F2F")
+Type.SiteRip      .color = utils.hex_to_rgba_0_1("#8BC34A")
+Type.Tads         .color = utils.hex_to_rgba_0_1("#2196F3")
+Type.Tool         .color = utils.hex_to_rgba_0_1("#EC5555")
+Type.Tutorial     .color = utils.hex_to_rgba_0_1("#EC5555")
+Type.Unity        .color = utils.hex_to_rgba_0_1("#FE5901")
+Type.Unreal_Engine.color = utils.hex_to_rgba_0_1("#0D47A1")
+Type.WebGL        .color = utils.hex_to_rgba_0_1("#FE5901")
+Type.Wolf_RPG     .color = utils.hex_to_rgba_0_1("#4CAF50")
 
 
 class Status(IntEnum):
@@ -324,6 +324,7 @@ class Settings:
     fit_images                  : bool
     grid_columns                : int
     grid_image_ratio            : float
+    interface_scaling           : float
     manual_sort_list            : list
     minimize_on_close           : bool
     refresh_completed_games     : bool
@@ -335,14 +336,13 @@ class Settings:
     select_executable_after_add : bool
     start_in_tray               : bool
     start_refresh               : bool
-    style_accent                : str
-    style_alt_bg                : str
-    style_bg                    : str
-    style_btn_border            : str
-    style_btn_disabled          : str
-    style_btn_hover             : str
+    style_accent                : tuple[float]
+    style_alt_bg                : tuple[float]
+    style_bg                    : tuple[float]
+    style_border                : tuple[float]
     style_corner_radius         : int
-    style_scaling               : float
+    style_text                  : tuple[float]
+    style_text_dim              : tuple[float]
     tray_refresh_interval       : int
     update_keep_image           : bool
     vsync_ratio                 : int
@@ -350,6 +350,16 @@ class Settings:
     zoom_enabled                : bool
     zoom_region                 : bool
     zoom_size                   : int
+
+
+class DefaultStyle:
+    accent        = "#D4202E"
+    alt_bg        = "#101010"
+    bg            = "#090909"
+    border        = "#6E6E80"
+    corner_radius = 6
+    text          = "#FFFFFF"
+    text_dim      = "#808080"
 
 
 @dataclasses.dataclass

@@ -6,7 +6,7 @@ import typing
 import enum
 import json
 
-from modules.structs import Browser, DisplayMode, Game, MsgBox, Settings, Status, Timestamp, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, Settings, Status, Timestamp, Type
 from modules import globals, imagehelper, msgbox, utils
 
 connection: aiosqlite.Connection = None
@@ -36,6 +36,7 @@ async def connect():
             fit_images                  INTEGER DEFAULT 0,
             grid_columns                INTEGER DEFAULT 3,
             grid_image_ratio            REAL    DEFAULT 3.0,
+            interface_scaling           REAL    DEFAULT 1.0,
             manual_sort_list            TEXT    DEFAULT "[]",
             minimize_on_close           INTEGER DEFAULT 0,
             refresh_completed_games     INTEGER DEFAULT 1,
@@ -47,14 +48,13 @@ async def connect():
             select_executable_after_add INTEGER DEFAULT 0,
             start_in_tray               INTEGER DEFAULT 0,
             start_refresh               INTEGER DEFAULT 0,
-            style_accent                TEXT    DEFAULT "#da1e2e",
-            style_alt_bg                TEXT    DEFAULT "#141414",
-            style_bg                    TEXT    DEFAULT "#181818",
-            style_btn_border            TEXT    DEFAULT "#454545",
-            style_btn_disabled          TEXT    DEFAULT "#232323",
-            style_btn_hover             TEXT    DEFAULT "#747474",
-            style_corner_radius         INTEGER DEFAULT 6,
-            style_scaling               REAL    DEFAULT 1.0,
+            style_accent                TEXT    DEFAULT "{DefaultStyle.accent}",
+            style_alt_bg                TEXT    DEFAULT "{DefaultStyle.alt_bg}",
+            style_bg                    TEXT    DEFAULT "{DefaultStyle.bg}",
+            style_border                TEXT    DEFAULT "{DefaultStyle.border}",
+            style_corner_radius         INTEGER DEFAULT {DefaultStyle.corner_radius},
+            style_text                  TEXT    DEFAULT "{DefaultStyle.text}",
+            style_text_dim              TEXT    DEFAULT "{DefaultStyle.text_dim}",
             tray_refresh_interval       INTEGER DEFAULT 15,
             update_keep_image           INTEGER DEFAULT 0,
             vsync_ratio                 INTEGER DEFAULT 1,
@@ -153,13 +153,23 @@ async def save_loop():
 
 
 def sql_to_py(value: str | int | float, data_type: typing.Type):
-    if getattr(data_type, "__name__", None) == "list":
-        value = json.loads(value)
-        if hasattr(data_type, "__args__"):
-            content_type = data_type.__args__[0]
-            value = [content_type(x) for x in value]
-    else:
-        value = data_type(value)
+    match getattr(data_type, "__name__", None):
+        case "list":
+            value = json.loads(value)
+            if hasattr(data_type, "__args__"):
+                content_type = data_type.__args__[0]
+                value = [content_type(x) for x in value]
+        case "tuple":
+            if isinstance(value, str) and getattr(data_type, "__args__", [None])[0] is float:
+                value = utils.hex_to_rgba_0_1(value)
+            else:
+                value = json.loads(value)
+                if hasattr(data_type, "__args__"):
+                    content_type = data_type.__args__[0]
+                    value = [content_type(x) for x in value]
+                value = tuple(value)
+        case _:
+            value = data_type(value)
     return value
 
 
@@ -190,7 +200,7 @@ async def load():
         globals.games[game["id"]] = Game(**game)
 
 
-def py_to_sql(value: enum.Enum | Timestamp | bool | list | typing.Any):
+def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
     if hasattr(value, "value"):
         value = value.value
     elif isinstance(value, bool):
@@ -199,6 +209,8 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | typing.Any):
         value = list(value)
         value = [item.value if hasattr(item, "value") else item for item in value]
         value = json.dumps(value)
+    elif isinstance(value, tuple) and 3 <= len(value) <= 4:
+        value = utils.rgba_0_1_to_hex(value)
     return value
 
 
@@ -356,29 +368,25 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
 
         if style := config.get("style"):
 
-            if back := style.get("back"):
-                keys.append("style_bg")
-                values.append(back)
+            if accent := style.get("accent"):
+                keys.append("style_accent")
+                values.append(accent)
 
             if alt := style.get("alt"):
                 keys.append("style_alt_bg")
                 values.append(alt)
 
-            if accent := style.get("accent"):
-                keys.append("style_accent")
-                values.append(accent)
+            if back := style.get("back"):
+                keys.append("style_bg")
+                values.append(back)
 
             if border := style.get("border"):
-                keys.append("style_btn_border")
+                keys.append("style_border")
                 values.append(border)
 
-            if hover := style.get("hover"):
-                keys.append("style_btn_hover")
-                values.append(hover)
-
-            if disabled := style.get("disabled"):
-                keys.append("style_btn_disabled")
-                values.append(disabled)
+            if radius := style.get("radius"):
+                keys.append("style_corner_radius")
+                values.append(int(radius))
 
         await execute(f"""
             UPDATE settings
