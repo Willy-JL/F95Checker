@@ -2004,14 +2004,14 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Restore defaults:")
             imgui.table_next_column()
-            if imgui.button("Restore", width=right_width):
+            if imgui.button("Restore"):
                 set.style_corner_radius = DefaultStyle.corner_radius
-                set.style_accent        = DefaultStyle.accent
-                set.style_alt_bg        = DefaultStyle.alt_bg
-                set.style_bg            = DefaultStyle.bg
-                set.style_border        = DefaultStyle.border
-                set.style_text          = DefaultStyle.text
-                set.style_text_dim      = DefaultStyle.text_dim
+                set.style_accent        = utils.hex_to_rgba_0_1(DefaultStyle.accent)
+                set.style_alt_bg        = utils.hex_to_rgba_0_1(DefaultStyle.alt_bg)
+                set.style_bg            = utils.hex_to_rgba_0_1(DefaultStyle.bg)
+                set.style_border        = utils.hex_to_rgba_0_1(DefaultStyle.border)
+                set.style_text          = utils.hex_to_rgba_0_1(DefaultStyle.text)
+                set.style_text_dim      = utils.hex_to_rgba_0_1(DefaultStyle.text_dim)
                 self.refresh_styles()
                 async_thread.run(db.update_settings(
                     "style_corner_radius",
