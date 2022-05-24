@@ -1665,7 +1665,7 @@ class MainGUI():
             imgui.text("Interface scaling:")
             imgui.table_next_column()
             changed, value = imgui.input_float("##interface_scaling", set.interface_scaling, step=0.05, step_fast=0.25)
-            set.interface_scaling = min(max(value, 0.25), 4)
+            set.interface_scaling = min(max(value, 0.5), 2.5)
 
             imgui.table_next_row()
             imgui.table_next_column()
