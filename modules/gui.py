@@ -133,9 +133,72 @@ class MainGUI():
         imgui.style.item_spacing = (imgui.style.item_spacing.y, imgui.style.item_spacing.y)
         imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
         imgui.style.scrollbar_size = 12
-        imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding  = \
-        imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding  = \
-        imgui.style.scrollbar_rounding = globals.settings.style_corner_radius
+        imgui.style.window_rounding = \
+            imgui.style.tab_rounding  = \
+            imgui.style.grab_rounding = \
+            imgui.style.frame_rounding = \
+            imgui.style.child_rounding = \
+            imgui.style.popup_rounding  = \
+            imgui.style.scrollbar_rounding = \
+            globals.settings.style_corner_radius
+        imgui.style.frame_border_size = 1
+        imgui.style.colors[imgui.COLOR_BUTTON] = \
+            imgui.style.colors[imgui.COLOR_HEADER] = \
+            imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_CHILD_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_POPUP_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_TITLE_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_WINDOW_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_SCROLLBAR_BACKGROUND] = \
+            utils.hex_to_rgb_0_1("#090909FF")
+        imgui.style.colors[imgui.COLOR_TABLE_HEADER_BACKGROUND] = \
+            imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT] = \
+            utils.hex_to_rgb_0_1("#101010FF")
+        imgui.style.colors[imgui.COLOR_CHECK_MARK] = \
+            imgui.style.colors[imgui.COLOR_TAB_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_SLIDER_GRAB] = \
+            imgui.style.colors[imgui.COLOR_TAB_HOVERED] = \
+            imgui.style.colors[imgui.COLOR_BUTTON_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_HEADER_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_NAV_HIGHLIGHT] = \
+            imgui.style.colors[imgui.COLOR_HEADER_HOVERED] = \
+            imgui.style.colors[imgui.COLOR_BUTTON_HOVERED] = \
+            imgui.style.colors[imgui.COLOR_SEPARATOR_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_SEPARATOR_HOVERED] = \
+            imgui.style.colors[imgui.COLOR_RESIZE_GRIP_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_RESIZE_GRIP_HOVERED] = \
+            imgui.style.colors[imgui.COLOR_TAB_UNFOCUSED_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_SCROLLBAR_GRAB_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_TITLE_BACKGROUND_ACTIVE] = \
+            imgui.style.colors[imgui.COLOR_TEXT_SELECTED_BACKGROUND] = \
+            utils.hex_to_rgb_0_1("#D4202EFF")
+            # utils.hex_to_rgb_0_1("#0766DAFF")
+        imgui.style.colors[imgui.COLOR_TAB] = \
+            imgui.style.colors[imgui.COLOR_RESIZE_GRIP] = \
+            imgui.style.colors[imgui.COLOR_TAB_UNFOCUSED] = \
+            imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND_HOVERED] = \
+            (*imgui.style.colors[imgui.COLOR_BUTTON_HOVERED][:3], 0.25)
+        imgui._checkbox = imgui.checkbox
+        def checkbox(label: str, state: bool):
+            if state:
+                imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND_HOVERED, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+                imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+                imgui.push_style_color(imgui.COLOR_CHECK_MARK, *imgui.style.colors[imgui.COLOR_WINDOW_BACKGROUND])
+            result = imgui._checkbox(label, state)
+            if state:
+                imgui.pop_style_color(3)
+            return result
+        imgui.checkbox = checkbox
+        imgui._combo = imgui.combo
+        def combo(*args, **kwargs):
+            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+            result = imgui._combo(*args, **kwargs)
+            imgui.pop_style_color()
+            return result
+        imgui.combo = combo
+        # TODO: text, text disabled. border color, accented rating stars
 
     def refresh_fonts(self):
         imgui.io.fonts.clear()
@@ -1067,7 +1130,9 @@ class MainGUI():
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
+                imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha *  0.25)
                 imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
+                imgui.pop_style_var()
                 self.handle_game_hitbox_events(game, game_i, manual_sort, not_filtering)
 
             imgui.end_table()
@@ -1292,18 +1357,26 @@ class MainGUI():
 
         if globals.settings.display_mode is DisplayMode.grid:
             utils.push_disabled(block_interaction=False)
+        else:
+            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button("󱇘"):
             new_display_mode = DisplayMode.list
         if globals.settings.display_mode is DisplayMode.grid:
             utils.pop_disabled(block_interaction=False)
+        else:
+            imgui.pop_style_color()
 
         imgui.same_line()
         if globals.settings.display_mode is DisplayMode.list:
             utils.push_disabled(block_interaction=False)
+        else:
+            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button("󱇙"):
             new_display_mode = DisplayMode.grid
         if globals.settings.display_mode is DisplayMode.list:
             utils.pop_disabled(block_interaction=False)
+        else:
+            imgui.pop_style_color()
 
         if new_display_mode is not None:
             globals.settings.display_mode = new_display_mode
