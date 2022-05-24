@@ -354,7 +354,7 @@ class Settings:
 
 class DefaultStyle:
     accent        = "#D4202E"
-    alt_bg        = "#141414"
+    alt_bg        = "#101010"
     bg            = "#0A0A0A"
     border        = "#454545"
     corner_radius = 6

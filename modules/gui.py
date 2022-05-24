@@ -1371,27 +1371,20 @@ class MainGUI():
     def draw_bottombar(self):
         new_display_mode = None
 
-        if globals.settings.display_mode is DisplayMode.grid:
-            utils.push_disabled(block_interaction=False)
-        else:
+        if globals.settings.display_mode is DisplayMode.list:
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button("󱇘"):
             new_display_mode = DisplayMode.list
-        if globals.settings.display_mode is DisplayMode.grid:
-            utils.pop_disabled(block_interaction=False)
-        else:
+        if globals.settings.display_mode is DisplayMode.list:
             imgui.pop_style_color()
 
         imgui.same_line()
-        if globals.settings.display_mode is DisplayMode.list:
-            utils.push_disabled(block_interaction=False)
-        else:
+
+        if globals.settings.display_mode is DisplayMode.grid:
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button("󱇙"):
             new_display_mode = DisplayMode.grid
-        if globals.settings.display_mode is DisplayMode.list:
-            utils.pop_disabled(block_interaction=False)
-        else:
+        if globals.settings.display_mode is DisplayMode.grid:
             imgui.pop_style_color()
 
         if new_display_mode is not None:
