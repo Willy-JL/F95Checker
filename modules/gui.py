@@ -198,7 +198,7 @@ class MainGUI():
             imgui.pop_style_color()
             return result
         imgui.combo = combo
-        # TODO: text, text disabled. border color, accented rating stars
+        # TODO: text, text disabled. border color
 
     def refresh_fonts(self):
         imgui.io.fonts.clear()

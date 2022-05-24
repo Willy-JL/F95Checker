@@ -4,6 +4,7 @@ import imgui
 
 def ratingwidget(id: str, current: int, num_stars: int = 5, *args, **kwargs):
     value = current
+    accent_col = imgui.style.colors[imgui.COLOR_BUTTON_HOVERED]
     imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
     imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
     imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
@@ -11,11 +12,15 @@ def ratingwidget(id: str, current: int, num_stars: int = 5, *args, **kwargs):
     imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (0, 0))
     imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
     for i in range(1, num_stars + 1):
-        label = "󰓎"  # Filled / selected star
-        if i > current:
+        if i <= current:
+            label = "󰓎"  # Filled / selected star
+            imgui.push_style_color(imgui.COLOR_TEXT, *accent_col)
+        else:
             label = "󰓒"  # Empty / unselected star
         if imgui.small_button(f"{label}##{id}_{i}", *args, **kwargs):
             value = i if current != i else 0  # Clicking the current value resets the rating to 0
+        if i <= current:
+            imgui.pop_style_color()
         imgui.same_line()
     value = min(max(value, 0), num_stars)
     imgui.pop_style_color(3)
