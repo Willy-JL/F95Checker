@@ -42,14 +42,14 @@ class Os(IntEnum, EnumAutoValue):
 
 
 class Browser(EnumNameHack, IntEnum):
-    _None    = 0
-    Chrome   = 1
-    Firefox  = 2
-    Brave    = 3
-    Edge     = 4
-    Opera    = 5
-    Opera_GX = 6
-    Custom   = 7
+    _None    = 1
+    Chrome   = 2
+    Firefox  = 3
+    Brave    = 4
+    Edge     = 5
+    Opera    = 6
+    Opera_GX = 7
+    Custom   = 8
 
 Browser.Chrome  .private = "-incognito"
 Browser.Firefox .private = "-private-window"
@@ -115,10 +115,10 @@ Type.Wolf_RPG     .color = utils.hex_to_rgba_0_1("#4CAF50")
 
 
 class Status(IntEnum):
-    Normal    = 0
-    Completed = 1
-    OnHold    = 2
-    Abandoned = 3
+    Normal    = 1
+    Completed = 2
+    OnHold    = 3
+    Abandoned = 4
 
 
 class Tag(EnumNameHack, IntEnum):
