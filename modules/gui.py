@@ -11,7 +11,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, DisplayMode, FilterMode, Game, Os, Status, Tag, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, FilterMode, Game, Os, Status, Tag, Type
 from modules import globals, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
 
 imgui.io = None
@@ -134,6 +134,29 @@ class MainGUI():
         imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
         imgui.style.scrollbar_size = 12
         imgui.style.frame_border_size = 1
+        self.refresh_styles()
+        # Custom checkbox style
+        imgui._checkbox = imgui.checkbox
+        def checkbox(label: str, state: bool):
+            if state:
+                imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND_HOVERED, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+                imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+                imgui.push_style_color(imgui.COLOR_CHECK_MARK, *imgui.style.colors[imgui.COLOR_WINDOW_BACKGROUND])
+            result = imgui._checkbox(label, state)
+            if state:
+                imgui.pop_style_color(3)
+            return result
+        imgui.checkbox = checkbox
+        # Custom combo style
+        imgui._combo = imgui.combo
+        def combo(*args, **kwargs):
+            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+            result = imgui._combo(*args, **kwargs)
+            imgui.pop_style_color()
+            return result
+        imgui.combo = combo
+
+    def refresh_styles(self):
         globals.settings.style_accent = \
             imgui.style.colors[imgui.COLOR_CHECK_MARK] = \
             imgui.style.colors[imgui.COLOR_TAB_ACTIVE] = \
@@ -194,26 +217,6 @@ class MainGUI():
         globals.settings.style_text_dim = \
             imgui.style.colors[imgui.COLOR_TEXT_DISABLED] = \
         globals.settings.style_text_dim
-        # Custom checkbox style
-        imgui._checkbox = imgui.checkbox
-        def checkbox(label: str, state: bool):
-            if state:
-                imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND_HOVERED, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-                imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-                imgui.push_style_color(imgui.COLOR_CHECK_MARK, *imgui.style.colors[imgui.COLOR_WINDOW_BACKGROUND])
-            result = imgui._checkbox(label, state)
-            if state:
-                imgui.pop_style_color(3)
-            return result
-        imgui.checkbox = checkbox
-        # Custom combo style
-        imgui._combo = imgui.combo
-        def combo(*args, **kwargs):
-            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-            result = imgui._combo(*args, **kwargs)
-            imgui.pop_style_color()
-            return result
-        imgui.combo = combo
 
     def refresh_fonts(self):
         imgui.io.fonts.clear()
@@ -1930,6 +1933,95 @@ class MainGUI():
                 imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding = \
                 imgui.style.scrollbar_rounding = globals.settings.style_corner_radius
                 async_thread.run(db.update_settings("style_corner_radius"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Accent:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.color_edit3("##style_accent", *set.style_accent[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            if changed:
+                set.style_accent = (*value, 1.0)
+                self.refresh_styles()
+                async_thread.run(db.update_settings("style_accent"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Background:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.color_edit3("##style_bg", *set.style_bg[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            if changed:
+                set.style_bg = (*value, 1.0)
+                self.refresh_styles()
+                async_thread.run(db.update_settings("style_bg"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Alt background:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.color_edit3("##style_alt_bg", *set.style_alt_bg[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            if changed:
+                set.style_alt_bg = (*value, 1.0)
+                self.refresh_styles()
+                async_thread.run(db.update_settings("style_alt_bg"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Border:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.color_edit3("##style_border", *set.style_border[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            if changed:
+                set.style_border = (*value, 1.0)
+                self.refresh_styles()
+                async_thread.run(db.update_settings("style_border"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Text:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.color_edit3("##style_text", *set.style_text[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            if changed:
+                set.style_text = (*value, 1.0)
+                self.refresh_styles()
+                async_thread.run(db.update_settings("style_text"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Text dim:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.color_edit3("##style_text_dim", *set.style_text_dim[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            if changed:
+                set.style_text_dim = (*value, 1.0)
+                self.refresh_styles()
+                async_thread.run(db.update_settings("style_text_dim"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Restore defaults:")
+            imgui.table_next_column()
+            if imgui.button("Restore"):
+                set.style_corner_radius = DefaultStyle.corner_radius
+                set.style_accent        = DefaultStyle.accent
+                set.style_alt_bg        = DefaultStyle.alt_bg
+                set.style_bg            = DefaultStyle.bg
+                set.style_border        = DefaultStyle.border
+                set.style_text          = DefaultStyle.text
+                set.style_text_dim      = DefaultStyle.text_dim
+                self.refresh_styles()
+                async_thread.run(db.update_settings(
+                    "style_corner_radius",
+                    "style_accent",
+                    "style_alt_bg",
+                    "style_bg",
+                    "style_border",
+                    "style_text",
+                    "style_text_dim",
+                ))
 
             imgui.end_table()
             imgui.spacing()
