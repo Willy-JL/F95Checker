@@ -412,8 +412,10 @@ class MainGUI():
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
         imgui.small_button(f"{game.type.name}##{game.id}_type", *args, **kwargs)
         imgui.pop_style_color(3)
+        imgui.pop_style_var()
 
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
