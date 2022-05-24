@@ -96,6 +96,11 @@ def center_next_window():
     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
 
 
+def constrain_next_window():
+    size = imgui.io.display_size
+    imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
+
+
 def close_popup_clicking_outside():
     if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID):
         # This is the topmost popup

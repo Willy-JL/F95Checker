@@ -18,8 +18,7 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict = {"󰄬
         imgui.open_popup(title)
     closed = False
     opened = 1
-    size = imgui.io.display_size
-    imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
+    utils.constrain_next_window()
     utils.center_next_window()
     if imgui.begin_popup_modal(title, True, flags=popup_flags)[0]:
         spacing = 2 * imgui.style.item_spacing.x

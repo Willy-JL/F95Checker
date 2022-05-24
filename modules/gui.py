@@ -574,8 +574,7 @@ class MainGUI():
             imgui.open_popup("Game info")
         closed = False
         opened = 1
-        size = imgui.io.display_size
-        imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
+        utils.constrain_next_window()
         utils.center_next_window()
         if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
             closed = utils.close_popup_clicking_outside()
@@ -756,8 +755,7 @@ class MainGUI():
             imgui.open_popup("About F95Checker")
         closed = False
         opened = 1
-        size = imgui.io.display_size
-        imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
+        utils.constrain_next_window()
         utils.center_next_window()
         if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
             closed = utils.close_popup_clicking_outside()
