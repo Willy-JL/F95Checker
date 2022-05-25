@@ -1,3 +1,4 @@
+from concurrent.futures import Future
 import configparser
 import plistlib
 import pathlib
@@ -189,5 +190,6 @@ refresh_total = 0
 gui: MainGUI = None
 refresh_progress = 0
 settings: Settings = None
+refresh_task: Future = None
 games: dict[int, Game] = None
 cookies: dict[str, str] = None
