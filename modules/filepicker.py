@@ -18,23 +18,23 @@ class FilePicker:
         imgui.WINDOW_ALWAYS_AUTO_RESIZE
     )
 
-    def __init__(self, title: str = "File picker", dir_picker: bool = False, start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags: int = 0):
-        self.current: int = 0
-        self.title: str = title
-        self.active: bool = True
-        self.elapsed: float = 0.0
+    def __init__(self, title="File picker", dir_picker=False, start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags=0):
+        self.current = 0
+        self.title = title
+        self.active = True
+        self.elapsed = 0.0
+        self.dir_icon = "󰉋  "
+        self.file_icon = "󰈔  "
+        self.callback = callback
         self.selected: str = None
         self.items: list[str] = []
-        self.dir_icon: str = "󰉋  "
-        self.file_icon: str = "󰈔  "
         self.dir: pathlib.Path = None
-        self.dir_picker: bool = dir_picker
-        self.callback: typing.Callable = callback
-        self.flags: int = custom_popup_flags or self.flags
-        self.windows: bool = sys.platform.startswith("win")
+        self.dir_picker = dir_picker
+        self.flags = custom_popup_flags or self.flags
+        self.windows = sys.platform.startswith("win")
         if self.windows:
             self.drives: list[str] = []
-            self.current_drive: int = 0
+            self.current_drive = 0
         self.goto(start_dir or os.getcwd())
 
     def goto(self, dir: str | pathlib.Path):
@@ -179,7 +179,7 @@ class FilePicker:
 
 
 class DirPicker(FilePicker):
-    def __init__(self, title: str = "Directory picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags: int = 0):
+    def __init__(self, title="Directory picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags=0):
         super().__init__(title=title, dir_picker=True, start_dir=start_dir, callback=callback, custom_popup_flags=custom_popup_flags)
 
 

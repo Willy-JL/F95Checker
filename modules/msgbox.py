@@ -13,7 +13,7 @@ popup_flags: int = (
 )
 
 
-def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict = {"󰄬 Ok": None}):
+def msgbox(title: str, message: str, type: MsgBox = None, buttons={"󰄬 Ok": None}):
     if not imgui.is_popup_open(title):
         imgui.open_popup(title)
     closed = False

@@ -9,22 +9,22 @@ from modules import sync_thread
 
 
 class ImageHelper:
-    def __init__(self, path: str | pathlib.Path, glob: str = ""):
-        self.width: int = 1
-        self.height: int = 1
-        self.glob: str = glob
-        self.frame_count: int = 1
-        self.loaded: bool = False
-        self.loading: bool = False
-        self.applied: bool = False
-        self.missing: bool = False
-        self.animated: bool = False
-        self.prev_time: float = 0.0
-        self.current_frame: int = -1
-        self.frame_elapsed: float = 0.0
-        self.frame_durations: list = None
+    def __init__(self, path: str | pathlib.Path, glob=""):
+        self.width = 1
+        self.height = 1
+        self.glob = glob
+        self.loaded = False
+        self.loading = False
+        self.applied = False
+        self.missing = False
+        self.frame_count = 1
+        self.animated = False
+        self.prev_time = 0.0
+        self.current_frame = -1
+        self.frame_elapsed = 0.0
         self.data: bytes | list[bytes] = None
         self._texture_id: numpy.uint32 = None
+        self.frame_durations: list[float] = None
         self.path = pathlib.Path(path)
 
     def reset(self):
@@ -140,7 +140,7 @@ class ImageHelper:
             imgui.dummy(width, height)
             return False
 
-    def crop_to_ratio(self, ratio: int | float, fit: bool = False):
+    def crop_to_ratio(self, ratio: int | float, fit=False):
         img_ratio = self.width / self.height
         if (img_ratio >= ratio) != fit:
             crop_h = self.height

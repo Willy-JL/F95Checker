@@ -79,13 +79,13 @@ def impl_glfw_init(width: int, height: int, window_name: str):
     return window
 
 
-def push_disabled(block_interaction: bool = True):
+def push_disabled(block_interaction=True):
     if block_interaction:
         imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
     imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha *  0.5)
 
 
-def pop_disabled(block_interaction: bool = True):
+def pop_disabled(block_interaction=True):
     if block_interaction:
         imgui.internal.pop_item_flag()
     imgui.pop_style_var()

@@ -183,9 +183,9 @@ elif os is Os.MacOS:
         start_with_system = False
 
 # Variables
+browser_idx = 0
+popup_stack = []
 gui: MainGUI = None
-browser_idx: int = 0
-popup_stack: list = []
 settings: Settings = None
 games: dict[int, Game] = None
 cookies: dict[str, str] = None

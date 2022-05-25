@@ -21,8 +21,8 @@ imgui.style = None
 class MainGUI():
     def __init__(self):
         # Constants
-        self.sidebar_size: int = 269
-        self.game_list_column_count: int = 16
+        self.sidebar_size = 269
+        self.game_list_column_count = 16
         self.window_flags: int = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
@@ -68,22 +68,24 @@ class MainGUI():
             imgui.WINDOW_NO_SAVED_SETTINGS |
             imgui.WINDOW_ALWAYS_AUTO_RESIZE
         )
-        self.watermark_text: str = f"F95Checker v{globals.version} by WillyJL"
+        self.watermark_text = f"F95Checker v{globals.version} by WillyJL"
 
         # Variables
-        self.visible: bool = True
-        self.focused: bool = True
-        self.edit_mode: bool = False
+        self.visible = True
+        self.focused = True
+        self.size_mult = 0.0
+        self.edit_mode = False
+        self.refresh_total = 0
+        self.prev_size = (0, 0)
+        self.screen_pos = (0, 0)
+        self.require_sort = True
+        self.refresh_progress = 0
+        self.prev_manual_sort = 0
+        self.game_hitbox_click = False
         self.hovered_game: Game = None
-        self.require_sort: bool = True
-        self.prev_manual_sort: int = 0
-        self.size_mult: int | float = 0
-        self.sorted_games_ids: list = []
         self.filter_by = FilterMode._None
-        self.prev_size: tuple[int] = (0, 0)
-        self.screen_pos: tuple[int] = (0, 0)
-        self.game_hitbox_click: bool = False
-        self.ghost_columns_enabled_count: int = 0
+        self.ghost_columns_enabled_count = 0
+        self.sorted_games_ids: list[int] = []
 
         # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
@@ -376,7 +378,7 @@ class MainGUI():
         self.impl.shutdown()
         glfw.terminate()
 
-    def draw_hover_text(self, hover_text: str, text: str = "(?)", *args, **kwargs):
+    def draw_hover_text(self, hover_text: str, text="(?)", *args, **kwargs):
         imgui.text_disabled(text, *args, **kwargs)
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -385,7 +387,7 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
-    def draw_game_more_info_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+    def draw_game_more_info_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_more_info"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
@@ -394,7 +396,7 @@ class MainGUI():
         if clicked:
             utils.push_popup(self.draw_game_info_popup, game)
 
-    def draw_game_play_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+    def draw_game_play_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
         if not game.installed:
             utils.push_disabled()
@@ -433,13 +435,13 @@ class MainGUI():
         else:
             imgui.text("", *args, **kwargs)
 
-    def draw_game_played_checkbox(self, game: Game, label: str = "", *args, **kwargs):
+    def draw_game_played_checkbox(self, game: Game, label="", *args, **kwargs):
         changed, game.played = imgui.checkbox(f"{label}##{game.id}_played", game.played, *args, **kwargs)
         if changed:
             async_thread.run(db.update_game(game, "played"))
             self.require_sort = True
 
-    def draw_game_installed_checkbox(self, game: Game, label: str = "", *args, **kwargs):
+    def draw_game_installed_checkbox(self, game: Game, label="", *args, **kwargs):
         changed, installed = imgui.checkbox(f"{label}##{game.id}_installed", game.installed == game.version, *args, **kwargs)
         if changed:
             if installed:
@@ -456,7 +458,7 @@ class MainGUI():
             async_thread.run(db.update_game(game, "rating"))
             self.require_sort = True
 
-    def draw_game_open_thread_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+    def draw_game_open_thread_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_open_thread"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
@@ -465,7 +467,7 @@ class MainGUI():
         if clicked:
             callbacks.open_webpage(game.url)
 
-    def draw_game_remove_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+    def draw_game_remove_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_remove"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
@@ -474,7 +476,7 @@ class MainGUI():
         if clicked:
             callbacks.remove_game(game)
 
-    def draw_game_select_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+    def draw_game_select_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_select_exe"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
@@ -487,7 +489,7 @@ class MainGUI():
                     async_thread.run(db.update_game(game, "executable"))
             utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
 
-    def draw_game_unset_exe_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+    def draw_game_unset_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_unset_exe"
         if not game.executable:
             utils.push_disabled()
@@ -501,7 +503,7 @@ class MainGUI():
             game.executable = ""
             async_thread.run(db.update_game(game, "executable"))
 
-    def draw_game_open_folder_button(self, game: Game, label: str = "", selectable: bool = False, *args, **kwargs):
+    def draw_game_open_folder_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_open_folder"
         if not game.executable:
             utils.push_disabled()
@@ -531,7 +533,7 @@ class MainGUI():
         imgui.separator()
         self.draw_game_remove_button(game, label="󰩺 Remove", selectable=True)
 
-    def draw_game_notes_widget(self, game: Game, multiline: bool = True, width: int | float = None, *args, **kwargs):
+    def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None, *args, **kwargs):
         if multiline:
             changed, value = imgui.input_text_multiline(
                 f"##{game.id}_notes",
@@ -1078,7 +1080,7 @@ class MainGUI():
             frame_height = imgui.get_frame_height()
             notes_width = 10 * frame_height
             for game_i, id in enumerate(self.sorted_games_ids):
-                game: Game = globals.games[id]
+                game = globals.games[id]
                 imgui.table_next_row()
                 # Base row height
                 imgui.table_set_column_index(3)
@@ -1226,7 +1228,7 @@ class MainGUI():
             for game_i, id in enumerate(self.sorted_games_ids):
                 draw_list.channels_split(2)
                 draw_list.channels_set_current(1)
-                game: Game = globals.games[id]
+                game = globals.games[id]
                 imgui.table_next_column()
 
                 # Setup pt2
@@ -1398,7 +1400,7 @@ class MainGUI():
         if imgui.button("Add!"):
             pass  # TODO: add button functionality
 
-    def start_settings_section(self, name: str, right_width: int | float, collapsible: bool = True):
+    def start_settings_section(self, name: str, right_width: int | float, collapsible=True):
         if collapsible:
             header = imgui.collapsing_header(name)[0]
         else:

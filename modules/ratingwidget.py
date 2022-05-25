@@ -2,7 +2,7 @@
 import imgui
 
 
-def ratingwidget(id: str, current: int, num_stars: int = 5, *args, **kwargs):
+def ratingwidget(id: str, current: int, num_stars=5, *args, **kwargs):
     value = current
     accent_col = imgui.style.colors[imgui.COLOR_BUTTON_HOVERED]
     imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)

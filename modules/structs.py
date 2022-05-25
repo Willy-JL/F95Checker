@@ -296,11 +296,11 @@ class MsgBox(IntEnum, EnumAutoValue):
 
 
 class Timestamp:
-    def __init__(self, unix_time: int | float, invalid: str = "N/A", format: str = "%d/%m/%Y"):
-        self.invalid: str = invalid
-        self.format: str = format
-        self.display: str = ""
-        self.value: int = 0
+    def __init__(self, unix_time: int | float, invalid="N/A", format="%d/%m/%Y"):
+        self.invalid = invalid
+        self.format = format
+        self.display = ""
+        self.value = 0
         self.update(unix_time)
 
     def update(self, unix_time: int | float):

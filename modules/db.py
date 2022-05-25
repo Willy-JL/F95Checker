@@ -10,8 +10,8 @@ from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, Se
 from modules import globals, imagehelper, msgbox, utils
 
 connection: aiosqlite.Connection = None
-available: bool = False
-pending: int = 0
+available = False
+pending = 0
 
 
 async def connect():
