@@ -185,7 +185,9 @@ elif os is Os.MacOS:
 # Variables
 browser_idx = 0
 popup_stack = []
+refresh_total = 0
 gui: MainGUI = None
+refresh_progress = 0
 settings: Settings = None
 games: dict[int, Game] = None
 cookies: dict[str, str] = None

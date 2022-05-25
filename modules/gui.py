@@ -75,11 +75,9 @@ class MainGUI():
         self.focused = True
         self.size_mult = 0.0
         self.edit_mode = False
-        self.refresh_total = 0
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.require_sort = True
-        self.refresh_progress = 0
         self.prev_manual_sort = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
@@ -1423,7 +1421,11 @@ class MainGUI():
 
         width = imgui.get_content_region_available_width()
         height = self.scaled(126)
-        if self.hovered_game:
+        if globals.refresh_total:
+            imgui.progress_bar(globals.refresh_progress / globals.refresh_total, (width, height), "aaa")
+            if imgui.is_item_clicked():
+                print("aaa")
+        elif self.hovered_game:
             game = self.hovered_game
             if game.image.missing:
                 imgui.button("Image missing!", width=width, height=height)
@@ -1432,7 +1434,16 @@ class MainGUI():
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
         else:
             if imgui.button("Refresh!", width=width, height=height):
-                print("aaa")
+                async def test():
+                    import asyncio
+                    globals.refresh_progress = 0
+                    globals.refresh_total = 100
+                    while globals.refresh_progress < globals.refresh_total:
+                        await asyncio.sleep(0.05)
+                        globals.refresh_progress += 1
+                    globals.refresh_progress = 0
+                    globals.refresh_total = 0
+                async_thread.run(test())
 
         imgui.begin_child("Settings")
 
