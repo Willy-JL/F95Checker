@@ -188,3 +188,4 @@ browser_idx: int = 0
 popup_stack: list = []
 settings: Settings = None
 games: dict[int, Game] = None
+cookies: dict[str, str] = None

@@ -26,12 +26,16 @@ def main():
     async_thread.wait(db.load())
     async_thread.run(db.save_loop())
 
+    from modules import api
+    api.setup()
+
     from modules import gui
     globals.gui = gui.MainGUI()
 
     globals.gui.main_loop()
 
     async_thread.wait(db.close())
+    async_thread.wait(api.shutdown())
 
 
 if __name__ == "__main__":

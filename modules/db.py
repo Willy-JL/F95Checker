@@ -96,6 +96,13 @@ async def connect():
         )
     """)
 
+    await connection.execute(f"""
+        CREATE TABLE IF NOT EXISTS cookies (
+            key               TEXT    PRIMARY KEY,
+            value             TEXT    DEFAULT ""
+        )
+    """)
+
     available = True
 
     if migrate:
@@ -198,6 +205,13 @@ async def load():
         game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
         game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
         globals.games[game["id"]] = Game(**game)
+
+    cursor = await execute("""
+        SELECT *
+        FROM cookies
+    """)
+    cookies = await cursor.fetchall()
+    globals.cookies = {cookie["key"]: cookie["value"] for cookie in cookies}
 
 
 def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
