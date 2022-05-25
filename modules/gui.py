@@ -167,6 +167,7 @@ class MainGUI():
             imgui.style.colors[imgui.COLOR_BUTTON_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_HEADER_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_NAV_HIGHLIGHT] = \
+            imgui.style.colors[imgui.COLOR_PLOT_HISTOGRAM] = \
             imgui.style.colors[imgui.COLOR_HEADER_HOVERED] = \
             imgui.style.colors[imgui.COLOR_BUTTON_HOVERED] = \
             imgui.style.colors[imgui.COLOR_SEPARATOR_ACTIVE] = \
