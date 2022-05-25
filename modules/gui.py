@@ -1088,7 +1088,7 @@ class MainGUI():
                     # Skip if outside view
                     imgui.dummy(0, frame_height)
                     continue
-                imgui.button(f"##{game.id}_id", width=0.1)  # Button because it aligns the following text calls to center vertically
+                imgui.button(f"##{game.id}_id", width=imgui.FLOAT_MIN)  # Button because it aligns the following text calls to center vertically
                 # Play Button
                 if play_button:
                     imgui.table_set_column_index(play_button)
