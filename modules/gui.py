@@ -3,7 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import OpenGL.GL as gl
 from PIL import Image
 import configparser
-import functools
+import threading
 import platform
 import OpenGL
 import imgui
@@ -11,7 +11,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, FilterMode, Game, Os, Status, Tag, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag, Type
 from modules import globals, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
 
 imgui.io = None
@@ -127,6 +127,12 @@ class MainGUI():
         glfw.set_window_pos_callback(self.window, self.pos_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
+
+        # Show errors in threads
+        def excepthook(args: threading.ExceptHookArgs):
+            tb = utils.get_traceback(args.exc_type, args.exc_value, args.exc_traceback)
+            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n\n{tb}", MsgBox.error)
+        threading.excepthook = excepthook
 
         # Load style configuration
         imgui.style = imgui.get_style()

@@ -47,8 +47,8 @@ def extract_thread_ids(text: str):
 
 
 # https://gist.github.com/Willy-JL/f733c960c6b0d2284bcbee0316f88878
-def get_traceback():
-    exc_info = sys.exc_info()
+def get_traceback(*exc_info: list):
+    exc_info = exc_info or sys.exc_info()
     tb_lines = traceback.format_exception(*exc_info)
     tb = "".join(tb_lines)
     return tb
