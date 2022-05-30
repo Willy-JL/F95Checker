@@ -41,7 +41,11 @@ async def login():
         stderr=subprocess.DEVNULL,
         stdout=subprocess.PIPE
     )
-    data = await proc.communicate()
+    try:
+        data = await proc.communicate()
+    except asyncio.CancelledError:
+        proc.terminate()
+        raise
     new_cookies = json.loads(data[0])
     await db.update_cookies(new_cookies)
 
