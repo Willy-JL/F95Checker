@@ -38,6 +38,8 @@ if __name__ == "__main__":
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
     elif "getlogin" in sys.argv:
+        # Subprocess for login webview, Qt WebEngine didn't
+        # like running alongside another OpenGL application
         from modules import getlogin
         getlogin.getlogin(sys.argv[sys.argv.index("getlogin") + 1])
     else:
