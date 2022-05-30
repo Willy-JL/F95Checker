@@ -10,16 +10,13 @@ from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, Se
 from modules import globals, imagehelper, msgbox, utils
 
 connection: aiosqlite.Connection = None
-available = False
-pending = 0
 
 
 async def connect():
-    global available, connection
+    global connection
 
     migrate = not (globals.data_path / "db.sqlite3").is_file()
-    # connection = await aiosqlite.connect(globals.data_path / "db.sqlite3")
-    connection = await aiosqlite.connect(":memory:")  # Temporary while things are not final
+    connection = await aiosqlite.connect(globals.data_path / "db.sqlite3")
     connection.row_factory = aiosqlite.Row  # Return sqlite3.Row instead of tuple
 
     await connection.execute(f"""
@@ -103,60 +100,24 @@ async def connect():
         )
     """)
 
-    available = True
-
     if migrate:
         if (path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file():
             await migrate_legacy(path)
 
 
-async def _wait_connection():
-    while not available:
-        await asyncio.sleep(0.1)
-
-
-async def wait_connection():
-    await asyncio.wait_for(_wait_connection(), timeout=5)
-
-
-async def execute(request: str, *args):
-    global pending
-    await wait_connection()
-    pending += 1
-    try:
-        return await connection.execute(request, *args)
-    finally:
-        pending -= 1
-
-
-async def _wait_pending():
-    while pending > 0:
-        await asyncio.sleep(0.1)
-
-
-async def wait_pending():
-    await asyncio.wait_for(_wait_pending(), timeout=5)
-
-
-async def close():
-    global available
-    available = False
-    await wait_pending()
-    await connection.commit()
-    await connection.close()
-
-
-# Committing should save to disk, but for some reason it only does so after closing
 async def save():
-    pass  # Temporary while things are not final
-    # await close()
-    # await connect()
+    await connection.commit()
 
 
 async def save_loop():
     while True:
         await asyncio.sleep(30)
         await save()
+
+
+async def close():
+    await save()
+    await connection.close()
 
 
 def sql_to_py(value: str | int | float, data_type: typing.Type):
@@ -182,7 +143,7 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
 
 async def load():
     types = Settings.__annotations__
-    cursor = await execute("""
+    cursor = await connection.execute("""
         SELECT *
         FROM settings
     """)
@@ -195,7 +156,7 @@ async def load():
 
     globals.games = {}
     types = Game.__annotations__
-    cursor = await execute("""
+    cursor = await connection.execute("""
         SELECT *
         FROM games
     """)
@@ -206,7 +167,7 @@ async def load():
         game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
         globals.games[game["id"]] = Game(**game)
 
-    cursor = await execute("""
+    cursor = await connection.execute("""
         SELECT *
         FROM cookies
     """)
@@ -235,7 +196,7 @@ async def update_game(game: Game, *keys: list[str]):
         value = py_to_sql(getattr(game, key))
         values.append(value)
 
-    await execute(f"""
+    await connection.connection.execute(f"""
         UPDATE games
         SET
             {", ".join(f"{key} = ?" for key in keys)}
@@ -250,7 +211,7 @@ async def update_settings(*keys: list[str]):
         value = py_to_sql(getattr(globals.settings, key))
         values.append(value)
 
-    await execute(f"""
+    await connection.execute(f"""
         UPDATE settings
         SET
             {", ".join(f"{key} = ?" for key in keys)}
@@ -259,18 +220,18 @@ async def update_settings(*keys: list[str]):
 
 
 async def remove_game(id: int):
-    await execute(f"""
+    await connection.execute(f"""
         DELETE FROM games
         WHERE id={id}
     """)
 
 
 async def update_cookies(new_cookies: dict[str, str]):
-    await execute(f"""
+    await connection.execute(f"""
         DELETE FROM cookies
     """)
     for key, value in new_cookies.items():
-        await execute("""
+        await connection.execute("""
             INSERT INTO cookies
             (key, value)
             VALUES
@@ -417,7 +378,7 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                 keys.append("style_corner_radius")
                 values.append(int(radius))
 
-        await execute(f"""
+        await connection.execute(f"""
             UPDATE settings
             SET
                 {", ".join(f"{key} = ?" for key in keys)}
@@ -485,7 +446,7 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                     keys.append("notes")
                     values.append(notes)
 
-                await execute(f"""
+                await connection.execute(f"""
                     INSERT INTO games
                     ({", ".join(keys)})
                     VALUES
