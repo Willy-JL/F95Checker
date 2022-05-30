@@ -1116,7 +1116,7 @@ class MainGUI():
                 # Developer
                 if developer:
                     imgui.table_set_column_index(developer)
-                    imgui.text(game.developer)  # TODO: fetch game developers
+                    imgui.text(game.developer)
                 # Last Updated
                 if last_updated:
                     imgui.table_set_column_index(last_updated)
@@ -1325,7 +1325,7 @@ class MainGUI():
                         if developer:
                             imgui.text_disabled("Developer:")
                             imgui.same_line()
-                            imgui.text(game.developer)  # TODO: fetch game developers
+                            imgui.text(game.developer)
                         # Last Updated
                         if last_updated:
                             imgui.text_disabled("Last Updated:")
@@ -1437,7 +1437,7 @@ class MainGUI():
                 text_y = screen_pos.y - text_size.y - 3 * imgui.style.item_spacing.y
                 imgui.get_window_draw_list().add_text(text_x, text_y, imgui.get_color_u32_rgba(1, 1, 1, 1), text)
             if imgui.is_item_clicked():
-                globals.refresh_task.cancel()  # TODO: need to test this behavior with actual refreshing, in case it breaks stuff
+                globals.refresh_task.cancel()  # TODO: add CancelledError handlers when refreshing is properly implemented
         elif self.hovered_game:
             game = self.hovered_game
             if game.image.missing:
