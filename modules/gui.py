@@ -12,7 +12,7 @@ import glfw
 import sys
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag, Type
-from modules import globals, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
+from modules import globals, api, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
 
 imgui.io = None
 imgui.style = None
@@ -87,7 +87,6 @@ class MainGUI():
 
         # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
-        self.qt_loop = QtCore.QEventLoop()
         self.tray = TrayIcon(self)
 
         # Setup ImGui
@@ -285,7 +284,7 @@ class MainGUI():
     def main_loop(self):
         scroll_energy = 0.0
         while not glfw.window_should_close(self.window):
-            self.qt_loop.processEvents()
+            self.qt_app.processEvents()
             glfw.poll_events()
             self.impl.process_inputs()
             if self.visible and self.focused:
@@ -1231,9 +1230,9 @@ class MainGUI():
 
             # Loop cells
             for game_i, id in enumerate(self.sorted_games_ids):
+                game = globals.games[id]
                 draw_list.channels_split(2)
                 draw_list.channels_set_current(1)
-                game = globals.games[id]
                 imgui.table_next_column()
 
                 # Setup pt2
@@ -1448,14 +1447,7 @@ class MainGUI():
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
         else:
             if imgui.button("Refresh!", width=width, height=height):
-                async def test():
-                    import asyncio
-                    globals.refresh_progress = 0
-                    globals.refresh_total = 100
-                    while globals.refresh_progress < globals.refresh_total:
-                        await asyncio.sleep(0.05)
-                        globals.refresh_progress += 1
-                globals.refresh_task = async_thread.run(test())
+                globals.refresh_task = async_thread.run(api.refresh())
                 globals.refresh_task.add_done_callback(lambda *_: setattr(globals, "refresh_task", None))
 
         imgui.begin_child("Settings")

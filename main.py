@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 import sys
 
-# Mimic python's -c flag to evaluate code
-if "-c" in sys.argv:
-    exec(sys.argv[sys.argv.index("-c") + 1])
-    sys.exit(0)
-
 
 def main():
     # Must import globals first to fix load paths when frozen
@@ -39,4 +34,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "-c" in sys.argv:
+        # Mimic python's -c flag to evaluate code
+        exec(sys.argv[sys.argv.index("-c") + 1])
+    elif "getlogin" in sys.argv:
+        from modules import getlogin
+        getlogin.getlogin(sys.argv[sys.argv.index("getlogin") + 1])
+    else:
+        main()

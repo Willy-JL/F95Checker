@@ -265,6 +265,21 @@ async def remove_game(id: int):
     """)
 
 
+async def update_cookies(new_cookies: dict[str, str]):
+    await execute(f"""
+        DELETE FROM cookies
+    """)
+    for key, value in new_cookies.items():
+        await execute("""
+            INSERT INTO cookies
+            (key, value)
+            VALUES
+            (?, ?)
+            ON CONFLICT DO NOTHING
+        """, (key, value))
+    globals.cookies = new_cookies
+
+
 def legacy_json_to_dict(path: str | pathlib.Path):  # Pre v9.0
     with open(path, encoding="utf-8") as f:
         config = json.load(f)
