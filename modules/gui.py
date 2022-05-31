@@ -138,7 +138,7 @@ class MainGUI():
         imgui.style = imgui.get_style()
         imgui.style.item_spacing = (imgui.style.item_spacing.y, imgui.style.item_spacing.y)
         imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
-        imgui.style.scrollbar_size = 12
+        imgui.style.scrollbar_size = 10
         imgui.style.frame_border_size = 1.6
         self.refresh_styles()
         # Custom checkbox style
