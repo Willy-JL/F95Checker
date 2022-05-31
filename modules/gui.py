@@ -1689,7 +1689,7 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Grid cols:")
+            imgui.text("Grid columns:")
             imgui.same_line()
             self.draw_hover_text(
                 "How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
@@ -1705,11 +1705,11 @@ class MainGUI():
             imgui.text("Grid ratio:")
             imgui.same_line()
             self.draw_hover_text(
-                "The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
-                "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3."
+                "The aspect ratio to use for images in grid view. This is width:height, AKA how many times wider the image "
+                "is compared to its height. Default is 3:1."
             )
             imgui.table_next_column()
-            changed, set.grid_image_ratio = imgui.drag_float("##grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5)
+            changed, set.grid_image_ratio = imgui.drag_float("##grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5, format="%.1f:1")
             if changed:
                 async_thread.run(db.update_settings("grid_image_ratio"))
 
