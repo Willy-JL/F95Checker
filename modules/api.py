@@ -46,6 +46,14 @@ async def login():
     await db.update_cookies(new_cookies)
 
 
+async def assert_login():
+    if not await is_logged_in():
+        await login()
+        if not await is_logged_in():
+            return False
+    return True
+
+
 async def check(game: Game):
     await asyncio.sleep(random.random())
     print(game.id)
@@ -60,10 +68,8 @@ async def refresh():
     globals.refresh_progress = 0
     globals.refresh_total = 1
 
-    if not await is_logged_in():
-        await login()
-        if not await is_logged_in():
-            return
+    if not await assert_login():
+        return
 
     refresh_tasks = asyncio.Queue()
     async def worker():
