@@ -208,7 +208,7 @@ class MainGUI():
             imgui.style.colors[imgui.COLOR_BORDER] = \
             imgui.style.colors[imgui.COLOR_SEPARATOR] = \
         globals.settings.style_border
-        globals.settings.style_corner_radius = \
+        style_corner_radius = \
             imgui.style.tab_rounding  = \
             imgui.style.grab_rounding = \
             imgui.style.frame_rounding = \
@@ -216,7 +216,7 @@ class MainGUI():
             imgui.style.popup_rounding = \
             imgui.style.window_rounding = \
             imgui.style.scrollbar_rounding = \
-        globals.settings.style_corner_radius
+        globals.settings.style_corner_radius * self.size_mult
         globals.settings.style_text = \
             imgui.style.colors[imgui.COLOR_TEXT] = \
         globals.settings.style_text
@@ -357,6 +357,7 @@ class MainGUI():
                 self.impl.render(imgui.get_draw_data())
                 if self.size_mult != globals.settings.interface_scaling:
                     self.refresh_fonts()
+                    self.refresh_styles()
                     async_thread.run(db.update_settings("interface_scaling"))  # Update here in case of crash
                 glfw.swap_buffers(self.window)  # Also waits idle time
             else:
