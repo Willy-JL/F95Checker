@@ -1,12 +1,10 @@
-import subprocess
+import multiprocessing
 import aiohttp
 import asyncio
 import random
-import shlex
-import json
 
 from modules.structs import Game, Status
-from modules import globals, async_thread, db
+from modules import globals, asklogin, async_thread, db
 
 session: aiohttp.ClientSession = None
 
@@ -38,19 +36,17 @@ async def is_logged_in():
 
 
 async def login():
-    proc = await asyncio.create_subprocess_exec(
-        *shlex.split(globals.start_cmd), "asklogin", globals.login_page,
-        stderr=subprocess.DEVNULL,
-        stdout=subprocess.PIPE
-    )
-    globals.subprocesses.append(proc)
+    ctx = multiprocessing.get_context("spawn")
+    queue = ctx.Queue()
+    proc = ctx.Process(target=asklogin.asklogin, args=(globals.login_page, queue,), daemon=True)
+    proc.start()
     try:
-        data = await proc.communicate()
+        while queue.empty():
+            await asyncio.sleep(0.1)
     except asyncio.CancelledError:
         proc.kill()
-        globals.subprocesses.remove(proc)
         raise
-    new_cookies = json.loads(data[0])
+    new_cookies = queue.get()
     await db.update_cookies(new_cookies)
 
 

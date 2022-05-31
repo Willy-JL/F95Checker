@@ -1,6 +1,6 @@
 from PyQt6 import QtCore, QtGui, QtWebEngineCore, QtWebEngineWidgets, QtWidgets
+import multiprocessing
 import pathlib
-import json
 import sys
 
 
@@ -36,7 +36,9 @@ class QCookieWebEngineView(QtWebEngineWidgets.QWebEngineView):
         return super().closeEvent(event)
 
 
-def asklogin(url):
+def asklogin(url: str, queue: multiprocessing.Queue):
+    # Subprocess for login webview, Qt WebEngine didn't
+    # like running alongside another OpenGL application
     app = QtWidgets.QApplication(sys.argv)
     weblogin = QCookieWebEngineView()
     weblogin.setWindowTitle("Please login...")
@@ -48,4 +50,4 @@ def asklogin(url):
     weblogin.show()
     weblogin.setUrl(QtCore.QUrl(url))
     app.exec()
-    print(json.dumps(weblogin.cookies))
+    queue.put(weblogin.cookies)

@@ -31,21 +31,11 @@ def main():
 
     async_thread.wait(db.close())
     async_thread.wait(api.shutdown())
-    for proc in globals.subprocesses:
-        try:
-            proc.kill()
-        except Exception:
-            pass
 
 
 if __name__ == "__main__":
     if "-c" in sys.argv:
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
-    elif "asklogin" in sys.argv:
-        # Subprocess for login webview, Qt WebEngine didn't
-        # like running alongside another OpenGL application
-        from modules import asklogin
-        asklogin.asklogin(sys.argv[sys.argv.index("asklogin") + 1])
     else:
         main()
