@@ -41,10 +41,12 @@ async def login():
         stderr=subprocess.DEVNULL,
         stdout=subprocess.PIPE
     )
+    globals.subprocesses.append(proc)
     try:
         data = await proc.communicate()
     except asyncio.CancelledError:
-        proc.terminate()
+        proc.kill()
+        globals.subprocesses.remove(proc)
         raise
     new_cookies = json.loads(data[0])
     await db.update_cookies(new_cookies)

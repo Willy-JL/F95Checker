@@ -31,6 +31,11 @@ def main():
 
     async_thread.wait(db.close())
     async_thread.wait(api.shutdown())
+    for proc in globals.subprocesses:
+        try:
+            proc.kill()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
