@@ -36,7 +36,7 @@ class QCookieWebEngineView(QtWebEngineWidgets.QWebEngineView):
         return super().closeEvent(event)
 
 
-def getlogin(url):
+def asklogin(url):
     app = QtWidgets.QApplication(sys.argv)
     weblogin = QCookieWebEngineView()
     weblogin.setWindowTitle("Please login...")
@@ -45,7 +45,7 @@ def getlogin(url):
         if "xf_user" in weblogin.cookies:
             weblogin.close()
     weblogin.loadFinished.connect(check_login)
-    weblogin.load(QtCore.QUrl(url))
     weblogin.show()
+    weblogin.setUrl(QtCore.QUrl(url))
     app.exec()
     print(json.dumps(weblogin.cookies))

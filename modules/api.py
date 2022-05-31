@@ -37,7 +37,7 @@ async def is_logged_in():
 
 async def login():
     proc = await asyncio.create_subprocess_exec(
-        *shlex.split(globals.start_cmd), "getlogin", globals.login_page,
+        *shlex.split(globals.start_cmd), "asklogin", globals.login_page,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.PIPE
     )
