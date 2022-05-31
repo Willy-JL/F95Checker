@@ -1430,16 +1430,13 @@ class MainGUI():
         height = self.scaled(100)
         if globals.refresh_task and not globals.refresh_task.done():
             ratio = globals.refresh_progress / globals.refresh_total
-            imgui.progress_bar(ratio, (width, height), f"{ratio:.0%}")
-            if imgui.is_item_hovered():
-                text = "Click to cancel!"
-                text_size = imgui.calc_text_size(text)
-                screen_pos = imgui.get_cursor_screen_pos()
-                text_x = screen_pos.x + (width - text_size.x) / 2
-                text_y = screen_pos.y - text_size.y - 3 * imgui.style.item_spacing.y
-                imgui.get_window_draw_list().add_text(text_x, text_y, imgui.get_color_u32_rgba(1, 1, 1, 1), text)
-            if imgui.is_item_clicked():
-                globals.refresh_task.cancel()  # TODO: add CancelledError handlers when refreshing is properly implemented
+            imgui.progress_bar(ratio, (width, height))
+            text = f"{ratio:.0%}"
+            text_size = imgui.calc_text_size(text)
+            screen_pos = imgui.get_cursor_screen_pos()
+            text_x = screen_pos.x + (width - text_size.x) / 2
+            text_y = screen_pos.y - (height + text_size.y) / 2 - imgui.style.item_spacing.y
+            imgui.get_window_draw_list().add_text(text_x, text_y, imgui.get_color_u32_rgba(1, 1, 1, 1), text)
         elif self.hovered_game:
             game = self.hovered_game
             if game.image.missing:

@@ -40,32 +40,20 @@ async def login():
     queue = ctx.Queue()
     proc = ctx.Process(target=asklogin.asklogin, args=(globals.login_page, queue,), daemon=True)
     proc.start()
-    try:
-        while queue.empty():
-            await asyncio.sleep(0.1)
-    except asyncio.CancelledError:
-        proc.kill()
-        raise
+    while queue.empty():
+        await asyncio.sleep(0.1)
     new_cookies = queue.get()
     await db.update_cookies(new_cookies)
 
 
 async def check(game: Game):
-    try:
-        await asyncio.sleep(random.random())
-        print(game.id)
-    except asyncio.CancelledError:
-        print(f"cancelled {game.id}")
-        raise
+    await asyncio.sleep(random.random())
+    print(game.id)
 
 
 async def check_notifs():
-    try:
-        await asyncio.sleep(random.random())
-        print("notifs")
-    except asyncio.CancelledError:
-        print("cancelled notifs")
-        raise
+    await asyncio.sleep(random.random())
+    print("notifs")
 
 
 async def refresh():
@@ -92,7 +80,4 @@ async def refresh():
     globals.refresh_progress += 1
     globals.refresh_total += refresh_tasks.qsize()
 
-    try:
-        await asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
-    except asyncio.CancelledError:
-        return
+    await asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
