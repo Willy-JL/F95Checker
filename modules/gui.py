@@ -21,7 +21,7 @@ imgui.style = None
 class MainGUI():
     def __init__(self):
         # Constants
-        self.sidebar_size = 269
+        self.sidebar_size = 230
         self.game_list_column_count = 16
         self.window_flags: int = (
             imgui.WINDOW_NO_MOVE |
@@ -1421,11 +1421,11 @@ class MainGUI():
 
     def draw_sidebar(self):
         set = globals.settings
-        right_width = self.scaled(118)
+        right_width = self.scaled(90)
         checkbox_offset = right_width - imgui.get_frame_height()
 
         width = imgui.get_content_region_available_width()
-        height = self.scaled(126)
+        height = self.scaled(100)
         if globals.refresh_task and not globals.refresh_task.done():
             ratio = globals.refresh_progress / globals.refresh_total
             imgui.progress_bar(ratio, (width, height), f"{ratio:.0%}")
@@ -1637,17 +1637,15 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Zoom amount:")
             imgui.table_next_column()
-            changed, value = imgui.input_int("##zoom_amount", set.zoom_amount)
-            set.zoom_amount = min(max(value, 1), 20)
+            changed, set.zoom_amount = imgui.drag_int("##zoom_amount", set.zoom_amount, change_speed=0.1, min_value=1, max_value=20, format="%dx")
             if changed:
                 async_thread.run(db.update_settings("zoom_amount"))
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Zoom region size:")
+            imgui.text("Zoom size:")
             imgui.table_next_column()
-            changed, value = imgui.input_int("##zoom_size", set.zoom_size)
-            set.zoom_size = min(max(value, 16), 1024)
+            changed, set.zoom_size = imgui.drag_int("##zoom_size", set.zoom_size, change_speed=5, min_value=16, max_value=1024, format="%dpx")
             if changed:
                 async_thread.run(db.update_settings("zoom_size"))
 
@@ -1670,14 +1668,13 @@ class MainGUI():
         if self.start_settings_section("Interface", right_width):
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Interface scaling:")
+            imgui.text("Scaling:")
             imgui.table_next_column()
-            changed, value = imgui.input_float("##interface_scaling", set.interface_scaling, step=0.05, step_fast=0.25)
-            set.interface_scaling = min(max(value, 0.5), 2.5)
+            changed, set.interface_scaling = imgui.drag_float("##interface_scaling", set.interface_scaling, change_speed=0.01, min_value=0.5, max_value=2.5, format="%.2fx")
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("BG mode on close:")
+            imgui.text("BG on close:")
             imgui.same_line()
             self.draw_hover_text(
                 "When closing the window F95Checker will instead minimize to background mode. Quit the app via the tray icon."
@@ -1691,29 +1688,27 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Grid columns:")
+            imgui.text("Grid cols:")
             imgui.same_line()
             self.draw_hover_text(
                 "How many games will show in each row in grid view. It is a maximum value because when there is insufficient "
                 "space to show all these columns, the number will be internally reduced to render each grid cell properly."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_int("##grid_columns", set.grid_columns)
-            set.grid_columns = min(max(value, 1), 10)
+            changed, set.grid_columns = imgui.drag_int("##grid_columns", set.grid_columns, change_speed=0.05, min_value=1, max_value=10)
             if changed:
                 async_thread.run(db.update_settings("grid_columns"))
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Grid img ratio:")
+            imgui.text("Grid ratio:")
             imgui.same_line()
             self.draw_hover_text(
                 "The aspect ratio to use for images in grid view. This is width / height, AKA how many times wider the image "
                 "is compared to its height. A ratio of 3 would for example mean 3:1 in common aspect ratio terms. Default is 3."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_float("##grid_image_ratio", set.grid_image_ratio, step=0.1, step_fast=0.5)
-            set.grid_image_ratio = min(max(value, 0.5), 5)
+            changed, set.grid_image_ratio = imgui.drag_float("##grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5)
             if changed:
                 async_thread.run(db.update_settings("grid_image_ratio"))
 
@@ -1732,14 +1727,13 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Smooth speed:")
+            imgui.text("Smoothness:")
             imgui.same_line()
             self.draw_hover_text(
                 "How fast or slow the smooth scrolling animation is. Default is 8."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_float("##scroll_smooth_speed", set.scroll_smooth_speed, step=0.25, step_fast=1.0)
-            set.scroll_smooth_speed = min(max(value, 0.1), 50)
+            changed, set.scroll_smooth_speed = imgui.drag_float("##scroll_smooth_speed", set.scroll_smooth_speed, change_speed=0.25, min_value=0.1, max_value=50)
             if changed:
                 async_thread.run(db.update_settings("scroll_smooth_speed"))
 
@@ -1748,14 +1742,13 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Scroll amount:")
+            imgui.text("Scroll mult:")
             imgui.same_line()
             self.draw_hover_text(
                 "Multiplier for how much a single scroll event should actually scroll. Default is 1."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_float("##scroll_amount", set.scroll_amount, step=0.1, step_fast=0.5)
-            set.scroll_amount = min(max(value, 0.1), 10)
+            changed, set.scroll_amount = imgui.drag_float("##scroll_amount", set.scroll_amount, change_speed=0.05, min_value=0.1, max_value=10, format="%.2fx")
             if changed:
                 async_thread.run(db.update_settings("scroll_amount"))
 
@@ -1765,12 +1758,11 @@ class MainGUI():
             imgui.same_line()
             self.draw_hover_text(
                 "Vsync means that the framerate should be synced to the one your monitor uses. The ratio modifies this behavior. "
-                "A ratio of 0 means uncapped framerate, while all other numbers indicate the ratio between screen and app FPS. "
-                "For example a ratio of 2 means the app refreshes every 2nd monitor frame, resulting in half the framerate."
+                "A ratio of 1:0 means uncapped framerate, while all other numbers indicate the ratio between screen and app FPS. "
+                "For example a ratio of 1:2 means the app refreshes every 2nd monitor frame, resulting in half the framerate."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_int("##vsync_ratio", set.vsync_ratio)
-            set.vsync_ratio = min(max(value, 0), 10)
+            changed, set.vsync_ratio = imgui.drag_int("##vsync_ratio", set.vsync_ratio, change_speed=0.05, min_value=0, max_value=10, format="1:%d")
             if changed:
                 glfw.swap_interval(set.vsync_ratio)
                 async_thread.run(db.update_settings("vsync_ratio"))
@@ -1800,11 +1792,11 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Default exe dir:")
+            imgui.text("Set exe dir:")
             imgui.same_line()
             self.draw_hover_text(
-                f"This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all your games in the same folder (as you should).\n\nCurrent value: {set.default_exe_dir or 'Unset'}",
-                text="(...)"
+                "This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all "
+                f"your games in the same folder (as you should).\n\nCurrent value: {set.default_exe_dir or 'Unset'}"
             )
             imgui.table_next_column()
             if imgui.button("Choose", width=right_width):
@@ -1839,7 +1831,7 @@ class MainGUI():
         if self.start_settings_section("Refresh", right_width):
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Refresh completed games:")
+            imgui.text("Refresh if completed:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
             changed, value = imgui.checkbox("##refresh_completed_games", set.refresh_completed_games)
@@ -1857,8 +1849,7 @@ class MainGUI():
                 "will freeze the program. In most cases 20 workers is a good compromise."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_int("##refresh_workers", set.refresh_workers)
-            set.refresh_workers = min(max(value, 1), 100)
+            changed, set.refresh_workers = imgui.drag_int("##refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
             if changed:
                 async_thread.run(db.update_settings("refresh_workers"))
 
@@ -1872,8 +1863,7 @@ class MainGUI():
                 "A timeout 10-30 seconds is most typical."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_int("##request_timeout", set.request_timeout)
-            set.request_timeout = min(max(value, 1), 120)
+            changed, set.request_timeout = imgui.drag_int("##request_timeout", set.request_timeout, change_speed=0.6, min_value=1, max_value=120, format="%ds")
             if changed:
                 async_thread.run(db.update_settings("request_timeout"))
 
@@ -1886,8 +1876,7 @@ class MainGUI():
                 "often (in minutes) this happens."
             )
             imgui.table_next_column()
-            changed, value = imgui.input_int("##tray_refresh_interval", set.tray_refresh_interval)
-            set.tray_refresh_interval = min(max(value, 15), 720)
+            changed, set.tray_refresh_interval = imgui.drag_int("##tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=15, max_value=720, format="%dm")
             if changed:
                 async_thread.run(db.update_settings("tray_refresh_interval"))
 
@@ -1936,8 +1925,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Corner radius:")
             imgui.table_next_column()
-            changed, value = imgui.input_int("##style_corner_radius", set.style_corner_radius)
-            set.style_corner_radius = min(max(value, 0), 6)
+            changed, set.style_corner_radius = imgui.drag_int("##style_corner_radius", set.style_corner_radius, change_speed=0.04, min_value=0, max_value=6, format="%dpx")
             if changed:
                 imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding = \
                 imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding = \
@@ -2012,7 +2000,7 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Restore defaults:")
+            imgui.text("Defaults:")
             imgui.table_next_column()
             if imgui.button("Restore", width=right_width):
                 set.style_corner_radius = DefaultStyle.corner_radius
