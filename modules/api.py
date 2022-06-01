@@ -1,11 +1,10 @@
 import multiprocessing
 import aiohttp
 import asyncio
-import random
 import time
 
-from modules.structs import Game, Status
-from modules import globals, asklogin, async_thread, db
+from modules.structs import Game, MsgBox, Status
+from modules import globals, asklogin, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
 
@@ -32,7 +31,15 @@ def request(method: str, url: str, **kwargs):
 
 
 async def is_logged_in():
-    async with request("HEAD", globals.check_login_page) as req:
+    async with request("GET", globals.check_login_page) as req:
+        data = await req.content.readuntil(b"_xfToken")
+        data += await req.content.readuntil(b">")
+        start = data.rfind(b'value="') + len(b'value="')
+        end = data.find(b'"', start)
+        globals.token = str(data[start:end], encoding="utf-8")
+        if not 200 <= req.status < 300:  # FIXME
+            print(req.status)
+            print(data + await req.content.read())
         return 200 <= req.status < 300
 
 
@@ -59,15 +66,41 @@ async def check(game: Game, full=False):
     full = full or game.last_full_refresh < time.time() - 172800  # 2 days  # TODO: check how viable this might be
     if not full:
         async with request("HEAD", game.url) as req:
-            if (redirect := str(req.real_url)) != game.url and str(game.id) in redirect and redirect.startswith(globals.threads_page):  # FIXME
-                full = True
+            if (redirect := str(req.real_url)) != game.url:  # FIXME
+                if str(game.id) in redirect and redirect.startswith(globals.threads_page):
+                    full = True
+                else:
+                    print(redirect)
     if full:
         print(f"{game.id} full refresh")  # TODO: get all game data
 
 
 async def check_notifs():
-    await asyncio.sleep(random.random())
-    print("notifs")
+    async with request("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as req:
+        res = await req.json()  # FIXME
+        alerts = int(res["visitor"]["alerts_unread"])
+        inbox  = int(res["visitor"]["conversations_unread"])
+    if alerts != 0 and inbox != 0:
+        title = "Notifications"
+        msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''}).\n\nDo you want to view them?"
+    elif alerts != 0 and inbox == 0:
+        title = "Alerts"
+        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}.\n\nDo you want to view {'them' if alerts > 1 else 'it'}?"
+    elif alerts == 0 and inbox != 0:
+        title = "Inbox"
+        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}.\n\nDo you want to view {'them' if inbox > 1 else 'it'}?"
+    else:
+        return
+    def open_callback():
+        if alerts > 0:
+            callbacks.open_webpage(globals.alerts_page)
+        if inbox > 0:
+            callbacks.open_webpage(globals.inbox_page)
+    buttons = {
+        "󰄬 Yes": open_callback,
+        "󰜺 No": None
+    }
+    utils.push_popup(msgbox.msgbox, title, msg, MsgBox.info, buttons)
 
 
 async def refresh():

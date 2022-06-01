@@ -186,6 +186,7 @@ elif os is Os.MacOS:
 
 # Variables
 browser_idx = 0
+token: str = ""
 popup_stack = []
 refresh_total = 0
 gui: MainGUI = None
