@@ -196,7 +196,7 @@ async def update_game(game: Game, *keys: list[str]):
         value = py_to_sql(getattr(game, key))
         values.append(value)
 
-    await connection.connection.execute(f"""
+    await connection.execute(f"""
         UPDATE games
         SET
             {", ".join(f"{key} = ?" for key in keys)}
