@@ -2,6 +2,7 @@ import multiprocessing
 import aiohttp
 import asyncio
 import random
+import time
 
 from modules.structs import Game, Status
 from modules import globals, asklogin, async_thread, db
@@ -54,9 +55,14 @@ async def assert_login():
     return True
 
 
-async def check(game: Game):
-    await asyncio.sleep(random.random())
-    print(game.id)
+async def check(game: Game, full=False):
+    full = full or game.last_full_refresh < time.time() - 172800  # 2 days  # TODO: check how viable this might be
+    if not full:
+        async with request("HEAD", game.url) as req:
+            if (redirect := str(req.real_url)) != game.url and str(game.id) in redirect and redirect.startswith(globals.threads_page):  # FIXME
+                full = True
+    if full:
+        print(f"{game.id} full refresh")  # TODO: get all game data
 
 
 async def check_notifs():
