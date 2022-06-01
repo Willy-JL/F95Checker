@@ -6,6 +6,7 @@ import time
 
 loop: asyncio.BaseEventLoop = None
 thread: threading.Thread = None
+done_callback: typing.Callable = lambda _: None
 
 
 def setup():
@@ -23,6 +24,7 @@ def setup():
 
 def run(coroutine: typing.Coroutine):
     future = asyncio.run_coroutine_threadsafe(coroutine, loop)
+    future.add_done_callback(done_callback)
     return future
 
 

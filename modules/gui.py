@@ -5,6 +5,7 @@ from PIL import Image
 import configparser
 import threading
 import platform
+import asyncio
 import OpenGL
 import imgui
 import time
@@ -129,10 +130,15 @@ class MainGUI():
         self.refresh_fonts()
 
         # Show errors in threads
-        def excepthook(args: threading.ExceptHookArgs):
+        def syncexcepthook(args: threading.ExceptHookArgs):
             tb = utils.get_traceback(args.exc_type, args.exc_value, args.exc_traceback)
             utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n\n{tb}", MsgBox.error)
-        threading.excepthook = excepthook
+        threading.excepthook = syncexcepthook
+        def asyncexcepthook(future: asyncio.Future):
+            if exc := future.exception():
+                tb = utils.get_traceback(type(exc), exc, exc.__traceback__)
+                utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
+        async_thread.done_callback = asyncexcepthook
 
         # Load style configuration
         imgui.style = imgui.get_style()
