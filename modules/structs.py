@@ -353,12 +353,12 @@ class Settings:
 
 
 class DefaultStyle:
-    accent        = "#D4202E"
+    accent        = "#d4202e"
     alt_bg        = "#101010"
-    bg            = "#0A0A0A"
+    bg            = "#0a0a0a"
     border        = "#454545"
     corner_radius = 6
-    text          = "#FFFFFF"
+    text          = "#ffffff"
     text_dim      = "#808080"
 
 

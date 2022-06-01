@@ -21,11 +21,11 @@ def hex_to_rgba_0_1(hex):
 
 
 def rgba_0_1_to_hex(rgba):
-    r = format(int(rgba[0] * 255), "X")
-    g = format(int(rgba[1] * 255), "X")
-    b = format(int(rgba[2] * 255), "X")
+    r = "%.2x" % int(rgba[0] * 255)
+    g = "%.2x" % int(rgba[1] * 255)
+    b = "%.2x" % int(rgba[2] * 255)
     if len(rgba) > 3:
-        a = format(int(rgba[3] * 255), "X")
+        a = "%.2x" % int(rgba[3] * 255)
     else:
         a = "FF"
     return f"#{r}{g}{b}{a}"
