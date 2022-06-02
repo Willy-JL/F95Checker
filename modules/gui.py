@@ -699,7 +699,7 @@ class MainGUI():
 
             imgui.text_disabled("Developer:")
             imgui.same_line()
-            imgui.text(game.developer)
+            imgui.text(game.developer or "Unknown")
 
             imgui.text_disabled("Type:")
             imgui.same_line()
@@ -707,11 +707,11 @@ class MainGUI():
 
             imgui.text_disabled("Last Updated:")
             imgui.same_line()
-            imgui.text(game.last_updated.display)
+            imgui.text(game.last_updated.display or "Unknown")
 
             imgui.text_disabled("Last Played:")
             imgui.same_line()
-            imgui.text(game.last_played.display)
+            imgui.text(game.last_played.display or "Never")
 
             imgui.text_disabled("Added On:")
             imgui.same_line()
@@ -1124,15 +1124,15 @@ class MainGUI():
                 # Developer
                 if developer:
                     imgui.table_set_column_index(developer)
-                    imgui.text(game.developer)
+                    imgui.text(game.developer or "Unknown")
                 # Last Updated
                 if last_updated:
                     imgui.table_set_column_index(last_updated)
-                    imgui.text(game.last_updated.display)
+                    imgui.text(game.last_updated.display or "Unknown")
                 # Last Played
                 if last_played:
                     imgui.table_set_column_index(last_played)
-                    imgui.text(game.last_played.display)
+                    imgui.text(game.last_played.display or "Never")
                 # Added On
                 if added_on:
                     imgui.table_set_column_index(added_on)
@@ -1333,17 +1333,17 @@ class MainGUI():
                         if developer:
                             imgui.text_disabled("Developer:")
                             imgui.same_line()
-                            imgui.text(game.developer)
+                            imgui.text(game.developer or "Unknown")
                         # Last Updated
                         if last_updated:
                             imgui.text_disabled("Last Updated:")
                             imgui.same_line()
-                            imgui.text(game.last_updated.display)
+                            imgui.text(game.last_updated.display or "Unknown")
                         # Last Played
                         if last_played:
                             imgui.text_disabled("Last Played:")
                             imgui.same_line()
-                            imgui.text(game.last_played.display)
+                            imgui.text(game.last_played.display or "Never")
                         # Added On
                         if added_on:
                             imgui.text_disabled("Added On:")
