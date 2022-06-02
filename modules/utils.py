@@ -1,12 +1,13 @@
 import OpenGL.GL as gl
 import functools
 import traceback
+import typing
 import imgui
 import glfw
 import sys
 import re
 
-from modules import globals
+from modules import globals, async_thread
 
 
 def hex_to_rgba_0_1(hex):
@@ -37,6 +38,21 @@ def push_popup(*args):
     else:
         popup_func = args[0]
     globals.popup_stack.append(popup_func)
+
+
+def is_refreshing():
+    if globals.refresh_task and not globals.refresh_task.done():
+        return True
+    return False
+
+
+def start_refresh_task(coro: typing.Coroutine):
+    if is_refreshing():
+        return
+    globals.refresh_progress = 0
+    globals.refresh_total = 1
+    globals.refresh_task = async_thread.run(coro)
+    globals.refresh_task.add_done_callback(lambda *_: setattr(globals, "refresh_task", None))
 
 
 def extract_thread_ids(text: str):

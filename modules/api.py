@@ -104,9 +104,6 @@ async def check_notifs():
 
 
 async def refresh():
-    globals.refresh_progress = 0
-    globals.refresh_total = 1
-
     if not await assert_login():
         return
 

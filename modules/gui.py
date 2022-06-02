@@ -1434,7 +1434,7 @@ class MainGUI():
 
         width = imgui.get_content_region_available_width()
         height = self.scaled(100)
-        if globals.refresh_task and not globals.refresh_task.done():
+        if utils.is_refreshing():
             ratio = globals.refresh_progress / globals.refresh_total
             imgui.progress_bar(ratio, (width, height))
             text = f"{ratio:.0%}"
@@ -1452,8 +1452,7 @@ class MainGUI():
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
         else:
             if imgui.button("Refresh!", width=width, height=height):
-                globals.refresh_task = async_thread.run(api.refresh())
-                globals.refresh_task.add_done_callback(lambda *_: setattr(globals, "refresh_task", None))
+                utils.start_refresh_task(api.refresh())
 
         imgui.begin_child("Settings")
 
