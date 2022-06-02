@@ -62,8 +62,13 @@ async def assert_login():
     return True
 
 
-async def check(game: Game, full=False):
-    full = full or game.last_full_refresh < time.time() - 172800  # 2 days  # TODO: check how viable this might be
+async def check(game: Game, full=False, single=False):
+    if single:
+        globals.refresh_total = 2
+        if not await assert_login():
+            return
+        globals.refresh_progress = 1
+
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:  # FIXME

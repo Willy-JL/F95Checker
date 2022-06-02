@@ -528,8 +528,18 @@ class MainGUI():
         if clicked:
             callbacks.open_game_folder(game)
 
+    def draw_game_recheck_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_recheck"
+        if selectable:
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+        else:
+            clicked = imgui.button(id, *args, **kwargs)
+        if clicked:
+            utils.start_refresh_task(api.check(game, full=True, single=True))
+
     def draw_game_context_menu(self, game: Game):
         self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)
+        self.draw_game_recheck_button(game, label="󱄋 Force Recheck", selectable=True)
         imgui.separator()
         self.draw_game_play_button(game, label="󰐊 Play", selectable=True)
         self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
