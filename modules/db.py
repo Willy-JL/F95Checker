@@ -428,7 +428,7 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
 
                 if link := game.get("link"):
                     keys.append("url")
-                    values.append(link)
+                    values.append(utils.clean_thread_url(link))
 
                 if add_time := game.get("add_time"):
                     keys.append("added_on")

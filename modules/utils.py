@@ -46,6 +46,11 @@ def extract_thread_ids(text: str):
     return ids
 
 
+def clean_thread_url(url: str):
+    thread = re.search("threads/([^/]*)", url).group(1)
+    return f"{globals.threads_page}{thread}/"
+
+
 # https://gist.github.com/Willy-JL/f733c960c6b0d2284bcbee0316f88878
 def get_traceback(*exc_info: list):
     exc_info = exc_info or sys.exc_info()
