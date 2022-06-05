@@ -168,9 +168,31 @@ async def check(game: Game, full=False, single=False):
             else:
                 played = game.played
 
-            pass  # TODO: Description
+            elem = post.find(text_val("overview"))
+            description = ""
+            if elem:
+                for sibling in elem.next_siblings:
+                    if sibling.name == "b":
+                        break
+                    if sibling.text == ":":
+                        continue
+                    description += sibling.text
+                description = description.replace("Spoiler", "").strip()
+                while "\n\n\n" in description:
+                    description = description.replace("\n\n\n", "\n\n")
 
-            pass  # TODO: Changelog
+            elem = post.find(text_val("changelog")) or post.find(text_val("change-log"))
+            changelog = ""
+            if elem:
+                for sibling in elem.next_siblings:
+                    if sibling.name == "b":
+                        break
+                    if sibling.text == ":":
+                        continue
+                    changelog += sibling.text
+                changelog = changelog.replace("Spoiler", "").strip()
+                while "\n\n\n" in changelog:
+                    changelog = changelog.replace("\n\n\n", "\n\n")
 
             old_tags = game.tags
             tags = []
@@ -193,8 +215,8 @@ async def check(game: Game, full=False, single=False):
                 game.last_updated.update(last_updated)
                 game.last_full_refresh = last_full_refresh
                 game.played = played
-                # game.description = description
-                # game.changelog = changelog
+                game.description = description
+                game.changelog = changelog
                 game.tags = tags
                 # game.image = image
                 await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "played", "description", "changelog", "tags")
