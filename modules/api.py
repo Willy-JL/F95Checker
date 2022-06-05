@@ -92,17 +92,27 @@ async def check(game: Game, full=False, single=False):
                 def _text_val(elem: bs4.element.Tag):
                     if not hasattr(elem, "text"):
                         return False
-                    val = elem.text.lower()
+                    val = elem.text.lower().strip()
                     return val == text or val == text + ":"
                 return _text_val
             def has_class(name: str):
                 def _has_class(elem: bs4.element.Tag):
                     return name in elem.get_attribute_list("class")
                 return _has_class
-            raw = await req.read()
+            def get_attr_value(elem: bs4.element.Tag):
+                elem = elem.next_sibling or elem.parent.next_sibling
+                if not elem:
+                    return ""
+                if elem.text.strip() in (":", ""):
+                    elem = elem.next_sibling or elem.parent.next_sibling
+                if not elem:
+                    return ""
+                return elem.text.lstrip(":").strip()
             def parser_constraint(name, elem):
                 classes = elem.get("class", "")
                 return name == "title" or "p-body-header" in classes or "message-threadStarterPost" in classes
+
+            raw = await req.read()
             html = bs4.BeautifulSoup(raw, "lxml", parse_only=bs4.SoupStrainer(parser_constraint))
             try:
                 head = html.find(has_class("p-body-header"))
@@ -119,16 +129,16 @@ async def check(game: Game, full=False, single=False):
             old_version = game.version
             elem = post.find(text_val("version"))
             if elem:
-                version = elem.next_sibling.get_text().lstrip(":").strip()
+                version = get_attr_value(elem)
             else:
                 version = re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text).group(1).strip()
 
             old_developer = game.developer
-            elem = post.find(text_val("developer"))
+            elem = post.find(text_val("developer")) or post.find(text_val("artist")) or post.find(text_val("publisher")) or post.find(text_val("developer/publisher")) or post.find(text_val("developer / publisher"))
             if elem:
-                developer = elem.next_sibling.get_text().lstrip(":").strip()
+                developer = get_attr_value(elem).rstrip("(|-").strip()
             else:
-                developer = ""
+                developer = post.find(has_class("username")).text
 
             old_type = game.type
             type = Type.Others
@@ -196,9 +206,9 @@ async def check(game: Game, full=False, single=False):
             url = utils.clean_thread_url(str(req.real_url))
 
             elem = post.find(text_val("thread updated")) or post.find(text_val("updated"))
-            last_updated = None
+            last_updated = 0
             if elem:
-                text = elem.next_sibling.text.lstrip(":").strip().replace("/", "-")
+                text = get_attr_value(elem).replace("/", "-")
                 try:
                     last_updated = dt.datetime.fromisoformat(text).timestamp()
                 except ValueError:
