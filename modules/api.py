@@ -7,7 +7,7 @@ import time
 import bs4
 import re
 
-from modules.structs import Game, MsgBox, Status, Tag
+from modules.structs import Game, MsgBox, Status, Tag, Type
 from modules import globals, asklogin, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
@@ -131,10 +131,59 @@ async def check(game: Game, full=False, single=False):
                 developer = ""
 
             old_type = game.type
-            pass  # TODO: Type
+            type = Type.Others
+            # Game Engines
+            if head.find("span", text="[ADRIFT]"):
+                type = Type.ADRIFT
+            if head.find("span", text="[Flash]"):
+                type = Type.Flash
+            if head.find("span", text="[HTML]"):
+                type = Type.HTML
+            if head.find("span", text="[Java]"):
+                type = Type.Java
+            if head.find("span", text="[QSP]"):
+                type = Type.QSP
+            if head.find("span", text="[RAGS]"):
+                type = Type.RAGS
+            if head.find("span", text="[RPGM]"):
+                type = Type.RPGM
+            if head.find("span", text="[Ren'Py]"):
+                type = Type.RenPy
+            if head.find("span", text="[Tads]"):
+                type = Type.Tads
+            if head.find("span", text="[Unity]"):
+                type = Type.Unity
+            if head.find("span", text="[Unreal Engine]"):
+                type = Type.Unreal_Engine
+            if head.find("span", text="[WebGL]"):
+                type = Type.WebGL
+            if head.find("span", text="[Wolf RPG]"):
+                type = Type.Wolf_RPG
+            # Post Types
+            if head.find("span", text="[READ ME]"):
+                type = Type.READ_ME
+            if head.find("span", text="[Request]"):
+                type = Type.Request
+            if head.find("span", text="[Tutorial]"):
+                type = Type.Tutorial
+            # Content Types
+            if head.find("span", text="[Cheat Mod]"):
+                type = Type.Cheat_Mod
+            if head.find("span", text="[Collection]") or \
+                head.find("span", text="[Manga]") or \
+                head.find("span", text="[SiteRip]") or \
+                head.find("span", text="[Comics]") or \
+                head.find("span", text="[CG]") or \
+                head.find("span", text="[Pinup]") or \
+                head.find("span", text="[Video]") or \
+                head.find("span", text="[GIF]"):
+                type = Type.Collection
+            if head.find("span", text="[Mod]"):
+                type = Type.Mod
+            if head.find("span", text="[Tool]"):
+                type = Type.Tool
 
             old_status = game.status
-            # FIXME
             if head.find("span", text="[Completed]"):
                 status = Status.Completed
             elif head.find("span", text="[Onhold]"):
@@ -209,7 +258,7 @@ async def check(game: Game, full=False, single=False):
                 game.name = name
                 game.version = version
                 game.developer = developer
-                # game.type = type
+                game.type = type
                 game.status = status
                 game.url = url
                 game.last_updated.update(last_updated)
