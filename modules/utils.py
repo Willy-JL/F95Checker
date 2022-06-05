@@ -52,7 +52,10 @@ def start_refresh_task(coro: typing.Coroutine):
     globals.refresh_progress = 0
     globals.refresh_total = 1
     globals.refresh_task = async_thread.run(coro)
-    globals.refresh_task.add_done_callback(lambda *_: setattr(globals, "refresh_task", None))
+    def done_callback(*_):
+        globals.refresh_task = None
+        globals.gui.require_sort = True
+    globals.refresh_task.add_done_callback(done_callback)
 
 
 def extract_thread_ids(text: str):

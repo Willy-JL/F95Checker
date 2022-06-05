@@ -1,12 +1,17 @@
 import multiprocessing
+import datetime as dt
+import contextlib
 import aiohttp
 import asyncio
 import time
+import bs4
+import re
 
-from modules.structs import Game, MsgBox, Status
+from modules.structs import Game, MsgBox, Status, Tag
 from modules import globals, asklogin, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
+full_check_interval = int(dt.timedelta(days=7).total_seconds())
 
 
 def setup():
@@ -23,7 +28,6 @@ def request(method: str, url: str, **kwargs):
         method,
         url,
         cookies=globals.cookies,
-        # headers=...,
         timeout=globals.settings.request_timeout,
         ssl=False,
         **kwargs
@@ -47,11 +51,16 @@ async def login():
     ctx = multiprocessing.get_context("spawn")
     queue = ctx.Queue()
     proc = ctx.Process(target=asklogin.asklogin, args=(globals.login_page, queue,), daemon=True)
-    proc.start()
-    while queue.empty():
-        await asyncio.sleep(0.1)
-    new_cookies = queue.get()
-    await db.update_cookies(new_cookies)
+    try:
+        proc.start()
+        while queue.empty():
+            await asyncio.sleep(0.1)
+    except asyncio.CancelledError:
+        proc.kill()
+        raise
+    with contextlib.suppress(asyncio.CancelledError):
+        new_cookies = queue.get()
+        await db.update_cookies(new_cookies)
 
 
 async def assert_login():
@@ -69,6 +78,7 @@ async def check(game: Game, full=False, single=False):
             return
         globals.refresh_progress = 1
 
+    full = full or game.last_full_refresh < time.time() - full_check_interval
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:  # FIXME
@@ -77,7 +87,115 @@ async def check(game: Game, full=False, single=False):
                 else:
                     print(redirect)
     if full:
-        print(f"{game.id} full refresh")  # TODO: get all game data
+        async with request("GET", game.url) as req:
+            def text_val(text: str):
+                def _text_val(elem: bs4.element.Tag):
+                    if not hasattr(elem, "text"):
+                        return False
+                    val = elem.text.lower()
+                    return val == text or val == text + ":"
+                return _text_val
+            def has_class(name: str):
+                def _has_class(elem: bs4.element.Tag):
+                    return name in elem.get_attribute_list("class")
+                return _has_class
+            raw = await req.read()
+            html = bs4.BeautifulSoup(raw, "lxml")
+            try:
+                head = html.find(has_class("p-body-header"))
+                post = html.find(has_class("message-threadStarterPost"))
+            finally:
+                if head is None or post is None:
+                    with open(f"{game.id}_broken.html", "wb") as f:
+                        f.write(raw)
+                    raise Exception(f"Failed to parse key sections in thread response, html has been saved to {game.id}_broken.html")
+
+            old_name = game.name
+            name = re.search(r"(?:\[[^\]]+\] - )*([^\[]+)", html.title.text).group(1).strip()
+
+            old_version = game.version
+            elem = post.find(text_val("version"))
+            if elem:
+                version = elem.next_sibling.get_text().lstrip(":").strip()
+            else:
+                version = re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text).group(1).strip()
+
+            old_developer = game.developer
+            elem = post.find(text_val("developer"))
+            if elem:
+                developer = elem.next_sibling.get_text().lstrip(":").strip()
+            else:
+                developer = ""
+
+            old_type = game.type
+            pass  # TODO: Type
+
+            old_status = game.status
+            # FIXME
+            if head.find("span", text="[Completed]"):
+                status = Status.Completed
+            elif head.find("span", text="[Onhold]"):
+                status = Status.OnHold
+            elif head.find("span", text="[Abandoned]"):
+                status = Status.Abandoned
+            else:
+                status = Status.Normal
+
+            url = utils.clean_thread_url(str(req.real_url))
+
+            elem = post.find(text_val("thread updated")) or post.find(text_val("updated"))
+            last_updated = None
+            if elem:
+                text = elem.next_sibling.text.lstrip(":").strip().replace("/", "-")
+                try:
+                    last_updated = dt.datetime.fromisoformat(text).timestamp()
+                except ValueError:
+                    pass
+            if not last_updated:
+                elem = post.find(has_class("message-lastEdit"))
+                if elem:
+                    last_updated = int(list(elem.children)[1].get("data-time"))
+                else:
+                    last_updated = int(post.find(has_class("message-attribution-main")).find("time").get("data-time"))
+
+            last_full_refresh = int(time.time())
+
+            if game.version != old_version:
+                played = False
+            else:
+                played = game.played
+
+            pass  # TODO: Description
+
+            pass  # TODO: Changelog
+
+            old_tags = game.tags
+            tags = []
+            tagl = head.find(has_class("js-tagList"))
+            if tagl is not None:
+                for child in tagl.children:
+                    if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
+                        tag = tag.replace("/tags/", "").strip("/")
+                        tags.append(Tag._members_[tag])
+
+            pass  # TODO: Image
+
+            with contextlib.suppress(asyncio.CancelledError):
+                game.name = name
+                game.version = version
+                game.developer = developer
+                # game.type = type
+                game.status = status
+                game.url = url
+                game.last_updated.update(last_updated)
+                game.last_full_refresh = last_full_refresh
+                game.played = played
+                # game.description = description
+                # game.changelog = changelog
+                game.tags = tags
+                # game.image = image
+                await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "played", "description", "changelog", "tags")
+            # TODO: show updated games
 
 
 async def check_notifs():
@@ -108,23 +226,29 @@ async def check_notifs():
     utils.push_popup(msgbox.msgbox, title, msg, MsgBox.info, buttons)
 
 
-async def refresh():
+async def refresh(full=False):
     if not await assert_login():
         return
 
-    refresh_tasks = asyncio.Queue()
+    game_queue = asyncio.Queue()
     async def worker():
-        while not refresh_tasks.empty():
-            await refresh_tasks.get_nowait()
+        while not game_queue.empty() and utils.is_refreshing():
+            try:
+                await check(game_queue.get_nowait(), full=full)
+            except Exception:
+                game_refresh_task.cancel()
+                raise
             globals.refresh_progress += 1
 
     for game in globals.games.values():
         if game.status is Status.Completed and not globals.settings.refresh_completed_games:
             continue
-        refresh_tasks.put_nowait(check(game))
-    refresh_tasks.put_nowait(check_notifs())
+        game_queue.put_nowait(game)
 
     globals.refresh_progress += 1
-    globals.refresh_total += refresh_tasks.qsize()
+    globals.refresh_total += game_queue.qsize() + 1
 
-    await asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
+    game_refresh_task = asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
+    await game_refresh_task
+
+    await check_notifs()

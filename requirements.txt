@@ -3,9 +3,11 @@ git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
 git+https://github.com/Willy-JL/pyopengl.git@fix-numpy
 pywin32 ; sys_platform == 'win32'
 PyQt6-WebEngine
+beautifulsoup4
 aiosqlite
 aiohttp
 Pillow
 PyQt6
 numpy
 glfw
+lxml
