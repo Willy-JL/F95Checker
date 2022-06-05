@@ -100,7 +100,10 @@ async def check(game: Game, full=False, single=False):
                     return name in elem.get_attribute_list("class")
                 return _has_class
             raw = await req.read()
-            html = bs4.BeautifulSoup(raw, "lxml")
+            def parser_constraint(name, elem):
+                classes = elem.get("class", "")
+                return name == "title" or "p-body-header" in classes or "message-threadStarterPost" in classes
+            html = bs4.BeautifulSoup(raw, "lxml", parse_only=bs4.SoupStrainer(parser_constraint))
             try:
                 head = html.find(has_class("p-body-header"))
                 post = html.find(has_class("message-threadStarterPost"))
