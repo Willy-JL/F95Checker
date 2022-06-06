@@ -993,6 +993,8 @@ class MainGUI():
                     filter_by = None
             if filter_by is not None:
                 self.sorted_games_ids = list(filter(filter_by, self.sorted_games_ids))
+            if not self.add_box_valid and self.add_box_text:
+                self.sorted_games_ids = list(filter(lambda id: self.add_box_text in globals.games[id].name.lower(), self.sorted_games_ids))
             sort_specs.specs_dirty = False
             self.require_sort = False
 
