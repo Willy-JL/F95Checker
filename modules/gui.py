@@ -1431,7 +1431,6 @@ class MainGUI():
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
         activated, value = imgui.input_text("##filter_add_bar", self.add_box_text, 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         if value != self.add_box_text:
-            print(value)
             self.add_box_text = value
             self.add_box_valid = len(utils.extract_thread_ids(self.add_box_text)) > 0
             self.require_sort = True
