@@ -108,12 +108,11 @@ async def check(game: Game, full=False, single=False):
                 if not elem:
                     return ""
                 return elem.text.lstrip(":").strip()
-            def parser_constraint(name, elem):
-                classes = elem.get("class", "")
-                return name == "title" or "p-body-header" in classes or "message-threadStarterPost" in classes
 
             raw = await req.read()
-            html = bs4.BeautifulSoup(raw, "lxml", parse_only=bs4.SoupStrainer(parser_constraint))
+            html = bs4.BeautifulSoup(raw, "lxml")
+            if html.find(text_val("the requested thread could not be found.")):
+                raise Exception(f"The F95Zone thread for {game.name} could not be found!\nIt is possible it was deleted.")
             try:
                 head = html.find(has_class("p-body-header"))
                 post = html.find(has_class("message-threadStarterPost"))
@@ -124,17 +123,20 @@ async def check(game: Game, full=False, single=False):
                     raise Exception(f"Failed to parse key sections in thread response, html has been saved to {game.id}_broken.html")
 
             old_name = game.name
-            name = re.search(r"(?:\[[^\]]+\] - )*([^\[]+)", html.title.text).group(1).strip()
+            name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
 
             old_version = game.version
-            elem = post.find(text_val("version"))
-            if elem:
+            version = "N/A"
+            if elem := post.find(text_val("version")):
                 version = get_attr_value(elem)
-            else:
-                version = re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text).group(1).strip()
+            elif match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
+                version = match.group(1).strip()
 
             old_developer = game.developer
-            elem = post.find(text_val("developer")) or post.find(text_val("artist")) or post.find(text_val("publisher")) or post.find(text_val("developer/publisher")) or post.find(text_val("developer / publisher"))
+            elem = None
+            for attr in ["developer", "artist", "publisher", "developer/publisher", "developer / publisher"]:
+                if elem := post.find(text_val(attr)):
+                    break
             if elem:
                 developer = get_attr_value(elem).rstrip("(|-").strip()
             else:
@@ -205,8 +207,11 @@ async def check(game: Game, full=False, single=False):
 
             url = utils.clean_thread_url(str(req.real_url))
 
-            elem = post.find(text_val("thread updated")) or post.find(text_val("updated"))
             last_updated = 0
+            elem = None
+            for attr in ["thread updated", "updated"]:
+                if elem := post.find(text_val(attr)):
+                    break
             if elem:
                 text = get_attr_value(elem).replace("/", "-")
                 try:
@@ -214,8 +219,7 @@ async def check(game: Game, full=False, single=False):
                 except ValueError:
                     pass
             if not last_updated:
-                elem = post.find(has_class("message-lastEdit"))
-                if elem:
+                if elem := post.find(has_class("message-lastEdit")):
                     last_updated = int(list(elem.children)[1].get("data-time"))
                 else:
                     last_updated = int(post.find(has_class("message-attribution-main")).find("time").get("data-time"))
@@ -227,9 +231,8 @@ async def check(game: Game, full=False, single=False):
             else:
                 played = game.played
 
-            elem = post.find(text_val("overview"))
             description = ""
-            if elem:
+            if elem := post.find(text_val("overview")):
                 for sibling in elem.next_siblings:
                     if sibling.name == "b":
                         break
@@ -240,8 +243,11 @@ async def check(game: Game, full=False, single=False):
                 while "\n\n\n" in description:
                     description = description.replace("\n\n\n", "\n\n")
 
-            elem = post.find(text_val("changelog")) or post.find(text_val("change-log"))
             changelog = ""
+            elem = None
+            for attr in ["changelog", "change-log"]:
+                if elem := post.find(text_val(attr)):
+                    break
             if elem:
                 for sibling in elem.next_siblings:
                     if sibling.name == "b":
@@ -255,8 +261,7 @@ async def check(game: Game, full=False, single=False):
 
             old_tags = game.tags
             tags = []
-            tagl = head.find(has_class("js-tagList"))
-            if tagl is not None:
+            if (tagl := head.find(has_class("js-tagList"))) is not None:
                 for child in tagl.children:
                     if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
                         tag = tag.replace("/tags/", "").strip("/")
