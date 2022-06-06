@@ -5,6 +5,7 @@ import pathlib
 import typing
 import enum
 import json
+import time
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, Settings, Status, Timestamp, Type
 from modules import globals, imagehelper, msgbox, utils
@@ -141,6 +142,25 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
     return value
 
 
+async def load_games(id: int = None):
+    types = Game.__annotations__
+    query = """
+        SELECT *
+        FROM games
+    """
+    if id is not None:
+        query += f"""
+            WHERE id={id}
+        """
+    cursor = await connection.execute(query)
+    games = await cursor.fetchall()
+    for game in games:
+        game = dict(game)
+        game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
+        game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
+        globals.games[game["id"]] = Game(**game)
+
+
 async def load():
     types = Settings.__annotations__
     cursor = await connection.execute("""
@@ -155,17 +175,7 @@ async def load():
     globals.browser_idx = globals.browsers.index(globals.settings.browser.name)
 
     globals.games = {}
-    types = Game.__annotations__
-    cursor = await connection.execute("""
-        SELECT *
-        FROM games
-    """)
-    games = await cursor.fetchall()
-    for game in games:
-        game = dict(game)
-        game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
-        game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
-        globals.games[game["id"]] = Game(**game)
+    await load_games()
 
     cursor = await connection.execute("""
         SELECT *
@@ -224,6 +234,15 @@ async def remove_game(id: int):
         DELETE FROM games
         WHERE id={id}
     """)
+
+
+async def add_game(id: int):
+    await connection.execute(f"""
+        INSERT INTO games
+        (id, name, version, url, added_on, description)
+        VALUES
+        (?,  ?,    ?,       ?,   ?,        ?          )
+    """, (id, f"Unknown ({id})", " ", f"{globals.threads_page}{id}", time.time(), "Please refresh in order to fetch the data for this game!"))
 
 
 async def update_cookies(new_cookies: dict[str, str]):

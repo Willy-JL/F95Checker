@@ -77,10 +77,12 @@ class MainGUI():
         self.focused = True
         self.size_mult = 0.0
         self.edit_mode = False
+        self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.require_sort = True
         self.prev_manual_sort = 0
+        self.add_box_valid = False
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.filter_by = FilterMode._None
@@ -1421,11 +1423,23 @@ class MainGUI():
             async_thread.run(db.update_settings("display_mode"))
 
         imgui.same_line()
-        imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
-        imgui.input_text("##filter_add_bar", "", 9999999)
-        imgui.same_line()
-        if imgui.button("Add!"):
-            pass  # TODO: add button functionality
+        if self.add_box_valid:
+            imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
+        else:
+            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+        activated, value = imgui.input_text("##filter_add_bar", self.add_box_text, 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        if value != self.add_box_text:
+            print(value)
+            self.add_box_text = value
+            self.add_box_valid = len(utils.extract_thread_ids(self.add_box_text)) > 0
+            self.require_sort = True
+        if self.add_box_valid:
+            imgui.same_line()
+            if imgui.button("Add!") or activated:
+                for id in utils.extract_thread_ids(self.add_box_text):
+                    callbacks.add_games(id)
+                self.add_box_text = ""
+                self.add_box_valid = False
 
     def start_settings_section(self, name: str, right_width: int | float, collapsible=True):
         if collapsible:

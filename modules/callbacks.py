@@ -212,3 +212,16 @@ def remove_game(game: Game):
         utils.push_popup(msgbox.msgbox, "Remove game", f"Are you sure you want to remove {game.name} from your list?", MsgBox.warn, buttons)
     else:
         remove_callback()
+
+def add_games(*ids: list[int]):
+    dupes = []
+    for id in ids:
+        if id in globals.games:
+            dupes.append(globals.games[id].name)
+            continue
+        async_thread.wait(db.add_game(id))
+        async_thread.wait(db.load_games(id))
+    if dupes:
+        utils.push_popup(msgbox.msgbox, "Duplicate games", "These games are already present in your library and therefore have not been re-added:\n - " + "\n - ".join(dupes), MsgBox.warn)
+    globals.gui.require_sort = True
+
