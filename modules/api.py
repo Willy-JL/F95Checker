@@ -88,34 +88,65 @@ async def check(game: Game, full=False, single=False):
                     print(redirect)
     if full:
         async with request("GET", game.url) as req:
-            def text_val(text: str):
-                def _text_val(elem: bs4.element.Tag):
+            def is_text(text: str):
+                def _is_text(elem: bs4.element.Tag):
                     if not hasattr(elem, "text"):
                         return False
                     val = elem.text.lower().strip()
                     return val == text or val == text + ":"
-                return _text_val
-            def has_class(name: str):
-                def _has_class(elem: bs4.element.Tag):
+                return _is_text
+            def is_class(name: str):
+                def _is_class(elem: bs4.element.Tag):
                     return name in elem.get_attribute_list("class")
-                return _has_class
-            def get_attr_value(elem: bs4.element.Tag):
+                return _is_class
+            def game_has_prefixes(*names: list[str]):
+                for name in names:
+                    if head.find("span", text=f"[{name}]"):
+                        return True
+                return False
+            def get_game_attr(*names: list[str]):
+                for name in names:
+                    if elem := post.find(is_text(name)):
+                        break
+                if not elem:
+                    return ""
                 elem = elem.next_sibling or elem.parent.next_sibling
                 if not elem:
                     return ""
-                if elem.text.strip() in (":", ""):
+                stripped = elem.text.strip()
+                if stripped == ":" or stripped == "":
                     elem = elem.next_sibling or elem.parent.next_sibling
                 if not elem:
                     return ""
                 return elem.text.lstrip(":").strip()
+            def get_long_game_attr(*names: list[str]):
+                for name in names:
+                    if elem := post.find(is_text(name)):
+                        break
+                if not elem:
+                    return ""
+                value = ""
+                for sibling in elem.next_siblings:
+                    if sibling.name == "b":
+                        break
+                    stripped = sibling.text.strip()
+                    if stripped == ":" or stripped == "":
+                        continue
+                    value += sibling.text
+                value = value.replace("Spoiler", "").strip()
+                while "\n\n\n" in value:
+                    value = value.replace("\n\n\n", "\n\n")
+                return value
 
             raw = await req.read()
             html = bs4.BeautifulSoup(raw, "lxml")
-            if html.find(text_val("the requested thread could not be found.")):
+
+            if html.find(is_text("the requested thread could not be found.")):
                 raise Exception(f"The F95Zone thread for {game.name} could not be found!\nIt is possible it was deleted.")
+
             try:
-                head = html.find(has_class("p-body-header"))
-                post = html.find(has_class("message-threadStarterPost"))
+                head = html.find(is_class("p-body-header"))
+                post = html.find(is_class("message-threadStarterPost"))
             finally:
                 if head is None or post is None:
                     with open(f"{game.id}_broken.html", "wb") as f:
@@ -126,81 +157,69 @@ async def check(game: Game, full=False, single=False):
             name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
 
             old_version = game.version
-            version = "N/A"
-            if elem := post.find(text_val("version")):
-                version = get_attr_value(elem)
-            elif match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
-                version = match.group(1).strip()
+            version = get_game_attr("version")
+            if not version:
+                if match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
+                    version = match.group(1).strip()
+            if not version:
+                version = "N/A"
 
             old_developer = game.developer
-            elem = None
-            for attr in ["developer", "artist", "publisher", "developer/publisher", "developer / publisher"]:
-                if elem := post.find(text_val(attr)):
-                    break
-            if elem:
-                developer = get_attr_value(elem).rstrip("(|-").strip()
-            else:
-                developer = post.find(has_class("username")).text
+            developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-").strip()
 
             old_type = game.type
-            type = Type.Others
-            # Game Engines
-            if head.find("span", text="[ADRIFT]"):
-                type = Type.ADRIFT
-            if head.find("span", text="[Flash]"):
-                type = Type.Flash
-            if head.find("span", text="[HTML]"):
-                type = Type.HTML
-            if head.find("span", text="[Java]"):
-                type = Type.Java
-            if head.find("span", text="[QSP]"):
-                type = Type.QSP
-            if head.find("span", text="[RAGS]"):
-                type = Type.RAGS
-            if head.find("span", text="[RPGM]"):
-                type = Type.RPGM
-            if head.find("span", text="[Ren'Py]"):
-                type = Type.RenPy
-            if head.find("span", text="[Tads]"):
-                type = Type.Tads
-            if head.find("span", text="[Unity]"):
-                type = Type.Unity
-            if head.find("span", text="[Unreal Engine]"):
-                type = Type.Unreal_Engine
-            if head.find("span", text="[WebGL]"):
-                type = Type.WebGL
-            if head.find("span", text="[Wolf RPG]"):
-                type = Type.Wolf_RPG
-            # Post Types
-            if head.find("span", text="[READ ME]"):
-                type = Type.READ_ME
-            if head.find("span", text="[Request]"):
-                type = Type.Request
-            if head.find("span", text="[Tutorial]"):
-                type = Type.Tutorial
             # Content Types
-            if head.find("span", text="[Cheat Mod]"):
+            if game_has_prefixes("Cheat Mod"):
                 type = Type.Cheat_Mod
-            if head.find("span", text="[Collection]") or \
-                head.find("span", text="[Manga]") or \
-                head.find("span", text="[SiteRip]") or \
-                head.find("span", text="[Comics]") or \
-                head.find("span", text="[CG]") or \
-                head.find("span", text="[Pinup]") or \
-                head.find("span", text="[Video]") or \
-                head.find("span", text="[GIF]"):
+            elif game_has_prefixes("Collection", "Manga", "SiteRip", "Comics", "CG", "Pinup", "Video", "GIF"):
                 type = Type.Collection
-            if head.find("span", text="[Mod]"):
+            elif game_has_prefixes("Mod"):
                 type = Type.Mod
-            if head.find("span", text="[Tool]"):
+            elif game_has_prefixes("Tool"):
                 type = Type.Tool
+            # Post Types
+            elif game_has_prefixes("READ ME"):
+                type = Type.READ_ME
+            elif game_has_prefixes("Request"):
+                type = Type.Request
+            elif game_has_prefixes("Tutorial"):
+                type = Type.Tutorial
+            # Game Engines
+            elif game_has_prefixes("ADRIFT"):
+                type = Type.ADRIFT
+            elif game_has_prefixes("Flash"):
+                type = Type.Flash
+            elif game_has_prefixes("HTML"):
+                type = Type.HTML
+            elif game_has_prefixes("Java"):
+                type = Type.Java
+            elif game_has_prefixes("QSP"):
+                type = Type.QSP
+            elif game_has_prefixes("RAGS"):
+                type = Type.RAGS
+            elif game_has_prefixes("RPGM"):
+                type = Type.RPGM
+            elif game_has_prefixes("Ren'Py"):
+                type = Type.RenPy
+            elif game_has_prefixes("Tads"):
+                type = Type.Tads
+            elif game_has_prefixes("Unity"):
+                type = Type.Unity
+            elif game_has_prefixes("Unreal Engine"):
+                type = Type.Unreal_Engine
+            elif game_has_prefixes("WebGL"):
+                type = Type.WebGL
+            elif game_has_prefixes("Wolf RPG"):
+                type = Type.Wolf_RPG
+            else:
+                type = Type.Others
 
             old_status = game.status
-            if head.find("span", text="[Completed]"):
+            if game_has_prefixes("Completed"):
                 status = Status.Completed
-            elif head.find("span", text="[Onhold]"):
+            elif game_has_prefixes("Onhold"):
                 status = Status.OnHold
-            elif head.find("span", text="[Abandoned]"):
+            elif game_has_prefixes("Abandoned"):
                 status = Status.Abandoned
             else:
                 status = Status.Normal
@@ -208,21 +227,16 @@ async def check(game: Game, full=False, single=False):
             url = utils.clean_thread_url(str(req.real_url))
 
             last_updated = 0
-            elem = None
-            for attr in ["thread updated", "updated"]:
-                if elem := post.find(text_val(attr)):
-                    break
-            if elem:
-                text = get_attr_value(elem).replace("/", "-")
-                try:
-                    last_updated = dt.datetime.fromisoformat(text).timestamp()
-                except ValueError:
-                    pass
+            text = get_game_attr("thread updated", "updated").replace("/", "-")
+            try:
+                last_updated = dt.datetime.fromisoformat(text).timestamp()
+            except ValueError:
+                pass
             if not last_updated:
-                if elem := post.find(has_class("message-lastEdit")):
-                    last_updated = int(list(elem.children)[1].get("data-time"))
+                if elem := post.find(is_class("message-lastEdit")):
+                    last_updated = int(elem.find("time").get("data-time"))
                 else:
-                    last_updated = int(post.find(has_class("message-attribution-main")).find("time").get("data-time"))
+                    last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
 
             last_full_refresh = int(time.time())
 
@@ -231,38 +245,14 @@ async def check(game: Game, full=False, single=False):
             else:
                 played = game.played
 
-            description = ""
-            if elem := post.find(text_val("overview")):
-                for sibling in elem.next_siblings:
-                    if sibling.name == "b":
-                        break
-                    if sibling.text == ":":
-                        continue
-                    description += sibling.text
-                description = description.replace("Spoiler", "").strip()
-                while "\n\n\n" in description:
-                    description = description.replace("\n\n\n", "\n\n")
+            description = get_long_game_attr("overview")
 
-            changelog = ""
-            elem = None
-            for attr in ["changelog", "change-log"]:
-                if elem := post.find(text_val(attr)):
-                    break
-            if elem:
-                for sibling in elem.next_siblings:
-                    if sibling.name == "b":
-                        break
-                    if sibling.text == ":":
-                        continue
-                    changelog += sibling.text
-                changelog = changelog.replace("Spoiler", "").strip()
-                while "\n\n\n" in changelog:
-                    changelog = changelog.replace("\n\n\n", "\n\n")
+            changelog = get_long_game_attr("changelog", "change-log")
 
             old_tags = game.tags
             tags = []
-            if (tagl := head.find(has_class("js-tagList"))) is not None:
-                for child in tagl.children:
+            if (taglist := head.find(is_class("js-tagList"))) is not None:
+                for child in taglist.children:
                     if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
                         tag = tag.replace("/tags/", "").strip("/")
                         tags.append(Tag._members_[tag])
