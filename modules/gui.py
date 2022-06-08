@@ -86,6 +86,7 @@ class MainGUI():
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.filter_by = FilterMode._None
+        self.type_label_width: float = None
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
 
@@ -267,6 +268,7 @@ class MainGUI():
             glyph_ranges=imgui.core.GlyphRanges([0xf02fc, 0xf02fc, 0xf11ce, 0xf11ce, 0xf0029, 0xf0029, 0])
         )
         self.impl.refresh_font_texture()
+        self.type_label_width = None
 
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
@@ -434,9 +436,16 @@ class MainGUI():
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        imgui.small_button(f"{game.type.name}##{game.id}_type", *args, **kwargs)
+        x_padding = 4
+        imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (x_padding, 0))
+        if self.type_label_width is None:
+            self.type_label_width = 0
+            for type in list(Type):
+                self.type_label_width = max(self.type_label_width, imgui.calc_text_size(type.name).x)
+            self.type_label_width += 2 * x_padding
+        imgui.button(f"{game.type.name}##{game.id}_type", *args, width=self.type_label_width, **kwargs)
         imgui.pop_style_color(3)
-        imgui.pop_style_var()
+        imgui.pop_style_var(2)
 
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
