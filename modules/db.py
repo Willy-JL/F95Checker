@@ -72,25 +72,27 @@ async def connect():
 
     await connection.execute(f"""
         CREATE TABLE IF NOT EXISTS games (
-            id                INTEGER PRIMARY KEY,
-            name              TEXT    DEFAULT "",
-            version           TEXT    DEFAULT "",
-            developer         TEXT    DEFAULT "",
-            type              INTEGER DEFAULT {Type.Others},
-            status            INTEGER DEFAULT {Status.Normal},
-            url               TEXT    DEFAULT "",
-            added_on          INTEGER DEFAULT 0,
-            last_updated      INTEGER DEFAULT 0,
-            last_full_refresh INTEGER DEFAULT 0,
-            last_played       INTEGER DEFAULT 0,
-            rating            INTEGER DEFAULT 0,
-            played            INTEGER DEFAULT 0,
-            installed         TEXT    DEFAULT "",
-            executable        TEXT    DEFAULT "",
-            description       TEXT    DEFAULT "",
-            changelog         TEXT    DEFAULT "",
-            tags              TEXT    DEFAULT "[]",
-            notes             TEXT    DEFAULT ""
+            id                   INTEGER PRIMARY KEY,
+            name                 TEXT    DEFAULT "",
+            version              TEXT    DEFAULT "",
+            developer            TEXT    DEFAULT "",
+            type                 INTEGER DEFAULT {Type.Others},
+            status               INTEGER DEFAULT {Status.Normal},
+            url                  TEXT    DEFAULT "",
+            added_on             INTEGER DEFAULT 0,
+            last_updated         INTEGER DEFAULT 0,
+            last_full_refresh    INTEGER DEFAULT 0,
+            last_refresh_version TEXT    DEFAULT "",
+            last_played          INTEGER DEFAULT 0,
+            rating               INTEGER DEFAULT 0,
+            played               INTEGER DEFAULT 0,
+            installed            TEXT    DEFAULT "",
+            executable           TEXT    DEFAULT "",
+            description          TEXT    DEFAULT "",
+            changelog            TEXT    DEFAULT "",
+            tags                 TEXT    DEFAULT "[]",
+            notes                TEXT    DEFAULT "",
+            image_url            TEXT    DEFAULT ""
         )
     """)
 

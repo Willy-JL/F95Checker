@@ -240,10 +240,12 @@ async def check(game: Game, full=False, standalone=False):
 
             last_full_refresh = int(time.time())
 
-            if game.version != old_version:
-                played = False
-            else:
+            # Do not reset played checkbox if first refresh on this version
+            if game.last_refresh_version != globals.version:
                 played = game.played
+            elif version != old_version:
+                played = False
+            last_refresh_version = globals.version
 
             description = get_long_game_attr("overview")
 
@@ -268,12 +270,13 @@ async def check(game: Game, full=False, standalone=False):
                 game.url = url
                 game.last_updated.update(last_updated)
                 game.last_full_refresh = last_full_refresh
+                game.last_refresh_version = last_refresh_version
                 game.played = played
                 game.description = description
                 game.changelog = changelog
                 game.tags = tags
-                # game.image = image
-                await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "played", "description", "changelog", "tags")
+                # game.image_url = image_url
+                await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags")
             # TODO: show updated games
 
 

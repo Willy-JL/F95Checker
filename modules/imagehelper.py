@@ -26,6 +26,7 @@ class ImageHelper:
         self._texture_id: numpy.uint32 = None
         self.frame_durations: list[float] = None
         self.path = pathlib.Path(path)
+        self.resolve()
 
     def reset(self):
         gl.glBindTexture(gl.GL_TEXTURE_2D, self._texture_id)
@@ -46,23 +47,28 @@ class ImageHelper:
         self.loaded = True
         self.loading = False
 
-    def reload(self):
-        path = self.path
+    def resolve(self):
+        self.resolved_path = self.path
         if self.glob:
-            paths = list(path.glob(self.glob))
+            paths = list(self.resolved_path.glob(self.glob))
             if not paths:
                 self.set_missing()
                 return
             # If you want you can setup preferred extensions like this:
             paths.sort(key=lambda path: path.suffix != ".gif")
             # This will prefer .gif files!
-            path = paths[0]
-        if path.is_file():
+            self.resolved_path = paths[0]
+        if self.resolved_path.is_file():
             self.missing = False
         else:
             self.set_missing()
             return
-        image = Image.open(path)
+
+    def reload(self):
+        self.resolve()
+        if self.missing:
+            return
+        image = Image.open(self.resolved_path)
         self.width, self.height = image.size
         if hasattr(image, "n_frames") and image.n_frames > 1:
             self.animated = True

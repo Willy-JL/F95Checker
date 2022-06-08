@@ -358,23 +358,25 @@ class DefaultStyle:
 
 @dataclasses.dataclass
 class Game:
-    id                : int
-    name              : str
-    version           : str
-    developer         : str
-    type              : Type
-    status            : Status
-    url               : str
-    added_on          : Timestamp
-    last_updated      : Timestamp
-    last_full_refresh : int
-    last_played       : Timestamp
-    rating            : int
-    played            : bool
-    installed         : str
-    executable        : str
-    description       : str
-    changelog         : str
-    tags              : list[Tag]
-    notes             : str
-    image             : imagehelper.ImageHelper
+    id                   : int
+    name                 : str
+    version              : str
+    developer            : str
+    type                 : Type
+    status               : Status
+    url                  : str
+    added_on             : Timestamp
+    last_updated         : Timestamp
+    last_full_refresh    : int
+    last_refresh_version : str
+    last_played          : Timestamp
+    rating               : int
+    played               : bool
+    installed            : str
+    executable           : str
+    description          : str
+    changelog            : str
+    tags                 : list[Tag]
+    notes                : str
+    image                : imagehelper.ImageHelper
+    image_url            : str
