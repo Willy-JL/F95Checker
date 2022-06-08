@@ -37,13 +37,16 @@ class MainGUI():
             imgui.TABLE_SCROLL_Y |
             imgui.TABLE_HIDEABLE |
             imgui.TABLE_SORTABLE |
+            imgui.TABLE_RESIZABLE |
             imgui.TABLE_REORDERABLE |
             imgui.TABLE_ROW_BACKGROUND |
             imgui.TABLE_SIZING_FIXED_FIT |
-            imgui.TABLE_NO_HOST_EXTEND_Y
+            imgui.TABLE_NO_HOST_EXTEND_Y |
+            imgui.TABLE_NO_BORDERS_IN_BODY_UTIL_RESIZE
         )
         self.ghost_columns_flags: int = (
             imgui.TABLE_COLUMN_NO_SORT |
+            imgui.TABLE_COLUMN_NO_RESIZE |
             imgui.TABLE_COLUMN_NO_REORDER |
             imgui.TABLE_COLUMN_NO_HEADER_WIDTH
         )
@@ -154,6 +157,7 @@ class MainGUI():
         imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
         imgui.style.scrollbar_size = 10
         imgui.style.frame_border_size = 1.6
+        imgui.style.colors[imgui.COLOR_TABLE_BORDER_STRONG] = (0, 0, 0, 0)
         self.refresh_styles()
         # Custom checkbox style
         imgui._checkbox = imgui.checkbox
@@ -1064,18 +1068,18 @@ class MainGUI():
             self.ghost_columns_enabled_count += manual_sort
             can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             # Regular columns
-            imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT)  # 4
-            imgui.table_setup_column("Type", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 5
+            imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
+            imgui.table_setup_column("Type", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
             imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
             imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
-            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 8
-            imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 9
-            imgui.table_setup_column("Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 10
-            imgui.table_setup_column("Played", can_sort)  # 11
-            imgui.table_setup_column("Installed", can_sort)  # 12
-            imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 13
-            imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT)  # 14
-            imgui.table_setup_column("Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT)  # 15
+            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
+            imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
+            imgui.table_setup_column("Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
+            imgui.table_setup_column("Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
+            imgui.table_setup_column("Installed", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
+            imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
+            imgui.table_setup_column("Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
+            imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
 
             # Enabled columns
@@ -1090,15 +1094,15 @@ class MainGUI():
             played       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             installed    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             rating       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            open_thread  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             notes        = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
+            open_thread  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
 
             # Headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
             for i in range(self.game_list_column_count):
                 imgui.table_set_column_index(i)
                 column_name = imgui.table_get_column_name(i)
-                if i in (0, 1, 2, 4, 14):  # Hide name for small and ghost columns
+                if i in (0, 1, 2, 4, 15):  # Hide name for small and ghost columns
                     column_name = "##" + column_name
                 elif i == 6:  # Name
                     if version_enabled:
@@ -1118,7 +1122,7 @@ class MainGUI():
 
             # Loop rows
             frame_height = imgui.get_frame_height()
-            notes_width = 10 * frame_height
+            notes_width = None
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
                 imgui.table_next_row()
@@ -1177,14 +1181,16 @@ class MainGUI():
                 if rating:
                     imgui.table_set_column_index(rating)
                     self.draw_game_rating_widget(game)
+                # Notes
+                if notes:
+                    imgui.table_set_column_index(notes)
+                    if notes_width is None:
+                        notes_width = imgui.get_content_region_available_width() - 2 * imgui.style.item_spacing.x
+                    self.draw_game_notes_widget(game, multiline=False, width=notes_width)
                 # Open Thread
                 if open_thread:
                     imgui.table_set_column_index(open_thread)
                     self.draw_game_open_thread_button(game, label="󰏌")
-                # Notes
-                if notes:
-                    imgui.table_set_column_index(notes)
-                    self.draw_game_notes_widget(game, multiline=False, width=notes_width)
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -1223,8 +1229,8 @@ class MainGUI():
             played          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             installed       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             rating          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            open_thread     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             notes           = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            open_thread     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             button_row = play_button or open_thread or played or installed
             data_rows = type + developer + last_updated + last_played + added_on + rating + notes
             imgui.end_table()
