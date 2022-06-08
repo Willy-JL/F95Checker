@@ -71,8 +71,8 @@ async def assert_login():
     return True
 
 
-async def check(game: Game, full=False, single=False):
-    if single:
+async def check(game: Game, full=False, standalone=False):
+    if standalone:
         globals.refresh_total = 2
         if not await assert_login():
             return
@@ -277,7 +277,13 @@ async def check(game: Game, full=False, single=False):
             # TODO: show updated games
 
 
-async def check_notifs():
+async def check_notifs(standalone=False):
+    if standalone:
+        globals.refresh_total = 2
+        if not await assert_login():
+            return
+        globals.refresh_progress = 1
+
     async with request("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as req:
         res = await req.json()  # FIXME
         alerts = int(res["visitor"]["alerts_unread"])
