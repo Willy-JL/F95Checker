@@ -26,6 +26,7 @@ class ImageHelper:
         self._texture_id: numpy.uint32 = None
         self.frame_durations: list[float] = None
         self.path = pathlib.Path(path)
+        self.resolved_path: pathlib.Path = None
         self.resolve()
 
     def reset(self):
