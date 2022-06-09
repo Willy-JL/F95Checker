@@ -1459,6 +1459,20 @@ class MainGUI():
         else:
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
         activated, value = imgui.input_text("##filter_add_bar", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        if imgui.begin_popup_context_item(f"##refresh_context"):
+            # Right click = more options context menu
+            if imgui.selectable("󰋽 More info", False)[0]:
+                utils.push_popup(
+                    msgbox.msgbox, "About the bottom bar",
+                    "This is the filter/add bar. By typing inside it you can search your game list.\n"
+                    "Pressing enter will search F95Zone for a matching thread and ask if you wish to\n"
+                    "add it to your list.\n\n"
+                    "When you instead paste a link to a F95Zone thread, the \"Add!\" button will show\n"
+                    "up, allowing you to add that thread to your list. When a link is detected you\n"
+                    "can also press enter on your keyboard to trigger the \"Add!\" button.",
+                    MsgBox.info
+                )
+            imgui.end_popup()
         if value != self.add_box_text:
             self.add_box_text = value
             self.add_box_valid = len(utils.extract_thread_ids(self.add_box_text)) > 0
@@ -1470,6 +1484,8 @@ class MainGUI():
                     callbacks.add_games(id)
                 self.add_box_text = ""
                 self.add_box_valid = False
+        elif activated:
+            pass  # TODO: search and prompt to add
 
     def start_settings_section(self, name: str, right_width: int | float, collapsible=True):
         if collapsible:
@@ -1527,11 +1543,27 @@ class MainGUI():
             if imgui.button("Refresh!", width=width, height=height):
                 utils.start_refresh_task(api.refresh())
             if imgui.begin_popup_context_item(f"##refresh_context"):
-                # Right click = full refresh context menu
+                # Right click = more options context menu
                 if imgui.selectable("󰅸 Only check notifs", False)[0]:
                     utils.start_refresh_task(api.check_notifs(standalone=True))
                 if imgui.selectable("󱄋 Force Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
+                imgui.separator()
+                if imgui.selectable("󰋽 More info", False)[0]:
+                    utils.push_popup(
+                        msgbox.msgbox, "About refreshing",
+                        "Refreshing is the process by which F95Checker goes through your games and checks\n"
+                        "if they have received updates. To keep it fast and smooth this is done by detecting\n"
+                        "changes in the title of the thread (more precisely it checks for redirects, so it doesn't\n"
+                        "need to fetch the whole page).\n\n"
+                        "This means that sometimes it might not be able to pick up some subtle changes and small\n"
+                        "updates. To fix this it also runs a full refresh every week or so (each game has its own\n"
+                        "timer).\n\n"
+                        "So a full recheck of a game will happen every time the title changes, or every 7 days.\n"
+                        "You can force full rechecks for single games or for the whole list with the right click\n"
+                        "menu on the game and on the refresh button.",
+                        MsgBox.info
+                    )
                 imgui.end_popup()
 
         imgui.begin_child("Settings")
