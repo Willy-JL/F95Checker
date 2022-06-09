@@ -43,8 +43,13 @@ async def is_logged_in():
         end = data.find(b'"', start)
         globals.token = str(data[start:end], encoding="utf-8")
         if not 200 <= req.status < 300:  # FIXME
+            data += await req.content.read()
+            if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in data:
+                raise Exception("F95Zone is currently running some backups,\nplease retry in a few minutes!")
+            # if b"<title>DDOS-GUARD</title>" in data:
+            #     raise Exception("Captcha needed!")
+            print(data)
             print(req.status)
-            print(data + await req.content.read())
         return 200 <= req.status < 300
 
 
