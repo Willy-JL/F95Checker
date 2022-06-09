@@ -42,7 +42,7 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons={"󰄬 Ok": No
             imgui.same_line(spacing=spacing)
         imgui.begin_group()
         msg_size = imgui.calc_text_size(message)
-        if (diff := icon_size.y - msg_size.y) > 0:
+        if icon and (diff := icon_size.y - msg_size.y) > 0:
             imgui.dummy(0, diff / 2 - imgui.style.item_spacing.y)
         imgui.text_unformatted(message)
         imgui.end_group()
