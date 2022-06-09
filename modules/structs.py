@@ -262,7 +262,7 @@ class Tag(EnumNameHack, IntEnum):
 
 
 class FilterMode(EnumNameHack, IntEnum, EnumAutoValue):
-    _None     = ()
+    Choose    = ()
     Installed = ()
     Played    = ()
     Rating    = ()
@@ -270,22 +270,16 @@ class FilterMode(EnumNameHack, IntEnum, EnumAutoValue):
     Tag       = ()
     Type      = ()
 
-FilterMode.Type.by = Type.Others
-FilterMode.Type.invert = False
 
-FilterMode.Status.by = Status.Normal
-FilterMode.Status.invert = False
+@dataclasses.dataclass
+class Filter:
+    mode: FilterMode
+    invert = False
+    match = None
+    include_outdated = True
 
-FilterMode.Rating.by = 0
-FilterMode.Rating.invert = False
-
-FilterMode.Played.invert = False
-
-FilterMode.Installed.invert = False
-FilterMode.Installed.include_outdated = True
-
-FilterMode.Tag.by = Tag._2d__game
-FilterMode.Tag.invert = False
+    def __post_init__(self):
+        self.id = id(self)
 
 
 class MsgBox(IntEnum, EnumAutoValue):

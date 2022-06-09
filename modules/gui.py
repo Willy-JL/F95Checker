@@ -13,7 +13,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, FilterMode, Game, MsgBox, Os, Status, Tag, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, Status, Tag, Type
 from modules import globals, api, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
 
 imgui.io = None
@@ -88,7 +88,7 @@ class MainGUI():
         self.add_box_valid = False
         self.game_hitbox_click = False
         self.hovered_game: Game = None
-        self.filter_by = FilterMode._None
+        self.filters: list[Filter] = []
         self.type_label_width: float = None
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
@@ -999,26 +999,27 @@ class MainGUI():
                 ids = list(globals.games)
                 ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
                 self.sorted_games_ids = ids
-            match self.filter_by.value:
-                case FilterMode.Type.value:
-                    filter_by = lambda id: FilterMode.Type.invert != (globals.games[id].type is FilterMode.Type.by)
-                case FilterMode.Status.value:
-                    filter_by = lambda id: FilterMode.Status.invert != (globals.games[id].status is FilterMode.Status.by)
-                case FilterMode.Rating.value:
-                    filter_by = lambda id: FilterMode.Rating.invert != (globals.games[id].rating == FilterMode.Rating.by)
-                case FilterMode.Played.value:
-                    filter_by = lambda id: FilterMode.Played.invert != (globals.games[id].played is True)
-                case FilterMode.Installed.value:
-                    if FilterMode.Installed.include_outdated:
-                        filter_by = lambda id: FilterMode.Installed.invert != (globals.games[id].installed != "")
-                    else:
-                        filter_by = lambda id: FilterMode.Installed.invert != (globals.games[id].installed == globals.games[id].version)
-                case FilterMode.Tag.value:
-                    filter_by = lambda id: FilterMode.Tag.invert != (FilterMode.Tag.by in globals.games[id].tags)
-                case _:
-                    filter_by = None
-            if filter_by is not None:
-                self.sorted_games_ids = list(filter(filter_by, self.sorted_games_ids))
+            for flt in self.filters:
+                match flt.mode.value:
+                    case FilterMode.Type.value:
+                        key = lambda id: flt.invert != (globals.games[id].type is flt.match)
+                    case FilterMode.Status.value:
+                        key = lambda id: flt.invert != (globals.games[id].status is flt.match)
+                    case FilterMode.Rating.value:
+                        key = lambda id: flt.invert != (globals.games[id].rating == flt.match)
+                    case FilterMode.Played.value:
+                        key = lambda id: flt.invert != (globals.games[id].played is True)
+                    case FilterMode.Installed.value:
+                        if flt.include_outdated:
+                            key = lambda id: flt.invert != (globals.games[id].installed != "")
+                        else:
+                            key = lambda id: flt.invert != (globals.games[id].installed == globals.games[id].version)
+                    case FilterMode.Tag.value:
+                        key = lambda id: flt.invert != (flt.match in globals.games[id].tags)
+                    case _:
+                        key = None
+                if key is not None:
+                    self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
             if not self.add_box_valid and self.add_box_text:
                 self.sorted_games_ids = list(filter(lambda id: self.add_box_text in globals.games[id].name.lower(), self.sorted_games_ids))
             sort_specs.specs_dirty = False
@@ -1131,7 +1132,7 @@ class MainGUI():
             # Sorting
             sort_specs = imgui.table_get_sort_specs()
             self.sort_games(sort_specs, manual_sort)
-            not_filtering = self.filter_by is FilterMode._None
+            not_filtering = len(self.filters) == 0
 
             # Loop rows
             frame_height = imgui.get_frame_height()
@@ -1227,7 +1228,7 @@ class MainGUI():
             sort_specs = imgui.table_get_sort_specs()
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             self.sort_games(sort_specs, manual_sort)
-            not_filtering = self.filter_by is FilterMode._None
+            not_filtering = len(self.filters) == 0
             # Enabled attributes
             version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
@@ -1543,77 +1544,102 @@ class MainGUI():
 
             imgui.table_next_row()
             imgui.table_next_column()
-            imgui.text("Filter by:")
+            imgui.text("Add filter:")
             imgui.table_next_column()
-            changed, value = imgui.combo("##filter_by", self.filter_by.value - 1, list(FilterMode._members_))
-            filtering = value != 0
-            if changed:
-                self.filter_by = FilterMode(value + 1)
+            changed, value = imgui.combo("##add_filter", 0, list(FilterMode._members_))
+            if changed and value > 0:
+                flt = Filter(FilterMode(value + 1))
+                match flt.mode.value:
+                    case FilterMode.Type.value:
+                        flt.match = Type.Others
+                    case FilterMode.Status.value:
+                        flt.match = Status.Normal
+                    case FilterMode.Rating.value:
+                        flt.match = 0
+                    case FilterMode.Tag.value:
+                        flt.match = Tag._2d__game
+                self.filters.append(flt)
                 self.require_sort = True
 
-            if self.filter_by is FilterMode.Installed:
+            line_height = imgui.get_text_line_height()
+            for flt in self.filters:
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("Include outdated:")
-                imgui.table_next_column()
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##filter_installed", FilterMode.Installed.include_outdated)
-                if changed:
-                    FilterMode.Installed.include_outdated = value
-                    self.require_sort = True
-
-            if self.filter_by is FilterMode.Rating:
+                imgui.dummy(0, line_height)
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("Filter by rating:")
+                imgui.text(f"Filter by {flt.mode.name}:")
                 imgui.table_next_column()
-                changed, value = ratingwidget.ratingwidget(f"filter_rating", FilterMode.Rating.by)
-                if changed:
-                    FilterMode.Rating.by = value
-                    self.require_sort = True
-                imgui.spacing()
-
-            if self.filter_by is FilterMode.Status:
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Filter by status:")
-                imgui.table_next_column()
-                changed, value = imgui.combo("##filter_status", FilterMode.Status.by.value - 1, list(Status._members_))
-                if changed:
-                    FilterMode.Status.by = Status(value + 1)
+                if imgui.button(f"Remove##filter_{flt.id}", width=right_width):
+                    self.filters.remove(flt)
                     self.require_sort = True
 
-            if self.filter_by is FilterMode.Tag:
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Filter by tag:")
-                imgui.table_next_column()
-                changed, value = imgui.combo("##filter_tag", FilterMode.Tag.by.value - 1, list(Tag._members_))
-                if changed:
-                    FilterMode.Tag.by = Tag(value + 1)
-                    self.require_sort = True
+                if flt.mode is FilterMode.Installed:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.text("Include outdated:")
+                    imgui.table_next_column()
+                    imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+                    changed, value = imgui.checkbox(f"##filter_{flt.id}", flt.include_outdated)
+                    if changed:
+                        flt.include_outdated = value
+                        self.require_sort = True
 
-            if self.filter_by is FilterMode.Type:
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Filter by type:")
-                imgui.table_next_column()
-                changed, value = imgui.combo("##filter_type", FilterMode.Type.by.value - 1, list(Type._members_))
-                if changed:
-                    FilterMode.Type.by = Type(value + 1)
-                    self.require_sort = True
+                elif flt.mode is FilterMode.Rating:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.text("Rating value:")
+                    imgui.table_next_column()
+                    changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}", flt.match)
+                    if changed:
+                        flt.match = value
+                        self.require_sort = True
+                    imgui.spacing()
 
-            if filtering:
+                elif flt.mode is FilterMode.Status:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.text("Status value:")
+                    imgui.table_next_column()
+                    changed, value = imgui.combo(f"##filter_{flt.id}", flt.match.value - 1, list(Status._members_))
+                    if changed:
+                        flt.match = Status(value + 1)
+                        self.require_sort = True
+
+                elif flt.mode is FilterMode.Tag:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.text("Tag value:")
+                    imgui.table_next_column()
+                    changed, value = imgui.combo(f"##filter_{flt.id}", flt.match.value - 1, list(Tag._members_))
+                    if changed:
+                        flt.match = Tag(value + 1)
+                        self.require_sort = True
+
+                elif flt is FilterMode.Type:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.text("Type value:")
+                    imgui.table_next_column()
+                    changed, value = imgui.combo(f"##filter_{flt.id}", flt.match.value - 1, list(Type._members_))
+                    if changed:
+                        flt.match = Type(value + 1)
+                        self.require_sort = True
+
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("Invert filter:")
                 imgui.table_next_column()
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##filter_invert", self.filter_by.invert)
+                changed, value = imgui.checkbox(f"##filter_invert_{flt.id}", flt.invert)
                 if changed:
-                    self.filter_by.invert = value
+                    flt.invert = value
                     self.require_sort = True
 
+            if len(self.filters) > 0:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.dummy(0, line_height)
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text(f"Filtered games count: {len(self.sorted_games_ids)}")
