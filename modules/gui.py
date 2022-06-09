@@ -1289,16 +1289,16 @@ class MainGUI():
                 if game.image.missing:
                     text = "Image missing!"
                     text_size = imgui.calc_text_size(text)
+                    showed_img = imgui.is_rect_visible(width, height)
                     if text_size.x < width:
                         text_pos = imgui.get_cursor_pos()
-                        imgui.set_cursor_pos(((width - text_size.x) / 2, height / 2))
+                        imgui.set_cursor_pos((text_pos.x + (width - text_size.x) / 2, text_pos.y + height / 2))
                         self.draw_hover_text(
                             text=text,
                             hover_text="Run a full refresh to try downloading it again!"
                         )
                         imgui.set_cursor_pos(text_pos)
                     imgui.dummy(width, height)
-                    showed_img = True
                 else:
                     crop = game.image.crop_to_ratio(img_ratio, fit=globals.settings.fit_images)
                     showed_img = game.image.render(width, height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
