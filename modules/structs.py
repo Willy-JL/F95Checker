@@ -279,6 +279,7 @@ FilterMode.Rating.invert = False
 FilterMode.Played.invert = False
 
 FilterMode.Installed.invert = False
+FilterMode.Installed.include_outdated = True
 
 FilterMode.Tag.by = Tag._2d__game
 FilterMode.Tag.invert = False

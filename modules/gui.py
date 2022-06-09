@@ -1001,7 +1001,10 @@ class MainGUI():
                 case FilterMode.Played.value:
                     filter_by = lambda id: FilterMode.Played.invert != (globals.games[id].played is True)
                 case FilterMode.Installed.value:
-                    filter_by = lambda id: FilterMode.Installed.invert != (globals.games[id].installed == globals.games[id].version)
+                    if FilterMode.Installed.include_outdated:
+                        filter_by = lambda id: FilterMode.Installed.invert != (globals.games[id].installed != "")
+                    else:
+                        filter_by = lambda id: FilterMode.Installed.invert != (globals.games[id].installed == globals.games[id].version)
                 case FilterMode.Tag.value:
                     filter_by = lambda id: FilterMode.Tag.invert != (FilterMode.Tag.by in globals.games[id].tags)
                 case _:
@@ -1540,24 +1543,15 @@ class MainGUI():
                 self.filter_by = FilterMode(value + 1)
                 self.require_sort = True
 
-            if self.filter_by is FilterMode.Type:
+            if self.filter_by is FilterMode.Installed:
                 imgui.table_next_row()
                 imgui.table_next_column()
-                imgui.text("Filter by type:")
+                imgui.text("Include outdated:")
                 imgui.table_next_column()
-                changed, value = imgui.combo("##filter_type", FilterMode.Type.by.value - 1, list(Type._members_))
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+                changed, value = imgui.checkbox("##filter_installed", FilterMode.Installed.include_outdated)
                 if changed:
-                    FilterMode.Type.by = Type(value + 1)
-                    self.require_sort = True
-
-            if self.filter_by is FilterMode.Status:
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text("Filter by status:")
-                imgui.table_next_column()
-                changed, value = imgui.combo("##filter_status", FilterMode.Status.by.value - 1, list(Status._members_))
-                if changed:
-                    FilterMode.Status.by = Status(value + 1)
+                    FilterMode.Installed.include_outdated = value
                     self.require_sort = True
 
             if self.filter_by is FilterMode.Rating:
@@ -1571,6 +1565,16 @@ class MainGUI():
                     self.require_sort = True
                 imgui.spacing()
 
+            if self.filter_by is FilterMode.Status:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Filter by status:")
+                imgui.table_next_column()
+                changed, value = imgui.combo("##filter_status", FilterMode.Status.by.value - 1, list(Status._members_))
+                if changed:
+                    FilterMode.Status.by = Status(value + 1)
+                    self.require_sort = True
+
             if self.filter_by is FilterMode.Tag:
                 imgui.table_next_row()
                 imgui.table_next_column()
@@ -1579,6 +1583,16 @@ class MainGUI():
                 changed, value = imgui.combo("##filter_tag", FilterMode.Tag.by.value - 1, list(Tag._members_))
                 if changed:
                     FilterMode.Tag.by = Tag(value + 1)
+                    self.require_sort = True
+
+            if self.filter_by is FilterMode.Type:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text("Filter by type:")
+                imgui.table_next_column()
+                changed, value = imgui.combo("##filter_type", FilterMode.Type.by.value - 1, list(Type._members_))
+                if changed:
+                    FilterMode.Type.by = Type(value + 1)
                     self.require_sort = True
 
             if filtering:
