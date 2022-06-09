@@ -12,6 +12,7 @@ from modules import globals, asklogin, async_thread, callbacks, db, msgbox, util
 
 session: aiohttp.ClientSession = None
 full_check_interval = int(dt.timedelta(days=7).total_seconds())
+image_sem: asyncio.Semaphore = None
 
 
 def setup():
@@ -87,197 +88,226 @@ async def check(game: Game, full=False, standalone=False):
                 else:
                     print(redirect)
     if full:
-        async with request("GET", game.url) as req:
-            def is_text(text: str):
-                def _is_text(elem: bs4.element.Tag):
-                    if not hasattr(elem, "text"):
-                        return False
-                    val = elem.text.lower().strip()
-                    return val == text or val == text + ":"
-                return _is_text
-            def is_class(name: str):
-                def _is_class(elem: bs4.element.Tag):
-                    return name in elem.get_attribute_list("class")
-                return _is_class
-            def game_has_prefixes(*names: list[str]):
-                for name in names:
-                    if head.find("span", text=f"[{name}]"):
-                        return True
-                return False
-            def get_game_attr(*names: list[str]):
-                for name in names:
-                    if elem := post.find(is_text(name)):
-                        break
-                if not elem:
-                    return ""
+        def is_text(text: str):
+            def _is_text(elem: bs4.element.Tag):
+                if not hasattr(elem, "text"):
+                    return False
+                val = elem.text.lower().strip()
+                return val == text or val == text + ":"
+            return _is_text
+        def is_class(name: str):
+            def _is_class(elem: bs4.element.Tag):
+                return name in elem.get_attribute_list("class")
+            return _is_class
+        def game_has_prefixes(*names: list[str]):
+            for name in names:
+                if head.find("span", text=f"[{name}]"):
+                    return True
+            return False
+        def get_game_attr(*names: list[str]):
+            for name in names:
+                if elem := post.find(is_text(name)):
+                    break
+            if not elem:
+                return ""
+            elem = elem.next_sibling or elem.parent.next_sibling
+            if not elem:
+                return ""
+            stripped = elem.text.strip()
+            if stripped == ":" or stripped == "":
                 elem = elem.next_sibling or elem.parent.next_sibling
-                if not elem:
-                    return ""
-                stripped = elem.text.strip()
+            if not elem:
+                return ""
+            return elem.text.lstrip(":").strip()
+        def get_long_game_attr(*names: list[str]):
+            for name in names:
+                if elem := post.find(is_text(name)):
+                    break
+            if not elem:
+                return ""
+            value = ""
+            for sibling in elem.next_siblings:
+                if sibling.name == "b":
+                    break
+                stripped = sibling.text.strip()
                 if stripped == ":" or stripped == "":
-                    elem = elem.next_sibling or elem.parent.next_sibling
-                if not elem:
-                    return ""
-                return elem.text.lstrip(":").strip()
-            def get_long_game_attr(*names: list[str]):
-                for name in names:
-                    if elem := post.find(is_text(name)):
-                        break
-                if not elem:
-                    return ""
-                value = ""
-                for sibling in elem.next_siblings:
-                    if sibling.name == "b":
-                        break
-                    stripped = sibling.text.strip()
-                    if stripped == ":" or stripped == "":
-                        continue
-                    value += sibling.text
-                value = value.replace("Spoiler", "").strip()
-                while "\n\n\n" in value:
-                    value = value.replace("\n\n\n", "\n\n")
-                return value
+                    continue
+                value += sibling.text
+            value = value.replace("Spoiler", "").strip()
+            while "\n\n\n" in value:
+                value = value.replace("\n\n\n", "\n\n")
+            return value
 
+        async with request("GET", game.url) as req:
             raw = await req.read()
-            html = bs4.BeautifulSoup(raw, "lxml")
+        html = bs4.BeautifulSoup(raw, "lxml")
 
-            if html.find(is_text("the requested thread could not be found.")):
-                raise Exception(f"The F95Zone thread for {game.name} could not be found!\nIt is possible it was deleted.")
+        if html.find(is_text("the requested thread could not be found.")):
+            raise Exception(f"The F95Zone thread for {game.name} could not be found!\nIt is possible it was deleted.")
 
-            try:
-                head = html.find(is_class("p-body-header"))
-                post = html.find(is_class("message-threadStarterPost"))
-            finally:
-                if head is None or post is None:
-                    with open(f"{game.id}_broken.html", "wb") as f:
+        try:
+            head = html.find(is_class("p-body-header"))
+            post = html.find(is_class("message-threadStarterPost"))
+        finally:
+            if head is None or post is None:
+                with open(f"{game.id}_broken.html", "wb") as f:
+                    f.write(raw)
+                raise Exception(f"Failed to parse key sections in thread response, html has been saved to {game.id}_broken.html")
+
+        old_name = game.name
+        name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
+
+        old_version = game.version
+        version = get_game_attr("version")
+        if not version:
+            if match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
+                version = match.group(1).strip()
+        if not version:
+            version = "N/A"
+
+        old_developer = game.developer
+        developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-").strip()
+
+        old_type = game.type
+        # Content Types
+        if game_has_prefixes("Cheat Mod"):
+            type = Type.Cheat_Mod
+        elif game_has_prefixes("Collection", "Manga", "SiteRip", "Comics", "CG", "Pinup", "Video", "GIF"):
+            type = Type.Collection
+        elif game_has_prefixes("Mod"):
+            type = Type.Mod
+        elif game_has_prefixes("Tool"):
+            type = Type.Tool
+        # Post Types
+        elif game_has_prefixes("READ ME"):
+            type = Type.READ_ME
+        elif game_has_prefixes("Request"):
+            type = Type.Request
+        elif game_has_prefixes("Tutorial"):
+            type = Type.Tutorial
+        # Game Engines
+        elif game_has_prefixes("ADRIFT"):
+            type = Type.ADRIFT
+        elif game_has_prefixes("Flash"):
+            type = Type.Flash
+        elif game_has_prefixes("HTML"):
+            type = Type.HTML
+        elif game_has_prefixes("Java"):
+            type = Type.Java
+        elif game_has_prefixes("QSP"):
+            type = Type.QSP
+        elif game_has_prefixes("RAGS"):
+            type = Type.RAGS
+        elif game_has_prefixes("RPGM"):
+            type = Type.RPGM
+        elif game_has_prefixes("Ren'Py"):
+            type = Type.RenPy
+        elif game_has_prefixes("Tads"):
+            type = Type.Tads
+        elif game_has_prefixes("Unity"):
+            type = Type.Unity
+        elif game_has_prefixes("Unreal Engine"):
+            type = Type.Unreal_Engine
+        elif game_has_prefixes("WebGL"):
+            type = Type.WebGL
+        elif game_has_prefixes("Wolf RPG"):
+            type = Type.Wolf_RPG
+        else:
+            type = Type.Others
+
+        old_status = game.status
+        if game_has_prefixes("Completed"):
+            status = Status.Completed
+        elif game_has_prefixes("Onhold"):
+            status = Status.OnHold
+        elif game_has_prefixes("Abandoned"):
+            status = Status.Abandoned
+        else:
+            status = Status.Normal
+
+        url = utils.clean_thread_url(str(req.real_url))
+
+        last_updated = 0
+        text = get_game_attr("thread updated", "updated").replace("/", "-")
+        try:
+            last_updated = dt.datetime.fromisoformat(text).timestamp()
+        except ValueError:
+            pass
+        if not last_updated:
+            if elem := post.find(is_class("message-lastEdit")):
+                last_updated = int(elem.find("time").get("data-time"))
+            else:
+                last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
+
+        last_full_refresh = int(time.time())
+
+        # Do not reset played checkbox if first refresh on this version
+        played = game.played
+        if version != old_version and game.last_refresh_version == globals.version:
+            played = False
+        last_refresh_version = globals.version
+
+        description = get_long_game_attr("overview")
+
+        changelog = get_long_game_attr("changelog", "change-log")
+
+        old_tags = game.tags
+        tags = []
+        if (taglist := head.find(is_class("js-tagList"))) is not None:
+            for child in taglist.children:
+                if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
+                    tag = tag.replace("/tags/", "").strip("/")
+                    tags.append(Tag._members_[tag])
+
+        if globals.settings.update_keep_image and game.image_url:
+            image_url = game.image_url
+            fetch_image = game.image.missing
+        else:
+            elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
+            if elem:
+                image_url = elem.get("data-src")
+            else:
+                image_url = game.image_url
+            fetch_image = (image_url != game.image_url) or game.image.missing
+
+        with contextlib.suppress(asyncio.CancelledError):
+            game.name = name
+            game.version = version
+            game.developer = developer
+            game.type = type
+            game.status = status
+            game.url = url
+            game.last_updated.update(last_updated)
+            game.last_full_refresh = last_full_refresh
+            game.last_refresh_version = last_refresh_version
+            game.played = played
+            game.description = description
+            game.changelog = changelog
+            game.tags = tags
+            game.image_url = image_url
+            await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
+
+        if fetch_image and image_url:
+            global image_sem
+            if not image_sem:
+                image_sem = asyncio.Semaphore(2)
+            async with image_sem:
+                async with request("GET", image_url) as req:
+                    raw = await req.read()
+                ext = image_url[image_url.rfind("."):]
+                with contextlib.suppress(asyncio.CancelledError):
+                    for img in globals.images_path.glob(f"{game.id}.*"):
+                        try:
+                            img.unlink()
+                        except Exception:
+                            pass
+                    with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
                         f.write(raw)
-                    raise Exception(f"Failed to parse key sections in thread response, html has been saved to {game.id}_broken.html")
+                    await asyncio.sleep(0)
+                    game.image.loaded = False
+                    game.image.resolve()
 
-            old_name = game.name
-            name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
-
-            old_version = game.version
-            version = get_game_attr("version")
-            if not version:
-                if match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
-                    version = match.group(1).strip()
-            if not version:
-                version = "N/A"
-
-            old_developer = game.developer
-            developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-").strip()
-
-            old_type = game.type
-            # Content Types
-            if game_has_prefixes("Cheat Mod"):
-                type = Type.Cheat_Mod
-            elif game_has_prefixes("Collection", "Manga", "SiteRip", "Comics", "CG", "Pinup", "Video", "GIF"):
-                type = Type.Collection
-            elif game_has_prefixes("Mod"):
-                type = Type.Mod
-            elif game_has_prefixes("Tool"):
-                type = Type.Tool
-            # Post Types
-            elif game_has_prefixes("READ ME"):
-                type = Type.READ_ME
-            elif game_has_prefixes("Request"):
-                type = Type.Request
-            elif game_has_prefixes("Tutorial"):
-                type = Type.Tutorial
-            # Game Engines
-            elif game_has_prefixes("ADRIFT"):
-                type = Type.ADRIFT
-            elif game_has_prefixes("Flash"):
-                type = Type.Flash
-            elif game_has_prefixes("HTML"):
-                type = Type.HTML
-            elif game_has_prefixes("Java"):
-                type = Type.Java
-            elif game_has_prefixes("QSP"):
-                type = Type.QSP
-            elif game_has_prefixes("RAGS"):
-                type = Type.RAGS
-            elif game_has_prefixes("RPGM"):
-                type = Type.RPGM
-            elif game_has_prefixes("Ren'Py"):
-                type = Type.RenPy
-            elif game_has_prefixes("Tads"):
-                type = Type.Tads
-            elif game_has_prefixes("Unity"):
-                type = Type.Unity
-            elif game_has_prefixes("Unreal Engine"):
-                type = Type.Unreal_Engine
-            elif game_has_prefixes("WebGL"):
-                type = Type.WebGL
-            elif game_has_prefixes("Wolf RPG"):
-                type = Type.Wolf_RPG
-            else:
-                type = Type.Others
-
-            old_status = game.status
-            if game_has_prefixes("Completed"):
-                status = Status.Completed
-            elif game_has_prefixes("Onhold"):
-                status = Status.OnHold
-            elif game_has_prefixes("Abandoned"):
-                status = Status.Abandoned
-            else:
-                status = Status.Normal
-
-            url = utils.clean_thread_url(str(req.real_url))
-
-            last_updated = 0
-            text = get_game_attr("thread updated", "updated").replace("/", "-")
-            try:
-                last_updated = dt.datetime.fromisoformat(text).timestamp()
-            except ValueError:
-                pass
-            if not last_updated:
-                if elem := post.find(is_class("message-lastEdit")):
-                    last_updated = int(elem.find("time").get("data-time"))
-                else:
-                    last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
-
-            last_full_refresh = int(time.time())
-
-            # Do not reset played checkbox if first refresh on this version
-            if game.last_refresh_version != globals.version:
-                played = game.played
-            elif version != old_version:
-                played = False
-            last_refresh_version = globals.version
-
-            description = get_long_game_attr("overview")
-
-            changelog = get_long_game_attr("changelog", "change-log")
-
-            old_tags = game.tags
-            tags = []
-            if (taglist := head.find(is_class("js-tagList"))) is not None:
-                for child in taglist.children:
-                    if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
-                        tag = tag.replace("/tags/", "").strip("/")
-                        tags.append(Tag._members_[tag])
-
-            pass  # TODO: Image
-
-            with contextlib.suppress(asyncio.CancelledError):
-                game.name = name
-                game.version = version
-                game.developer = developer
-                game.type = type
-                game.status = status
-                game.url = url
-                game.last_updated.update(last_updated)
-                game.last_full_refresh = last_full_refresh
-                game.last_refresh_version = last_refresh_version
-                game.played = played
-                game.description = description
-                game.changelog = changelog
-                game.tags = tags
-                # game.image_url = image_url
-                await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags")
-            # TODO: show updated games
+        # TODO: show updated games
 
 
 async def check_notifs(standalone=False):
