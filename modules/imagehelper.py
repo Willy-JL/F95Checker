@@ -1,5 +1,5 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
-from PIL import Image, ImageSequence
+from PIL import Image, ImageSequence, UnidentifiedImageError
 import OpenGL.GL as gl
 import pathlib
 import imgui
@@ -68,7 +68,11 @@ class ImageHelper:
         self.resolve()
         if self.missing:
             return
-        image = Image.open(self.resolved_path)
+        try:
+            image = Image.open(self.resolved_path)
+        except UnidentifiedImageError:
+            self.set_missing()
+            return
         self.width, self.height = image.size
         if hasattr(image, "n_frames") and image.n_frames > 1:
             self.animated = True
@@ -127,7 +131,7 @@ class ImageHelper:
 
     def render(self, width: int, height: int, *args, **kwargs):
         if self.missing:
-            return
+            return False
         if imgui.is_rect_visible(width, height):
             if "rounding" in kwargs:
                 flags = kwargs.pop("flags", None)
