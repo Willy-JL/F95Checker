@@ -580,7 +580,7 @@ class MainGUI():
             changed, value = imgui.input_text_multiline(
                 f"##{game.id}_notes",
                 value=game.notes,
-                buffer_length=9999999,
+                buffer_length=9999,
                 width=width or imgui.get_content_region_available_width(),
                 height=self.scaled(100),
                 *args,
@@ -588,13 +588,21 @@ class MainGUI():
             )
         else:
             imgui.set_next_item_width(width or imgui.get_content_region_available_width())
+            if (offset := game.notes.find("\n")) != -1:
+                # Only show first line
+                value = game.notes[:offset]
+            else:
+                value = game.notes
             changed, value = imgui.input_text(
                 f"##{game.id}_notes",
-                value=game.notes,
-                buffer_length=9999999,
+                value=value,
+                buffer_length=9999,
                 *args,
                 **kwargs
             )
+            if changed and offset != -1:
+                # Merge with remaining lines
+                value = value + game.notes[offset:]
         if changed:
             game.notes = value
             async_thread.run(db.update_game(game, "notes"))
@@ -921,7 +929,7 @@ class MainGUI():
             imgui.text("Executable: ")
             imgui.same_line()
             pos = imgui.get_cursor_pos_x()
-            changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999999)
+            changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999)
             if changed:
                 async_thread.run(db.update_settings("browser_custom_executable"))
             imgui.same_line()
@@ -939,7 +947,7 @@ class MainGUI():
             imgui.same_line()
             imgui.set_cursor_pos_x(pos)
             imgui.set_next_item_width(args_width)
-            changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999999)
+            changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999)
             if changed:
                 async_thread.run(db.update_settings("browser_custom_arguments"))
         else:
@@ -1449,7 +1457,7 @@ class MainGUI():
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
-        activated, value = imgui.input_text("##filter_add_bar", self.add_box_text, 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        activated, value = imgui.input_text("##filter_add_bar", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         if value != self.add_box_text:
             self.add_box_text = value
             self.add_box_valid = len(utils.extract_thread_ids(self.add_box_text)) > 0

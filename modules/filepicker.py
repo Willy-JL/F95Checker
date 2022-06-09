@@ -113,7 +113,7 @@ class FilePicker:
             # Location bar
             imgui.same_line()
             imgui.set_next_item_width(size.x * 0.7)
-            confirmed, dir = imgui.input_text("##location_bar", str(self.dir), 9999999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+            confirmed, dir = imgui.input_text("##location_bar", str(self.dir), 9999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if confirmed:
                 self.goto(dir)
             # Refresh button
