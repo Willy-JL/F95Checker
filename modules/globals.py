@@ -58,8 +58,7 @@ data_path.mkdir(parents=True, exist_ok=True)
 images_path = data_path / "images"
 images_path.mkdir(parents=True, exist_ok=True)
 
-browsers = []
-browsers.append(Browser._None.name)
+Browser._avail_.append(Browser._None.name)
 if sys.platform.startswith("win"):
     import winreg
     local_machine = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
@@ -89,14 +88,14 @@ if sys.platform.startswith("win"):
                 try:
                     path = winreg.QueryValue(local_machine, reg_key)
                     browser.path = path
-                    browsers.append(browser.name)
+                    Browser._avail_.append(browser.name)
                     break
                 except Exception:
                     pass
                 try:
                     path = winreg.QueryValue(current_user, reg_key)
                     browser.path = path
-                    browsers.append(browser.name)
+                    Browser._avail_.append(browser.name)
                     break
                 except Exception:
                     pass
@@ -141,9 +140,9 @@ else:
             for candidate in candidates:
                 if path := shutil.which(candidate):
                     browser.path = path
-                    browsers.append(browser.name)
+                    Browser._avail_.append(browser.name)
                     break
-browsers.append(Browser.Custom.name)
+Browser._avail_.append(Browser.Custom.name)
 
 if frozen:
     start_cmd = sys.executable
@@ -185,7 +184,6 @@ elif os is Os.MacOS:
         start_with_system = False
 
 # Variables
-browser_idx = 0
 token: str = ""
 popup_stack = []
 refresh_total = 0

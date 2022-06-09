@@ -57,6 +57,9 @@ Browser.Edge    .private = "-inprivate"
 Browser.Opera   .private = "-private"
 Browser.Opera_GX.private = "-private"
 
+Browser._avail_ = []
+Browser._selected_ = 0
+
 
 class DisplayMode(IntEnum):
     list = 1

@@ -1633,10 +1633,10 @@ class MainGUI():
                 "session just for itself."
             )
             imgui.table_next_column()
-            changed, value = imgui.combo("##browser", globals.browser_idx, globals.browsers)
+            changed, value = imgui.combo("##browser", Browser._selected_, Browser._avail_)
             if changed:
-                set.browser = Browser._members_[globals.browsers[value]]
-                globals.browser_idx = value
+                set.browser = Browser._members_[Browser._avail_[value]]
+                Browser._selected_ = value
                 async_thread.run(db.update_settings("browser"))
 
             if set.browser is Browser._None:

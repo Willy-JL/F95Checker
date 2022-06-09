@@ -172,9 +172,9 @@ async def load():
     settings = dict(await cursor.fetchone())
     settings = {key: sql_to_py(value, types[key]) for key, value in settings.items() if key in types}
     globals.settings = Settings(**settings)
-    if globals.settings.browser.name not in globals.browsers:
+    if globals.settings.browser.name not in Browser._avail_:
         globals.settings.browser = Browser._None
-    globals.browser_idx = globals.browsers.index(globals.settings.browser.name)
+    Browser._selected_ = Browser._avail_.index(globals.settings.browser.name)
 
     globals.games = {}
     await load_games()
