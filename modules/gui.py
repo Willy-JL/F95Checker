@@ -984,6 +984,8 @@ class MainGUI():
                         key = lambda id: globals.games[id].installed == globals.games[id].version
                     case 13:  # Rating
                         key = lambda id: globals.games[id].rating
+                    case 14:  # Notes
+                        key = lambda id: globals.games[id].notes.lower()
                     case _:  # Name and all others
                         key = lambda id: globals.games[id].name.lower()
                 ids = list(globals.games)
