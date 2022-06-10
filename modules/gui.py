@@ -441,12 +441,14 @@ class MainGUI():
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
         x_padding = 4
+        backup_y_padding = imgui.style.frame_padding.y
         imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (x_padding, 0))
         if self.type_label_width is None:
             self.type_label_width = 0
             for type in list(Type):
                 self.type_label_width = max(self.type_label_width, imgui.calc_text_size(type.name).x)
             self.type_label_width += 2 * x_padding
+        imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
         imgui.button(f"{game.type.name}##{game.id}_type", *args, width=self.type_label_width, **kwargs)
         imgui.pop_style_color(3)
         imgui.pop_style_var(2)
