@@ -561,7 +561,7 @@ class MainGUI():
 
     def draw_game_context_menu(self, game: Game):
         self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)
-        self.draw_game_recheck_button(game, label="󱄋 Force Recheck", selectable=True)
+        self.draw_game_recheck_button(game, label="󱄋 Full Recheck", selectable=True)
         imgui.separator()
         self.draw_game_play_button(game, label="󰐊 Play", selectable=True)
         self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
@@ -1546,9 +1546,9 @@ class MainGUI():
                 utils.start_refresh_task(api.refresh())
             if imgui.begin_popup_context_item(f"##refresh_context"):
                 # Right click = more options context menu
-                if imgui.selectable("󰅸 Only check notifs", False)[0]:
+                if imgui.selectable("󰅸 Only notifs", False)[0]:
                     utils.start_refresh_task(api.check_notifs(standalone=True))
-                if imgui.selectable("󱄋 Force Full Refresh", False)[0]:
+                if imgui.selectable("󱄋 Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
                 imgui.separator()
                 if imgui.selectable("󰋽 More info", False)[0]:
