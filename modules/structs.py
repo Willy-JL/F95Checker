@@ -5,6 +5,22 @@ import enum
 from modules import imagehelper, utils
 
 
+class CounterContext:
+    count = 0
+
+    def __enter__(self):
+        self.count += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.count -= 1
+
+    async def __aenter__(self):
+        self.__enter__()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.__exit__(exc_type, exc_val, exc_tb)
+
+
 class EnumNameHack(enum.Enum):
     # Remove leading and trailing _
     # "_"  => " "

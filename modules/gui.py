@@ -341,7 +341,12 @@ class MainGUI():
                 self.draw_bottombar()
                 imgui.end_child()
 
-                text = self.watermark_text  # TODO: add status message logic
+                if (count := api.image_counter.count) > 0:
+                    text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} images..."
+                elif  (count := api.full_counter.count) > 0:
+                    text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full rechecks..."
+                else:
+                    text = self.watermark_text
                 _3 = self.scaled(3)
                 _6 = self.scaled(6)
                 text_size = imgui.calc_text_size(text)
