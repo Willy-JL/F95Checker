@@ -6,6 +6,11 @@ def main():
     # Must import globals first to fix load paths when frozen
     from modules import globals
 
+    from modules.structs import Os
+    if globals.os is not Os.Windows:
+        import uvloop
+        uvloop.install()
+
     from modules import singleton
     singleton.lock("F95Checker")
 
