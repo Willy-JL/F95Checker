@@ -12,7 +12,7 @@ from modules import globals, asklogin, async_thread, callbacks, db, msgbox, util
 
 session: aiohttp.ClientSession = None
 full_check_interval = int(dt.timedelta(days=7).total_seconds())
-image_sem: asyncio.Semaphore = None
+image_sem = asyncio.Semaphore(2)
 
 
 def setup():
@@ -293,9 +293,6 @@ async def check(game: Game, full=False, standalone=False):
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
 
         if fetch_image and image_url:
-            global image_sem
-            if not image_sem:
-                image_sem = asyncio.Semaphore(2)
             async with image_sem:
                 async with request("GET", image_url) as req:
                     raw = await req.read()
