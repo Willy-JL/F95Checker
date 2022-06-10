@@ -84,7 +84,7 @@ async def check(game: Game, full=False, standalone=False):
             return
         globals.refresh_progress = 1
 
-    full = full or game.last_full_refresh < time.time() - full_check_interval
+    full = full or game.last_full_refresh < time.time() - full_check_interval or game.image.missing
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:  # FIXME
