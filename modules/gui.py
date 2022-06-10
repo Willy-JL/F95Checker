@@ -1573,6 +1573,11 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text(f"Total games count: {len(globals.games)}")
             imgui.spacing()
+            if len(self.filters) > 0:
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.text(f"Filtered games count: {len(self.sorted_games_ids)}")
+                imgui.spacing()
 
             imgui.table_next_row()
             imgui.table_next_column()
@@ -1593,11 +1598,9 @@ class MainGUI():
                 self.filters.append(flt)
                 self.require_sort = True
 
-            line_height = imgui.get_text_line_height()
             for flt in self.filters:
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.dummy(0, line_height)
+                imgui.spacing()
+                imgui.spacing()
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text(f"Filter by {flt.mode.name}:")
@@ -1667,15 +1670,6 @@ class MainGUI():
                 if changed:
                     flt.invert = value
                     self.require_sort = True
-
-            if len(self.filters) > 0:
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.dummy(0, line_height)
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text(f"Filtered games count: {len(self.sorted_games_ids)}")
-                imgui.spacing()
 
             imgui.end_table()
             imgui.spacing()
