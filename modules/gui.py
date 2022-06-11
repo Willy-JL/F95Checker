@@ -342,9 +342,9 @@ class MainGUI():
                 imgui.end_child()
 
                 if (count := api.image_counter.count) > 0:
-                    text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} images..."
+                    text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} image{'s' if count > 1 else ''}..."
                 elif  (count := api.full_counter.count) > 0:
-                    text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full rechecks..."
+                    text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full recheck{'s' if count > 1 else ''}..."
                 else:
                     text = self.watermark_text
                 _3 = self.scaled(3)
