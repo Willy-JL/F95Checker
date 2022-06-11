@@ -147,9 +147,13 @@ class MainGUI():
                 exc = future.exception()
             except concurrent.futures.CancelledError:
                 return
-            if exc and type(exc) is not msgbox.Exc:
-                tb = utils.get_traceback(type(exc), exc, exc.__traceback__)
-                utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
+            if not exc or type(exc) is msgbox.Exc:
+                return
+            if type(exc) is asyncio.TimeoutError:
+                utils.push_popup(msgbox.msgbox, "Connection timeout", f"A connection request to F95Zone has timed out.\n\nPossible causes include:\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is blocked in your country, network, antivirus or firewall", MsgBox.warn)
+                return
+            tb = utils.get_traceback(type(exc), exc, exc.__traceback__)
+            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
         async_thread.done_callback = asyncexcepthook
 
         # Load style configuration
