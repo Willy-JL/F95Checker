@@ -1665,7 +1665,7 @@ class MainGUI():
                         flt.match = Tag(value + 1)
                         self.require_sort = True
 
-                elif flt is FilterMode.Type:
+                elif flt.mode is FilterMode.Type:
                     imgui.table_next_row()
                     imgui.table_next_column()
                     imgui.text("Type value:")
