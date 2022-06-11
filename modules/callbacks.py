@@ -47,7 +47,7 @@ def update_start_with_system(toggle: bool):
                 globals.autostart.unlink()
         globals.start_with_system = toggle
     except Exception:
-            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
 
 
 def _launch(path: str | pathlib.Path):
