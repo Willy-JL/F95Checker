@@ -655,7 +655,8 @@ class MainGUI():
         if imgui.begin_popup_modal(popup_id, True, flags=self.popup_flags)[0]:
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
-            for id, old_game in updated_games.items():
+            for i, id in enumerate(updated_games):
+                old_game = updated_games[id]
                 game = globals.games[id]
 
                 start_pos = imgui.get_cursor_pos()
@@ -731,7 +732,8 @@ class MainGUI():
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
                 imgui.set_cursor_pos(end_pos)
 
-                imgui.text("\n")
+                if i != count - 1:
+                    imgui.text("\n")
 
             label = "󰄬 Ok"
             btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
