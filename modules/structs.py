@@ -2,8 +2,6 @@ import dataclasses
 import datetime
 import enum
 
-from modules import imagehelper, utils
-
 
 class CounterContext:
     count = 0
@@ -19,6 +17,37 @@ class CounterContext:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.__exit__(exc_type, exc_val, exc_tb)
+
+
+class Timestamp:
+    def __init__(self, unix_time: int | float, format="%d/%m/%Y"):
+        self.format = format
+        self.display = ""
+        self.value = 0
+        self.update(unix_time)
+
+    def update(self, unix_time: int | float):
+        self.value = int(unix_time)
+        if self.value == 0:
+            self.display = ""
+        else:
+            self.display = datetime.date.fromtimestamp(unix_time).strftime(self.format)
+
+
+class DefaultStyle:
+    accent        = "#d4202e"
+    alt_bg        = "#101010"
+    bg            = "#0a0a0a"
+    border        = "#454545"
+    corner_radius = 6
+    text          = "#ffffff"
+    text_dim      = "#808080"
+
+
+@dataclasses.dataclass
+class ThreadMatch:
+    title: str
+    id: int
 
 
 class EnumNameHack(enum.Enum):
@@ -82,57 +111,12 @@ class DisplayMode(IntEnum):
     grid = 2
 
 
-class Type(EnumNameHack, IntEnum):
-    Others        = 1
-    ADRIFT        = 2
-    Cheat_Mod     = 3
-    Collection    = 4
-    Flash         = 5
-    HTML          = 6
-    Java          = 7
-    Mod           = 8
-    QSP           = 9
-    RAGS          = 10
-    READ_ME       = 11
-    RPGM          = 12
-    RenPy         = 13
-    Request       = 14
-    Tads          = 15
-    Tool          = 16
-    Tutorial      = 17
-    Unity         = 18
-    Unreal_Engine = 19
-    WebGL         = 20
-    Wolf_RPG      = 21
-
-Type.Others       .color = utils.hex_to_rgba_0_1("#8BC34A")
-Type.ADRIFT       .color = utils.hex_to_rgba_0_1("#2196F3")
-Type.Cheat_Mod    .color = utils.hex_to_rgba_0_1("#D32F2F")
-Type.Collection   .color = utils.hex_to_rgba_0_1("#616161")
-Type.Flash        .color = utils.hex_to_rgba_0_1("#616161")
-Type.HTML         .color = utils.hex_to_rgba_0_1("#689F38")
-Type.Java         .color = utils.hex_to_rgba_0_1("#52A6B0")
-Type.Mod          .color = utils.hex_to_rgba_0_1("#BA4545")
-Type.QSP          .color = utils.hex_to_rgba_0_1("#D32F2F")
-Type.RAGS         .color = utils.hex_to_rgba_0_1("#FF9800")
-Type.READ_ME      .color = utils.hex_to_rgba_0_1("#DC143C")
-Type.RPGM         .color = utils.hex_to_rgba_0_1("#2196F3")
-Type.RenPy        .color = utils.hex_to_rgba_0_1("#B069E8")
-Type.Request      .color = utils.hex_to_rgba_0_1("#D32F2F")
-Type.Tads         .color = utils.hex_to_rgba_0_1("#2196F3")
-Type.Tool         .color = utils.hex_to_rgba_0_1("#EC5555")
-Type.Tutorial     .color = utils.hex_to_rgba_0_1("#EC5555")
-Type.Unity        .color = utils.hex_to_rgba_0_1("#FE5901")
-Type.Unreal_Engine.color = utils.hex_to_rgba_0_1("#0D47A1")
-Type.WebGL        .color = utils.hex_to_rgba_0_1("#FE5901")
-Type.Wolf_RPG     .color = utils.hex_to_rgba_0_1("#4CAF50")
-
-
-class Status(IntEnum):
-    Normal    = 1
-    Completed = 2
-    OnHold    = 3
-    Abandoned = 4
+class Status(EnumNameHack, IntEnum):
+    Normal          = 1
+    Completed       = 2
+    OnHold          = 3
+    Abandoned       = 4
+    Not_Yet_Checked = 5
 
 
 class Tag(EnumNameHack, IntEnum):
@@ -277,6 +261,12 @@ class Tag(EnumNameHack, IntEnum):
     voyeurism                = 139
 
 
+class MsgBox(IntEnum, EnumAutoValue):
+    info  = ()
+    warn  = ()
+    error = ()
+
+
 class FilterMode(EnumNameHack, IntEnum, EnumAutoValue):
     Choose    = ()
     Installed = ()
@@ -296,27 +286,6 @@ class Filter:
 
     def __post_init__(self):
         self.id = id(self)
-
-
-class MsgBox(IntEnum, EnumAutoValue):
-    info  = ()
-    warn  = ()
-    error = ()
-
-
-class Timestamp:
-    def __init__(self, unix_time: int | float, format="%d/%m/%Y"):
-        self.format = format
-        self.display = ""
-        self.value = 0
-        self.update(unix_time)
-
-    def update(self, unix_time: int | float):
-        self.value = int(unix_time)
-        if self.value == 0:
-            self.display = ""
-        else:
-            self.display = datetime.date.fromtimestamp(unix_time).strftime(self.format)
 
 
 @dataclasses.dataclass
@@ -360,14 +329,52 @@ class Settings:
     zoom_size                   : int
 
 
-class DefaultStyle:
-    accent        = "#d4202e"
-    alt_bg        = "#101010"
-    bg            = "#0a0a0a"
-    border        = "#454545"
-    corner_radius = 6
-    text          = "#ffffff"
-    text_dim      = "#808080"
+from modules import imagehelper, utils
+
+class Type(EnumNameHack, IntEnum):
+    Others        = 1
+    ADRIFT        = 2
+    Cheat_Mod     = 3
+    Collection    = 4
+    Flash         = 5
+    HTML          = 6
+    Java          = 7
+    Mod           = 8
+    QSP           = 9
+    RAGS          = 10
+    READ_ME       = 11
+    RPGM          = 12
+    RenPy         = 13
+    Request       = 14
+    Tads          = 15
+    Tool          = 16
+    Tutorial      = 17
+    Unity         = 18
+    Unreal_Engine = 19
+    WebGL         = 20
+    Wolf_RPG      = 21
+
+Type.Others       .color = utils.hex_to_rgba_0_1("#8BC34A")
+Type.ADRIFT       .color = utils.hex_to_rgba_0_1("#2196F3")
+Type.Cheat_Mod    .color = utils.hex_to_rgba_0_1("#D32F2F")
+Type.Collection   .color = utils.hex_to_rgba_0_1("#616161")
+Type.Flash        .color = utils.hex_to_rgba_0_1("#616161")
+Type.HTML         .color = utils.hex_to_rgba_0_1("#689F38")
+Type.Java         .color = utils.hex_to_rgba_0_1("#52A6B0")
+Type.Mod          .color = utils.hex_to_rgba_0_1("#BA4545")
+Type.QSP          .color = utils.hex_to_rgba_0_1("#D32F2F")
+Type.RAGS         .color = utils.hex_to_rgba_0_1("#FF9800")
+Type.READ_ME      .color = utils.hex_to_rgba_0_1("#DC143C")
+Type.RPGM         .color = utils.hex_to_rgba_0_1("#2196F3")
+Type.RenPy        .color = utils.hex_to_rgba_0_1("#B069E8")
+Type.Request      .color = utils.hex_to_rgba_0_1("#D32F2F")
+Type.Tads         .color = utils.hex_to_rgba_0_1("#2196F3")
+Type.Tool         .color = utils.hex_to_rgba_0_1("#EC5555")
+Type.Tutorial     .color = utils.hex_to_rgba_0_1("#EC5555")
+Type.Unity        .color = utils.hex_to_rgba_0_1("#FE5901")
+Type.Unreal_Engine.color = utils.hex_to_rgba_0_1("#0D47A1")
+Type.WebGL        .color = utils.hex_to_rgba_0_1("#FE5901")
+Type.Wolf_RPG     .color = utils.hex_to_rgba_0_1("#4CAF50")
 
 
 @dataclasses.dataclass

@@ -465,7 +465,9 @@ class MainGUI():
             return game.version
 
     def draw_game_status_widget(self, game: Game, *args, **kwargs):
-        if game.status is Status.Completed:
+        if game.status is Status.Not_Yet_Checked:
+            imgui.text_colored("󰀨", 0.50, 0.50, 0.50, *args, **kwargs)
+        elif game.status is Status.Completed:
             imgui.text_colored("󰄳", 0.00, 0.85, 0.00, *args, **kwargs)
         elif game.status is Status.OnHold:
             imgui.text_colored("󰏥", 0.00, 0.50, 0.95, *args, **kwargs)
@@ -1006,6 +1008,7 @@ class MainGUI():
                 ids = list(globals.games)
                 ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
                 self.sorted_games_ids = ids
+            self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Not_Yet_Checked)
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Type.value:
@@ -1486,13 +1489,13 @@ class MainGUI():
             imgui.end_popup()
         if value != self.add_box_text:
             self.add_box_text = value
-            self.add_box_valid = len(utils.extract_thread_ids(self.add_box_text)) > 0
+            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
             self.require_sort = True
         if self.add_box_valid:
             imgui.same_line()
             if imgui.button("Add!") or activated:
-                for id in utils.extract_thread_ids(self.add_box_text):
-                    callbacks.add_games(id)
+                for thread in utils.extract_thread_matches(self.add_box_text):
+                    callbacks.add_games(thread)
                 self.add_box_text = ""
                 self.add_box_valid = False
         elif activated:

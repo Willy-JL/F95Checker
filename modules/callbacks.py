@@ -7,7 +7,7 @@ import time
 import stat
 import os
 
-from modules.structs import Browser, Game, MsgBox, Os
+from modules.structs import Browser, Game, MsgBox, Os, ThreadMatch
 from modules import globals, async_thread, db, filepicker, msgbox, utils
 
 
@@ -213,14 +213,14 @@ def remove_game(game: Game):
     else:
         remove_callback()
 
-def add_games(*ids: list[int]):
+def add_games(*threads: list[ThreadMatch]):
     dupes = []
-    for id in ids:
-        if id in globals.games:
-            dupes.append(globals.games[id].name)
+    for thread in threads:
+        if thread.id in globals.games:
+            dupes.append(globals.games[thread.id].name)
             continue
-        async_thread.wait(db.add_game(id))
-        async_thread.wait(db.load_games(id))
+        async_thread.wait(db.add_game(thread))
+        async_thread.wait(db.load_games(thread.id))
     if dupes:
         utils.push_popup(msgbox.msgbox, "Duplicate games", "These games are already present in your library and therefore have not been re-added:\n - " + "\n - ".join(dupes), MsgBox.warn)
     globals.gui.require_sort = True

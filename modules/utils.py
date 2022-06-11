@@ -58,18 +58,6 @@ def start_refresh_task(coro: typing.Coroutine):
     globals.refresh_task.add_done_callback(done_callback)
 
 
-def extract_thread_ids(text: str):
-    ids = []
-    for match in re.finditer("threads/(?:[^\./]*\.)?(\d+)", text):
-        ids.append(int(match.group(1)))
-    return ids
-
-
-def clean_thread_url(url: str):
-    thread = re.search("threads/([^/]*)", url).group(1)
-    return f"{globals.threads_page}{thread}/"
-
-
 # https://gist.github.com/Willy-JL/f733c960c6b0d2284bcbee0316f88878
 def get_traceback(*exc_info: list):
     exc_info = exc_info or sys.exc_info()
@@ -137,3 +125,17 @@ def close_popup_clicking_outside():
                 imgui.close_current_popup()
                 return True
     return False
+
+
+def clean_thread_url(url: str):
+    thread = re.search("threads/([^/]*)", url).group(1)
+    return f"{globals.threads_page}{thread}/"
+
+
+from modules.structs import ThreadMatch
+
+def extract_thread_matches(text: str) -> list[ThreadMatch]:
+    matches = []
+    for match in re.finditer(r"threads/(?:([^\./]*)\.)?(\d+)", text):
+        matches.append(ThreadMatch(title=match.group(1) or "", id=int(match.group(2))))
+    return matches

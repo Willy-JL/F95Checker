@@ -7,7 +7,7 @@ import enum
 import json
 import time
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, Settings, Status, Timestamp, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, Settings, Status, ThreadMatch, Timestamp, Type
 from modules import globals, imagehelper, msgbox, utils
 
 connection: aiosqlite.Connection = None
@@ -238,13 +238,13 @@ async def remove_game(id: int):
     """)
 
 
-async def add_game(id: int):
+async def add_game(thread: ThreadMatch):
     await connection.execute(f"""
         INSERT INTO games
-        (id, name, version, url, added_on, description)
+        (id, name, version, status, url, added_on)
         VALUES
-        (?,  ?,    ?,       ?,   ?,        ?          )
-    """, (id, f"Unknown ({id})", " ", f"{globals.threads_page}{id}", time.time(), "Please refresh in order to fetch the data for this game!"))
+        (?,  ?,    ?,       ?,      ?,   ?       )
+    """, (thread.id, thread.title or f"Unknown ({thread.id})", "Not Yet Checked", Status.Not_Yet_Checked.value, f"{globals.threads_page}{thread.id}", time.time()))
 
 
 async def update_cookies(new_cookies: dict[str, str]):
@@ -275,10 +275,10 @@ def legacy_json_to_dict(path: str | pathlib.Path):  # Pre v9.0
                 continue
             if link.startswith("/"):
                 link = globals.domain + link
-            id = utils.extract_thread_ids(link)
-            if not id:
+            match = utils.extract_thread_matches(link)
+            if not match:
                 continue
-            id = str(id[0])
+            id = str(match[0].id)
             config["games"].setdefault(id, {})
             config["games"][id].setdefault("name", game)
             config["games"][id].setdefault("link", link)
@@ -308,10 +308,10 @@ def legacy_ini_to_dict(path: str | pathlib.Path):  # Pre v7.0
             continue
         if link.startswith("/"):
             link = globals.domain + link
-        id = utils.extract_thread_ids(link)
-        if not id:
+        match = utils.extract_thread_matches(link)
+        if not match:
             continue
-        id = str(id[0])
+        id = str(match[0].id)
         config["games"].setdefault(id, {})
         config["games"][id].setdefault("name",         game                                                       )
         config["games"][id].setdefault("version",      old_config.get       (game, 'version',      fallback=''   ))
@@ -408,10 +408,10 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
 
         if games := config.get("games"):
             for game in games.values():
-                id = utils.extract_thread_ids(game["link"])
-                if not id:
+                match = utils.extract_thread_matches(game["link"])
+                if not match:
                     continue
-                id = id[0]
+                id = match[0].id
                 keys = ["id"]
                 values = [id]
 
