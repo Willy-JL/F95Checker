@@ -734,6 +734,8 @@ class MainGUI():
 
                 if i != count - 1:
                     imgui.text("\n")
+                else:
+                    imgui.spacing()
 
             label = "󰄬 Ok"
             btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
