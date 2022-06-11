@@ -20,7 +20,7 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons={"󰄬 Ok": No
     opened = 1
     utils.constrain_next_window()
     utils.center_next_window()
-    if imgui.begin_popup_modal(title, True, flags=popup_flags)[0]:
+    if imgui.begin_popup_modal(title, flags=popup_flags)[0]:
         spacing = 2 * imgui.style.item_spacing.x
         if type is MsgBox.info:
             icon = "󰋼"
