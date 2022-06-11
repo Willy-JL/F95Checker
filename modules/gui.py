@@ -1028,7 +1028,11 @@ class MainGUI():
                 if key is not None:
                     self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
             if not self.add_box_valid and self.add_box_text:
-                self.sorted_games_ids = list(filter(lambda id: self.add_box_text in globals.games[id].name.lower(), self.sorted_games_ids))
+                search = self.add_box_text.lower()
+                def key(id):
+                    game = globals.games[id]
+                    return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
+                self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
             sort_specs.specs_dirty = False
             self.require_sort = False
 
