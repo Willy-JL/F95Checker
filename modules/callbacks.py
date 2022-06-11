@@ -221,6 +221,13 @@ def add_games(*threads: list[ThreadMatch]):
             continue
         async_thread.wait(db.add_game(thread))
         async_thread.wait(db.load_games(thread.id))
+        game = globals.games[thread.id]
+        if globals.settings.select_executable_after_add:
+            def select_callback(selected):
+                if selected:
+                    game.executable = selected
+                    async_thread.run(db.update_game(game, "executable"))
+            utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
     if dupes:
         utils.push_popup(msgbox.msgbox, "Duplicate games", "These games are already present in your library and therefore have not been re-added:\n - " + "\n - ".join(dupes), MsgBox.warn)
     globals.gui.require_sort = True
