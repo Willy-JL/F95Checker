@@ -1915,7 +1915,8 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Zoom amount:")
             imgui.table_next_column()
-            changed, set.zoom_amount = imgui.drag_int("##zoom_amount", set.zoom_amount, change_speed=0.1, min_value=1, max_value=20, format="%dx")
+            changed, value = imgui.drag_int("##zoom_amount", set.zoom_amount, change_speed=0.1, min_value=1, max_value=20, format="%dx")
+            set.zoom_amount = min(max(value, 1), 20)
             if changed:
                 async_thread.run(db.update_settings("zoom_amount"))
 
@@ -1923,7 +1924,8 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Zoom size:")
             imgui.table_next_column()
-            changed, set.zoom_size = imgui.drag_int("##zoom_size", set.zoom_size, change_speed=5, min_value=16, max_value=1024, format="%dpx")
+            changed, value = imgui.drag_int("##zoom_size", set.zoom_size, change_speed=5, min_value=16, max_value=1024, format="%d px")
+            set.zoom_size = min(max(value, 16), 1024)
             if changed:
                 async_thread.run(db.update_settings("zoom_size"))
 
@@ -1948,7 +1950,8 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Scaling:")
             imgui.table_next_column()
-            changed, set.interface_scaling = imgui.drag_float("##interface_scaling", set.interface_scaling, change_speed=0.01, min_value=0.5, max_value=2.5, format="%.2fx")
+            changed, value = imgui.drag_float("##interface_scaling", set.interface_scaling, change_speed=0.01, min_value=0.5, max_value=2.5, format="%.2fx")
+            set.interface_scaling = min(max(value, 0.5), 2.5)
 
             imgui.table_next_row()
             imgui.table_next_column()
@@ -1973,7 +1976,8 @@ class MainGUI():
                 "space to show all these columns, the number will be internally reduced to render each grid cell properly."
             )
             imgui.table_next_column()
-            changed, set.grid_columns = imgui.drag_int("##grid_columns", set.grid_columns, change_speed=0.05, min_value=1, max_value=10)
+            changed, value = imgui.drag_int("##grid_columns", set.grid_columns, change_speed=0.05, min_value=1, max_value=10)
+            set.grid_columns = min(max(value, 1), 10)
             if changed:
                 async_thread.run(db.update_settings("grid_columns"))
 
@@ -1986,7 +1990,8 @@ class MainGUI():
                 "is compared to its height. Default is 3:1."
             )
             imgui.table_next_column()
-            changed, set.grid_image_ratio = imgui.drag_float("##grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5, format="%.1f:1")
+            changed, value = imgui.drag_float("##grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5, format="%.1f:1")
+            set.grid_image_ratio = min(max(value, 0.5), 5)
             if changed:
                 async_thread.run(db.update_settings("grid_image_ratio"))
 
@@ -2011,7 +2016,8 @@ class MainGUI():
                 "How fast or slow the smooth scrolling animation is. Default is 8."
             )
             imgui.table_next_column()
-            changed, set.scroll_smooth_speed = imgui.drag_float("##scroll_smooth_speed", set.scroll_smooth_speed, change_speed=0.25, min_value=0.1, max_value=50)
+            changed, value = imgui.drag_float("##scroll_smooth_speed", set.scroll_smooth_speed, change_speed=0.25, min_value=0.1, max_value=50)
+            set.scroll_smooth_speed = min(max(value, 0.1), 50)
             if changed:
                 async_thread.run(db.update_settings("scroll_smooth_speed"))
 
@@ -2026,7 +2032,8 @@ class MainGUI():
                 "Multiplier for how much a single scroll event should actually scroll. Default is 1."
             )
             imgui.table_next_column()
-            changed, set.scroll_amount = imgui.drag_float("##scroll_amount", set.scroll_amount, change_speed=0.05, min_value=0.1, max_value=10, format="%.2fx")
+            changed, value = imgui.drag_float("##scroll_amount", set.scroll_amount, change_speed=0.05, min_value=0.1, max_value=10, format="%.2fx")
+            set.scroll_amount = min(max(value, 0.1), 10)
             if changed:
                 async_thread.run(db.update_settings("scroll_amount"))
 
@@ -2040,7 +2047,8 @@ class MainGUI():
                 "For example a ratio of 1:2 means the app refreshes every 2nd monitor frame, resulting in half the framerate."
             )
             imgui.table_next_column()
-            changed, set.vsync_ratio = imgui.drag_int("##vsync_ratio", set.vsync_ratio, change_speed=0.05, min_value=0, max_value=10, format="1:%d")
+            changed, value = imgui.drag_int("##vsync_ratio", set.vsync_ratio, change_speed=0.05, min_value=0, max_value=10, format="1:%d")
+            set.vsync_ratio = min(max(value, 0), 10)
             if changed:
                 glfw.swap_interval(set.vsync_ratio)
                 async_thread.run(db.update_settings("vsync_ratio"))
@@ -2127,7 +2135,8 @@ class MainGUI():
                 "will freeze the program. In most cases 20 workers is a good compromise."
             )
             imgui.table_next_column()
-            changed, set.refresh_workers = imgui.drag_int("##refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
+            changed, value = imgui.drag_int("##refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
+            set.refresh_workers = min(max(value, 1), 100)
             if changed:
                 async_thread.run(db.update_settings("refresh_workers"))
 
@@ -2141,7 +2150,8 @@ class MainGUI():
                 "A timeout 10-30 seconds is most typical."
             )
             imgui.table_next_column()
-            changed, set.request_timeout = imgui.drag_int("##request_timeout", set.request_timeout, change_speed=0.6, min_value=1, max_value=120, format="%ds")
+            changed, value = imgui.drag_int("##request_timeout", set.request_timeout, change_speed=0.6, min_value=1, max_value=120, format="%d sec")
+            set.request_timeout = min(max(value, 1), 120)
             if changed:
                 async_thread.run(db.update_settings("request_timeout"))
 
@@ -2154,7 +2164,8 @@ class MainGUI():
                 "often (in minutes) this happens."
             )
             imgui.table_next_column()
-            changed, set.tray_refresh_interval = imgui.drag_int("##tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=15, max_value=720, format="%dm")
+            changed, value = imgui.drag_int("##tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=15, max_value=720, format="%d min")
+            set.tray_refresh_interval = min(max(value, 15), 720)
             if changed:
                 async_thread.run(db.update_settings("tray_refresh_interval"))
 
@@ -2203,7 +2214,8 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Corner radius:")
             imgui.table_next_column()
-            changed, set.style_corner_radius = imgui.drag_int("##style_corner_radius", set.style_corner_radius, change_speed=0.04, min_value=0, max_value=6, format="%dpx")
+            changed, value = imgui.drag_int("##style_corner_radius", set.style_corner_radius, change_speed=0.04, min_value=0, max_value=6, format="%d px")
+            set.style_corner_radius = min(max(value, 0), 6)
             if changed:
                 imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding = \
                 imgui.style.child_rounding = imgui.style.grab_rounding = imgui.style.popup_rounding = \
