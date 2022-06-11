@@ -5,6 +5,7 @@ import aiohttp
 import asyncio
 import time
 import bs4
+import os
 import re
 
 from modules.structs import CounterContext, Game, MsgBox, Status, Tag, Type
@@ -47,7 +48,7 @@ async def is_logged_in():
         if not 200 <= req.status < 300:  # FIXME
             data += await req.content.read()
             if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in data:
-                raise Exception("F95Zone is currently running some backups,\nplease retry in a few minutes!")
+                raise msgbox.Exc("Backups", "F95Zone is currently running some backups,\nplease retry in a few minutes!", MsgBox.warn)
             # if b"<title>DDOS-GUARD</title>" in data:
             #     raise Exception("Captcha needed!")
             print(data)
@@ -153,16 +154,20 @@ async def check(game: Game, full=False, standalone=False):
         html = bs4.BeautifulSoup(raw, "lxml")
 
         if html.find(is_text("the requested thread could not be found.")):
-            raise Exception(f"The F95Zone thread for {game.name} could not be found!\nIt is possible it was deleted.")
+            buttons = {
+                "󰄬 Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                "󰜺 No": None
+            }
+            raise msgbox.Exc("Not found!", f"The F95Zone thread for {game.name} could not be found!\nIt is possible it was deleted.\n\nDo you want to remove {game.name} from your list?", buttons=buttons)
 
         try:
             head = html.find(is_class("p-body-header"))
             post = html.find(is_class("message-threadStarterPost"))
         finally:
             if head is None or post is None:
-                with open(f"{game.id}_broken.html", "wb") as f:
+                with open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
                     f.write(raw)
-                raise Exception(f"Failed to parse key sections in thread response, html has been saved to {game.id}_broken.html")
+                raise msgbox.Exc("Parse error!", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub!")
 
         old_name = game.name
         name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()

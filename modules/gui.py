@@ -138,15 +138,16 @@ class MainGUI():
 
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
-            tb = utils.get_traceback(args.exc_type, args.exc_value, args.exc_traceback)
-            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n\n{tb}", MsgBox.error)
+            if args.exc_type is not msgbox.Exc:
+                tb = utils.get_traceback(args.exc_type, args.exc_value, args.exc_traceback)
+                utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n\n{tb}", MsgBox.error)
         threading.excepthook = syncexcepthook
         def asyncexcepthook(future: asyncio.Future):
             try:
                 exc = future.exception()
             except concurrent.futures.CancelledError:
                 return
-            if exc:
+            if exc and type(exc) is not msgbox.Exc:
                 tb = utils.get_traceback(type(exc), exc, exc.__traceback__)
                 utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
         async_thread.done_callback = asyncexcepthook

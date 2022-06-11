@@ -193,7 +193,7 @@ def open_webpage(url: str):
         utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error)
 
 
-def remove_game(game: Game):
+def remove_game(game: Game, bypass_confirm=False):
     def remove_callback():
         id = game.id
         del globals.games[id]
@@ -204,7 +204,7 @@ def remove_game(game: Game):
                 img.unlink()
             except Exception:
                 pass
-    if globals.settings.confirm_on_remove:
+    if not bypass_confirm and globals.settings.confirm_on_remove:
         buttons = {
             "󰄬 Yes": remove_callback,
             "󰜺 No": None

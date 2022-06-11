@@ -1,3 +1,4 @@
+import typing
 import imgui
 
 from modules.structs import MsgBox
@@ -13,7 +14,11 @@ popup_flags: int = (
 )
 
 
-def msgbox(title: str, message: str, type: MsgBox = None, buttons={"󰄬 Ok": None}):
+def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = None):
+    if not buttons:
+        buttons = {
+            "󰄬 Ok": None
+        }
     if not imgui.is_popup_open(title):
         imgui.open_popup(title)
     closed = False
@@ -66,3 +71,9 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons={"󰄬 Ok": No
         opened = 0
         closed = True
     return opened, closed
+
+
+class Exc(Exception):
+    def __init__(self, title:str, message: str, type=MsgBox.error, buttons: dict[str, typing.Callable] = None):
+        utils.push_popup(msgbox, title, message, type, buttons)
+        super().__init__(message)
