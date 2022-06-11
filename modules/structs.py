@@ -401,3 +401,14 @@ class Game:
     notes                : str
     image                : imagehelper.ImageHelper
     image_url            : str
+
+
+@dataclasses.dataclass
+class OldGame:
+    id                   : int
+    name                 : str
+    version              : str
+    developer            : str
+    type                 : Type
+    status               : Status
+    tags                 : list[Tag]

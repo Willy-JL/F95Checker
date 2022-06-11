@@ -365,6 +365,11 @@ class MainGUI():
                 imgui.set_cursor_screen_pos((text_x, text_y))
                 imgui.text(text)
 
+                if globals.refresh_task is None and api.updated_games:
+                    updated_games = dict(api.updated_games)
+                    api.updated_games.clear()
+                    utils.push_popup(self.draw_updated_games_popup, updated_games, len(updated_games))
+
                 open_popup_count = 0
                 for popup_func in globals.popup_stack:
                     opened, closed =  popup_func()
@@ -634,6 +639,109 @@ class MainGUI():
             imgui.same_line()
         imgui.dummy(0, 0)
         imgui.pop_style_color(3)
+
+    def draw_updated_games_popup(self, updated_games, count):
+        popup_id = f"{count} updated game{'s' if count > 1 else ''}"
+        if not imgui.is_popup_open(popup_id):
+            imgui.open_popup(popup_id)
+        closed = False
+        opened = 1
+        utils.constrain_next_window()
+        utils.center_next_window()
+        if imgui.begin_popup_modal(popup_id, True, flags=self.popup_flags)[0]:
+            indent = self.scaled(222)
+            width = indent - 3 * imgui.style.item_spacing.x
+            for id, old_game in updated_games.items():
+                game = globals.games[id]
+
+                start_pos = imgui.get_cursor_pos()
+                imgui.indent(indent)
+                imgui.begin_group()
+
+                imgui.push_font(self.big_font)
+                imgui.text(old_game.name)
+                imgui.pop_font()
+
+                for attr in ("name", "version", "developer"):
+                    old_val =  getattr(old_game, attr) or "Unknown"
+                    new_val =  getattr(game, attr) or "Unknown"
+                    if new_val != old_val:
+                        imgui.spacing()
+                        imgui.text_disabled(f"{attr.title()}:")
+                        imgui.same_line()
+                        imgui.text(old_val)
+                        imgui.same_line()
+                        imgui.text_disabled(" -> ")
+                        imgui.same_line()
+                        imgui.text(new_val)
+
+                if game.type is not old_game.type:
+                    imgui.spacing()
+                    imgui.text_disabled(f"Type:")
+                    imgui.same_line()
+                    self.draw_game_type_widget(old_game)
+                    imgui.same_line()
+                    imgui.text_disabled(" -> ")
+                    imgui.same_line()
+                    self.draw_game_type_widget(game)
+
+                if game.status is not old_game.status:
+                    imgui.spacing()
+                    imgui.text_disabled(f"Status:")
+                    imgui.same_line()
+                    imgui.text(old_game.status.name)
+                    imgui.same_line()
+                    self.draw_game_status_widget(old_game)
+                    imgui.same_line()
+                    imgui.text_disabled(" -> ")
+                    imgui.same_line()
+                    imgui.text(game.status.name)
+                    imgui.same_line()
+                    self.draw_game_status_widget(game)
+
+                added = ""
+                removed = ""
+                for tag in game.tags:
+                    if tag not in old_game.tags:
+                        added += f"{tag.name}   "
+                for tag in old_game.tags:
+                    if tag not in game.tags:
+                        removed += f"{tag.name}   "
+                if added or removed:
+                    imgui.spacing()
+                    if added:
+                        imgui.text_disabled("Tags added:")
+                        imgui.same_line()
+                        imgui.text(added)
+                    if removed:
+                        imgui.text_disabled("Tags removed:")
+                        imgui.same_line()
+                        imgui.text(removed)
+
+                imgui.end_group()
+                imgui.unindent(indent)
+                end_pos = imgui.get_cursor_pos()
+                imgui.set_cursor_pos(start_pos)
+                height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
+                crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                imgui.set_cursor_pos(end_pos)
+
+                imgui.text("\n")
+
+            label = "󰄬 Ok"
+            btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
+            cur_pos_x = imgui.get_cursor_pos_x()
+            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btn_width
+            if new_pos_x > cur_pos_x:
+                imgui.set_cursor_pos_x(new_pos_x)
+            if imgui.button(label):
+                imgui.close_current_popup()
+                closed = True
+        else:
+            opened = 0
+            closed = True
+        return opened, closed
 
     def draw_game_info_popup(self, game: Game):
         if not imgui.is_popup_open("Game info"):

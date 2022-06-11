@@ -8,7 +8,7 @@ import bs4
 import os
 import re
 
-from modules.structs import CounterContext, Game, MsgBox, Status, Tag, Type
+from modules.structs import CounterContext, Game, MsgBox, OldGame, Status, Tag, Type
 from modules import globals, asklogin, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
@@ -16,6 +16,7 @@ full_check_interval = int(dt.timedelta(days=7).total_seconds())
 image_sem = asyncio.Semaphore(2)
 image_counter = CounterContext()
 full_counter = CounterContext()
+updated_games: dict[int, OldGame] = {}
 
 
 def setup():
@@ -301,6 +302,25 @@ async def check(game: Game, full=False, standalone=False):
             game.tags = tags
             game.image_url = image_url
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
+
+            if old_status is not Status.Not_Yet_Checked and game.last_refresh_version == globals.version and (
+                name != old_name or
+                version != old_version or
+                developer != old_developer or
+                type != old_type or
+                status != old_status or
+                tags != old_tags
+            ):
+                old_game = OldGame(
+                    id=game.id,
+                    name=old_name,
+                    version=old_version,
+                    developer=old_developer,
+                    type=old_type,
+                    status=old_status,
+                    tags=old_tags
+                )
+                updated_games[game.id] = old_game
 
         if fetch_image and image_url:
             async with image_counter, image_sem:
