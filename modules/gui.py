@@ -440,7 +440,7 @@ class MainGUI():
         if clicked:
             callbacks.launch_game_exe(game)
 
-    def draw_game_type_widget(self, game: Game, *args, **kwargs):
+    def draw_game_type_widget(self, game: Game, align=False, *args, **kwargs):
         col = game.type.color
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
@@ -454,8 +454,12 @@ class MainGUI():
             for type in list(Type):
                 self.type_label_width = max(self.type_label_width, imgui.calc_text_size(type.name).x)
             self.type_label_width += 2 * x_padding
-        imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
+        if align:
+            imgui.begin_group()
+            imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
         imgui.button(f"{game.type.name}##{game.id}_type", *args, width=self.type_label_width, **kwargs)
+        if align:
+            imgui.end_group()
         imgui.pop_style_color(3)
         imgui.pop_style_var(2)
 
@@ -714,7 +718,6 @@ class MainGUI():
                         image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
             imgui.push_text_wrap_pos()
-
 
             imgui.push_font(self.big_font)
             imgui.text(game.name)
@@ -1169,7 +1172,7 @@ class MainGUI():
                 # Type
                 if type:
                     imgui.table_set_column_index(type)
-                    self.draw_game_type_widget(game)
+                    self.draw_game_type_widget(game, align=True)
                 # Name
                 imgui.table_set_column_index(name)
                 if self.edit_mode:
