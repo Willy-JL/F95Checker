@@ -307,6 +307,8 @@ class MainGUI():
         return size * self.size_mult
 
     def main_loop(self):
+        if globals.settings.start_refresh:
+            utils.start_refresh_task(api.refresh())
         scroll_energy = 0.0
         while not glfw.window_should_close(self.window):
             self.qt_app.processEvents()
