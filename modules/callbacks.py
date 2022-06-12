@@ -194,7 +194,9 @@ def open_webpage(url: str):
             utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error)
     if globals.settings.browser_html:
         async def _fetch_open_page():
-            _open_webpage(await api.download_webpage(url))
+            html = await api.download_webpage(url)
+            if html:
+                _open_webpage()
         async_thread.run(_fetch_open_page())
     else:
         _open_webpage(url)
