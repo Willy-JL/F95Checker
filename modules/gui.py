@@ -255,27 +255,28 @@ class MainGUI():
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
         imgui.io.font_global_scale = 1 / font_scaling_factor
         self.size_mult = globals.settings.interface_scaling
-        imgui.io.fonts.add_font_from_file_ttf(
-            str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
-            18 * font_scaling_factor * self.size_mult,
-            font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
-        )
-        imgui.io.fonts.add_font_from_file_ttf(
-            str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
-            18 * font_scaling_factor * self.size_mult,
-            font_config=imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1),
-            glyph_ranges=imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
-        )
-        self.big_font = imgui.io.fonts.add_font_from_file_ttf(
-            str(globals.self_path / "resources/fonts/Karla-Regular.ttf"),
-            28 * font_scaling_factor * self.size_mult,
-            font_config=imgui.core.FontConfig(oversample_h=3, oversample_v=3)
-        )
-        msgbox.icon_font = imgui.io.fonts.add_font_from_file_ttf(
-            str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf"),
-            69 * font_scaling_factor * self.size_mult,
-            glyph_ranges=imgui.core.GlyphRanges([0xf02fc, 0xf02fc, 0xf11ce, 0xf11ce, 0xf0029, 0xf0029, 0])
-        )
+        karla_path = str(globals.self_path / "resources/fonts/Karla-Regular.ttf")
+        noto_path = str(globals.self_path / "resources/fonts/NotoSans-Regular.ttf")
+        mdi_path = str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf")
+        karla_config = imgui.core.FontConfig(oversample_h=3, oversample_v=3)
+        noto_config = imgui.core.FontConfig(merge_mode=True, oversample_h=3, oversample_v=3)
+        mdi_config = imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1)
+        karla_range = imgui.core.GlyphRanges([0x1, 0x131, 0])
+        noto_range = imgui.core.GlyphRanges([0x1, 0x10663, 0])
+        mdi_range = imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
+        msgbox_range = imgui.core.GlyphRanges([0xf02fc, 0xf02fc, 0xf11ce, 0xf11ce, 0xf0029, 0xf0029, 0])
+        size_18 = 18 * font_scaling_factor * self.size_mult
+        size_28 = 28 * font_scaling_factor * self.size_mult
+        size_69 = 69 * font_scaling_factor * self.size_mult
+        # Default font + more glyphs + icons
+        imgui.io.fonts.add_font_from_file_ttf(karla_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
+        imgui.io.fonts.add_font_from_file_ttf(noto_path,  size_18, font_config=noto_config,  glyph_ranges=noto_range)
+        imgui.io.fonts.add_font_from_file_ttf(mdi_path,   size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
+        # Big font + more glyphs
+        self.big_font = imgui.io.fonts.add_font_from_file_ttf(karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
+        imgui.io.fonts.add_font_from_file_ttf(                noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
+        # MsgBox type icons
+        msgbox.icon_font = imgui.io.fonts.add_font_from_file_ttf(mdi_path, size_69, glyph_ranges=msgbox_range)
         self.impl.refresh_font_texture()
         self.type_label_width = None
 
@@ -1952,8 +1953,8 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Scaling:")
             imgui.table_next_column()
-            changed, value = imgui.drag_float("##interface_scaling", set.interface_scaling, change_speed=0.01, min_value=0.5, max_value=2.5, format="%.2fx")
-            set.interface_scaling = min(max(value, 0.5), 2.5)
+            changed, value = imgui.drag_float("##interface_scaling", set.interface_scaling, change_speed=0.01, min_value=0.5, max_value=2, format="%.2fx")
+            set.interface_scaling = min(max(value, 0.5), 2)
 
             imgui.table_next_row()
             imgui.table_next_column()
