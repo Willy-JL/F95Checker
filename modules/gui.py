@@ -631,6 +631,7 @@ class MainGUI():
                 value = value + game.notes[offset:]
         if changed:
             game.notes = value
+            self.require_sort = True
             async_thread.run(db.update_game(game, "notes"))
 
     def draw_game_tags_widget(self, game: Game, *args, **kwargs):
