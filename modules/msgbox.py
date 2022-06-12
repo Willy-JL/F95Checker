@@ -14,18 +14,8 @@ popup_flags: int = (
 )
 
 
-def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = None):
-    if not buttons:
-        buttons = {
-            "󰄬 Ok": None
-        }
-    if not imgui.is_popup_open(title):
-        imgui.open_popup(title)
-    closed = False
-    opened = 1
-    utils.constrain_next_window()
-    utils.center_next_window()
-    if imgui.begin_popup_modal(title, flags=popup_flags)[0]:
+def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True):
+    def popup_content():
         spacing = 2 * imgui.style.item_spacing.x
         if type is MsgBox.info:
             icon = "󰋼"
@@ -38,7 +28,6 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typ
             color = (0.95, 0.22, 0.22)
         else:
             icon = None
-        imgui.begin_group()
         if icon:
             imgui.push_font(icon_font)
             icon_size = imgui.calc_text_size(icon)
@@ -53,24 +42,7 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typ
         imgui.end_group()
         imgui.same_line(spacing=spacing)
         imgui.dummy(0, 0)
-        imgui.end_group()
-        imgui.spacing()
-        btns_width = sum(imgui.calc_text_size(label).x for label in buttons) + (2 * len(buttons) * imgui.style.frame_padding.x) + (imgui.style.item_spacing.x * (len(buttons) - 1))
-        cur_pos_x = imgui.get_cursor_pos_x()
-        new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btns_width
-        if new_pos_x > cur_pos_x:
-            imgui.set_cursor_pos_x(new_pos_x)
-        for label, callback in buttons.items():
-            if imgui.button(label):
-                if callback:
-                    callback()
-                imgui.close_current_popup()
-                closed = True
-            imgui.same_line()
-    else:
-        opened = 0
-        closed = True
-    return opened, closed
+    return utils.popup(title, popup_content, buttons, closable=False, outside=False)
 
 
 class Exc(Exception):

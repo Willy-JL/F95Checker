@@ -32,9 +32,9 @@ def rgba_0_1_to_hex(rgba):
     return f"#{r}{g}{b}{a}"
 
 
-def push_popup(*args):
-    if len(args) > 1:
-        popup_func = functools.partial(*args)
+def push_popup(*args, **kwargs):
+    if len(args) + len(kwargs) > 1:
+        popup_func = functools.partial(*args, **kwargs)
     else:
         popup_func = args[0]
     globals.popup_stack.append(popup_func)
@@ -139,3 +139,40 @@ def extract_thread_matches(text: str) -> list[ThreadMatch]:
     for match in re.finditer(r"threads/(?:([^\./]*)\.)?(\d+)", text):
         matches.append(ThreadMatch(title=match.group(1) or "", id=int(match.group(2))))
     return matches
+
+
+def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True):
+    if buttons is True:
+        buttons = {
+            "󰄬 Ok": None
+        }
+    if not imgui.is_popup_open(label):
+        imgui.open_popup(label)
+    closed = False
+    opened = 1
+    constrain_next_window()
+    center_next_window()
+    if imgui.begin_popup_modal(label, closable or None, flags=globals.gui.popup_flags)[0]:
+        if outside:
+             closed = close_popup_clicking_outside()
+        imgui.begin_group()
+        popup_content()
+        imgui.end_group()
+        imgui.spacing()
+        if buttons:
+            btns_width = sum(imgui.calc_text_size(name).x for name in buttons) + (2 * len(buttons) * imgui.style.frame_padding.x) + (imgui.style.item_spacing.x * (len(buttons) - 1))
+            cur_pos_x = imgui.get_cursor_pos_x()
+            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btns_width
+            if new_pos_x > cur_pos_x:
+                imgui.set_cursor_pos_x(new_pos_x)
+            for label, callback in buttons.items():
+                if imgui.button(label):
+                    if callback:
+                        callback()
+                    imgui.close_current_popup()
+                    closed = True
+                imgui.same_line()
+    else:
+        opened = 0
+        closed = True
+    return opened, closed

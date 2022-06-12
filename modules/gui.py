@@ -649,14 +649,7 @@ class MainGUI():
         imgui.pop_style_color(3)
 
     def draw_updated_games_popup(self, updated_games, count):
-        popup_id = f"{count} updated game{'s' if count > 1 else ''}"
-        if not imgui.is_popup_open(popup_id):
-            imgui.open_popup(popup_id)
-        closed = False
-        opened = 1
-        utils.constrain_next_window()
-        utils.center_next_window()
-        if imgui.begin_popup_modal(popup_id, True, flags=self.popup_flags)[0]:
+        def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
             for i, id in enumerate(updated_games):
@@ -738,33 +731,10 @@ class MainGUI():
 
                 if i != count - 1:
                     imgui.text("\n")
-                else:
-                    imgui.spacing()
-
-            label = "󰄬 Ok"
-            btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
-            cur_pos_x = imgui.get_cursor_pos_x()
-            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btn_width
-            if new_pos_x > cur_pos_x:
-                imgui.set_cursor_pos_x(new_pos_x)
-            if imgui.button(label):
-                imgui.close_current_popup()
-                closed = True
-        else:
-            opened = 0
-            closed = True
-        return opened, closed
+        return utils.popup(f"{count} updated game{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False)
 
     def draw_game_info_popup(self, game: Game):
-        if not imgui.is_popup_open("Game info"):
-            imgui.open_popup("Game info")
-        closed = False
-        opened = 1
-        utils.constrain_next_window()
-        utils.center_next_window()
-        if imgui.begin_popup_modal("Game info", True, flags=self.popup_flags)[0]:
-            closed = utils.close_popup_clicking_outside()
-
+        def popup_content():
             # Image
             image = game.image
             avail = imgui.get_content_region_available()
@@ -930,20 +900,10 @@ class MainGUI():
                 imgui.text_unformatted("Either this game doesn't have a changelog, or the thread is not formatted properly!")
 
             imgui.pop_text_wrap_pos()
-        else:
-            opened = 0
-            closed = True
-        return opened, closed
+        return utils.popup("Game info", popup_content, closable=True, outside=True)
 
     def draw_about_popup(self):
-        if not imgui.is_popup_open("About F95Checker"):
-            imgui.open_popup("About F95Checker")
-        closed = False
-        opened = 1
-        utils.constrain_next_window()
-        utils.center_next_window()
-        if imgui.begin_popup_modal("About F95Checker", True, flags=self.popup_flags | imgui.WINDOW_ALWAYS_AUTO_RESIZE)[0]:
-            closed = utils.close_popup_clicking_outside()
+        def popup_content():
             _50 = self.scaled(50)
             _210 = self.scaled(210)
             imgui.begin_group()
@@ -1045,10 +1005,7 @@ class MainGUI():
                 imgui.bullet_text(name)
                 imgui.same_line(spacing=16)
             imgui.pop_text_wrap_pos()
-        else:
-            opened = 0
-            closed = True
-        return opened, closed
+        return utils.popup("About F95Checker", popup_content, closable=True, outside=True)
 
     def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs, manual_sort: int | bool):
         if manual_sort != self.prev_manual_sort:
@@ -1799,44 +1756,33 @@ class MainGUI():
                 imgui.text("Custom browser:")
                 imgui.table_next_column()
                 if imgui.button("Configure", width=right_width):
-                    def custom_browser_popup():
-                        if not imgui.is_popup_open("Configure custom browser"):
-                            imgui.open_popup("Configure custom browser")
-                        closed = False
-                        opened = 1
-                        utils.center_next_window()
-                        if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
-                            closed = utils.close_popup_clicking_outside()
-                            set = globals.settings
-                            imgui.text("Executable: ")
-                            imgui.same_line()
-                            pos = imgui.get_cursor_pos_x()
-                            changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999)
-                            if changed:
-                                async_thread.run(db.update_settings("browser_custom_executable"))
-                            imgui.same_line()
-                            clicked = imgui.button("󰷏")
-                            imgui.same_line(spacing=0)
-                            args_width = imgui.get_cursor_pos_x() - pos
-                            imgui.dummy(0, 0)
-                            if clicked:
-                                def callback(selected: str):
-                                    if selected:
-                                        set.browser_custom_executable = selected
-                                        async_thread.run(db.update_settings("browser_custom_executable"))
-                                utils.push_popup(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
-                            imgui.text("Arguments: ")
-                            imgui.same_line()
-                            imgui.set_cursor_pos_x(pos)
-                            imgui.set_next_item_width(args_width)
-                            changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999)
-                            if changed:
-                                async_thread.run(db.update_settings("browser_custom_arguments"))
-                        else:
-                            opened = 0
-                            closed = True
-                        return opened, closed
-                    utils.push_popup(custom_browser_popup)
+                    def popup_content():
+                        # set = globals.settings
+                        imgui.text("Executable: ")
+                        imgui.same_line()
+                        pos = imgui.get_cursor_pos_x()
+                        changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999)
+                        if changed:
+                            async_thread.run(db.update_settings("browser_custom_executable"))
+                        imgui.same_line()
+                        clicked = imgui.button("󰷏")
+                        imgui.same_line(spacing=0)
+                        args_width = imgui.get_cursor_pos_x() - pos
+                        imgui.dummy(0, 0)
+                        if clicked:
+                            def callback(selected: str):
+                                if selected:
+                                    set.browser_custom_executable = selected
+                                    async_thread.run(db.update_settings("browser_custom_executable"))
+                            utils.push_popup(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
+                        imgui.text("Arguments: ")
+                        imgui.same_line()
+                        imgui.set_cursor_pos_x(pos)
+                        imgui.set_next_item_width(args_width)
+                        changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999)
+                        if changed:
+                            async_thread.run(db.update_settings("browser_custom_arguments"))
+                    utils.push_popup(utils.popup, "Configure custom browser", popup_content, buttons=True, closable=True, outside=False)
             else:
                 imgui.table_next_row()
                 imgui.table_next_column()
@@ -2076,36 +2022,20 @@ class MainGUI():
                 offset = imgui.get_cursor_pos_x() - pos.x
                 if imgui.button("Thread links", width=-offset):
                     thread_links = [""]
-                    def import_thread_links_popup():
-                        if not imgui.is_popup_open("Import thread links"):
-                            imgui.open_popup("Import thread links")
-                        closed = False
-                        opened = 1
-                        utils.center_next_window()
-                        if imgui.begin_popup_modal("Import thread links", True, flags=self.popup_flags)[0]:
-                            imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
-                            _, thread_links[0] = imgui.input_text_multiline(
-                                f"##import_links",
-                                value=thread_links[0],
-                                buffer_length=9999999,
-                                width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
-                                height=imgui.io.display_size.y * 0.6
-                            )
-                            label = "󰄬 Import"
-                            btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
-                            cur_pos_x = imgui.get_cursor_pos_x()
-                            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btn_width
-                            if new_pos_x > cur_pos_x:
-                                imgui.set_cursor_pos_x(new_pos_x)
-                            if imgui.button(label):
-                                async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0])))
-                                imgui.close_current_popup()
-                                closed = True
-                        else:
-                            opened = 0
-                            closed = True
-                        return opened, closed
-                    utils.push_popup(import_thread_links_popup)
+                    def popup_content():
+                        imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
+                        _, thread_links[0] = imgui.input_text_multiline(
+                            f"##import_links",
+                            value=thread_links[0],
+                            buffer_length=9999999,
+                            width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
+                            height=imgui.io.display_size.y * 0.6
+                        )
+                    buttons={
+                        "󰄬 Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0]))),
+                        "󰜺 Cancel": None
+                    }
+                    utils.push_popup(utils.popup, "Import thread links", popup_content, buttons, closable=True, outside=False)
                 if imgui.button("F95 bookmarks", width=-offset):
                     utils.start_refresh_task(api.import_bookmarks())
                 if imgui.button("F95 watched threads", width=-offset):
@@ -2115,35 +2045,16 @@ class MainGUI():
                 offset = imgui.get_cursor_pos_x() - pos.x
                 if imgui.button("Thread links", width=-offset):
                     thread_links = "\n".join(game.url for game in globals.games.values())
-                    def export_thread_links_popup():
-                        if not imgui.is_popup_open("Export thread links"):
-                            imgui.open_popup("Export thread links")
-                        closed = False
-                        opened = 1
-                        utils.center_next_window()
-                        if imgui.begin_popup_modal("Export thread links", True, flags=self.popup_flags)[0]:
-                            imgui.input_text_multiline(
-                                f"##import_links",
-                                value=thread_links,
-                                buffer_length=len(thread_links) * 2,
-                                width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
-                                height=imgui.io.display_size.y * 0.6,
-                                flags=imgui.INPUT_TEXT_READ_ONLY
-                            )
-                            label = "󰄬 Ok"
-                            btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
-                            cur_pos_x = imgui.get_cursor_pos_x()
-                            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btn_width
-                            if new_pos_x > cur_pos_x:
-                                imgui.set_cursor_pos_x(new_pos_x)
-                            if imgui.button(label):
-                                imgui.close_current_popup()
-                                closed = True
-                        else:
-                            opened = 0
-                            closed = True
-                        return opened, closed
-                    utils.push_popup(export_thread_links_popup)
+                    def popup_content():
+                        imgui.input_text_multiline(
+                            f"##import_links",
+                            value=thread_links,
+                            buffer_length=len(thread_links) * 2,
+                            width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
+                            height=imgui.io.display_size.y * 0.6,
+                            flags=imgui.INPUT_TEXT_READ_ONLY
+                        )
+                    utils.push_popup(utils.popup, "Export thread links", popup_content, buttons=True, closable=True, outside=False)
                 imgui.tree_pop()
             if imgui.tree_node("Clear", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x
