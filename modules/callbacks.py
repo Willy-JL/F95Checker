@@ -223,21 +223,31 @@ def remove_game(game: Game, bypass_confirm=False):
         remove_callback()
 
 async def add_games(*threads: list[ThreadMatch | SearchResult]):
-    dupes = []
-    for thread in threads:
-        if thread.id in globals.games:
-            dupes.append(globals.games[thread.id].name)
-            continue
-        await db.add_game(thread)
-        await db.load_games(thread.id)
-        game = globals.games[thread.id]
-        if globals.settings.select_executable_after_add:
-            def select_callback(selected):
-                if selected:
-                    game.executable = selected
-                    async_thread.run(db.update_game(game, "executable"))
-            utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
-    if dupes:
-        utils.push_popup(msgbox.msgbox, "Duplicate games", "These games are already present in your library and therefore have not been re-added:\n - " + "\n - ".join(dupes), MsgBox.warn)
-    globals.gui.require_sort = True
-
+    async def _add_games():
+        dupes = []
+        for thread in threads:
+            if thread.id in globals.games:
+                dupes.append(globals.games[thread.id].name)
+                continue
+            await db.add_game(thread)
+            await db.load_games(thread.id)
+            game = globals.games[thread.id]
+            if globals.settings.select_executable_after_add:
+                def select_callback(selected):
+                    if selected:
+                        game.executable = selected
+                        async_thread.run(db.update_game(game, "executable"))
+                utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+        if dupes:
+            utils.push_popup(msgbox.msgbox, "Duplicate games", "These games are already present in your library and therefore have not been re-added:\n - " + "\n - ".join(dupes), MsgBox.warn)
+        globals.gui.require_sort = True
+    ask_exe = globals.settings.select_executable_after_add
+    count = len(threads)
+    if ask_exe and count > 1:
+        buttons = {
+            "󰄬 Yes": lambda: async_thread.run(_add_games()),
+            "󰜺 No": None
+        }
+        utils.push_popup(msgbox.msgbox, "Are you sure?", f"You are about to add {count} games and you have enabled the \"Ask path on add\" setting enabled.\nThis means that you will be asked to select the executable for all {count} games.\n\nDo you wish to continue?", MsgBox.warn, buttons)
+    else:
+        await _add_games()
