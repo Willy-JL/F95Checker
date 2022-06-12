@@ -2079,7 +2079,6 @@ class MainGUI():
                         opened = 1
                         utils.center_next_window()
                         if imgui.begin_popup_modal("Import thread links", True, flags=self.popup_flags)[0]:
-                            closed = utils.close_popup_clicking_outside()
                             imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
                             _, thread_links[0] = imgui.input_text_multiline(
                                 f"##import_links",
@@ -2119,7 +2118,6 @@ class MainGUI():
                         opened = 1
                         utils.center_next_window()
                         if imgui.begin_popup_modal("Export thread links", True, flags=self.popup_flags)[0]:
-                            closed = utils.close_popup_clicking_outside()
                             imgui.input_text_multiline(
                                 f"##import_links",
                                 value=thread_links,
