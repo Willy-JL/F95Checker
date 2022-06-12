@@ -19,6 +19,21 @@ full_counter = CounterContext()
 updated_games: dict[int, OldGame] = {}
 
 
+def is_text(text: str):
+    def _is_text(elem: bs4.element.Tag):
+        if not hasattr(elem, "text"):
+            return False
+        val = elem.text.lower().strip()
+        return val == text or val == text + ":"
+    return _is_text
+
+
+def is_class(name: str):
+    def _is_class(elem: bs4.element.Tag):
+        return name in elem.get_attribute_list("class")
+    return _is_class
+
+
 def setup():
     global session
     session = aiohttp.ClientSession(loop=async_thread.loop)
@@ -81,6 +96,50 @@ async def assert_login():
     return True
 
 
+async def import_bookmarks():
+    globals.refresh_total = 2
+    if not await assert_login():
+        return
+    globals.refresh_progress = 1
+    diff = 0
+    threads = []
+    while True:
+        globals.refresh_total += 1
+        globals.refresh_progress += 1
+        async with request("GET", globals.bookmarks_page, params={"difference": diff}) as req:
+            raw = await req.read()
+        html = bs4.BeautifulSoup(raw, "lxml")
+        bookmarks = html.find(is_class("p-body-pageContent")).find(is_class("listPlain"))
+        if not bookmarks:
+            break
+        for title in bookmarks.find_all(is_class("contentRow-title")):
+            diff += 1
+            threads += utils.extract_thread_matches(title.find("a").get("href"))
+    await callbacks.add_games(*threads)
+
+
+async def import_watched_threads():
+    globals.refresh_total = 2
+    if not await assert_login():
+        return
+    globals.refresh_progress = 1
+    page = 1
+    threads = []
+    while True:
+        globals.refresh_total += 1
+        globals.refresh_progress += 1
+        async with request("GET", globals.watched_page, params={"unread": 0, "page": page}) as req:
+            raw = await req.read()
+        html = bs4.BeautifulSoup(raw, "lxml")
+        watched = html.find(is_class("p-body-pageContent")).find(is_class("structItemContainer"))
+        if not watched:
+            break
+        page += 1
+        for title in watched.find_all(is_class("structItem-title")):
+            threads += utils.extract_thread_matches(title.get("uix-data-href"))
+    await callbacks.add_games(*threads)
+
+
 async def check(game: Game, full=False, standalone=False):
     if standalone:
         globals.refresh_total = 2
@@ -100,17 +159,6 @@ async def check(game: Game, full=False, standalone=False):
         return
 
     with full_counter:
-        def is_text(text: str):
-            def _is_text(elem: bs4.element.Tag):
-                if not hasattr(elem, "text"):
-                    return False
-                val = elem.text.lower().strip()
-                return val == text or val == text + ":"
-            return _is_text
-        def is_class(name: str):
-            def _is_class(elem: bs4.element.Tag):
-                return name in elem.get_attribute_list("class")
-            return _is_class
         def game_has_prefixes(*names: list[str]):
             for name in names:
                 if head.find("span", text=f"[{name}]"):

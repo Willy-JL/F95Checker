@@ -213,14 +213,14 @@ def remove_game(game: Game, bypass_confirm=False):
     else:
         remove_callback()
 
-def add_games(*threads: list[ThreadMatch]):
+async def add_games(*threads: list[ThreadMatch]):
     dupes = []
     for thread in threads:
         if thread.id in globals.games:
             dupes.append(globals.games[thread.id].name)
             continue
-        async_thread.wait(db.add_game(thread))
-        async_thread.wait(db.load_games(thread.id))
+        await db.add_game(thread)
+        await db.load_games(thread.id)
         game = globals.games[thread.id]
         if globals.settings.select_executable_after_add:
             def select_callback(selected):

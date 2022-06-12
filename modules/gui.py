@@ -1614,8 +1614,7 @@ class MainGUI():
         if self.add_box_valid:
             imgui.same_line()
             if imgui.button("Add!") or activated:
-                for thread in utils.extract_thread_matches(self.add_box_text):
-                    callbacks.add_games(thread)
+                async_thread.run(callbacks.add_games(*utils.extract_thread_matches(self.add_box_text)))
                 self.add_box_text = ""
                 self.add_box_valid = False
         elif activated:
@@ -2064,6 +2063,99 @@ class MainGUI():
             imgui.spacing()
 
         if self.start_settings_section("Manage", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            pos = imgui.get_cursor_pos()
+            imgui.table_next_column()
+            imgui.set_cursor_pos(pos)
+            imgui.begin_group()
+            if imgui.tree_node("Import", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
+                offset = imgui.get_cursor_pos_x() - pos.x
+                if imgui.button("Thread links", width=-offset):
+                    thread_links = [""]
+                    def import_thread_links_popup():
+                        if not imgui.is_popup_open("Import thread links"):
+                            imgui.open_popup("Import thread links")
+                        closed = False
+                        opened = 1
+                        utils.center_next_window()
+                        if imgui.begin_popup_modal("Import thread links", True, flags=self.popup_flags)[0]:
+                            closed = utils.close_popup_clicking_outside()
+                            imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
+                            _, thread_links[0] = imgui.input_text_multiline(
+                                f"##import_links",
+                                value=thread_links[0],
+                                buffer_length=9999999,
+                                width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
+                                height=imgui.io.display_size.y * 0.6
+                            )
+                            label = "󰄬 Import"
+                            btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
+                            cur_pos_x = imgui.get_cursor_pos_x()
+                            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btn_width
+                            if new_pos_x > cur_pos_x:
+                                imgui.set_cursor_pos_x(new_pos_x)
+                            if imgui.button(label):
+                                async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0])))
+                                imgui.close_current_popup()
+                                closed = True
+                        else:
+                            opened = 0
+                            closed = True
+                        return opened, closed
+                    utils.push_popup(import_thread_links_popup)
+                if imgui.button("F95 bookmarks", width=-offset):
+                    utils.start_refresh_task(api.import_bookmarks())
+                if imgui.button("F95 watched threads", width=-offset):
+                    utils.start_refresh_task(api.import_watched_threads())
+                imgui.tree_pop()
+            if imgui.tree_node("Export", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
+                offset = imgui.get_cursor_pos_x() - pos.x
+                if imgui.button("Thread links", width=-offset):
+                    thread_links = "\n".join(game.url for game in globals.games.values())
+                    def export_thread_links_popup():
+                        if not imgui.is_popup_open("Export thread links"):
+                            imgui.open_popup("Export thread links")
+                        closed = False
+                        opened = 1
+                        utils.center_next_window()
+                        if imgui.begin_popup_modal("Export thread links", True, flags=self.popup_flags)[0]:
+                            closed = utils.close_popup_clicking_outside()
+                            imgui.input_text_multiline(
+                                f"##import_links",
+                                value=thread_links,
+                                buffer_length=len(thread_links) * 2,
+                                width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
+                                height=imgui.io.display_size.y * 0.6,
+                                flags=imgui.INPUT_TEXT_READ_ONLY
+                            )
+                            label = "󰄬 Ok"
+                            btn_width = imgui.calc_text_size(label).x + 2 * imgui.style.frame_padding.x
+                            cur_pos_x = imgui.get_cursor_pos_x()
+                            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btn_width
+                            if new_pos_x > cur_pos_x:
+                                imgui.set_cursor_pos_x(new_pos_x)
+                            if imgui.button(label):
+                                imgui.close_current_popup()
+                                closed = True
+                        else:
+                            opened = 0
+                            closed = True
+                        return opened, closed
+                    utils.push_popup(export_thread_links_popup)
+                imgui.tree_pop()
+            if imgui.tree_node("Clear", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
+                offset = imgui.get_cursor_pos_x() - pos.x
+                if imgui.button("All cookies", width=-offset):
+                    buttons = {
+                        "󰄬 Yes": lambda: async_thread.run(db.update_cookies({})),
+                        "󰜺 No": None
+                    }
+                    utils.push_popup(msgbox.msgbox, "Clear cookies", "Are you sure you want to clear your session cookies?\nThis will invalidate your login session, but might help\nif you are having issues.", MsgBox.warn, buttons)
+                imgui.tree_pop()
+            imgui.end_group()
+            imgui.spacing()
+
             imgui.table_next_row()
             imgui.table_next_column()
             imgui.text("Ask path on add:")
