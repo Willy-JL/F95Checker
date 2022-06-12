@@ -196,7 +196,7 @@ def open_webpage(url: str):
         async def _fetch_open_page():
             html = await api.download_webpage(url)
             if html:
-                _open_webpage()
+                _open_webpage(html)
         async_thread.run(_fetch_open_page())
     else:
         _open_webpage(url)
