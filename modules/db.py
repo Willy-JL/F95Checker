@@ -7,7 +7,7 @@ import enum
 import json
 import time
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, Settings, Status, ThreadMatch, Timestamp, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
 from modules import globals, imagehelper, msgbox, utils
 
 connection: aiosqlite.Connection = None
@@ -238,7 +238,7 @@ async def remove_game(id: int):
     """)
 
 
-async def add_game(thread: ThreadMatch):
+async def add_game(thread: ThreadMatch | SearchResult):
     await connection.execute(f"""
         INSERT INTO games
         (id, name, version, status, url, added_on)

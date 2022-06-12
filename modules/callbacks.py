@@ -7,7 +7,7 @@ import time
 import stat
 import os
 
-from modules.structs import Browser, Game, MsgBox, Os, ThreadMatch
+from modules.structs import Browser, Game, MsgBox, Os, SearchResult, ThreadMatch
 from modules import globals, api, async_thread, db, filepicker, msgbox, utils
 
 
@@ -222,7 +222,7 @@ def remove_game(game: Game, bypass_confirm=False):
     else:
         remove_callback()
 
-async def add_games(*threads: list[ThreadMatch]):
+async def add_games(*threads: list[ThreadMatch | SearchResult]):
     dupes = []
     for thread in threads:
         if thread.id in globals.games:

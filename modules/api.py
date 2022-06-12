@@ -9,7 +9,7 @@ import bs4
 import os
 import re
 
-from modules.structs import CounterContext, Game, MsgBox, OldGame, Status, Tag, Type
+from modules.structs import CounterContext, Game, MsgBox, OldGame, SearchResult, Status, Tag, Type
 from modules import globals, asklogin, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
@@ -110,6 +110,35 @@ async def download_webpage(url: str):
     with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-HTML-", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return f.name
+
+
+async def quick_search(query: str):
+    if not await assert_login():
+        return
+    async with request("POST", globals.qsearch_endpoint, data={
+                    "title": query,
+                    "_xfToken": globals.token
+    }) as req:
+        raw = await req.read()
+    html = bs4.BeautifulSoup(raw, "lxml")
+    results = []
+    for row in html.find(is_class("quicksearch-wrapper-wide")).find_all(is_class("dataList-row")):
+        title = list(row.find_all(is_class("dataList-cell")))[1]
+        url = title.find("a")
+        if not url:
+            continue
+        url = url.get("href")
+        id = utils.extract_thread_matches(url)
+        if not id:
+            continue
+        id = id[0].id
+        title = title.text.replace("\n", " ").strip()
+        while "  " in title:
+            title = title.replace("  ", " ")
+        if not title:
+            continue
+        results.append(SearchResult(title=title, url=url, id=id))
+    return results
 
 
 async def import_bookmarks():

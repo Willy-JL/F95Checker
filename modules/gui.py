@@ -1540,8 +1540,30 @@ class MainGUI():
                 async_thread.run(callbacks.add_games(*utils.extract_thread_matches(self.add_box_text)))
                 self.add_box_text = ""
                 self.add_box_valid = False
+                self.require_sort = True
         elif activated:
-            pass  # TODO: search and prompt to add
+            async def _search_and_add(query: str):
+                if not await api.assert_login():
+                    return
+                results = await api.quick_search(query)
+                if not results:
+                    utils.push_popup(msgbox.msgbox, "No results!", f"The search query \"{query}\" returned no results!", MsgBox.warn)
+                    return
+                def popup_content():
+                    imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
+                    for result in results:
+                        if result.id in globals.games:
+                            utils.push_disabled()
+                        clicked = imgui.selectable(f"{result.title}##result_{result.id}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
+                        if result.id in globals.games:
+                            utils.pop_disabled()
+                        if clicked:
+                            async_thread.run(callbacks.add_games(result))
+                utils.push_popup(utils.popup, "Search results", popup_content, buttons=True, closable=True, outside=False)
+            async_thread.run(_search_and_add(self.add_box_text))
+            self.add_box_text = ""
+            self.add_box_valid = False
+            self.require_sort = True
 
     def start_settings_section(self, name: str, right_width: int | float, collapsible=True):
         if collapsible:

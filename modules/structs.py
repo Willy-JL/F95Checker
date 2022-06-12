@@ -50,6 +50,13 @@ class ThreadMatch:
     id: int
 
 
+@dataclasses.dataclass
+class SearchResult:
+    title: str
+    url: str
+    id: int
+
+
 class EnumNameHack(enum.Enum):
     # Remove leading and trailing _
     # "_"  => " "
