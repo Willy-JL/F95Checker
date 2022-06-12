@@ -1,12 +1,10 @@
 import configparser
 import subprocess
-import tempfile
 import plistlib
 import pathlib
 import shlex
 import time
 import stat
-import bs4
 import os
 
 from modules.structs import Browser, Game, MsgBox, Os, ThreadMatch
@@ -180,7 +178,7 @@ def open_webpage(url: str):
         args = []
         if set.browser_private:
             args.append(set.browser.private)
-    def _open_webpage(url):
+    def _open_webpage(url: str):
         try:
             subprocess.Popen(
                 [
@@ -195,20 +193,9 @@ def open_webpage(url: str):
         except Exception:
             utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error)
     if globals.settings.browser_html:
-        async def _fetch_page():
-            if not await api.assert_login():
-                return
-            async with api.request("GET", url) as req:
-                raw = await req.read()
-            html = bs4.BeautifulSoup(raw, "lxml")
-            for elem in html.find_all():
-                for key, value in elem.attrs.items():
-                    if isinstance(value, str) and value.startswith("/"):
-                        elem.attrs[key] = globals.domain + value
-            with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-HTML-", delete=False) as f:
-                f.write(html.prettify(encoding="utf-8"))
-            _open_webpage(f.name)
-        async_thread.run(_fetch_page())
+        async def _fetch_open_page():
+            _open_webpage(await api.download_webpage(url))
+        async_thread.run(_fetch_open_page())
     else:
         _open_webpage(url)
 

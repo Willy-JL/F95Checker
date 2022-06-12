@@ -1,6 +1,7 @@
 import multiprocessing
 import datetime as dt
 import contextlib
+import tempfile
 import aiohttp
 import asyncio
 import time
@@ -94,6 +95,21 @@ async def assert_login():
         if not await is_logged_in():
             return False
     return True
+
+
+async def download_webpage(url: str):
+    if not await assert_login():
+        return
+    async with request("GET", url) as req:
+        raw = await req.read()
+    html = bs4.BeautifulSoup(raw, "lxml")
+    for elem in html.find_all():
+        for key, value in elem.attrs.items():
+            if isinstance(value, str) and value.startswith("/"):
+                elem.attrs[key] = globals.domain + value
+    with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-HTML-", delete=False) as f:
+        f.write(html.prettify(encoding="utf-8"))
+    return f.name
 
 
 async def import_bookmarks():
