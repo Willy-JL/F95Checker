@@ -1889,7 +1889,7 @@ class MainGUI():
             imgui.text("Keep game image:")
             imgui.same_line()
             self.draw_hover_text(
-                "When a game receives an update F95Checker downloads the header image again in case it was updated. This "
+                "When a game is updated and the header image changes, F95Checker downloads it again replacing the old one. This "
                 "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
                 f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'})."
             )
