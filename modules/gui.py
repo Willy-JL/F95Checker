@@ -1046,44 +1046,6 @@ class MainGUI():
             closed = True
         return opened, closed
 
-    def draw_custom_browser_popup(self):
-        if not imgui.is_popup_open("Configure custom browser"):
-            imgui.open_popup("Configure custom browser")
-        closed = False
-        opened = 1
-        utils.center_next_window()
-        if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
-            closed = utils.close_popup_clicking_outside()
-            set = globals.settings
-            imgui.text("Executable: ")
-            imgui.same_line()
-            pos = imgui.get_cursor_pos_x()
-            changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999)
-            if changed:
-                async_thread.run(db.update_settings("browser_custom_executable"))
-            imgui.same_line()
-            clicked = imgui.button("󰷏")
-            imgui.same_line(spacing=0)
-            args_width = imgui.get_cursor_pos_x() - pos
-            imgui.dummy(0, 0)
-            if clicked:
-                def callback(selected: str):
-                    if selected:
-                        set.browser_custom_executable = selected
-                        async_thread.run(db.update_settings("browser_custom_executable"))
-                utils.push_popup(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
-            imgui.text("Arguments: ")
-            imgui.same_line()
-            imgui.set_cursor_pos_x(pos)
-            imgui.set_next_item_width(args_width)
-            changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999)
-            if changed:
-                async_thread.run(db.update_settings("browser_custom_arguments"))
-        else:
-            opened = 0
-            closed = True
-        return opened, closed
-
     def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs, manual_sort: int | bool):
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
@@ -1833,7 +1795,44 @@ class MainGUI():
                 imgui.text("Custom browser:")
                 imgui.table_next_column()
                 if imgui.button("Configure", width=right_width):
-                    utils.push_popup(self.draw_custom_browser_popup)
+                    def custom_browser_popup():
+                        if not imgui.is_popup_open("Configure custom browser"):
+                            imgui.open_popup("Configure custom browser")
+                        closed = False
+                        opened = 1
+                        utils.center_next_window()
+                        if imgui.begin_popup_modal("Configure custom browser", True, flags=self.popup_flags)[0]:
+                            closed = utils.close_popup_clicking_outside()
+                            set = globals.settings
+                            imgui.text("Executable: ")
+                            imgui.same_line()
+                            pos = imgui.get_cursor_pos_x()
+                            changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999)
+                            if changed:
+                                async_thread.run(db.update_settings("browser_custom_executable"))
+                            imgui.same_line()
+                            clicked = imgui.button("󰷏")
+                            imgui.same_line(spacing=0)
+                            args_width = imgui.get_cursor_pos_x() - pos
+                            imgui.dummy(0, 0)
+                            if clicked:
+                                def callback(selected: str):
+                                    if selected:
+                                        set.browser_custom_executable = selected
+                                        async_thread.run(db.update_settings("browser_custom_executable"))
+                                utils.push_popup(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
+                            imgui.text("Arguments: ")
+                            imgui.same_line()
+                            imgui.set_cursor_pos_x(pos)
+                            imgui.set_next_item_width(args_width)
+                            changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999)
+                            if changed:
+                                async_thread.run(db.update_settings("browser_custom_arguments"))
+                        else:
+                            opened = 0
+                            closed = True
+                        return opened, closed
+                    utils.push_popup(custom_browser_popup)
             else:
                 imgui.table_next_row()
                 imgui.table_next_column()
