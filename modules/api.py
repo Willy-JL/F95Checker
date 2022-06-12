@@ -187,7 +187,7 @@ async def check(game: Game, full=False, standalone=False):
                 return ""
             value = ""
             for sibling in elem.next_siblings:
-                if sibling.name == "b":
+                if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
                     break
                 stripped = sibling.text.strip()
                 if stripped == ":" or stripped == "":
