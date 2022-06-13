@@ -1547,7 +1547,7 @@ class MainGUI():
                     return
                 results = await api.quick_search(query)
                 if not results:
-                    utils.push_popup(msgbox.msgbox, "No results!", f"The search query \"{query}\" returned no results!", MsgBox.warn)
+                    utils.push_popup(msgbox.msgbox, "No results", f"The search query \"{query}\" returned no results.", MsgBox.warn)
                     return
                 def popup_content():
                     imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")

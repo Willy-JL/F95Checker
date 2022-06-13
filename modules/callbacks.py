@@ -47,7 +47,7 @@ def update_start_with_system(toggle: bool):
                 globals.autostart.unlink()
         globals.start_with_system = toggle
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Start with system error", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
 
 
 def _launch(path: str | pathlib.Path):
@@ -119,9 +119,9 @@ def launch_game_exe(game: Game):
                 "󰄬 Yes": reset_callback,
                 "󰜺 No": None
             }
-            utils.push_popup(msgbox.msgbox, "File not found!", "The selected executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
+            utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
         except Exception:
-            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong launching {game.name}:\n\n{utils.get_traceback()}", MsgBox.error)
+            utils.push_popup(msgbox.msgbox, "Game launch error", f"Something went wrong launching {game.name}:\n\n{utils.get_traceback()}", MsgBox.error)
     if not game.executable:
         def select_callback(selected):
             if selected:
@@ -143,7 +143,7 @@ def open_game_folder(game: Game):
             "󰄬 Yes": reset_callback,
             "󰜺 No": None
         }
-        utils.push_popup(msgbox.msgbox, "No such folder!", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
+        utils.push_popup(msgbox.msgbox, "Folder not found", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
         return
     if globals.os is Os.Windows:
         os.startfile(str(dir))
@@ -166,7 +166,7 @@ def open_game_folder(game: Game):
 def open_webpage(url: str):
     set = globals.settings
     if set.browser is Browser._None:
-        utils.push_popup(msgbox.msgbox, "Browser", "Please select a browser in order to open webpages!", MsgBox.warn)
+        utils.push_popup(msgbox.msgbox, "Browser not set", "Please select a browser in order to open webpages.", MsgBox.warn)
         return
     name = set.browser.name
     if set.browser is Browser.Custom:
@@ -191,7 +191,7 @@ def open_webpage(url: str):
                 stderr=subprocess.DEVNULL
             )
         except Exception:
-            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error)
+            utils.push_popup(msgbox.msgbox, "Open webpage error", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error)
     if globals.settings.browser_html:
         async def _fetch_open_page():
             html = await api.download_webpage(url)

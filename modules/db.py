@@ -334,7 +334,7 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
             elif path.suffix == ".ini":
                 config = legacy_ini_to_dict(path)
             else:
-                utils.push_popup(msgbox.msgbox, "Unsupported format!", f"Could not migrate {str(path)}\n The only supported formats are .json and .ini!", MsgBox.warn)
+                utils.push_popup(msgbox.msgbox, "Unsupported format", f"Could not migrate {str(path)}\nThe only supported formats are .json and .ini.", MsgBox.warn)
                 return
         keys = []
         values = []
@@ -475,4 +475,4 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                 """, tuple(values))
         await save()
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong migrating {str(path)}:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong migrating {str(path)}:\n\n{utils.get_traceback()}", MsgBox.error)
