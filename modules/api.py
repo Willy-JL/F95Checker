@@ -116,8 +116,8 @@ async def quick_search(query: str):
     if not await assert_login():
         return
     async with request("POST", globals.qsearch_endpoint, data={
-                    "title": query,
-                    "_xfToken": globals.token
+        "title": query,
+        "_xfToken": globals.token
     }) as req:
         raw = await req.read()
     html = bs4.BeautifulSoup(raw, "lxml")
