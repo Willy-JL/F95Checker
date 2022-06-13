@@ -129,10 +129,7 @@ async def download_webpage(url: str):
 async def quick_search(query: str):
     if not await assert_login():
         return
-    async with request("POST", globals.qsearch_endpoint, data={
-        "title": query,
-        "_xfToken": globals.token
-    }) as req:
+    async with request("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token}) as req:
         raw = await req.read()
     html = bs4.BeautifulSoup(raw, "lxml")
     results = []
@@ -220,6 +217,8 @@ async def check(game: Game, full=False, login=False):
         return
 
     with full_counter:
+        first_check_on_this_version = game.last_refresh_version != globals.version
+
         def game_has_prefixes(*names: list[str]):
             for name in names:
                 if head.find("span", text=f"[{name}]"):
@@ -366,7 +365,7 @@ async def check(game: Game, full=False, login=False):
 
         # Do not reset played checkbox if first refresh on this version
         played = game.played
-        if version != old_version and game.last_refresh_version == globals.version:
+        if version != old_version and not first_check_on_this_version:
             played = False
         last_refresh_version = globals.version
 
@@ -408,7 +407,7 @@ async def check(game: Game, full=False, login=False):
             game.image_url = image_url
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
 
-            if old_status is not Status.Not_Yet_Checked and game.last_refresh_version == globals.version and (
+            if old_status is not Status.Not_Yet_Checked and not first_check_on_this_version and (
                 name != old_name or
                 version != old_version or
                 developer != old_developer or
