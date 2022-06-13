@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import tempfile
+import pathlib
 import sys
 
 
@@ -36,6 +38,12 @@ def main():
 
     async_thread.wait(db.close())
     async_thread.wait(api.shutdown())
+
+    for file in pathlib.Path(tempfile.gettempdir()).glob("F95Checker-*"):
+        try:
+            file.unlink()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
