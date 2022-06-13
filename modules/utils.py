@@ -38,6 +38,7 @@ def push_popup(*args, **kwargs):
     else:
         popup_func = args[0]
     globals.popup_stack.append(popup_func)
+    return popup_func
 
 
 def is_refreshing():

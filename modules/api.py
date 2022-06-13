@@ -5,6 +5,7 @@ import tempfile
 import aiohttp
 import asyncio
 import time
+import json
 import bs4
 import os
 import re
@@ -55,22 +56,35 @@ def request(method: str, url: str, **kwargs):
     )
 
 
+def raise_f95zone_error(raw: bytes):
+    if b"<title>Log in | F95zone</title>" in raw:
+        raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
+    if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in raw:
+        raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
+    # if b"<title>DDOS-GUARD</title>" in data:
+    #     raise Exception("Captcha needed!")
+
+
 async def is_logged_in():
     async with request("GET", globals.check_login_page) as req:
-        data = await req.content.readuntil(b"_xfToken")
-        data += await req.content.readuntil(b">")
-        start = data.rfind(b'value="') + len(b'value="')
-        end = data.find(b'"', start)
-        globals.token = str(data[start:end], encoding="utf-8")
-        if not 200 <= req.status < 300:  # FIXME
-            data += await req.content.read()
-            if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in data:
-                raise msgbox.Exc("Backups", "F95Zone is currently running some backups,\nplease retry in a few minutes!", MsgBox.warn)
-            # if b"<title>DDOS-GUARD</title>" in data:
-            #     raise Exception("Captcha needed!")
-            print(data)
-            print(req.status)
-        return 200 <= req.status < 300
+        raw = await req.content.readuntil(b"_xfToken")
+        raw += await req.content.readuntil(b">")
+        start = raw.rfind(b'value="') + len(b'value="')
+        end = raw.find(b'"', start)
+        globals.token = str(raw[start:end], encoding="utf-8")
+        if not 200 <= req.status < 300:
+            raw += await req.content.read()
+            try:
+                raise_f95zone_error(raw)
+            except msgbox.Exc as exc:
+                if exc.title == "Login expired":
+                    globals.popup_stack.remove(exc.popup)
+                    return False
+                raise
+            with open(globals.self_path / "login_broken.bin", "wb") as f:
+                f.write(raw)
+            raise msgbox.Exc("Login assertion failure", f"Something went wrong checking the validity of your login session.\n\nF95Zone replied with a status code of {req.status} at this URL:\n{str(req.real_url)}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}login_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+        return True
 
 
 async def login():
@@ -153,6 +167,7 @@ async def import_bookmarks():
         globals.refresh_progress += 1
         async with request("GET", globals.bookmarks_page, params={"difference": diff}) as req:
             raw = await req.read()
+        raise_f95zone_error(raw)
         html = bs4.BeautifulSoup(raw, "lxml")
         bookmarks = html.find(is_class("p-body-pageContent")).find(is_class("listPlain"))
         if not bookmarks:
@@ -175,6 +190,7 @@ async def import_watched_threads():
         globals.refresh_progress += 1
         async with request("GET", globals.watched_page, params={"unread": 0, "page": page}) as req:
             raw = await req.read()
+        raise_f95zone_error(raw)
         html = bs4.BeautifulSoup(raw, "lxml")
         watched = html.find(is_class("p-body-pageContent")).find(is_class("structItemContainer"))
         if not watched:
@@ -185,8 +201,8 @@ async def import_watched_threads():
     await callbacks.add_games(*threads)
 
 
-async def check(game: Game, full=False, standalone=False):
-    if standalone:
+async def check(game: Game, full=False, login=False):
+    if login:
         globals.refresh_total = 2
         if not await assert_login():
             return
@@ -195,11 +211,11 @@ async def check(game: Game, full=False, standalone=False):
     full = full or game.last_full_refresh < time.time() - full_check_interval or game.image.missing
     if not full:
         async with request("HEAD", game.url) as req:
-            if (redirect := str(req.real_url)) != game.url:  # FIXME
+            if (redirect := str(req.real_url)) != game.url:
                 if str(game.id) in redirect and redirect.startswith(globals.threads_page):
                     full = True
                 else:
-                    print(redirect)
+                    raise msgbox.Exc("Bad HEAD response", f"Something went wrong checking {game.id}, F95Zone responded with an unexpected redirect.\n\nThe quick check HEAD request redirected to:\n{redirect}", MsgBox.error)
     if not full:
         return
 
@@ -244,24 +260,22 @@ async def check(game: Game, full=False, standalone=False):
             return value
 
         async with request("GET", game.url) as req:
+            if req.status == 404:
+                buttons = {
+                    "󰄬 Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                    "󰜺 No": None
+                }
+                raise msgbox.Exc("Thread not found", f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was deleted.\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
             raw = await req.read()
+        raise_f95zone_error(raw)
         html = bs4.BeautifulSoup(raw, "lxml")
 
-        if html.find(is_text("the requested thread could not be found.")):
-            buttons = {
-                "󰄬 Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
-                "󰜺 No": None
-            }
-            raise msgbox.Exc("Not found!", f"The F95Zone thread for {game.name} could not be found!\nIt is possible it was deleted.\n\nDo you want to remove {game.name} from your list?", buttons=buttons)
-
-        try:
-            head = html.find(is_class("p-body-header"))
-            post = html.find(is_class("message-threadStarterPost"))
-        finally:
-            if head is None or post is None:
-                with open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
-                    f.write(raw)
-                raise msgbox.Exc("Parse error!", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub!")
+        head = html.find(is_class("p-body-header"))
+        post = html.find(is_class("message-threadStarterPost"))
+        if head is None or post is None:
+            with open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
+                f.write(raw)
+            raise msgbox.Exc("Thread parsing error", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
 
         old_name = game.name
         name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
@@ -433,17 +447,23 @@ async def check(game: Game, full=False, standalone=False):
                     game.image.resolve()
 
 
-async def check_notifs(standalone=False):
-    if standalone:
+async def check_notifs(login=False):
+    if login:
         globals.refresh_total = 2
         if not await assert_login():
             return
         globals.refresh_progress = 1
 
     async with request("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as req:
-        res = await req.json()  # FIXME
-        alerts = int(res["visitor"]["alerts_unread"])
-        inbox  = int(res["visitor"]["conversations_unread"])
+        try:
+            raw = await req.read()
+            res = json.loads(raw)
+            alerts = int(res["visitor"]["alerts_unread"])
+            inbox  = int(res["visitor"]["conversations_unread"])
+        except Exception:
+            with open(globals.self_path / "notifs_broken.bin", "wb") as f:
+                f.write(raw)
+            raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     if alerts != 0 and inbox != 0:
         title = "Notifications"
         msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''}).\n\nDo you want to view them?"

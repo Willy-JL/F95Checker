@@ -581,7 +581,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            utils.start_refresh_task(api.check(game, full=True, standalone=True))
+            utils.start_refresh_task(api.check(game, full=True, login=True))
 
     def draw_game_context_menu(self, game: Game):
         self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)
@@ -1623,7 +1623,7 @@ class MainGUI():
             if imgui.begin_popup_context_item(f"##refresh_context"):
                 # Right click = more options context menu
                 if imgui.selectable("󰅸 Only notifs", False)[0]:
-                    utils.start_refresh_task(api.check_notifs(standalone=True))
+                    utils.start_refresh_task(api.check_notifs(login=True))
                 if imgui.selectable("󱄋 Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
                 imgui.separator()

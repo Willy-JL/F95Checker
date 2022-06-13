@@ -46,6 +46,7 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typ
 
 
 class Exc(Exception):
-    def __init__(self, title:str, message: str, type=MsgBox.error, buttons: dict[str, typing.Callable] = None):
-        utils.push_popup(msgbox, title, message, type, buttons)
-        super().__init__(message)
+    def __init__(self, title:str, message: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True):
+        self.title = title
+        self.message = message
+        self.popup = utils.push_popup(msgbox, title, message, type, buttons)
