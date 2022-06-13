@@ -208,7 +208,7 @@ async def check(game: Game, full=False, login=False):
             return
         globals.refresh_progress = 1
 
-    full = full or game.last_full_refresh < time.time() - full_check_interval or game.image.missing
+    full = full or (game.last_full_refresh < time.time() - full_check_interval) or (game.image.missing and game.image_url != "-")
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:
@@ -382,16 +382,14 @@ async def check(game: Game, full=False, login=False):
                     tag = tag.replace("/tags/", "").strip("/")
                     tags.append(Tag._members_[tag])
 
-        if globals.settings.update_keep_image and game.image_url:
-            image_url = game.image_url
-            fetch_image = game.image.missing
+        elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
+        if elem:
+            image_url = elem.get("data-src")
         else:
-            elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
-            if elem:
-                image_url = elem.get("data-src")
-            else:
-                image_url = game.image_url
-            fetch_image = (image_url != game.image_url) or game.image.missing
+            image_url = "-"
+        fetch_image = game.image.missing
+        if not globals.settings.update_keep_image:
+            fetch_image = fetch_image or (image_url != game.image_url)
 
         with contextlib.suppress(asyncio.CancelledError):
             game.name = name
@@ -429,7 +427,7 @@ async def check(game: Game, full=False, login=False):
                 )
                 updated_games[game.id] = old_game
 
-        if fetch_image and image_url:
+        if fetch_image and image_url and image_url != "-":
             async with image_counter, image_sem:
                 async with request("GET", image_url) as req:
                     raw = await req.read()
@@ -442,7 +440,6 @@ async def check(game: Game, full=False, login=False):
                             pass
                     with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
                         f.write(raw)
-                    await asyncio.sleep(0)
                     game.image.loaded = False
                     game.image.resolve()
 

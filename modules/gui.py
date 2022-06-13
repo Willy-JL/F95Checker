@@ -744,7 +744,7 @@ class MainGUI():
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
                 self.draw_hover_text(
                     text=text,
-                    hover_text="Run a full refresh to try downloading it again!"
+                    hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
                 )
             else:
                 aspect_ratio = image.height / image.width
@@ -1366,7 +1366,7 @@ class MainGUI():
                         imgui.set_cursor_pos((text_pos.x + (width - text_size.x) / 2, text_pos.y + height / 2))
                         self.draw_hover_text(
                             text=text,
-                            hover_text="Run a full refresh to try downloading it again!"
+                            hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
                         )
                         imgui.set_cursor_pos(text_pos)
                     imgui.dummy(width, height)
