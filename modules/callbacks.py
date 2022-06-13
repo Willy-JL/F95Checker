@@ -168,7 +168,6 @@ def open_webpage(url: str):
     if set.browser is Browser._None:
         utils.push_popup(msgbox.msgbox, "Browser", "Please select a browser in order to open webpages!", MsgBox.warn)
         return
-    # TODO: download pages
     name = set.browser.name
     if set.browser is Browser.Custom:
         name = "your browser"

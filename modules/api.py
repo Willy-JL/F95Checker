@@ -432,8 +432,6 @@ async def check(game: Game, full=False, standalone=False):
                     game.image.loaded = False
                     game.image.resolve()
 
-        # TODO: show updated games
-
 
 async def check_notifs(standalone=False):
     if standalone:
