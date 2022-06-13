@@ -144,8 +144,9 @@ def open_game_folder(game: Game):
             "󰜺 No": None
         }
         utils.push_popup(msgbox.msgbox, "No such folder!", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
+        return
     if globals.os is Os.Windows:
-        os.startfile(str(dir))  # TODO: Needs testing
+        os.startfile(str(dir))
     else:
         if globals.os is Os.Linux:
             open_util = "xdg-open"
