@@ -147,7 +147,7 @@ else:
 Browser._avail_.append(Browser.Custom.name)
 
 if frozen:
-    start_cmd = sys.executable
+    start_cmd = shlex.join([sys.executable])
 else:
     import main
     start_cmd = shlex.join([sys.executable, main.__file__])
