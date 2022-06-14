@@ -124,6 +124,7 @@ class MainGUI():
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
         if pos:
             glfw.set_window_pos(self.window, *pos)
+        self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_tray:
             self.minimize()
         icon_path = globals.self_path / "resources/icons/icon.png"
