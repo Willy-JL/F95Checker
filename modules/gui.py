@@ -476,6 +476,12 @@ class MainGUI():
         imgui.pop_style_color(3)
         imgui.pop_style_var(2)
 
+    def draw_game_name_text(self, game: Game, *args, **kwargs):
+        if game.played:
+            imgui.text(game.name, *args, **kwargs)
+        else:
+            imgui.text_colored(game.name,*globals.settings.style_accent, *args, **kwargs)
+
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
             return f"Installed: {game.installed}  -  Latest: {game.version}"
@@ -811,7 +817,7 @@ class MainGUI():
             imgui.push_text_wrap_pos()
 
             imgui.push_font(self.big_font)
-            imgui.text(game.name)
+            self.draw_game_name_text(game)
             imgui.pop_font()
 
             self.draw_game_play_button(game, label="󰐊 Play")
@@ -1218,7 +1224,7 @@ class MainGUI():
                 if self.edit_mode:
                     self.draw_game_remove_button(game, label="󰩺")
                     imgui.same_line()
-                imgui.text(game.name)
+                self.draw_game_name_text(game)
                 if version_enabled:
                     imgui.same_line()
                     imgui.text_disabled(self.get_game_version_text(game))
@@ -1386,9 +1392,8 @@ class MainGUI():
                     self.draw_game_remove_button(game, label="󰩺")
                     imgui.set_cursor_pos(old_pos)
                 # Name
-                name = game.name
-                did_wrap = imgui.calc_text_size(name).x > imgui.get_content_region_available_width()
-                imgui.text(name)
+                did_wrap = imgui.calc_text_size(game.name).x > imgui.get_content_region_available_width()
+                self.draw_game_name_text(game)
                 if version_enabled:
                     imgui.same_line()
                     version = self.get_game_version_text(game)
