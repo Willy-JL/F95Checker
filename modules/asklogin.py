@@ -1,7 +1,9 @@
 from PyQt6 import QtCore, QtGui, QtWebEngineCore, QtWebEngineWidgets, QtWidgets
-import multiprocessing
 import pathlib
+import json
 import sys
+import os
+import io
 
 
 class QCookieWebEngineView(QtWebEngineWidgets.QWebEngineView):
@@ -36,9 +38,18 @@ class QCookieWebEngineView(QtWebEngineWidgets.QWebEngineView):
         return super().closeEvent(event)
 
 
-def asklogin(url: str, queue: multiprocessing.Queue):
+def asklogin(url: str):
     # Subprocess for login webview, Qt WebEngine didn't
     # like running alongside another OpenGL application
+
+    # Redirect stdout to avoid cookie pollution
+    original_stdout_fd = sys.stdout.fileno()
+    saved_stdout_fd = os.dup(original_stdout_fd)
+    sys.stdout.close()
+    os.dup2(sys.stderr.fileno(), original_stdout_fd)
+    sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, 'wb'))
+
+    # Show login window
     app = QtWidgets.QApplication(sys.argv)
     weblogin = QCookieWebEngineView()
     weblogin.setWindowTitle("Please login...")
@@ -50,4 +61,9 @@ def asklogin(url: str, queue: multiprocessing.Queue):
     weblogin.show()
     weblogin.setUrl(QtCore.QUrl(url))
     app.exec()
-    queue.put(weblogin.cookies)
+
+    # Restore stdout and pass cookies
+    sys.stdout.close()
+    os.dup2(saved_stdout_fd, original_stdout_fd)
+    sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, 'wb'))
+    sys.stdout.write(json.dumps(weblogin.cookies))

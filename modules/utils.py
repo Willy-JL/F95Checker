@@ -1,6 +1,7 @@
 import OpenGL.GL as gl
 import functools
 import traceback
+import weakref
 import typing
 import imgui
 import glfw
@@ -65,6 +66,24 @@ def get_traceback(*exc_info: list):
     tb_lines = traceback.format_exception(*exc_info)
     tb = "".join(tb_lines)
     return tb
+
+
+class daemon():
+    def __init__(self, proc):
+        self.finalize = weakref.finalize(proc, self.kill, proc)
+
+    @staticmethod
+    def kill(proc):
+        if hasattr(proc, "returncode") and proc.returncode is None:
+            proc.kill()
+        elif hasattr(proc, "poll") and proc.poll() is None:
+            proc.kill()
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *_):
+        self.finalize()
 
 
 # https://github.com/pyimgui/pyimgui/blob/24219a8d4338b6e197fa22af97f5f06d3b1fe9f7/doc/examples/integrations_glfw3.py

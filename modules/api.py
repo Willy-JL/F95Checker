@@ -1,9 +1,10 @@
-import multiprocessing
 import datetime as dt
+import subprocess
 import contextlib
 import tempfile
 import aiohttp
 import asyncio
+import shlex
 import time
 import json
 import bs4
@@ -11,7 +12,7 @@ import os
 import re
 
 from modules.structs import CounterContext, Game, MsgBox, OldGame, SearchResult, Status, Tag, Type
-from modules import globals, asklogin, async_thread, callbacks, db, msgbox, utils
+from modules import globals, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
 full_check_interval = int(dt.timedelta(days=7).total_seconds())
@@ -88,21 +89,18 @@ async def is_logged_in():
 
 
 async def login():
-    ctx = multiprocessing.get_context("spawn")
-    queue = ctx.Queue()
-    proc = ctx.Process(target=asklogin.asklogin, args=(globals.login_page, queue,), daemon=True)
     try:
-        proc.start()
-        while queue.empty():
-            if not proc.is_alive():
-                raise msgbox.Exc("Login window failure", f"Something went wrong opening the login window. The \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
-            await asyncio.sleep(0.5)
-    except asyncio.CancelledError:
-        proc.kill()
-        raise
-    with contextlib.suppress(asyncio.CancelledError):
-        new_cookies = queue.get()
-        await db.update_cookies(new_cookies)
+        proc = await asyncio.create_subprocess_exec(
+            *shlex.split(globals.start_cmd), "asklogin", globals.login_page,
+            stdout=subprocess.PIPE
+        )
+        with utils.daemon(proc):
+            data = await proc.communicate()
+        with contextlib.suppress(asyncio.CancelledError):
+            new_cookies = json.loads(data[0])
+            await db.update_cookies(new_cookies)
+    except Exception:
+        raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
 
 
 async def assert_login():
