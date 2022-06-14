@@ -1,5 +1,4 @@
 # https://gist.github.com/Willy-JL/2473ab16e27d4c8d8c0c4d7bcb81a5ee
-import multiprocessing
 import sys
 import os
 
@@ -8,9 +7,6 @@ singleton = None
 
 class Singleton:
     def __init__(self, app_id: str):
-        if multiprocessing.current_process().name != "MainProcess":
-            self.lock = None
-            return
         if os.name == 'nt':
             # Requirement: pip install pywin32
             import win32api, win32event, winerror
