@@ -94,7 +94,9 @@ async def login():
     try:
         proc.start()
         while queue.empty():
-            await asyncio.sleep(0.1)
+            if not proc.is_alive():
+                raise msgbox.Exc("Login window failure", f"Something went wrong opening the login window. The \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+            await asyncio.sleep(0.5)
     except asyncio.CancelledError:
         proc.kill()
         raise
