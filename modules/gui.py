@@ -1141,10 +1141,10 @@ class MainGUI():
             can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             # Regular columns
             imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
-            imgui.table_setup_column("Type", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
+            imgui.table_setup_column("Type", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
             imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
             imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
-            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
+            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
             imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
             imgui.table_setup_column("Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
             imgui.table_setup_column("Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
