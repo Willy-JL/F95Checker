@@ -205,7 +205,8 @@ async def check(game: Game, full=False, login=False):
             return
         globals.refresh_progress = 1
 
-    full = full or (game.last_full_refresh < time.time() - full_check_interval) or (game.image.missing and game.image_url != "-")
+    skip_first_check_for_version = game.last_refresh_version != globals.version
+    full = full or (game.last_full_refresh < time.time() - full_check_interval) or (game.image.missing and game.image_url != "-") or skip_first_check_for_version
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:
@@ -217,7 +218,6 @@ async def check(game: Game, full=False, login=False):
         return
 
     with full_counter:
-        first_check_on_this_version = game.last_refresh_version != globals.version
 
         def game_has_prefixes(*names: list[str]):
             for name in names:
@@ -365,7 +365,7 @@ async def check(game: Game, full=False, login=False):
 
         # Do not reset played checkbox if first refresh on this version
         played = game.played
-        if version != old_version and not first_check_on_this_version:
+        if version != old_version and not skip_first_check_for_version:
             played = False
         last_refresh_version = globals.version
 
@@ -387,8 +387,24 @@ async def check(game: Game, full=False, login=False):
         else:
             image_url = "-"
         fetch_image = game.image.missing
-        if not globals.settings.update_keep_image:
+        if not globals.settings.update_keep_image and not skip_first_check_for_version:
             fetch_image = fetch_image or (image_url != game.image_url)
+
+        if fetch_image and image_url and image_url != "-":
+            async with image_counter, image_sem:
+                async with request("GET", image_url) as req:
+                    raw = await req.read()
+                ext = image_url[image_url.rfind("."):]
+                with contextlib.suppress(asyncio.CancelledError):
+                    for img in globals.images_path.glob(f"{game.id}.*"):
+                        try:
+                            img.unlink()
+                        except Exception:
+                            pass
+                    with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
+                        f.write(raw)
+                    game.image.loaded = False
+                    game.image.resolve()
 
         with contextlib.suppress(asyncio.CancelledError):
             game.name = name
@@ -407,7 +423,7 @@ async def check(game: Game, full=False, login=False):
             game.image_url = image_url
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
 
-            if old_status is not Status.Not_Yet_Checked and not first_check_on_this_version and (
+            if old_status is not Status.Not_Yet_Checked and not skip_first_check_for_version and (
                 name != old_name or
                 version != old_version or
                 developer != old_developer or
@@ -425,22 +441,6 @@ async def check(game: Game, full=False, login=False):
                     tags=old_tags
                 )
                 updated_games[game.id] = old_game
-
-        if fetch_image and image_url and image_url != "-":
-            async with image_counter, image_sem:
-                async with request("GET", image_url) as req:
-                    raw = await req.read()
-                ext = image_url[image_url.rfind("."):]
-                with contextlib.suppress(asyncio.CancelledError):
-                    for img in globals.images_path.glob(f"{game.id}.*"):
-                        try:
-                            img.unlink()
-                        except Exception:
-                            pass
-                    with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
-                        f.write(raw)
-                    game.image.loaded = False
-                    game.image.resolve()
 
 
 async def check_notifs(login=False):
