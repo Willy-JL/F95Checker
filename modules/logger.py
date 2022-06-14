@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 import sys
 import re
+import io
 import os
 
 # Fix missing streams
@@ -16,6 +17,7 @@ _stdin  = sys.stdin
 
 # Used to temporarily stop output to log file
 _pause_file_output = False
+_path = "log.txt"
 
 
 def _file_write(message, no_color=True):
@@ -24,7 +26,7 @@ def _file_write(message, no_color=True):
     if no_color:
         message = re.sub("\\x1b\[38;2;\d\d?\d?;\d\d?\d?;\d\d?\d?m", "", message)
         message = re.sub("\\x1b\[\d\d?\d?m",                        "", message)
-    with open(f"log.txt", "a", encoding="utf-8") as log:
+    with open(_path, "a", encoding="utf-8") as log:
         log.write(message)
 
 class __stdout_override():
@@ -67,17 +69,28 @@ def pause_file_output():
 pause = pause_file_output
 
 
-def install():
-    # Create / clear log file
-    try:
-        open("log.txt", "w").close()
-    except Exception:
-        pass
-
-    # Apply overrides
-    sys.stdout = __stdout_override()
-    sys.stderr = __stderr_override()
-    sys.stdin  = __stdin_override ()
+def install(path=_path, lowlevel=False):
+    global _path
+    _path = str(path)
+    if lowlevel:
+        print(f"Redirecting stdout and stderr to {_path}")
+        log = open(str(_path), "wb")
+        # Redirect
+        os.dup2(log.fileno(), sys.stdout.fileno())
+        os.dup2(log.fileno(), sys.stderr.fileno())
+        # Buffer wrap
+        sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), "wb"))
+        sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), "wb"))
+    else:
+        # Create / clear log file
+        try:
+            open(_path, "w").close()
+        except Exception:
+            pass
+        # Apply overrides
+        sys.stdout = __stdout_override()
+        sys.stderr = __stderr_override()
+        sys.stdin  = __stdin_override ()
 
 
 # Example usage

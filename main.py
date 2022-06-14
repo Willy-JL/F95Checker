@@ -1,7 +1,15 @@
 #!/usr/bin/env python
+import sys
+if sys.platform.startswith("win"):
+    # Hide conhost if frozen
+    import os
+    import ctypes
+    from win32 import win32process
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    if win32process.GetWindowThreadProcessId(hwnd)[1] == os.getpid():
+        ctypes.windll.user32.ShowWindow(hwnd, 0)
 import tempfile
 import pathlib
-import sys
 
 
 def main():
@@ -17,7 +25,7 @@ def main():
     singleton.lock("F95Checker")
 
     from modules import logger
-    logger.install()
+    logger.install(path=globals.self_path / "log.txt", lowlevel=True)
 
     from modules import async_thread, sync_thread
     async_thread.setup()

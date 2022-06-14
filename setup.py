@@ -4,12 +4,6 @@ import pathlib
 import sys
 
 
-base = None
-if sys.platform.startswith("win"):
-    # Hide console on Windows
-    base = "Win32GUI"
-
-
 bin_includes = []
 
 def bundle_libs(*libs):
@@ -37,7 +31,6 @@ cx_Freeze.setup(
     executables=[
         cx_Freeze.Executable(
             script=path / "main.py",
-            base=base,
             target_name="F95Checker",
             icon=icon
         )
