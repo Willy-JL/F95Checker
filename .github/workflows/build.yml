@@ -71,6 +71,7 @@ jobs:
         run: |
           cd ./src
           python setup.py build
+          python setup.py strip
           mv build/* dist
 
       - name: "Build macOS"
@@ -78,6 +79,7 @@ jobs:
         run: |
           cd ./src
           python setup.py bdist_mac
+          python setup.py strip
           mkdir dist/
           mv build/*.app dist/
 

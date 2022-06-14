@@ -4,6 +4,72 @@ import pathlib
 import sys
 
 
+if "strip" in sys.argv:
+    sys.argv.remove("strip")
+    import pathlib
+    import shutil
+
+    lib = next(pathlib.Path(".").glob("**/lib"))
+    def remove(pattern: str):
+        case_insensitive = ""
+        for char in pattern:
+            lower = char.lower()
+            upper = char.upper()
+            if lower != upper:
+                case_insensitive += f"[{upper}{lower}]"
+            else:
+                case_insensitive += char
+        for item in lib.glob(case_insensitive):
+            if item.is_file():
+                try:
+                    item.unlink()
+                except Exception:
+                    pass
+            elif item.is_dir():
+                shutil.rmtree(item, ignore_errors=True)
+
+    # Qt
+    qt_remove = [
+        "Bluetooth",
+        "DBus",
+        "Designer",
+        "Help",
+        "Multimedia",
+        "Nfc",
+        "OpenGL",
+        "Qml",
+        "Quick",
+        "RemoteObjects",
+        "Sensors",
+        "SerialPort",
+        "ShaderTools",
+        "Sql",
+        "Svg",
+        "Test",
+        "Wayland",
+        "WebEngineQuick",
+        "WebSockets",
+        "WlShellIntegration",
+        "XcbQpa",
+        "Xml",
+        "-plugin-wayland-egl",
+        "-shell",
+        "ga",
+        "iff",
+        "uiotouchplugin",
+    ]
+    for module in qt_remove:
+        remove(f"PyQt6/**/*Qt{module}*")
+        remove(f"PyQt6/**/*Qt6{module}*")
+    remove("PyQt6/Qt6/translations")
+    remove("PyQt6/Qt6/qsci")
+
+    # Sources
+    remove("imgui/core.cpp")
+    remove("uvloop/loop.c")
+    sys.exit()
+
+
 bin_includes = []
 
 def bundle_libs(*libs):
