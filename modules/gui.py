@@ -13,7 +13,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, Status, Tag, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, Status, Tag, TrayMsg, Type
 from modules import globals, api, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
 
 imgui.io = None
@@ -76,9 +76,9 @@ class MainGUI():
         self.watermark_text = f"F95Checker v{globals.version} by WillyJL"
 
         # Variables
-        self.visible = True
         self.focused = True
         self.size_mult = 0.0
+        self.minimized = False
         self.edit_mode = False
         self.add_box_text = ""
         self.prev_size = (0, 0)
@@ -88,6 +88,7 @@ class MainGUI():
         self.add_box_valid = False
         self.game_hitbox_click = False
         self.hovered_game: Game = None
+        self.bg_mode_timer: float = None
         self.filters: list[Filter] = []
         self.type_label_width: float = None
         self.ghost_columns_enabled_count = 0
@@ -298,25 +299,27 @@ class MainGUI():
     def minimize(self, *args, **kwargs):
         self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
-        self.visible = False
+        self.minimized = True
 
     def show(self, *args, **kwargs):
+        self.bg_mode_timer = None
         glfw.show_window(self.window)
         glfw.set_window_pos(self.window, *self.screen_pos)
-        self.visible = True
+        self.minimized = False
 
     def scaled(self, size: int | float):
         return size * self.size_mult
 
     def main_loop(self):
-        if globals.settings.start_refresh and self.visible:
+        if globals.settings.start_refresh and not self.minimized:
             utils.start_refresh_task(api.refresh())
         scroll_energy = 0.0
         while not glfw.window_should_close(self.window):
             self.qt_app.processEvents()
+            self.tray.tick_msgs()
             glfw.poll_events()
             self.impl.process_inputs()
-            if self.visible and self.focused:
+            if not self.minimized and self.focused:
 
                 # Scroll modifiers (must be before new_frame())
                 imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -329,6 +332,11 @@ class MainGUI():
                         scroll_now = 0.0
                         scroll_energy = 0.0
                     imgui.io.mouse_wheel = scroll_now
+
+                if not utils.is_refreshing() and globals.updated_games:
+                    updated_games = dict(globals.updated_games)
+                    globals.updated_games.clear()
+                    utils.push_popup(self.draw_updated_games_popup, updated_games, len(updated_games))
 
                 imgui.new_frame()
 
@@ -373,11 +381,6 @@ class MainGUI():
                 imgui.set_cursor_screen_pos((text_x, text_y))
                 imgui.text(text)
 
-                if globals.refresh_task is None and api.updated_games:
-                    updated_games = dict(api.updated_games)
-                    api.updated_games.clear()
-                    utils.push_popup(self.draw_updated_games_popup, updated_games, len(updated_games))
-
                 open_popup_count = 0
                 for popup_func in globals.popup_stack:
                     opened, closed =  popup_func()
@@ -400,8 +403,12 @@ class MainGUI():
                     async_thread.run(db.update_settings("interface_scaling"))  # Update here in case of crash
                 glfw.swap_buffers(self.window)  # Also waits idle time
             else:
-                scroll_energy = 0.0
-                imgui.io.mouse_wheel = 0
+                if self.minimized:
+                    if not self.bg_mode_timer and not utils.is_refreshing():
+                        self.bg_mode_timer = time.time() + globals.settings.tray_refresh_interval * 60
+                    elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
+                        utils.start_refresh_task(api.refresh())
+                        self.bg_mode_timer = None
                 time.sleep(0.1)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         ini = imgui.save_ini_settings_to_memory()
@@ -2371,6 +2378,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.idle_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/icon.png'))
         self.paused_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/paused.png'))
         self.refresh_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/refreshing.png'))
+        self.msg_queue: list[TrayMsg] = []
         super().__init__(self.idle_icon)
 
         self.watermark = QtGui.QAction(f"F95Checker v{globals.version}")
@@ -2389,9 +2397,18 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.setContextMenu(self.menu)
 
         self.activated.connect(self.activated_filter)
+        self.messageClicked.connect(self.main_gui.show)
 
         self.show()
 
     def activated_filter(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
         if reason in self.show_gui_events:
             self.main_gui.show()
+
+    def push_msg(self, title: str, msg: str, icon: QtWidgets.QSystemTrayIcon.MessageIcon):
+        self.msg_queue.append(TrayMsg(title=title, msg=msg, icon=icon))
+
+    def tick_msgs(self):
+        while self.msg_queue:
+            msg = self.msg_queue.pop(0)
+            self.showMessage(msg.title, msg.msg, msg.icon, 5000)

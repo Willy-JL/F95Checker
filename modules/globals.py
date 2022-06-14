@@ -39,7 +39,7 @@ github_url        = "https://github.com/Willy-JL/F95Checker"
 developer_url     = "https://linktr.ee/WillyJL"
 
 
-from modules.structs import Browser, Game, Os, Settings
+from modules.structs import Browser, Game, OldGame, Os, Settings
 from modules.gui import MainGUI
 
 if sys.platform.startswith("win"):
@@ -195,3 +195,4 @@ settings: Settings = None
 refresh_task: Future = None
 games: dict[int, Game] = None
 cookies: dict[str, str] = None
+updated_games: dict[int, OldGame] = {}

@@ -1,6 +1,8 @@
+from PyQt6.QtWidgets import QSystemTrayIcon
 import dataclasses
 import datetime
 import enum
+import os
 
 
 class CounterContext:
@@ -55,6 +57,20 @@ class SearchResult:
     title: str
     url: str
     id: int
+
+
+@dataclasses.dataclass
+class TrayMsg:
+    title: str
+    msg: str
+    icon: QSystemTrayIcon.MessageIcon
+
+    def __post_init__(self):
+        # KDE Plasma for some reason doesn't dispatch clicks if the icon is not critical
+        if os.environ.get("DESKTOP_SESSION") == "plasma" or \
+        os.environ.get("XDG_SESSION_DESKTOP") == "KDE" or \
+        os.environ.get("XDG_CURRENT_DESKTOP") == "KDE":
+            self.icon = QSystemTrayIcon.MessageIcon.Critical
 
 
 class EnumNameHack(enum.Enum):

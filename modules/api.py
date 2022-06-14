@@ -1,3 +1,4 @@
+from PyQt6.QtWidgets import QSystemTrayIcon
 import datetime as dt
 import subprocess
 import contextlib
@@ -19,7 +20,6 @@ full_check_interval = int(dt.timedelta(days=7).total_seconds())
 image_sem = asyncio.Semaphore(2)
 image_counter = CounterContext()
 full_counter = CounterContext()
-updated_games: dict[int, OldGame] = {}
 
 
 def is_text(text: str):
@@ -78,7 +78,7 @@ async def is_logged_in():
             try:
                 raise_f95zone_error(raw)
             except msgbox.Exc as exc:
-                if exc.title == "Login expired":
+                if exc.title == "Login expired" and not globals.gui.minimized:
                     globals.popup_stack.remove(exc.popup)
                     return False
                 raise
@@ -440,7 +440,7 @@ async def check(game: Game, full=False, login=False):
                     status=old_status,
                     tags=old_tags
                 )
-                updated_games[game.id] = old_game
+                globals.updated_games[game.id] = old_game
 
 
 async def check_notifs(login=False):
@@ -461,14 +461,11 @@ async def check_notifs(login=False):
                 f.write(raw)
             raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     if alerts != 0 and inbox != 0:
-        title = "Notifications"
-        msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''}).\n\nDo you want to view them?"
+        msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})."
     elif alerts != 0 and inbox == 0:
-        title = "Alerts"
-        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}.\n\nDo you want to view {'them' if alerts > 1 else 'it'}?"
+        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}."
     elif alerts == 0 and inbox != 0:
-        title = "Inbox"
-        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}.\n\nDo you want to view {'them' if inbox > 1 else 'it'}?"
+        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}."
     else:
         return
     def open_callback():
@@ -480,7 +477,12 @@ async def check_notifs(login=False):
         "󰄬 Yes": open_callback,
         "󰜺 No": None
     }
-    utils.push_popup(msgbox.msgbox, title, msg, MsgBox.info, buttons)
+    for popup in globals.popup_stack:
+        if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("Notifications##"):
+            globals.popup_stack.remove(popup)
+    utils.push_popup(msgbox.msgbox, "Notifications", msg + f"\n\nDo you want to view {'them' if (alerts + inbox) > 1 else 'it'}?", MsgBox.info, buttons)
+    if globals.gui.minimized or not globals.gui.focused:
+        globals.gui.tray.push_msg(title="Notifications", msg=msg + ".\nClick here to view them.", icon=QSystemTrayIcon.MessageIcon.Information)
 
 
 async def refresh(full=False):

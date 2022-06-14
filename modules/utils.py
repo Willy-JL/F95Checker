@@ -1,14 +1,16 @@
+from PyQt6.QtWidgets import QSystemTrayIcon
 import OpenGL.GL as gl
 import functools
 import traceback
 import weakref
 import typing
+import random
 import imgui
 import glfw
 import sys
 import re
 
-from modules import globals, async_thread
+from modules import globals, async_thread, msgbox
 
 
 def hex_to_rgba_0_1(hex):
@@ -33,15 +35,6 @@ def rgba_0_1_to_hex(rgba):
     return f"#{r}{g}{b}{a}"
 
 
-def push_popup(*args, **kwargs):
-    if len(args) + len(kwargs) > 1:
-        popup_func = functools.partial(*args, **kwargs)
-    else:
-        popup_func = args[0]
-    globals.popup_stack.append(popup_func)
-    return popup_func
-
-
 def is_refreshing():
     if globals.refresh_task and not globals.refresh_task.done():
         return True
@@ -57,6 +50,8 @@ def start_refresh_task(coro: typing.Coroutine):
     def done_callback(*_):
         globals.refresh_task = None
         globals.gui.require_sort = True
+        if (globals.gui.minimized or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
+            globals.gui.tray.push_msg(title="Updated games", msg=f"{count} of your games {'has' if count == 1 else 'have'} received updates, click here to view {'it' if count == 1 else 'them'}.", icon=QSystemTrayIcon.MessageIcon.Information)
     globals.refresh_task.add_done_callback(done_callback)
 
 
@@ -153,7 +148,7 @@ def clean_thread_url(url: str):
     return f"{globals.threads_page}{thread}/"
 
 
-from modules.structs import ThreadMatch
+from modules.structs import MsgBox, ThreadMatch
 
 def extract_thread_matches(text: str) -> list[ThreadMatch]:
     matches = []
@@ -197,3 +192,17 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
         opened = 0
         closed = True
     return opened, closed
+
+
+def push_popup(*args, **kwargs):
+    if len(args) + len(kwargs) > 1:
+        if args[0] is popup or args[0] is msgbox.msgbox:
+            args = list(args)
+            args[1] = args[1] + "##" + "".join((random.choice('0123456789') for _ in range(8)))
+        popup_func = functools.partial(*args, **kwargs)
+    else:
+        popup_func = args[0]
+    globals.popup_stack.append(popup_func)
+    if (globals.gui.minimized or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] is MsgBox.warn or args[3] is MsgBox.error):
+        globals.gui.tray.push_msg(title="Oops", msg="Something went wrong, click here to view the error.", icon=QSystemTrayIcon.MessageIcon.Critical)
+    return popup_func
