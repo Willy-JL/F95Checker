@@ -2398,7 +2398,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             self.main_gui.bg_mode_paused = not self.main_gui.bg_mode_paused
             if self.main_gui.bg_mode_paused:
                 self.main_gui.bg_mode_timer = None
-            self.update()
+            self.update_status()
         self.toggle_pause = QtGui.QAction("Pause Auto Refresh")
         self.toggle_pause.triggered.connect(update_pause)
 
