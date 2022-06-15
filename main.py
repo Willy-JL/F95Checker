@@ -24,8 +24,9 @@ def main():
     from modules import singleton
     singleton.lock("F95Checker")
 
-    from modules import logger
-    logger.install(path=globals.self_path / "log.txt", lowlevel=True)
+    if globals.frozen:
+        from modules import logger
+        logger.install(path=globals.self_path / "log.txt", lowlevel=True)
 
     from modules import async_thread, sync_thread
     async_thread.setup()
