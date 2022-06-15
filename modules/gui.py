@@ -323,7 +323,7 @@ class MainGUI():
             self.tray.tick_msgs()
             glfw.poll_events()
             self.impl.process_inputs()
-            if not self.minimized and self.focused:
+            if not self.minimized:
 
                 # Scroll modifiers (must be before new_frame())
                 imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -413,7 +413,7 @@ class MainGUI():
                         self.tray.update_status()
                     elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
                         utils.start_refresh_task(api.refresh())
-                time.sleep(0.1)
+                time.sleep(0.01)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         ini = imgui.save_ini_settings_to_memory()
         try:
