@@ -683,6 +683,11 @@ class MainGUI():
                 imgui.text(old_game.name)
                 imgui.pop_font()
 
+                imgui.spacing()
+                imgui.text_disabled(f"Update date:")
+                imgui.same_line()
+                imgui.text(game.last_updated.display)
+
                 for attr in ("name", "version", "developer"):
                     old_val =  getattr(old_game, attr) or "Unknown"
                     new_val =  getattr(game, attr) or "Unknown"
