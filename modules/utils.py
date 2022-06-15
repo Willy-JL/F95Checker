@@ -44,11 +44,14 @@ def is_refreshing():
 def start_refresh_task(coro: typing.Coroutine):
     if is_refreshing():
         return
+    globals.gui.bg_mode_timer = None
     globals.refresh_progress = 0
     globals.refresh_total = 1
     globals.refresh_task = async_thread.run(coro)
+    globals.gui.tray.update_status()
     def done_callback(*_):
         globals.refresh_task = None
+        globals.gui.tray.update_status()
         globals.gui.require_sort = True
         if (globals.gui.minimized or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
             globals.gui.tray.push_msg(title="Updated games", msg=f"{count} of your games {'has' if count == 1 else 'have'} received updates, click here to view {'it' if count == 1 else 'them'}.", icon=QSystemTrayIcon.MessageIcon.Information)

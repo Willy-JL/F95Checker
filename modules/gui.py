@@ -2,6 +2,7 @@ from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import concurrent.futures
 import OpenGL.GL as gl
+import datetime as dt
 from PIL import Image
 import configparser
 import threading
@@ -86,6 +87,7 @@ class MainGUI():
         self.require_sort = True
         self.prev_manual_sort = 0
         self.add_box_valid = False
+        self.bg_mode_paused = False
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.bg_mode_timer: float = None
@@ -300,12 +302,14 @@ class MainGUI():
         self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
         self.minimized = True
+        self.tray.update_status()
 
     def show(self, *args, **kwargs):
         self.bg_mode_timer = None
         glfw.show_window(self.window)
         glfw.set_window_pos(self.window, *self.screen_pos)
         self.minimized = False
+        self.tray.update_status()
 
     def scaled(self, size: int | float):
         return size * self.size_mult
@@ -403,12 +407,12 @@ class MainGUI():
                     async_thread.run(db.update_settings("interface_scaling"))  # Update here in case of crash
                 glfw.swap_buffers(self.window)  # Also waits idle time
             else:
-                if self.minimized:
+                if self.minimized and not self.bg_mode_paused:
                     if not self.bg_mode_timer and not utils.is_refreshing():
                         self.bg_mode_timer = time.time() + globals.settings.tray_refresh_interval * 60
+                        self.tray.update_status()
                     elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
                         utils.start_refresh_task(api.refresh())
-                        self.bg_mode_timer = None
                 time.sleep(0.1)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         ini = imgui.save_ini_settings_to_memory()
@@ -2382,24 +2386,88 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         super().__init__(self.idle_icon)
 
         self.watermark = QtGui.QAction(f"F95Checker v{globals.version}")
-        # self.watermark.triggered.connect(partial(browsers.open_webpage_sync_helper, globals.tool_page))
+        self.watermark.triggered.connect(lambda *_: callbacks.open_webpage(globals.tool_page))
 
-        self.show_gui = QtGui.QAction("Show GUI")
-        self.show_gui.triggered.connect(self.main_gui.show)
+        self.next_refresh = QtGui.QAction("Next Refresh: N/A")
+        self.next_refresh.setEnabled(False)
+
+        self.refresh_btn = QtGui.QAction("Refresh Now!")
+        self.refresh_btn.triggered.connect(lambda *_: globals.refresh_task.cancel() if utils.is_refreshing() else utils.start_refresh_task(api.refresh()))
+
+        def update_pause(*_):
+            self.main_gui.bg_mode_paused = not self.main_gui.bg_mode_paused
+            if self.main_gui.bg_mode_paused:
+                self.main_gui.bg_mode_timer = None
+            self.update()
+        self.toggle_pause = QtGui.QAction("Pause Auto Refresh")
+        self.toggle_pause.triggered.connect(update_pause)
+
+        self.toggle_gui = QtGui.QAction("Toggle GUI")
+        self.toggle_gui.triggered.connect(lambda *_: self.main_gui.show() if self.main_gui.minimized else self.main_gui.minimize())
 
         self.quit = QtGui.QAction("Quit")
         self.quit.triggered.connect(self.main_gui.close)
 
         self.menu = QtWidgets.QMenu()
         self.menu.addAction(self.watermark)
-        self.menu.addAction(self.show_gui)
+        self.menu.addAction(self.next_refresh)
+        self.menu.addAction(self.refresh_btn)
+        self.menu.addAction(self.toggle_pause)
+        self.menu.addAction(self.toggle_gui)
         self.menu.addAction(self.quit)
         self.setContextMenu(self.menu)
+        self.menu.aboutToShow.connect(self.update_menu)
 
         self.activated.connect(self.activated_filter)
         self.messageClicked.connect(self.main_gui.show)
 
         self.show()
+
+    def update_icon(self, *_):
+        if utils.is_refreshing():
+            self.setIcon(self.refresh_icon)
+        elif self.main_gui.bg_mode_paused and self.main_gui.minimized:
+            self.setIcon(self.paused_icon)
+        else:
+            self.setIcon(self.idle_icon)
+
+    def update_menu(self, *_):
+        if self.main_gui.minimized:
+            if globals.gui.bg_mode_paused:
+                next_refresh = "Paused"
+            elif globals.gui.bg_mode_timer:
+                next_refresh = dt.datetime.fromtimestamp(globals.gui.bg_mode_timer).strftime("%H:%M")
+            elif utils.is_refreshing():
+                next_refresh = "Now"
+            else:
+                next_refresh = "N/A"
+            self.next_refresh.setText(f"Next Refresh: {next_refresh}")
+            self.next_refresh.setVisible(True)
+        else:
+            self.next_refresh.setVisible(False)
+
+        if utils.is_refreshing():
+            self.refresh_btn.setText("Cancel Refresh")
+        else:
+            self.refresh_btn.setText("Refresh Now!")
+
+        if self.main_gui.minimized:
+            if self.main_gui.bg_mode_paused:
+                self.toggle_pause.setText("Unpause Auto Refresh")
+            else:
+                self.toggle_pause.setText("Pause Auto Refresh")
+            self.toggle_pause.setVisible(True)
+        else:
+            self.toggle_pause.setVisible(False)
+
+        if self.main_gui.minimized:
+            self.toggle_gui.setText("Switch to GUI")
+        else:
+            self.toggle_gui.setText("Switch to BG")
+
+    def update_status(self, *_):
+        self.update_menu()
+        self.update_icon()
 
     def activated_filter(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
         if reason in self.show_gui_events:
