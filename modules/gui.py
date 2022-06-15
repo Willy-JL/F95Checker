@@ -671,6 +671,7 @@ class MainGUI():
         def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
+            imgui.push_text_wrap_pos(3 * indent)
             for i, id in enumerate(updated_games):
                 old_game = updated_games[id]
                 game = globals.games[id]
@@ -684,42 +685,34 @@ class MainGUI():
                 imgui.pop_font()
 
                 imgui.spacing()
-                imgui.text_disabled(f"Update date:")
-                imgui.same_line()
-                imgui.text(game.last_updated.display)
+                imgui.text_ansi(f"\033[1;30mUpdate date:  \033[1;37m{game.last_updated.display}")
 
                 for attr in ("name", "version", "developer"):
                     old_val =  getattr(old_game, attr) or "Unknown"
                     new_val =  getattr(game, attr) or "Unknown"
                     if new_val != old_val:
                         imgui.spacing()
-                        imgui.text_disabled(f"{attr.title()}:")
-                        imgui.same_line()
-                        imgui.text(old_val)
-                        imgui.same_line()
-                        imgui.text_disabled(" -> ")
-                        imgui.same_line()
-                        imgui.text(new_val)
+                        imgui.text_ansi(f"\033[1;30m{attr.title()}:  \033[1;37m{old_val}\033[1;30m  ->  \033[1;37m{new_val}")
 
                 if game.type is not old_game.type:
                     imgui.spacing()
-                    imgui.text_disabled(f"Type:")
+                    imgui.text_ansi("\033[1;30mType:")
                     imgui.same_line()
                     self.draw_game_type_widget(old_game)
                     imgui.same_line()
-                    imgui.text_disabled(" -> ")
+                    imgui.text_ansi("\033[1;30m -> ")
                     imgui.same_line()
                     self.draw_game_type_widget(game)
 
                 if game.status is not old_game.status:
                     imgui.spacing()
-                    imgui.text_disabled(f"Status:")
+                    imgui.text_ansi("\033[1;30mStatus:")
                     imgui.same_line()
                     imgui.text(old_game.status.name)
                     imgui.same_line()
                     self.draw_game_status_widget(old_game)
                     imgui.same_line()
-                    imgui.text_disabled(" -> ")
+                    imgui.text_ansi("\033[1;30m -> ")
                     imgui.same_line()
                     imgui.text(game.status.name)
                     imgui.same_line()
@@ -736,13 +729,9 @@ class MainGUI():
                 if added or removed:
                     imgui.spacing()
                     if added:
-                        imgui.text_disabled("Tags added:")
-                        imgui.same_line()
-                        imgui.text(added)
+                        imgui.text_ansi(f"\033[1;30mTags added:  \033[1;37m{added}")
                     if removed:
-                        imgui.text_disabled("Tags removed:")
-                        imgui.same_line()
-                        imgui.text(removed)
+                        imgui.text_ansi(f"\033[1;30mTags removed:  \033[1;37m{removed}")
 
                 imgui.end_group()
                 imgui.unindent(indent)
@@ -755,6 +744,7 @@ class MainGUI():
 
                 if i != count - 1:
                     imgui.text("\n")
+            imgui.pop_text_wrap_pos()
         return utils.popup(f"{count} updated game{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False)
 
     def draw_game_info_popup(self, game: Game):
