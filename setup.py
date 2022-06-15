@@ -9,7 +9,7 @@ if "strip" in sys.argv:
     import pathlib
     import shutil
 
-    lib = next(pathlib.Path(".").glob("**/lib"))
+    root = next(pathlib.Path(".").glob("**/lib/modules")).parent.parent
     def remove(pattern: str):
         case_insensitive = ""
         for char in pattern:
@@ -19,7 +19,7 @@ if "strip" in sys.argv:
                 case_insensitive += f"[{upper}{lower}]"
             else:
                 case_insensitive += char
-        for item in lib.glob(case_insensitive):
+        for item in root.glob(case_insensitive):
             if item.is_file():
                 try:
                     item.unlink()
@@ -56,14 +56,14 @@ if "strip" in sys.argv:
         "uiotouchplugin",
     ]
     for module in qt_remove:
-        remove(f"PyQt6/**/*Qt{module}*")
-        remove(f"PyQt6/**/*Qt6{module}*")
-    remove("PyQt6/Qt6/translations")
-    remove("PyQt6/Qt6/qsci")
+        remove(f"**/*Qt{module}*")
+        remove(f"**/*Qt6{module}*")
+    remove("lib/PyQt6/Qt6/translations")
+    remove("lib/PyQt6/Qt6/qsci")
 
     # Sources
-    remove("imgui/core.cpp")
-    remove("uvloop/loop.c")
+    remove("lib/imgui/core.cpp")
+    remove("lib/uvloop/loop.c")
     sys.exit()
 
 
