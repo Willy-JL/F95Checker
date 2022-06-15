@@ -225,6 +225,7 @@ def remove_game(game: Game, bypass_confirm=False):
 async def add_games(*threads: list[ThreadMatch | SearchResult]):
     async def _add_games():
         dupes = []
+        added = []
         for thread in threads:
             if thread.id in globals.games:
                 dupes.append(globals.games[thread.id].name)
@@ -232,14 +233,17 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
             await db.add_game(thread)
             await db.load_games(thread.id)
             game = globals.games[thread.id]
+            added.append(game.name)
             if globals.settings.select_executable_after_add:
                 def select_callback(selected):
                     if selected:
                         game.executable = selected
                         async_thread.run(db.update_game(game, "executable"))
                 utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
-        if dupes:
-            utils.push_popup(msgbox.msgbox, "Duplicate games", "These games are already present in your library and therefore have not been re-added:\n - " + "\n - ".join(dupes), MsgBox.warn)
+        dupe_count = len(dupes)
+        added_count = len(added)
+        if dupe_count > 0 or added_count > 1:
+            utils.push_popup(msgbox.msgbox, ("Duplicate" if dupe_count > 0 else "Added") + " games", ((f"{added_count} new game{' has' if added_count == 1 else 's have'} been added to your library:\n - " + "\n - ".join(added) + "\nMake sure to refresh to grab all the game details.") if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + ((f"{dupe_count} duplicate game{' has' if dupe_count == 1 else 's have'} not been re-added:\n - " + "\n - ".join(dupes)) if dupe_count > 0 else ""), MsgBox.warn if dupe_count > 0 else MsgBox.info)
         globals.gui.require_sort = True
     ask_exe = globals.settings.select_executable_after_add
     count = len(threads)
