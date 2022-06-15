@@ -155,6 +155,8 @@ from modules.structs import MsgBox, ThreadMatch
 
 def extract_thread_matches(text: str) -> list[ThreadMatch]:
     matches = []
+    if not isinstance(text, str):
+        return matches
     for match in re.finditer(r"threads/(?:([^\./]*)\.)?(\d+)", text):
         matches.append(ThreadMatch(title=match.group(1) or "", id=int(match.group(2))))
     return matches
