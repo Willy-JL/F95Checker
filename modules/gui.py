@@ -308,6 +308,7 @@ class MainGUI():
         self.bg_mode_timer = None
         glfw.show_window(self.window)
         glfw.set_window_pos(self.window, *self.screen_pos)
+        glfw.focus_window(self.window)
         self.minimized = False
         self.tray.update_status()
 
