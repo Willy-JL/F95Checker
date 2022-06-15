@@ -950,13 +950,13 @@ class MainGUI():
             width = imgui.get_item_rect_size().x
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
             if imgui.button("󰏌 F95Zone Thread", width=btn_width):
-                callbacks.open_webpage(globals.tool_url)
+                callbacks.open_webpage(globals.tool_page)
             imgui.same_line()
             if imgui.button("󰊤 GitHub Repo", width=btn_width):
-                callbacks.open_webpage(globals.github_url)
+                callbacks.open_webpage(globals.github_page)
             imgui.same_line()
             if imgui.button("󰌹 Donate + Links", width=btn_width):
-                callbacks.open_webpage(globals.developer_url)
+                callbacks.open_webpage(globals.developer_page)
             imgui.spacing()
             imgui.spacing()
             imgui.push_text_wrap_pos(width)

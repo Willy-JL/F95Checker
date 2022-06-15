@@ -34,9 +34,9 @@ inbox_page        = domain + "/conversations/"
 bookmarks_page    = domain + "/account/bookmarks/"
 watched_page      = domain + "/watched/threads/"
 threads_page      = domain + "/threads/"
-tool_url          = domain + "/threads/44173/"
-github_url        = "https://github.com/Willy-JL/F95Checker"
-developer_url     = "https://linktr.ee/WillyJL"
+tool_page         = domain + "/threads/44173/"
+github_page       = "https://github.com/Willy-JL/F95Checker"
+developer_page    = "https://linktr.ee/WillyJL"
 
 
 from modules.structs import Browser, Game, OldGame, Os, Settings
