@@ -223,6 +223,8 @@ def remove_game(game: Game, bypass_confirm=False):
         remove_callback()
 
 async def add_games(*threads: list[ThreadMatch | SearchResult]):
+    if not threads:
+        return
     async def _add_games():
         dupes = []
         added = []
