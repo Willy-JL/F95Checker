@@ -259,14 +259,20 @@ async def check(game: Game, full=False, login=False):
             return value
 
         async with request("GET", game.url) as req:
-            if req.status == 404:
-                buttons = {
-                    "󰄬 Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
-                    "󰜺 No": None
-                }
-                raise msgbox.Exc("Thread not found", f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was deleted.\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
             raw = await req.read()
         raise_f95zone_error(raw)
+        if req.status == 404 or req.status == 403:
+            buttons = {
+                "󰄬 Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                "󰜺 No": None
+            }
+            if req.status == 404:
+                title = "Thread not found"
+                msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
+            elif req.status == 403:
+                title = "No permission"
+                msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
+            raise msgbox.Exc(title, msg + f"\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
         html = bs4.BeautifulSoup(raw, "lxml")
 
         head = html.find(is_class("p-body-header"))
