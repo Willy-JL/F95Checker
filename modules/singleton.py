@@ -39,11 +39,7 @@ class Singleton:
 def lock(app_id: str):
     global singleton
     if singleton is None:
-        try:
-            singleton = Singleton(app_id)
-        except RuntimeError as exc:
-            print(exc)
-            sys.exit(1)
+        singleton = Singleton(app_id)
     else:
         raise FileExistsError("This instance was already assigned a singleton!")
 

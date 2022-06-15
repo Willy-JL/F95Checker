@@ -22,7 +22,16 @@ def main():
         uvloop.install()
 
     from modules import singleton
-    singleton.lock("F95Checker")
+    try:
+        singleton.lock("F95Checker")
+    except RuntimeError:
+        import xmlrpc.client
+        try:
+            with xmlrpc.client.ServerProxy(f"http://localhost:{globals.rpc_port}/", allow_none=True) as proxy:
+                proxy.show_window()
+        except Exception:
+            pass
+        sys.exit(0)
 
     if globals.frozen:
         from modules import logger
@@ -42,6 +51,9 @@ def main():
 
     from modules import gui
     globals.gui = gui.MainGUI()
+
+    from modules import rpc_thread
+    rpc_thread.start()
 
     globals.gui.main_loop()
 

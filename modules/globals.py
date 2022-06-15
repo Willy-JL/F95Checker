@@ -9,6 +9,8 @@ import os
 
 version = "9.0"
 
+rpc_port = 57095
+
 frozen = getattr(sys, "frozen", False)
 
 if frozen:
