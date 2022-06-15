@@ -2072,9 +2072,18 @@ class MainGUI():
                     }
                     utils.push_popup(utils.popup, "Import thread links", popup_content, buttons, closable=True, outside=False)
                 if imgui.button("F95 bookmarks", width=-offset):
-                    utils.start_refresh_task(api.import_bookmarks())
+                    utils.start_refresh_task(api.import_f95_bookmarks())
                 if imgui.button("F95 watched threads", width=-offset):
-                    utils.start_refresh_task(api.import_watched_threads())
+                    utils.start_refresh_task(api.import_f95_watched_threads())
+                if imgui.button("Browser Bookmarks", width=-offset):
+                    def callback(selected):
+                        if selected:
+                            async_thread.run(api.import_browser_bookmarks(selected))
+                    buttons={
+                        "󰄬 Ok": lambda: utils.push_popup(filepicker.FilePicker("Select bookmark file", callback=callback).tick),
+                        "󰜺 Cancel": None
+                    }
+                    utils.push_popup(msgbox.msgbox, "Bookmark file", "F95Checker can import your browser bookmarks using an exported bookmark HTML.\nExporting such a file may vary between browsers, but generally speaking you need to:\n - Open your browser's bookmark manager\n - Find an import / export section, menu or dropdown\n - Click export as HTML\n - Save the file in some place you can find easily\n\nOnce you have done this click Ok and select this file.", MsgBox.info, buttons)
                 imgui.tree_pop()
             if imgui.tree_node("Export", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x

@@ -4,6 +4,7 @@ import subprocess
 import contextlib
 import tempfile
 import aiohttp
+import pathlib
 import asyncio
 import shlex
 import time
@@ -152,7 +153,20 @@ async def quick_search(query: str):
     return results
 
 
-async def import_bookmarks():
+async def import_browser_bookmarks(file: str | pathlib.Path):
+    with open(file, "rb") as f:
+        raw = f.read()
+    html = bs4.BeautifulSoup(raw, "lxml")
+    threads = []
+    for bookmark in html.find_all(lambda elem: hasattr(elem, "attrs") and "href" in elem.attrs):
+        threads += utils.extract_thread_matches(bookmark.get("href"))
+    if threads:
+        await callbacks.add_games(*threads)
+    else:
+        utils.push_popup(msgbox.msgbox, "No threads", "This bookmark file contains no valid threads to import!", MsgBox.warn)
+
+
+async def import_f95_bookmarks():
     globals.refresh_total = 2
     if not await assert_login():
         return
@@ -172,10 +186,13 @@ async def import_bookmarks():
         for title in bookmarks.find_all(is_class("contentRow-title")):
             diff += 1
             threads += utils.extract_thread_matches(title.find("a").get("href"))
-    await callbacks.add_games(*threads)
+    if threads:
+        await callbacks.add_games(*threads)
+    else:
+        utils.push_popup(msgbox.msgbox, "No threads", "Your F95Zone bookmarks contains no valid threads to import!", MsgBox.warn)
 
 
-async def import_watched_threads():
+async def import_f95_watched_threads():
     globals.refresh_total = 2
     if not await assert_login():
         return
@@ -195,7 +212,10 @@ async def import_watched_threads():
         page += 1
         for title in watched.find_all(is_class("structItem-title")):
             threads += utils.extract_thread_matches(title.get("uix-data-href"))
-    await callbacks.add_games(*threads)
+    if threads:
+        await callbacks.add_games(*threads)
+    else:
+        utils.push_popup(msgbox.msgbox, "No threads", "Your F95Zone watched threads contains no valid threads to import!", MsgBox.warn)
 
 
 async def check(game: Game, full=False, login=False):
