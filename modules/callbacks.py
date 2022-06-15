@@ -26,8 +26,8 @@ def update_start_with_system(toggle: bool):
                 config.set("Desktop Entry", "Comment", "An update checker tool for (NSFW) games on the F95Zone platform")
                 config.set("Desktop Entry", "Type", "Application")
                 config.set("Desktop Entry", "Exec", globals.start_cmd)
-                with globals.autostart.open("w") as fp:
-                    config.write(fp, space_around_delimiters=False)
+                with globals.autostart.open("w") as f:
+                    config.write(f, space_around_delimiters=False)
             elif globals.os is Os.MacOS:
                 plist = {
                     "Label": "com.github.f95checker",
@@ -36,8 +36,8 @@ def update_start_with_system(toggle: bool):
                     "OnDemand": False,
                     "RunAtLoad": True
                 }
-                with globals.autostart.open("wb") as fp:
-                    plistlib.dump(plist, fp)
+                with globals.autostart.open("wb") as f:
+                    plistlib.dump(plist, f)
         else:
             if globals.os is Os.Windows:
                 import winreg

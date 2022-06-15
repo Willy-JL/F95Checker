@@ -178,8 +178,8 @@ elif os is Os.MacOS:
     autostart_dir.mkdir(parents=True, exist_ok=True)
     autostart = autostart_dir / "com.github.f95checker.plist"
     try:
-        with autostart.open("rb") as fp:
-            plist = plistlib.load(fp)
+        with autostart.open("rb") as f:
+            plist = plistlib.load(f)
         value = shlex.join(plist["ProgramArguments"])
         start_with_system = value == start_cmd
     except Exception:

@@ -108,8 +108,8 @@ class MainGUI():
         imgui.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
         try:
             # Get window size
-            with open(self.ini_file_name.decode("utf-8"), "r") as fp:
-                ini = fp.read()
+            with open(self.ini_file_name.decode("utf-8"), "r") as f:
+                ini = f.read()
             imgui.load_ini_settings_from_memory(ini)
             start = ini.find("[Window][F95Checker]")
             assert start != -1
@@ -429,8 +429,8 @@ class MainGUI():
                 new_ini = ini
         except Exception:
             new_ini = ini
-        with open(self.ini_file_name.decode("utf-8"), "w") as fp:
-            fp.write(new_ini)
+        with open(self.ini_file_name.decode("utf-8"), "w") as f:
+            f.write(new_ini)
         self.impl.shutdown()
         glfw.terminate()
 
