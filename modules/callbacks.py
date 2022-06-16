@@ -62,8 +62,8 @@ def _launch(path: str | pathlib.Path):
         mode = exe.stat().st_mode
         executable = not (mode & stat.S_IEXEC < stat.S_IEXEC)
         if not executable:
-            with exe.open("r") as f:
-                if f.read(2) == "#!":
+            with exe.open("rb") as f:
+                if f.read(2) == b"#!":
                     # Make executable if shebang is present
                     exe.chmod(mode | stat.S_IEXEC)
                     executable = True

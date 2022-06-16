@@ -263,7 +263,7 @@ async def update_cookies(new_cookies: dict[str, str]):
 
 
 def legacy_json_to_dict(path: str | pathlib.Path):  # Pre v9.0
-    with open(path, encoding="utf-8") as f:
+    with open(path, "rb") as f:
         config = json.load(f)
     if type(config.get("game_list")) is list and type(config.get("game_data")) is dict:  # Pre v8.0
         config.setdefault("games", {})
