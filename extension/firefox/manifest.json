@@ -1,0 +1,32 @@
+{
+    "manifest_version": 2,
+    "name": "F95Checker Browser Addon",
+    "short_name": "F95Checker",
+    "author": "WillyJL",
+    "version": "0.0.1",
+    "description": "Browser addon to easily add games to F95Checker",
+    "homepage_url": "https://github.com/Willy-JL/F95Checker",
+
+    "browser_action": {
+        "default_icon": {
+            "16": "icons/16.png",
+            "32": "icons/32.png",
+            "64": "icons/64.png"
+        }
+    },
+    "icons": {
+        "16": "icons/16.png",
+        "32": "icons/32.png",
+        "64": "icons/64.png",
+        "128": "icons/128.png"
+    },
+
+    "background": {
+        "scripts": [
+            "extension.js"
+        ]
+    },
+    "permissions": [
+        "tabs"
+    ]
+}
