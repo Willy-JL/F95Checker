@@ -8,6 +8,7 @@ import configparser
 import threading
 import platform
 import asyncio
+import aiohttp
 import OpenGL
 import imgui
 import time
@@ -153,10 +154,10 @@ class MainGUI():
                 return
             if not exc or type(exc) is msgbox.Exc:
                 return
-            if type(exc) is asyncio.TimeoutError:
-                utils.push_popup(msgbox.msgbox, "Connection timeout", f"A connection request to F95Zone has timed out.\n\nPossible causes include:\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is blocked in your country, network, antivirus or firewall", MsgBox.warn)
-                return
             tb = utils.get_traceback(type(exc), exc, exc.__traceback__)
+            if isinstance(exc, asyncio.TimeoutError) or isinstance(exc, aiohttp.ClientError):
+                utils.push_popup(msgbox.msgbox, "Connection error", f"A connection request to F95Zone has failed:\n{type(exc).__name__}: {str(exc) or 'No further details'}\n\nPossible causes include:\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - F95Zone is blocked in your country, network, antivirus or firewall\n\n{tb}", MsgBox.warn)
+                return
             utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
         async_thread.done_callback = asyncexcepthook
 
@@ -363,9 +364,9 @@ class MainGUI():
                 self.draw_bottombar()
                 imgui.end_child()
 
-                if (count := api.image_counter.count) > 0:
+                if (count := api.images.count) > 0:
                     text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} image{'s' if count > 1 else ''}..."
-                elif  (count := api.full_counter.count) > 0:
+                elif (count := api.fulls.count) > 0:
                     text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full recheck{'s' if count > 1 else ''}..."
                 else:
                     text = self.watermark_text

@@ -1,8 +1,26 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
 import dataclasses
 import datetime
+import asyncio
 import enum
 import os
+
+
+class ContextLimiter:
+    count = 0
+
+    def __init__(self, value=1):
+        self.avail = value
+
+    async def __aenter__(self):
+        self.count += 1
+        while self.avail < 1:
+            await asyncio.sleep(0.1)
+        self.avail -= 1
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.avail += 1
+        self.count -= 1
 
 
 class CounterContext:

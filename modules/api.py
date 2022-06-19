@@ -13,14 +13,13 @@ import bs4
 import os
 import re
 
-from modules.structs import CounterContext, Game, MsgBox, OldGame, SearchResult, Status, Tag, Type
+from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, SearchResult, Status, Tag, Type
 from modules import globals, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
-full_check_interval = int(dt.timedelta(days=7).total_seconds())
-image_sem = asyncio.Semaphore(2)
-image_counter = CounterContext()
-full_counter = CounterContext()
+full_interval = int(dt.timedelta(days=7).total_seconds())
+images = ContextLimiter()
+fulls = CounterContext()
 
 
 def is_text(text: str):
@@ -48,14 +47,36 @@ async def shutdown():
 
 
 def request(method: str, url: str, **kwargs):
+    timeout = kwargs.pop("timeout", None)
+    if not timeout:
+        timeout = globals.settings.request_timeout
     return session.request(
         method,
         url,
         cookies=globals.cookies,
-        timeout=globals.settings.request_timeout,
+        timeout=timeout,
         ssl=False,
         **kwargs
     )
+
+
+async def fetch(method: str, url: str, **kwargs):
+    raw = None
+    exc = None
+    failed = False
+    for _ in range(3):
+        try:
+            async with request(method, url, **kwargs) as req:
+                raw = await req.read()
+            failed = False
+            break
+        except aiohttp.ClientError as e:
+            failed = True
+            exc = e
+            continue
+    if failed:
+        raise exc
+    return raw, req
 
 
 def raise_f95zone_error(raw: bytes):
@@ -69,7 +90,8 @@ def raise_f95zone_error(raw: bytes):
 
 async def is_logged_in():
     async with request("GET", globals.check_login_page) as req:
-        raw = await req.content.readuntil(b"_xfToken")
+        raw = b""
+        raw += await req.content.readuntil(b"_xfToken")
         raw += await req.content.readuntil(b">")
         start = raw.rfind(b'value="') + len(b'value="')
         end = raw.find(b'"', start)
@@ -115,8 +137,7 @@ async def assert_login():
 async def download_webpage(url: str):
     if not await assert_login():
         return
-    async with request("GET", url) as req:
-        raw = await req.read()
+    raw, req = await fetch("GET", url)
     html = bs4.BeautifulSoup(raw, "lxml")
     for elem in html.find_all():
         for key, value in elem.attrs.items():
@@ -130,8 +151,7 @@ async def download_webpage(url: str):
 async def quick_search(query: str):
     if not await assert_login():
         return
-    async with request("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token}) as req:
-        raw = await req.read()
+    raw, req = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token})
     html = bs4.BeautifulSoup(raw, "lxml")
     results = []
     for row in html.find(is_class("quicksearch-wrapper-wide")).find_all(is_class("dataList-row")):
@@ -176,8 +196,7 @@ async def import_f95_bookmarks():
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        async with request("GET", globals.bookmarks_page, params={"difference": diff}) as req:
-            raw = await req.read()
+        raw, req = await fetch("GET", globals.bookmarks_page, params={"difference": diff})
         raise_f95zone_error(raw)
         html = bs4.BeautifulSoup(raw, "lxml")
         bookmarks = html.find(is_class("p-body-pageContent")).find(is_class("listPlain"))
@@ -202,8 +221,7 @@ async def import_f95_watched_threads():
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        async with request("GET", globals.watched_page, params={"unread": 0, "page": page}) as req:
-            raw = await req.read()
+        raw, req = await fetch("GET", globals.watched_page, params={"unread": 0, "page": page})
         raise_f95zone_error(raw)
         html = bs4.BeautifulSoup(raw, "lxml")
         watched = html.find(is_class("p-body-pageContent")).find(is_class("structItemContainer"))
@@ -226,7 +244,7 @@ async def check(game: Game, full=False, login=False):
         globals.refresh_progress = 1
 
     skip_first_check_for_version = game.last_refresh_version != globals.version
-    full = full or (game.last_full_refresh < time.time() - full_check_interval) or (game.image.missing and game.image_url != "-") or skip_first_check_for_version
+    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or skip_first_check_for_version
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:
@@ -237,7 +255,7 @@ async def check(game: Game, full=False, login=False):
     if not full:
         return
 
-    with full_counter:
+    with fulls:
 
         def game_has_prefixes(*names: list[str]):
             for name in names:
@@ -278,8 +296,7 @@ async def check(game: Game, full=False, login=False):
                 value = value.replace("\n\n\n", "\n\n")
             return value
 
-        async with request("GET", game.url) as req:
-            raw = await req.read()
+        raw, req = await fetch("GET", game.url, timeout=globals.settings.request_timeout * 2)
         raise_f95zone_error(raw)
         if req.status == 404 or req.status == 403:
             buttons = {
@@ -417,9 +434,8 @@ async def check(game: Game, full=False, login=False):
             fetch_image = fetch_image or (image_url != game.image_url)
 
         if fetch_image and image_url and image_url != "-":
-            async with image_counter, image_sem:
-                async with request("GET", image_url) as req:
-                    raw = await req.read()
+            async with images:
+                raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
                 ext = image_url[image_url.rfind("."):]
                 with contextlib.suppress(asyncio.CancelledError):
                     for img in globals.images_path.glob(f"{game.id}.*"):
@@ -476,16 +492,15 @@ async def check_notifs(login=False):
             return
         globals.refresh_progress = 1
 
-    async with request("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as req:
-        try:
-            raw = await req.read()
-            res = json.loads(raw)
-            alerts = int(res["visitor"]["alerts_unread"])
-            inbox  = int(res["visitor"]["conversations_unread"])
-        except Exception:
-            with open(globals.self_path / "notifs_broken.bin", "wb") as f:
-                f.write(raw)
-            raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+    try:
+        raw, req = await fetch("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"})
+        res = json.loads(raw)
+        alerts = int(res["visitor"]["alerts_unread"])
+        inbox  = int(res["visitor"]["conversations_unread"])
+    except Exception:
+        with open(globals.self_path / "notifs_broken.bin", "wb") as f:
+            f.write(raw)
+        raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     if alerts != 0 and inbox != 0:
         msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})."
     elif alerts != 0 and inbox == 0:
@@ -532,6 +547,7 @@ async def refresh(full=False):
 
     globals.refresh_progress += 1
     globals.refresh_total += game_queue.qsize() + 1
+    images.avail = int(max(1, globals.settings.refresh_workers / 10))
 
     game_refresh_task = asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
     await game_refresh_task
