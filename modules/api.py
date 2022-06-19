@@ -550,6 +550,10 @@ async def refresh(full=False):
     images.avail = int(max(1, globals.settings.refresh_workers / 10))
 
     game_refresh_task = asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
+    def reset_counts(_):
+        images.count = 0
+        fulls.count = 0
+    game_refresh_task.add_done_callback(reset_counts)
     await game_refresh_task
 
     await check_notifs()
