@@ -31,7 +31,7 @@ chrome.browserAction.onClicked.addListener(tab => {
                     param: [
                         {
                             value: {
-                                string: tab.url
+                                string: /threads\/(?:[^\/]*\.)?\d+/.exec(tab.url)[0]
                             }
                         }
                     ]

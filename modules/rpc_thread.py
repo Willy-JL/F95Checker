@@ -22,7 +22,6 @@ def start():
                     await asyncio.sleep(0.1)
                     await callbacks.add_games(*matches)
                 async_thread.run(_add_game())
-            return "success"
         server.register_function(add_game)
 
         server.serve_forever()
