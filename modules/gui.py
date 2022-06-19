@@ -2439,10 +2439,10 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
 
     def update_menu(self, *_):
         if self.main_gui.minimized:
-            if globals.gui.bg_mode_paused:
+            if self.main_gui.bg_mode_paused:
                 next_refresh = "Paused"
-            elif globals.gui.bg_mode_timer:
-                next_refresh = dt.datetime.fromtimestamp(globals.gui.bg_mode_timer).strftime("%H:%M")
+            elif self.main_gui.bg_mode_timer:
+                next_refresh = dt.datetime.fromtimestamp(self.main_gui.bg_mode_timer).strftime("%H:%M")
             elif utils.is_refreshing():
                 next_refresh = "Now"
             else:
