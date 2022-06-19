@@ -81,7 +81,9 @@ class ImageHelper:
             self.frame_durations = []
             for frame in ImageSequence.Iterator(image):
                 self.data.append(self.get_rgba_pixels(frame))
-                self.frame_durations.append(frame.info["duration"] / 1250)
+                if (duration := image.info["duration"]) < 1:
+                    duration = 100
+                self.frame_durations.append(duration / 1250)
                 # Technically this should be / 1000 (millis to seconds) but I found that 1250 works better...
             self.frame_count = len(self.data)
         else:
