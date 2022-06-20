@@ -26,6 +26,8 @@ jobs:
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
     steps:
 
+      # === SETUP ===
+
       - name: "Set git to use lf"
         run: |
           git config --global core.autocrlf false
@@ -54,6 +56,8 @@ jobs:
         run: |
           cd ./cx_Freeze
           python -m pip install -e .
+
+      # === BUILD ===
 
       - name: "Clone repo"
         uses: "actions/checkout@v2"
@@ -89,6 +93,8 @@ jobs:
           cd ./src/dist
           find . -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
 
+      # === ARTIFACT ===
+
       - name: "Zip commit package"
         if: "github.event_name != 'release'"
         run: |
@@ -100,6 +106,8 @@ jobs:
         with:
           name: "${{ runner.os }}"
           path: "./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ runner.os }}.zip"
+
+      # === RELEASE ===
 
       - name: "Zip release package"
         if: "github.event_name == 'release'"
@@ -120,6 +128,8 @@ jobs:
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
     steps:
 
+      # === SETUP ===
+
       - name: "Set git to use lf"
         run: |
           git config --global core.autocrlf false
@@ -131,6 +141,8 @@ jobs:
         id: "short-sha"
         with:
           length: 7
+
+      # === PACKAGE ===
 
       - name: "Clone repo"
         uses: "actions/checkout@v2"
@@ -147,6 +159,8 @@ jobs:
           mv main.py          dist/
           mv requirements.txt dist/
 
+      # === ARTIFACT ===
+
       - name: "Zip commit package"
         if: "github.event_name != 'release'"
         run: |
@@ -158,6 +172,8 @@ jobs:
         with:
           name: "Source"
           path: "./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-Source.zip"
+
+      # === RELEASE ===
 
       - name: "Zip release package"
         if: "github.event_name == 'release'"
