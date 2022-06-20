@@ -334,6 +334,9 @@ class MainGUI():
             self.tray.tick_msgs()
             glfw.poll_events()
             self.impl.process_inputs()
+            if not self.focused:
+                # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
+                imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
             if not self.minimized:
 
                 # Scroll modifiers (must be before new_frame())
