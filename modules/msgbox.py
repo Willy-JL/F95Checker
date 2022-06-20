@@ -14,7 +14,7 @@ popup_flags: int = (
 )
 
 
-def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True):
+def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None):
     def popup_content():
         spacing = 2 * imgui.style.item_spacing.x
         if type is MsgBox.info:
@@ -35,10 +35,21 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typ
             imgui.pop_font()
             imgui.same_line(spacing=spacing)
         imgui.begin_group()
-        msg_size = imgui.calc_text_size(message)
-        if icon and (diff := icon_size.y - msg_size.y) > 0:
+        msg_size_y = imgui.calc_text_size(msg).y
+        if more:
+            msg_size_y += imgui.get_text_line_height_with_spacing() + imgui.get_frame_height_with_spacing()
+        if icon and (diff := icon_size.y - msg_size_y) > 0:
             imgui.dummy(0, diff / 2 - imgui.style.item_spacing.y)
-        imgui.text_unformatted(message)
+        imgui.text_unformatted(msg)
+        if more:
+            imgui.text("")
+            if imgui.tree_node("More info", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
+                size = imgui.io.display_size
+                more_size = imgui.calc_text_size(more)
+                width = min(more_size.x, size.x * 0.8 - icon_size.x)
+                height = min(more_size.y, size.y * 0.7 - msg_size_y)
+                imgui.input_text_multiline("##more_info", more, len(more) * 2,  width=width, height=height, flags=imgui.INPUT_TEXT_READ_ONLY)
+                imgui.tree_pop()
         imgui.end_group()
         imgui.same_line(spacing=spacing)
         imgui.dummy(0, 0)
@@ -46,7 +57,7 @@ def msgbox(title: str, message: str, type: MsgBox = None, buttons: dict[str, typ
 
 
 class Exc(Exception):
-    def __init__(self, title:str, message: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True):
+    def __init__(self, title:str, msg: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None):
         self.title = title
-        self.message = message
-        self.popup = utils.push_popup(msgbox, title, message, type, buttons)
+        self.msg = msg
+        self.popup = utils.push_popup(msgbox, title, msg, type, buttons, more)

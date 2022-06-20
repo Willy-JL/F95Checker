@@ -247,7 +247,7 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
         dupe_count = len(dupes)
         added_count = len(added)
         if dupe_count > 0 or added_count > 1:
-            utils.push_popup(msgbox.msgbox, ("Duplicate" if dupe_count > 0 else "Added") + " games", ((f"{added_count} new game{' has' if added_count == 1 else 's have'} been added to your library:\n - " + "\n - ".join(added) + "\nMake sure to refresh to grab all the game details.") if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + ((f"{dupe_count} duplicate game{' has' if dupe_count == 1 else 's have'} not been re-added:\n - " + "\n - ".join(dupes)) if dupe_count > 0 else ""), MsgBox.warn if dupe_count > 0 else MsgBox.info)
+            utils.push_popup(msgbox.msgbox, ("Duplicate" if dupe_count > 0 else "Added") + " games", ((f"{added_count} new game{' has' if added_count == 1 else 's have'} been added to your library.\nMake sure to refresh to grab all the game details.") if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + ((f"{dupe_count} duplicate game{' has' if dupe_count == 1 else 's have'} not been re-added.") if dupe_count > 0 else ""), MsgBox.warn if dupe_count > 0 else MsgBox.info, more=(("Added:\n - " + "\n - ".join(added)) if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + (("Duplicates:\n - " + "\n - ".join(dupes)) if dupe_count > 0 else ""))
         globals.gui.require_sort = True
     ask_exe = globals.settings.select_executable_after_add
     count = len(threads)
