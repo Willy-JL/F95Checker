@@ -1,0 +1,223 @@
+name: "Build"
+
+on:
+  workflow_dispatch:
+  push:
+  release:
+    types:
+      - "created"
+
+jobs:
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - "windows-latest"
+          - "ubuntu-latest"
+          - "macos-latest"
+        python:
+          - "3.10.4"
+        cx-freeze:
+          - "6.10"
+    name: "${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
+    steps:
+
+      # === SETUP ===
+
+      - name: "Set git to use lf"
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: "Get short sha string"
+        if: "github.event_name != 'release'"
+        uses: "benjlevesque/short-sha@v1.2"
+        id: "short-sha"
+        with:
+          length: 7
+
+      - name: "Setup python"
+        uses: "actions/setup-python@v2"
+        with:
+          python-version: "${{ matrix.python }}"
+
+      - name: "Clone cx_Freeze source"
+        uses: "actions/checkout@v2"
+        with:
+          repository: "marcelotduarte/cx_Freeze"
+          ref: "${{ matrix.cx-freeze }}"
+          path: "./cx_Freeze"
+
+      - name: "Build cx_Freeze bootloader"
+        run: |
+          cd ./cx_Freeze
+          python -m pip install -e .
+
+      # === BUILD ===
+
+      - name: "Clone repo"
+        uses: "actions/checkout@v2"
+        with:
+          path: "./src"
+
+      - name: "Install requirements"
+        run: |
+          cd ./src
+          python -m pip install -U numpy
+          python -m pip install -U -r requirements.txt
+
+      - name: "Build"
+        if: "runner.os != 'macOS'"
+        run: |
+          cd ./src
+          python setup.py build
+          python setup.py strip
+          mv build/* dist
+
+      - name: "Build macOS"
+        if: "runner.os == 'macOS'"
+        run: |
+          cd ./src
+          python setup.py bdist_mac
+          python setup.py strip
+          mkdir dist/
+          mv build/*.app dist/
+
+      - name: "Resolve symlinks"
+        if: "runner.os != 'Windows'"
+        run: |
+          cd ./src/dist
+          find . -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
+
+      # === ARTIFACT ===
+
+      - name: "Zip commit package"
+        if: "github.event_name != 'release'"
+        run: |
+          7z a -r ./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ runner.os }}.zip ./src/dist/*
+
+      - name: "Upload commit artifact"
+        if: "github.event_name != 'release'"
+        uses: "actions/upload-artifact@v2"
+        with:
+          name: "${{ runner.os }}"
+          path: "./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ runner.os }}.zip"
+
+      # === RELEASE ===
+
+      - name: "Zip release package"
+        if: "github.event_name == 'release'"
+        run: |
+          7z a -r ./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ runner.os }}.zip ./src/dist/*
+
+      - name: "Upload release artifact"
+        if: "github.event_name == 'release'"
+        uses: "softprops/action-gh-release@v1"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
+        with:
+          files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ runner.os }}.zip"
+
+  source:
+    name: "source"
+    runs-on: "ubuntu-latest"
+    if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
+    steps:
+
+      # === SETUP ===
+
+      - name: "Set git to use lf"
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: "Get short sha string"
+        if: "github.event_name != 'release'"
+        uses: "benjlevesque/short-sha@v1.2"
+        id: "short-sha"
+        with:
+          length: 7
+
+      # === PACKAGE ===
+
+      - name: "Clone repo"
+        uses: "actions/checkout@v2"
+        with:
+          path: "./src"
+
+      - name: "Package"
+        run: |
+          cd ./src
+          mkdir dist/
+          mv modules/         dist/
+          mv resources/       dist/
+          mv LICENSE          dist/
+          mv main.py          dist/
+          mv requirements.txt dist/
+
+      # === ARTIFACT ===
+
+      - name: "Zip commit package"
+        if: "github.event_name != 'release'"
+        run: |
+          7z a -r ./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-Source.zip ./src/dist/*
+
+      - name: "Upload commit artifact"
+        if: "github.event_name != 'release'"
+        uses: "actions/upload-artifact@v2"
+        with:
+          name: "Source"
+          path: "./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-Source.zip"
+
+      # === RELEASE ===
+
+      - name: "Zip release package"
+        if: "github.event_name == 'release'"
+        run: |
+          7z a -r ./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-Source.zip ./src/dist/*
+
+      - name: "Upload release artifact"
+        if: "github.event_name == 'release'"
+        uses: "softprops/action-gh-release@v1"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
+        with:
+          files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-Source.zip"
+
+      - name: "Delete skipped workflow runs"
+        if: "github.event_name == 'release'"
+        uses: "Willy-JL/delete-skipped-workflow-runs@main"
+        with:
+          retain_days: 0
+          keep_minimum_runs: 0
+
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    if: "github.event_name == 'release'"
+    needs:
+      - build
+      - source
+    steps:
+
+      - name: "Set git to use lf"
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: "Clone repo"
+        uses: "actions/checkout@v2"
+        with:
+          path: "./src"
+
+      - name: "Update release"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
+          VT_API_KEY: "${{ secrets.VT_API_KEY }}"
+        run: |
+          pip install requests
+          python src/.github/workflow_scripts/release.py

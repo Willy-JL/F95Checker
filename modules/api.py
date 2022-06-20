@@ -1,772 +1,564 @@
-from modules import globals, config_utils, gui, browsers
-from bs4.element import NavigableString
-from bs4 import BeautifulSoup
-from subprocess import Popen
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-import traceback
+from PyQt6.QtWidgets import QSystemTrayIcon
+import datetime as dt
+import subprocess
+import contextlib
+import tempfile
+import aiohttp
 import pathlib
 import asyncio
-import aiohttp
+import shlex
 import time
-import sys
-import re
+import json
+import bs4
 import os
+import re
+
+from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, SearchResult, Status, Tag, Type
+from modules import globals, async_thread, callbacks, db, msgbox, utils
+
+session: aiohttp.ClientSession = None
+full_interval = int(dt.timedelta(days=7).total_seconds())
+images = ContextLimiter()
+fulls = CounterContext()
 
 
-def get_cookie(key: str):
-    """Fetch cookie value from http cookie jar"""
-    for cookie in globals.http.cookie_jar:
-        if cookie.key == key:
-            return cookie.value
-    return None
+def is_text(text: str):
+    def _is_text(elem: bs4.element.Tag):
+        if not hasattr(elem, "text"):
+            return False
+        val = elem.text.lower().strip()
+        return val == text or val == text + ":"
+    return _is_text
 
 
-async def ask_creds():
-    """Popup to get user login creds"""
-    globals.gui.login_gui = gui.LoginGUI(globals.gui)
-    globals.gui.login_gui.show()
-    globals.gui.login_gui.setFixedSize(globals.gui.login_gui.size())
-    while globals.gui.login_gui.isVisible():
-        await asyncio.sleep(0.25)
-    return globals.gui.login_gui.lineEdit.text(), globals.gui.login_gui.lineEdit_2.text()
+def is_class(name: str):
+    def _is_class(elem: bs4.element.Tag):
+        return name in elem.get_attribute_list("class")
+    return _is_class
 
 
-async def ask_two_step_code():
-    """Popup to get 2FA code"""
-    globals.gui.two_step_gui = gui.TwoStepGUI(globals.gui)
-    globals.gui.two_step_gui.show()
-    globals.gui.two_step_gui.setFixedSize(globals.gui.two_step_gui.size())
-    while globals.gui.two_step_gui.isVisible():
-        await asyncio.sleep(0.25)
-    return globals.gui.two_step_gui.lineEdit.text()
+def setup():
+    global session
+    session = aiohttp.ClientSession(loop=async_thread.loop)
 
 
-async def check_f95zone_error(soup, warn=False):
-    """Check page html for F95Zone server difficulties and optionally warn user"""
-    if soup.select_one('h1:-soup-contains("F95Zone Connection Error")') or soup.select_one('h1:-soup-contains("F95Zone Maintenance")') or soup.select_one('title:-soup-contains("F95Zone :: ")'):
-        if warn:
-            await gui.WarningPopup.open(globals.gui, "Connection error", "F95Zone servers are currently unavailable, please retry in a few minutes")
+async def shutdown():
+    await session.close()
+
+
+def request(method: str, url: str, **kwargs):
+    timeout = kwargs.pop("timeout", None)
+    if not timeout:
+        timeout = globals.settings.request_timeout
+    return session.request(
+        method,
+        url,
+        cookies=globals.cookies,
+        timeout=timeout,
+        ssl=False,
+        **kwargs
+    )
+
+
+async def fetch(method: str, url: str, **kwargs):
+    raw = None
+    exc = None
+    failed = False
+    for _ in range(3):
+        try:
+            async with request(method, url, **kwargs) as req:
+                raw = await req.read()
+            failed = False
+            break
+        except aiohttp.ClientError as e:
+            failed = True
+            exc = e
+            continue
+    if failed:
+        raise exc
+    return raw, req
+
+
+def raise_f95zone_error(raw: bytes):
+    if b"<title>Log in | F95zone</title>" in raw:
+        raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
+    if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in raw:
+        raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
+    # if b"<title>DDOS-GUARD</title>" in data:
+    #     raise Exception("Captcha needed!")
+
+
+async def is_logged_in():
+    async with request("GET", globals.check_login_page) as req:
+        raw = b""
+        raw += await req.content.readuntil(b"_xfToken")
+        raw += await req.content.readuntil(b">")
+        start = raw.rfind(b'value="') + len(b'value="')
+        end = raw.find(b'"', start)
+        globals.token = str(raw[start:end], encoding="utf-8")
+        if not 200 <= req.status < 300:
+            raw += await req.content.read()
+            try:
+                raise_f95zone_error(raw)
+            except msgbox.Exc as exc:
+                if exc.title == "Login expired" and not globals.gui.minimized:
+                    globals.popup_stack.remove(exc.popup)
+                    return False
+                raise
+            with open(globals.self_path / "login_broken.bin", "wb") as f:
+                f.write(raw)
+            raise msgbox.Exc("Login assertion failure", f"Something went wrong checking the validity of your login session.\n\nF95Zone replied with a status code of {req.status} at this URL:\n{str(req.real_url)}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}login_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
         return True
 
 
-async def handle_no_internet():
-    """Warn user of connection issues"""
-    if not globals.warned_connection:
-        globals.warned_connection = True
-        await gui.WarningPopup.open(globals.gui, "Can't connect!", "There was an error connecting to F95Zone, please check your internet connection!")
-
-
 async def login():
-    """Login to F95Zone, handles both creds and 2FA"""
-    if globals.logging_in:
-        return
-    globals.logging_in = True
-    retries = 0
-    while True:
-        try:
-            try:
-                async with globals.http.head(globals.check_login_page) as check_login_req:
-                    globals.logged_in = check_login_req.ok
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                config_utils.save_config()
-                globals.logging_in = False
-                return
-            break
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
-                config_utils.save_config()
-                globals.logging_in = False
-                return
-            retries += 1
-    retries = 0
-    if not globals.token:
-        while True:
-            try:
-                try:
-                    async with globals.http.get(globals.login_page) as token_req:
-                        text = await token_req.text()
-                except aiohttp.ClientConnectorError:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    print(exc)
-                    await handle_no_internet()
-                    config_utils.save_config()
-                    globals.logging_in = False
-                    return
-                assert text[:15].lower() == "<!doctype html>"
-                token_soup = BeautifulSoup(text, 'html.parser')
-                if await check_f95zone_error(token_soup, warn=True):
-                    config_utils.save_config()
-                    globals.logging_in = False
-                    return
-                globals.token = token_soup.select_one('input[name="_xfToken"]').get('value')
-                config_utils.save_config()
-                break
-            except Exception:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                if retries >= globals.config["options"]["max_retries"]:
-                    await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
-                    config_utils.save_config()
-                    globals.logging_in = False
-                    return
-                retries += 1
-    if globals.logged_in:
-        config_utils.save_config()
-        globals.logging_in = False
-        return
-
-    # TEMPORARY LOGIN FIX
-    await gui.WarningPopup.open(globals.gui, "Login required!", "On the next window you will be prompted to login, click Ok to proceed...")
-    weblogin = gui.QCookieWebEngineView()
-    weblogin.setWindowTitle("Please login...")
-    weblogin.resize(500, 720)
-    weblogin.load(QtCore.QUrl(globals.login_page))
-    weblogin.show()
-    while weblogin.alive and not weblogin.cookies.get("xf_user"):
-        await asyncio.sleep(0.5)
-    if weblogin.alive:
-        weblogin.close()
-    if not weblogin.cookies.get("xf_user"):
-        globals.logging_in = False
-        return
-    cookies = []
-    globals.config["advanced"]["cookies"]["xf_csrf"] = weblogin.cookies["xf_csrf"]
-    cookies.append(("xf_csrf", weblogin.cookies["xf_csrf"],))
-    globals.config["advanced"]["cookies"]["xf_user"] = weblogin.cookies["xf_user"]
-    cookies.append(("xf_user", weblogin.cookies["xf_user"],))
-    if weblogin.cookies.get("xf_tfa_trust"):
-        globals.config["advanced"]["cookies"]["xf_tfa_trust"] = weblogin.cookies["xf_tfa_trust"]
-        cookies.append(("xf_tfa_trust", weblogin.cookies["xf_tfa_trust"],))
-    globals.http.cookie_jar.update_cookies(cookies)
-    config_utils.save_config()
-    globals.logged_in = True
-    globals.logging_in = False
-
-    # ORIGINAL LOGIN CODE
-    # retries_a = 0
-    # while True:
-    #     try:
-    #         if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
-    #             globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
-    #             config_utils.save_config()
-    #             if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
-    #                 config_utils.save_config()
-    #                 globals.logging_in = False
-    #                 return
-    #         try:
-    #             async with globals.http.post(globals.login_endpoint, data={
-    #                 "login":               globals.config["credentials"]["username"],
-    #                 "url":                 "",
-    #                 "password":            globals.config["credentials"]["password"],
-    #                 "password_confirm":    "",
-    #                 "additional_security": "",
-    #                 "remember":            "1",
-    #                 "_xfRedirect":         globals.domain + "/",
-    #                 "website_code":        "",
-    #                 "_xfToken":            globals.token
-    #             }) as login_req:
-    #                 if login_req.ok is False:
-    #                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\nRequest Status: {login_req.status}")
-    #                 login_redirects = login_req.history
-    #         except aiohttp.ClientConnectorError:
-    #             exc = "".join(traceback.format_exception(*sys.exc_info()))
-    #             print(exc)
-    #             await handle_no_internet()
-    #             config_utils.save_config()
-    #             globals.logging_in = False
-    #             return
-    #     except Exception:
-    #         exc = "".join(traceback.format_exception(*sys.exc_info()))
-    #         print(exc)
-    #         if retries_a >= globals.config["options"]["max_retries"]:
-    #             await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
-    #             break
-    #         retries_a += 1
-    #         continue
-    #     # No redirects, bad credentials
-    #     if len(login_redirects) == 0:
-    #         globals.logged_in = False
-    #         globals.config["credentials"]["username"], globals.config["credentials"]["password"] = await ask_creds()
-    #         config_utils.save_config()
-    #         if globals.config["credentials"]["username"] == "" or globals.config["credentials"]["password"] == "":
-    #             config_utils.save_config()
-    #             globals.logging_in = False
-    #             return
-    #         continue
-
-    #     login_redirect = str(login_redirects[0].headers.get("location"))
-
-    #     # Redirect to 2FA page
-    #     if login_redirect.startswith(globals.two_step_endpoint):
-    #         retries_b = 0
-    #         while True:
-    #             try:
-    #                 two_step_code = await ask_two_step_code()
-    #                 if two_step_code == "":
-    #                     config_utils.save_config()
-    #                     globals.logging_in = False
-    #                     return
-    #                 try:
-    #                     async with globals.http.post(globals.two_step_endpoint, data={
-    #                         "code":            two_step_code,
-    #                         "trust":           "1",
-    #                         "confirm":         "1",
-    #                         "provider":        "totp",
-    #                         "remember":        "1",
-    #                         "_xfRedirect":     globals.domain + "/",
-    #                         "_xfWithData":     "1",
-    #                         "_xfToken":        globals.token,
-    #                         "_xfResponseType": "json"
-    #                     }) as two_step_req:
-    #                         two_step_result = (await two_step_req.json()).get("status")
-    #                 except aiohttp.ClientConnectorError:
-    #                     exc = "".join(traceback.format_exception(*sys.exc_info()))
-    #                     print(exc)
-    #                     await handle_no_internet()
-    #                     config_utils.save_config()
-    #                     globals.logging_in = False
-    #                     return
-    #             except Exception:
-    #                 exc = "".join(traceback.format_exception(*sys.exc_info()))
-    #                 print(exc)
-    #                 if retries_b >= globals.config["options"]["max_retries"]:
-    #                     await gui.WarningPopup.open(globals.gui, "Error!", f"Something went wrong...\n\n{exc}")
-    #                     break
-    #                 retries_b += 1
-    #                 continue
-    #             if two_step_result == "ok":
-    #                 globals.logged_in = True
-    #                 break
-    #             globals.logged_in = False
-    #             continue
-    #         break
-
-    #     # Good creds, no 2FA
-    #     if get_cookie('xf_session') is not None:
-    #         globals.logged_in = True
-    #         break
-    # config_utils.save_config()
-    # globals.logging_in = False
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *shlex.split(globals.start_cmd), "asklogin", globals.login_page,
+            stdout=subprocess.PIPE
+        )
+        with utils.daemon(proc):
+            data = await proc.communicate()
+        with contextlib.suppress(asyncio.CancelledError):
+            new_cookies = json.loads(data[0])
+            await db.update_cookies(new_cookies)
+    except Exception:
+        raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
 
 
-async def check_notifs():
-    """Fetch alert and inbox and prompt to view if any found"""
-    retries_a = 0
-    while globals.logging_in:
-        await asyncio.sleep(0.25)
-    if not globals.logged_in:
+async def assert_login():
+    if not await is_logged_in():
         await login()
-    if not globals.logged_in:
+        if not await is_logged_in():
+            return False
+    return True
+
+
+async def download_webpage(url: str):
+    if not await assert_login():
         return
-    while True:
-        try:
-            retries_b = 0
-            while True:
-                try:
-                    try:
-                        async with globals.http.get(globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"}) as notif_req:
-                            notif_json = await notif_req.json()
-                    except aiohttp.ClientConnectorError:
-                        exc = "".join(traceback.format_exception(*sys.exc_info()))
-                        print(exc)
-                        await handle_no_internet()
-                        return
-                    break
-                except Exception:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    print(exc)
-                    if retries_b >= globals.config["options"]["max_retries"]:
-                        return
-                    retries_b += 1
-            if notif_json.get("visitor") is None:
-                while globals.logging_in:
-                    await asyncio.sleep(0.25)
-                globals.logged_in = False
-                await login()
-                if globals.logged_in:
-                    continue
-                else:
-                    return
-            alerts = int(notif_json["visitor"]["alerts_unread"])
-            inbox  = int(notif_json["visitor"]["conversations_unread"])
-            globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-            if globals.gui.icon_progress:
-                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
-            globals.gui.refresh_bar.repaint()
-            if alerts != 0 and inbox != 0:
-                if await gui.QuestionPopup.ask(globals.gui, 'Notifications', f'You have {alerts + inbox} unread notifications ({alerts} alert{"s" if alerts > 1 else ""} and {inbox} conversation{"s" if inbox > 1 else ""}).', "Do you want to view them?"):
-                    await browsers.open_webpage(globals.alerts_page)
-                    await browsers.open_webpage(globals.inbox_page )
-            if alerts != 0 and inbox == 0:
-                if await gui.QuestionPopup.ask(globals.gui, 'Alerts', f'You have {alerts} unread alert{"s" if alerts > 1 else ""}.', f'Do you want to view {"them" if alerts > 1 else "it"}?'):
-                    await browsers.open_webpage(globals.alerts_page)
-            if alerts == 0 and inbox != 0:
-                if await gui.QuestionPopup.ask(globals.gui, 'Inbox', f'You have {inbox} unread conversation{"s" if inbox > 1 else ""}.', f'Do you want to view {"them" if inbox > 1 else "it"}?'):
-                    await browsers.open_webpage(globals.inbox_page )
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries_a >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking your notifications...\n\n{exc}')
-                return
-            retries_a += 1
+    raw, req = await fetch("GET", url)
+    html = bs4.BeautifulSoup(raw, "lxml")
+    for elem in html.find_all():
+        for key, value in elem.attrs.items():
+            if isinstance(value, str) and value.startswith("/"):
+                elem.attrs[key] = globals.domain + value
+    with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-", suffix=".html", delete=False) as f:
+        f.write(html.prettify(encoding="utf-8"))
+    return f.name
+
+
+async def quick_search(query: str):
+    if not await assert_login():
+        return
+    raw, req = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token})
+    html = bs4.BeautifulSoup(raw, "lxml")
+    results = []
+    for row in html.find(is_class("quicksearch-wrapper-wide")).find_all(is_class("dataList-row")):
+        title = list(row.find_all(is_class("dataList-cell")))[1]
+        url = title.find("a")
+        if not url:
             continue
-        break
-
-
-async def check_for_updates():
-    """Update checker for the tool itself"""
-    while globals.checking_updates:
-        await asyncio.sleep(0.25)
-    if globals.checked_updates:
-        return
-    globals.checking_updates = True
-    if "tester" in globals.version or "dev" in globals.version:
-        globals.checking_updates = False
-        return
-    retries = 0
-    while True:
-        try:
-            try:
-                async with globals.http.head(globals.tool_page) as check_req:
-                    tool_url = str(check_req.headers.get("location"))
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                globals.checking_updates = False
-                return
-            break
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries >= globals.config["options"]["max_retries"]:
-                globals.checking_updates = False
-                return
-            retries += 1
-    tool_version_flag = globals.version.replace(".", "-") + "-willyjl."
-    if tool_url.startswith(globals.login_page):
-        # Login required
-        globals.logged_in = False
-        while globals.logging_in:
-            await asyncio.sleep(0.25)
-        if not globals.logged_in:
-            await login()
-        if not globals.logged_in:
-            globals.checking_updates = False
-            return
-        retries = 0
-        while True:
-            try:
-                try:
-                    async with globals.http.head(globals.tool_page) as check_req:
-                        tool_url = str(check_req.headers.get("location"))
-                except aiohttp.ClientConnectorError:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    print(exc)
-                    await handle_no_internet()
-                    globals.checking_updates = False
-                    return
-                break
-            except Exception:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                if retries >= globals.config["options"]["max_retries"]:
-                    globals.checking_updates = False
-                    return
-                retries += 1
-    if tool_version_flag in tool_url:
-        # No update found
-        globals.checked_updates = True
-        globals.checking_updates = False
-        return
-
-    # Update found, log in and fetch changelog
-    while globals.logging_in:
-        await asyncio.sleep(0.25)
-    if not globals.logged_in:
-        await login()
-    if not globals.logged_in:
-        globals.checking_updates = False
-        return
-    retries = 0
-    while True:
-        try:
-            try:
-                async with globals.http.get(globals.tool_page) as tool_req:
-                    text = await tool_req.text()
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                globals.checking_updates = False
-                return
-            assert text[:15].lower() == "<!doctype html>"
-            tool_html = BeautifulSoup(text, 'html.parser')
-            break
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries >= globals.config["options"]["max_retries"]:
-                globals.checking_updates = False
-                return
-            retries += 1
-    if await check_f95zone_error(tool_html, warn=True):
-        globals.checking_updates = False
-        return
-    tool_title = tool_html.select_one('h1[class="p-title-value"]').find(text=True, recursive=False).strip()
-    tool_current = tool_title[tool_title.find('[') + 1:tool_title.find(']', tool_title.find('[') + 1)].strip()
-    tool_changelog = tool_html.select_one('b:-soup-contains("Changelog") + br + div > div').get_text()
-    tool_changelog = tool_changelog[tool_changelog.find(f'v{tool_current}'):tool_changelog.find(f'v{globals.version}', tool_changelog.find('\n', tool_changelog.find(f'v{tool_current}') + len(f'v{globals.version}')) + 1)]
-    tool_changelog = tool_changelog.replace('Spoiler', '').strip("\n")
-    # Ask to update
-    globals.checked_updates = True
-    if await gui.QuestionPopup.ask(globals.gui, "Update", "There is an update available for F95Checker!", "Do you want to update?", f"Changelog:\n\n{tool_changelog}"):
-        latest_url = tool_html.select_one('b:-soup-contains("Current Version:") + br + a').get('href')
-        # TODO: MacOS auto-update
-        if globals.exec_type == "exe":
-            Popen(["update.exe", latest_url, "F95Checker.exe"])
-        elif globals.exec_type == "python" and globals.user_os == "windows":
-            os.system(f'start "" update.py "{latest_url}" "F95Checker.exe"')
-        elif globals.exec_type == "python" and globals.user_os == "linux":
-            Popen(["python3", "update.py", latest_url, "F95Checker.sh"])
-        else:
-            globals.checking_updates = False
-            return
-        globals.loop.stop()
-        globals.loop.close()
-        sys.exit(0)
-        globals.checking_updates = False
-        return
-    globals.checking_updates = False
-
-
-async def check(game_id):
-    """Game checking"""
-    while globals.logging_in:
-        await asyncio.sleep(0.25)
-    if not globals.logged_in:
-        await login()
-    if not globals.logged_in:
-        return
-    retries = 0
-    while True:
-        try:
-            # Check for redirects
-            try:
-                async with globals.http.head(globals.config["games"][game_id]["link"]) as game_check_req:
-                    redirect = game_check_req.headers.get("location")
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                return
-            if str(redirect).startswith(globals.login_page):
-                # Login required
-                globals.logged_in = False
-                while globals.logging_in:
-                    await asyncio.sleep(0.25)
-                if not globals.logged_in:
-                    await login()
-                if not globals.logged_in:
-                    return
-                try:
-                    async with globals.http.head(globals.config["games"][game_id]["link"]) as game_check_req:
-                        redirect = game_check_req.headers.get("location")
-                except aiohttp.ClientConnectorError:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    print(exc)
-                    await handle_no_internet()
-                    return
-
-            # Fetch image if it was never downloaded
-            if not os.path.isfile(f'{globals.config_path}/images/{game_id}.jpg') and not game_id in globals.image_bg_tasks:
-                globals.loop.create_task(download_game_image(globals.config["games"][game_id]["link"], game_id))
-
-            # Step Progress Bar
-            globals.gui.refresh_bar.setValue(globals.gui.refresh_bar.value()+1)
-            if globals.gui.icon_progress:
-                globals.gui.icon_progress.setValue(globals.gui.icon_progress.value()+1)
-            globals.gui.refresh_bar.repaint()
-
-            # Not Updated
-            if not redirect:
-                return
-
-            # Updated
-            game_data = await get_game_data(redirect)
-            if not game_data:
-                return
-            old_version = globals.config["games"][game_id]["version"]
-
-            globals.config["games"][game_id]["name"]         = game_data["name"]
-            globals.config["games"][game_id]["version"]      = game_data["version"]
-            globals.config["games"][game_id]["status"]       = game_data["status"]
-            globals.config["games"][game_id]["installed"]    = False
-            globals.config["games"][game_id]["played"]       = False
-            if not globals.config["options"]["keep_exe_path_on_game_update"]:
-                globals.config["games"][game_id]["exe_path"]     = ""
-            globals.config["games"][game_id]["link"]         = game_data["link"]
-            globals.config["games"][game_id]["updated_time"] = time.time()
-            globals.config["games"][game_id]["changelog"]    = game_data["changelog"]
-            config_utils.save_config()
-
-            globals.updated_games.append({
-                'name': globals.config["games"][game_id]["name"],
-                'old_version': old_version,
-                'new_version': globals.config["games"][game_id]["version"]
-            })
-
-            globals.gui.game_list[game_id].update_details(name      = globals.config["games"][game_id]["name"],
-                                                          version   = globals.config["games"][game_id]["version"],
-                                                          status    = globals.config["games"][game_id]["status"],
-                                                          highlight = True,
-                                                          installed = False,
-                                                          played    = False,
-                                                          link      = globals.config["games"][game_id]["link"])
-        # Retry Stuff
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {globals.config["games"][game_id]["name"]}...\n\n{exc}')
-                return
-            retries += 1
+        url = url.get("href")
+        id = utils.extract_thread_matches(url)
+        if not id:
             continue
-        break
-
-
-async def find_game_from_search_term(search_term):
-    """Run quicksearch and take first result if any"""
-    while globals.logging_in:
-        await asyncio.sleep(0.25)
-    if not globals.logged_in:
-        await login()
-    if not globals.logged_in:
-        return None, None
-    retries = 0
-    while True:
-        try:
-            try:
-                async with globals.http.post(globals.qsearch_endpoint, data={
-                    "title": search_term,
-                    "_xfToken": globals.token
-                }) as search_req:
-                    text = await search_req.text()
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                return None, None
-            assert text[:15].lower() == "<!doctype html>"
-            search_html = BeautifulSoup(text, 'html.parser')
-            if await check_f95zone_error(search_html):
-                return None, None
-
-            first_result = search_html.select_one('.quicksearch-wrapper-narrow table tr > td')
-
-            if not first_result:
-                return None, None
-
-            title = re.sub(r"\ +", " ", first_result.get_text().replace('\n', ' ')).strip()
-            link = globals.domain + first_result.select('span > a')[-1].get('href')
-            return title, link
-
-        # Retry Stuff
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong searching {search_term}...\n\n{exc}')
-                return None, None
-            retries += 1
+        id = id[0].id
+        title = title.text.replace("\n", " ").strip()
+        while "  " in title:
+            title = title.replace("  ", " ")
+        if not title:
             continue
-        break
+        results.append(SearchResult(title=title, url=url, id=id))
+    return results
 
 
-async def download_game_image(source, game_id):
-    """Fetch header image and save as jpg"""
-    if game_id in globals.image_bg_tasks:
-        return
-    globals.image_bg_tasks.add(game_id)
-    if isinstance(source, str):
-        link = source
-        while globals.logging_in:
-            await asyncio.sleep(0.25)
-        if not globals.logged_in:
-            await login()
-        if not globals.logged_in:
-            globals.image_bg_tasks.remove(game_id)
-            return
-        retries = 0
-        while True:
-            try:
-                try:
-                    async with globals.image_semaphore:
-                        async with globals.http.get(link) as thread_req:
-                            text = await thread_req.text()
-                            thread_req_ok = thread_req.ok
-                except aiohttp.ClientConnectorError:
-                    exc = "".join(traceback.format_exception(*sys.exc_info()))
-                    print(exc)
-                    await handle_no_internet()
-                    globals.image_bg_tasks.remove(game_id)
-                    return
-                if not thread_req_ok:
-                    globals.image_bg_tasks.remove(game_id)
-                    return
-                assert text[:15].lower() == "<!doctype html>"
-                thread_html = BeautifulSoup(text, 'html.parser')
-                if await check_f95zone_error(thread_html):
-                    globals.image_bg_tasks.remove(game_id)
-                    return
-            # Retry Stuff
-            except Exception:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                if retries >= globals.config["options"]["max_retries"]:
-                    globals.image_bg_tasks.remove(game_id)
-                    return
-                retries += 1
-                continue
-            break
+async def import_browser_bookmarks(file: str | pathlib.Path):
+    with open(file, "rb") as f:
+        raw = f.read()
+    html = bs4.BeautifulSoup(raw, "lxml")
+    threads = []
+    for bookmark in html.find_all(lambda elem: hasattr(elem, "attrs") and "href" in elem.attrs):
+        threads += utils.extract_thread_matches(bookmark.get("href"))
+    if threads:
+        await callbacks.add_games(*threads)
     else:
-        thread_html = source
+        utils.push_popup(msgbox.msgbox, "No threads", "This bookmark file contains no valid threads to import!", MsgBox.warn)
 
-    img_elem = thread_html.select_one(".message-threadStarterPost .message-userContent img")
-    if not img_elem:
-        globals.image_bg_tasks.remove(game_id)
+
+async def import_f95_bookmarks():
+    globals.refresh_total = 2
+    if not await assert_login():
         return
-    img_link = img_elem.get('data-src').replace("thumb/", "")
-    while globals.logging_in:
-        await asyncio.sleep(0.25)
-    if not globals.logged_in:
-        await login()
-    if not globals.logged_in:
-        globals.image_bg_tasks.remove(game_id)
-        return
-    retries = 0
+    globals.refresh_progress = 1
+    diff = 0
+    threads = []
     while True:
-        try:
-            try:
-                async with globals.image_semaphore:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(img_link) as img_req:
-                            img_bytes = await img_req.read()
-                            img_req_ok = img_req.ok
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                globals.image_bg_tasks.remove(game_id)
-                return
-            if not img_req_ok:
-                globals.image_bg_tasks.remove(game_id)
-                return
-            img = QtGui.QPixmap()
-            img.loadFromData(img_bytes)
-            pathlib.Path(f'{globals.config_path}/images').mkdir(parents=True, exist_ok=True)
-            img.save(f'{globals.config_path}/images/{game_id}.jpg')
-        # Retry Stuff
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries >= globals.config["options"]["max_retries"]:
-                globals.image_bg_tasks.remove(game_id)
-                return
-            retries += 1
-            continue
-        break
-    globals.image_bg_tasks.remove(game_id)
+        globals.refresh_total += 1
+        globals.refresh_progress += 1
+        raw, req = await fetch("GET", globals.bookmarks_page, params={"difference": diff})
+        raise_f95zone_error(raw)
+        html = bs4.BeautifulSoup(raw, "lxml")
+        bookmarks = html.find(is_class("p-body-pageContent")).find(is_class("listPlain"))
+        if not bookmarks:
+            break
+        for title in bookmarks.find_all(is_class("contentRow-title")):
+            diff += 1
+            threads += utils.extract_thread_matches(title.find("a").get("href"))
+    if threads:
+        await callbacks.add_games(*threads)
+    else:
+        utils.push_popup(msgbox.msgbox, "No threads", "Your F95Zone bookmarks contains no valid threads to import!", MsgBox.warn)
 
 
-async def get_game_data(link):
-    """Fetch game info"""
-    while globals.logging_in:
-        await asyncio.sleep(0.25)
-    if not globals.logged_in:
-        await login()
-    if not globals.logged_in:
+async def import_f95_watched_threads():
+    globals.refresh_total = 2
+    if not await assert_login():
         return
-    name = ""
-    retries = 0
+    globals.refresh_progress = 1
+    page = 1
+    threads = []
     while True:
-        try:
-            try:
-                async with globals.http.get(link) as thread_req:
-                    url = str(thread_req.url)
-                    text = await thread_req.text()
-                    thread_req_ok = thread_req.ok
-            except aiohttp.ClientConnectorError:
-                exc = "".join(traceback.format_exception(*sys.exc_info()))
-                print(exc)
-                await handle_no_internet()
-                return
-            if not thread_req_ok:
-                return
-            assert text[:15].lower() == "<!doctype html>"
-            thread_html = BeautifulSoup(text, 'html.parser')
-            if await check_f95zone_error(thread_html):
-                return
+        globals.refresh_total += 1
+        globals.refresh_progress += 1
+        raw, req = await fetch("GET", globals.watched_page, params={"unread": 0, "page": page})
+        raise_f95zone_error(raw)
+        html = bs4.BeautifulSoup(raw, "lxml")
+        watched = html.find(is_class("p-body-pageContent")).find(is_class("structItemContainer"))
+        if not watched:
+            break
+        page += 1
+        for title in watched.find_all(is_class("structItem-title")):
+            threads += utils.extract_thread_matches(title.get("uix-data-href"))
+    if threads:
+        await callbacks.add_games(*threads)
+    else:
+        utils.push_popup(msgbox.msgbox, "No threads", "Your F95Zone watched threads contains no valid threads to import!", MsgBox.warn)
 
-            title = thread_html.select_one('h1[class="p-title-value"]').find(text=True, recursive=False).strip()
-            name = title[:title.find("[")].strip() if "[" in title else title.strip()
-            if title.count('[') >= 2 or title.count(']') >= 2:
-                version = title[title.find('[') + 1:title.find(']', title.find('[') + 1)].strip()
-            else:
-                version_item = thread_html.select_one('b:-soup-contains("Version")')
-                version = version_item.next_sibling if version_item else ""
-                if isinstance(version, NavigableString):
-                    version = str(version)
-                    version = version[2:] if version.startswith(": ") else version
+
+async def check(game: Game, full=False, login=False):
+    if login:
+        globals.refresh_total = 2
+        if not await assert_login():
+            return
+        globals.refresh_progress = 1
+
+    skip_first_check_for_version = game.last_refresh_version != globals.version
+    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or skip_first_check_for_version
+    if not full:
+        async with request("HEAD", game.url) as req:
+            if (redirect := str(req.real_url)) != game.url:
+                if str(game.id) in redirect and redirect.startswith(globals.threads_page):
+                    full = True
                 else:
-                    version = "N/A"
-            if len(thread_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Completed]")')) > 0:
-                status = 'completed'
-            elif len(thread_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Onhold]")')) > 0:
-                status = 'onhold'
-            elif len(thread_html.select('h1[class="p-title-value"] > a > span:-soup-contains("[Abandoned]")')) > 0:
-                status = 'abandoned'
-            else:
-                status = 'none'
-            link = url
-            changelog = thread_html.select_one('b:-soup-contains("Changelog") + br + div > div')
-            if changelog is None:
-                changelog = thread_html.select_one('b:-soup-contains("Change-Log") + br + div > div')
-            if changelog is None:
-                changelog = ""
-            else:
-                changelog = changelog.get_text().replace('Spoiler', '')
-                changelog = changelog[:changelog.replace('\n', ' ', 69).find('\n')].strip("\n")
-                while "\n\n\n" in changelog:
-                    changelog = changelog.replace('\n\n\n', '\n\n')
+                    raise msgbox.Exc("Bad HEAD response", f"Something went wrong checking {game.id}, F95Zone responded with an unexpected redirect.\n\nThe quick check HEAD request redirected to:\n{redirect}", MsgBox.error)
+    if not full:
+        return
 
-            # Only fetch image if adding the game or if update_image_on_game_update is enabled (enabled by default)
-            game_id = link[link.rfind('.')+1:link.rfind('/')]
-            if (not globals.refreshing or not globals.config["options"]["keep_image_on_game_update"]) and not game_id in globals.image_bg_tasks:
-                globals.loop.create_task(download_game_image(thread_html, game_id))
+    with fulls:
 
-            return {
-                "name": name,
-                "version": version,
-                "status": status,
-                "link": link,
-                "changelog": changelog
+        def game_has_prefixes(*names: list[str]):
+            for name in names:
+                if head.find("span", text=f"[{name}]"):
+                    return True
+            return False
+        def get_game_attr(*names: list[str]):
+            for name in names:
+                if elem := post.find(is_text(name)):
+                    break
+            if not elem:
+                return ""
+            elem = elem.next_sibling or elem.parent.next_sibling
+            if not elem:
+                return ""
+            stripped = elem.text.strip()
+            if stripped == ":" or stripped == "":
+                elem = elem.next_sibling or elem.parent.next_sibling
+            if not elem:
+                return ""
+            text = elem.text.lstrip(":")
+            if "\n" in text:
+                text = text[:text.find("\n")]
+            return text.strip()
+        def get_long_game_attr(*names: list[str]):
+            for name in names:
+                if elem := post.find(is_text(name)):
+                    break
+            if not elem:
+                return ""
+            value = ""
+            for sibling in elem.next_siblings:
+                if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
+                    break
+                stripped = sibling.text.strip()
+                if stripped == ":" or stripped == "":
+                    continue
+                value += sibling.text
+            value = value.replace("Spoiler", "").strip()
+            while "\n\n\n" in value:
+                value = value.replace("\n\n\n", "\n\n")
+            return value
+
+        raw, req = await fetch("GET", game.url, timeout=globals.settings.request_timeout * 2)
+        raise_f95zone_error(raw)
+        if req.status == 404 or req.status == 403:
+            buttons = {
+                "󰄬 Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                "󰜺 No": None
             }
-        # Retry Stuff
-        except Exception:
-            exc = "".join(traceback.format_exception(*sys.exc_info()))
-            print(exc)
-            if retries >= globals.config["options"]["max_retries"]:
-                await gui.WarningPopup.open(globals.gui, 'Error!', f'Something went wrong checking {name}...\n\n{exc}')
-                return
-            retries += 1
+            if req.status == 404:
+                title = "Thread not found"
+                msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
+            elif req.status == 403:
+                title = "No permission"
+                msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
+            raise msgbox.Exc(title, msg + f"\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
+        html = bs4.BeautifulSoup(raw, "lxml")
+
+        head = html.find(is_class("p-body-header"))
+        post = html.find(is_class("message-threadStarterPost"))
+        if head is None or post is None:
+            with open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
+                f.write(raw)
+            raise msgbox.Exc("Thread parsing error", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+
+        old_name = game.name
+        name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
+
+        old_version = game.version
+        version = get_game_attr("version")
+        if not version:
+            if match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
+                version = match.group(1).strip()
+        if not version:
+            version = "N/A"
+
+        old_developer = game.developer
+        developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-").strip()
+
+        old_type = game.type
+        # Content Types
+        if game_has_prefixes("Cheat Mod"):
+            type = Type.Cheat_Mod
+        elif game_has_prefixes("Collection", "Manga", "SiteRip", "Comics", "CG", "Pinup", "Video", "GIF"):
+            type = Type.Media
+        elif game_has_prefixes("Mod"):
+            type = Type.Mod
+        elif game_has_prefixes("Tool"):
+            type = Type.Tool
+        # Post Types
+        elif game_has_prefixes("READ ME"):
+            type = Type.READ_ME
+        elif game_has_prefixes("Request"):
+            type = Type.Request
+        elif game_has_prefixes("Tutorial"):
+            type = Type.Tutorial
+        # Game Engines
+        elif game_has_prefixes("ADRIFT"):
+            type = Type.ADRIFT
+        elif game_has_prefixes("Flash"):
+            type = Type.Flash
+        elif game_has_prefixes("HTML"):
+            type = Type.HTML
+        elif game_has_prefixes("Java"):
+            type = Type.Java
+        elif game_has_prefixes("Others"):
+            type = Type.Others
+        elif game_has_prefixes("QSP"):
+            type = Type.QSP
+        elif game_has_prefixes("RAGS"):
+            type = Type.RAGS
+        elif game_has_prefixes("RPGM"):
+            type = Type.RPGM
+        elif game_has_prefixes("Ren'Py"):
+            type = Type.RenPy
+        elif game_has_prefixes("Tads"):
+            type = Type.Tads
+        elif game_has_prefixes("Unity"):
+            type = Type.Unity
+        elif game_has_prefixes("Unreal Engine"):
+            type = Type.Unreal_Eng
+        elif game_has_prefixes("WebGL"):
+            type = Type.WebGL
+        elif game_has_prefixes("Wolf RPG"):
+            type = Type.Wolf_RPG
+        else:
+            type = Type.Misc
+
+        old_status = game.status
+        if game_has_prefixes("Completed"):
+            status = Status.Completed
+        elif game_has_prefixes("Onhold"):
+            status = Status.OnHold
+        elif game_has_prefixes("Abandoned"):
+            status = Status.Abandoned
+        else:
+            status = Status.Normal
+
+        url = utils.clean_thread_url(str(req.real_url))
+
+        last_updated = 0
+        text = get_game_attr("thread updated", "updated").replace("/", "-")
+        try:
+            last_updated = dt.datetime.fromisoformat(text).timestamp()
+        except ValueError:
+            pass
+        if not last_updated:
+            if elem := post.find(is_class("message-lastEdit")):
+                last_updated = int(elem.find("time").get("data-time"))
+            else:
+                last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
+
+        last_full_refresh = int(time.time())
+
+        # Do not reset played checkbox if first refresh on this version
+        played = game.played
+        if version != old_version and not skip_first_check_for_version:
+            played = False
+        last_refresh_version = globals.version
+
+        description = get_long_game_attr("overview", "story")
+
+        changelog = get_long_game_attr("changelog", "change-log")
+
+        old_tags = game.tags
+        tags = []
+        if (taglist := head.find(is_class("js-tagList"))) is not None:
+            for child in taglist.children:
+                if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
+                    tag = tag.replace("/tags/", "").strip("/")
+                    tags.append(Tag._members_[tag])
+
+        elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
+        if elem:
+            image_url = elem.get("data-src")
+        else:
+            image_url = "-"
+        fetch_image = game.image.missing
+        if not globals.settings.update_keep_image and not skip_first_check_for_version:
+            fetch_image = fetch_image or (image_url != game.image_url)
+
+        if fetch_image and image_url and image_url != "-":
+            async with images:
+                raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
+                ext = image_url[image_url.rfind("."):]
+                with contextlib.suppress(asyncio.CancelledError):
+                    for img in globals.images_path.glob(f"{game.id}.*"):
+                        try:
+                            img.unlink()
+                        except Exception:
+                            pass
+                    with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
+                        f.write(raw)
+                    game.image.loaded = False
+                    game.image.resolve()
+
+        with contextlib.suppress(asyncio.CancelledError):
+            game.name = name
+            game.version = version
+            game.developer = developer
+            game.type = type
+            game.status = status
+            game.url = url
+            game.last_updated.update(last_updated)
+            game.last_full_refresh = last_full_refresh
+            game.last_refresh_version = last_refresh_version
+            game.played = played
+            game.description = description
+            game.changelog = changelog
+            game.tags = tags
+            game.image_url = image_url
+            await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
+
+            if old_status is not Status.Not_Yet_Checked and not skip_first_check_for_version and (
+                name != old_name or
+                version != old_version or
+                developer != old_developer or
+                type != old_type or
+                status != old_status or
+                tags != old_tags
+            ):
+                old_game = OldGame(
+                    id=game.id,
+                    name=old_name,
+                    version=old_version,
+                    developer=old_developer,
+                    type=old_type,
+                    status=old_status,
+                    tags=old_tags
+                )
+                globals.updated_games[game.id] = old_game
+
+
+async def check_notifs(login=False):
+    if login:
+        globals.refresh_total = 2
+        if not await assert_login():
+            return
+        globals.refresh_progress = 1
+
+    try:
+        raw, req = await fetch("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"})
+        res = json.loads(raw)
+        alerts = int(res["visitor"]["alerts_unread"])
+        inbox  = int(res["visitor"]["conversations_unread"])
+    except Exception:
+        with open(globals.self_path / "notifs_broken.bin", "wb") as f:
+            f.write(raw)
+        raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+    if alerts != 0 and inbox != 0:
+        msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})."
+    elif alerts != 0 and inbox == 0:
+        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}."
+    elif alerts == 0 and inbox != 0:
+        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}."
+    else:
+        return
+    def open_callback():
+        if alerts > 0:
+            callbacks.open_webpage(globals.alerts_page)
+        if inbox > 0:
+            callbacks.open_webpage(globals.inbox_page)
+    buttons = {
+        "󰄬 Yes": open_callback,
+        "󰜺 No": None
+    }
+    for popup in globals.popup_stack:
+        if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("Notifications##"):
+            globals.popup_stack.remove(popup)
+    utils.push_popup(msgbox.msgbox, "Notifications", msg + f"\n\nDo you want to view {'them' if (alerts + inbox) > 1 else 'it'}?", MsgBox.info, buttons)
+    if globals.gui.minimized or not globals.gui.focused:
+        globals.gui.tray.push_msg(title="Notifications", msg=msg + ".\nClick here to view them.", icon=QSystemTrayIcon.MessageIcon.Information)
+
+
+async def refresh(full=False):
+    if not await assert_login():
+        return
+
+    game_queue = asyncio.Queue()
+    async def worker():
+        while not game_queue.empty() and utils.is_refreshing():
+            try:
+                await check(game_queue.get_nowait(), full=full)
+            except Exception:
+                game_refresh_task.cancel()
+                raise
+            globals.refresh_progress += 1
+
+    for game in globals.games.values():
+        if game.status is Status.Completed and not globals.settings.refresh_completed_games:
             continue
-        break
+        game_queue.put_nowait(game)
+
+    globals.refresh_progress += 1
+    globals.refresh_total += game_queue.qsize() + 1
+    images.avail = int(max(1, globals.settings.refresh_workers / 10))
+
+    game_refresh_task = asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
+    def reset_counts(_):
+        images.count = 0
+        fulls.count = 0
+    game_refresh_task.add_done_callback(reset_counts)
+    await game_refresh_task
+
+    await check_notifs()

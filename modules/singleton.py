@@ -1,9 +1,12 @@
 # https://gist.github.com/Willy-JL/2473ab16e27d4c8d8c0c4d7bcb81a5ee
+import sys
+import os
+
+singleton = None
 
 
 class Singleton:
     def __init__(self, app_id: str):
-        import os
         if os.name == 'nt':
             # Requirement: pip install pywin32
             import win32api, win32event, winerror
@@ -31,3 +34,19 @@ class Singleton:
                     os.close(self.lock)
             except Exception:
                 pass
+
+
+def lock(app_id: str):
+    global singleton
+    if singleton is None:
+        singleton = Singleton(app_id)
+    else:
+        raise FileExistsError("This instance was already assigned a singleton!")
+
+
+# Example usage
+if __name__ == "__main__":
+    import singleton  # This script is designed as a module you import
+    singleton.lock("SomeCoolProgram")
+
+# Full credits to this answer on stackoverflow https://stackoverflow.com/a/66002139
