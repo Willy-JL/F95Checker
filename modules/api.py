@@ -276,7 +276,10 @@ async def check(game: Game, full=False, login=False):
                 elem = elem.next_sibling or elem.parent.next_sibling
             if not elem:
                 return ""
-            return elem.text.lstrip(":").strip()
+            text = elem.text.lstrip(":")
+            if "\n" in text:
+                text = text[:text.find("\n")]
+            return text.strip()
         def get_long_game_attr(*names: list[str]):
             for name in names:
                 if elem := post.find(is_text(name)):
@@ -412,7 +415,7 @@ async def check(game: Game, full=False, login=False):
             played = False
         last_refresh_version = globals.version
 
-        description = get_long_game_attr("overview")
+        description = get_long_game_attr("overview", "story")
 
         changelog = get_long_game_attr("changelog", "change-log")
 
