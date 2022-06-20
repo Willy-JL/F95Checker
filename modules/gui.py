@@ -107,6 +107,8 @@ class MainGUI():
         imgui.io = imgui.get_io()
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
         imgui.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
+        size = None
+        pos = None
         try:
             # Get window size
             with open(self.ini_file_name.decode("utf-8"), "r") as f:
@@ -118,11 +120,18 @@ class MainGUI():
             assert end != -1
             config = configparser.RawConfigParser()
             config.read_string(ini[start:end])
-            size = tuple(int(x) for x in config.get("Window][F95Checker", "Size").split(","))
-            pos = tuple(int(x) for x in config.get("Window][F95Checker", "ScreenPos").split(","))
+            try:
+                size = tuple(int(x) for x in config.get("Window][F95Checker", "Size").split(","))
+            except Exception:
+                pass
+            try:
+                pos = tuple(int(x) for x in config.get("Window][F95Checker", "ScreenPos").split(","))
+            except Exception:
+                pass
         except Exception:
+            pass
+        if size is None:
             size = (1280, 720)
-            pos = None
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
