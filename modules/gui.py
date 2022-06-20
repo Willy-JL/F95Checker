@@ -107,6 +107,7 @@ class MainGUI():
         imgui.io = imgui.get_io()
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
         imgui.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
+        imgui.io.config_drag_click_to_input_text = True
         size = None
         pos = None
         try:
