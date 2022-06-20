@@ -5,7 +5,7 @@ on:
   push:
   release:
     types:
-      - "published"
+      - "created"
 
 jobs:
 
@@ -194,3 +194,30 @@ jobs:
         with:
           retain_days: 0
           keep_minimum_runs: 0
+
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    if: "github.event_name == 'release'"
+    needs:
+      - build
+      - source
+    steps:
+
+      - name: "Set git to use lf"
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: "Clone repo"
+        uses: "actions/checkout@v2"
+        with:
+          path: "./src"
+
+      - name: "Update release"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          VT_API_KEY: "${{ secrets.VT_API_KEY }}"
+        run: |
+          pip install requests
+          python src/.github/workflow_scripts/release.py
