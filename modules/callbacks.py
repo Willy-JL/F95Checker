@@ -112,14 +112,16 @@ def launch_game_exe(game: Game):
             game.last_played.update(time.time())
             async_thread.run(db.update_game(game, "last_played"))
         except FileNotFoundError:
-            def reset_callback():
-                game.executable = ""
-                async_thread.run(db.update_game(game, "executable"))
+            def select_callback(selected):
+                if selected:
+                    game.executable = selected
+                    async_thread.run(db.update_game(game, "executable"))
+                    _launch_game()
             buttons = {
-                "󰄬 Yes": reset_callback,
+                "󰄬 Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
                 "󰜺 No": None
             }
-            utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
+            utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to select another one?", MsgBox.warn, buttons)
         except Exception:
             utils.push_popup(msgbox.msgbox, "Game launch error", f"Something went wrong launching {game.name}:\n\n{utils.get_traceback()}", MsgBox.error)
     if not game.executable:
