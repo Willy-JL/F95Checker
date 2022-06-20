@@ -118,7 +118,7 @@ jobs:
         if: "github.event_name == 'release'"
         uses: "softprops/action-gh-release@v1"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
         with:
           files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ runner.os }}.zip"
 
@@ -184,7 +184,7 @@ jobs:
         if: "github.event_name == 'release'"
         uses: "softprops/action-gh-release@v1"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
         with:
           files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-Source.zip"
 
@@ -216,7 +216,7 @@ jobs:
 
       - name: "Update release"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
           VT_API_KEY: "${{ secrets.VT_API_KEY }}"
         run: |
           pip install requests
