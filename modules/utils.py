@@ -35,6 +35,10 @@ def rgba_0_1_to_hex(rgba):
     return f"#{r}{g}{b}{a}"
 
 
+def rand_num_str(len=8):
+    return "".join((random.choice('0123456789') for _ in range(len)))
+
+
 def is_refreshing():
     if globals.refresh_task and not globals.refresh_task.done():
         return True
@@ -207,7 +211,7 @@ def push_popup(*args, **kwargs):
     if len(args) + len(kwargs) > 1:
         if args[0] is popup or args[0] is msgbox.msgbox:
             args = list(args)
-            args[1] = args[1] + "##" + "".join((random.choice('0123456789') for _ in range(8)))
+            args[1] = args[1] + "##" + rand_num_str()
         popup_func = functools.partial(*args, **kwargs)
     else:
         popup_func = args[0]
