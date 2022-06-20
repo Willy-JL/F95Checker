@@ -341,7 +341,7 @@ async def check(game: Game, full=False, login=False):
         if game_has_prefixes("Cheat Mod"):
             type = Type.Cheat_Mod
         elif game_has_prefixes("Collection", "Manga", "SiteRip", "Comics", "CG", "Pinup", "Video", "GIF"):
-            type = Type.Collection
+            type = Type.Media
         elif game_has_prefixes("Mod"):
             type = Type.Mod
         elif game_has_prefixes("Tool"):
@@ -377,7 +377,7 @@ async def check(game: Game, full=False, login=False):
         elif game_has_prefixes("Unity"):
             type = Type.Unity
         elif game_has_prefixes("Unreal Engine"):
-            type = Type.Unreal_Engine
+            type = Type.Unreal_Eng
         elif game_has_prefixes("WebGL"):
             type = Type.WebGL
         elif game_has_prefixes("Wolf RPG"):
