@@ -362,6 +362,8 @@ async def check(game: Game, full=False, login=False):
             type = Type.HTML
         elif game_has_prefixes("Java"):
             type = Type.Java
+        elif game_has_prefixes("Others"):
+            type = Type.Others
         elif game_has_prefixes("QSP"):
             type = Type.QSP
         elif game_has_prefixes("RAGS"):
@@ -381,7 +383,7 @@ async def check(game: Game, full=False, login=False):
         elif game_has_prefixes("Wolf RPG"):
             type = Type.Wolf_RPG
         else:
-            type = Type.Others
+            type = Type.Misc
 
         old_status = game.status
         if game_has_prefixes("Completed"):

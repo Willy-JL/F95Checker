@@ -373,7 +373,7 @@ class Settings:
 from modules import imagehelper, utils
 
 class Type(EnumNameHack, IntEnum):
-    Others        = 1
+    Misc          = 1
     ADRIFT        = 2
     Cheat_Mod     = 3
     Collection    = 4
@@ -381,28 +381,30 @@ class Type(EnumNameHack, IntEnum):
     HTML          = 6
     Java          = 7
     Mod           = 8
-    QSP           = 9
-    RAGS          = 10
-    READ_ME       = 11
-    RPGM          = 12
-    RenPy         = 13
-    Request       = 14
-    Tads          = 15
-    Tool          = 16
-    Tutorial      = 17
-    Unity         = 18
-    Unreal_Engine = 19
-    WebGL         = 20
-    Wolf_RPG      = 21
+    Others        = 9
+    QSP           = 10
+    RAGS          = 11
+    READ_ME       = 12
+    RPGM          = 13
+    RenPy         = 14
+    Request       = 15
+    Tads          = 16
+    Tool          = 17
+    Tutorial      = 18
+    Unity         = 19
+    Unreal_Engine = 20
+    WebGL         = 21
+    Wolf_RPG      = 22
 
-Type.Others       .color = utils.hex_to_rgba_0_1("#8BC34A")
+Type.Misc         .color = utils.hex_to_rgba_0_1("#B8B00C")
 Type.ADRIFT       .color = utils.hex_to_rgba_0_1("#2196F3")
 Type.Cheat_Mod    .color = utils.hex_to_rgba_0_1("#D32F2F")
-Type.Collection   .color = utils.hex_to_rgba_0_1("#616161")
+Type.Collection   .color = utils.hex_to_rgba_0_1("#393939")
 Type.Flash        .color = utils.hex_to_rgba_0_1("#616161")
 Type.HTML         .color = utils.hex_to_rgba_0_1("#689F38")
 Type.Java         .color = utils.hex_to_rgba_0_1("#52A6B0")
 Type.Mod          .color = utils.hex_to_rgba_0_1("#BA4545")
+Type.Others       .color = utils.hex_to_rgba_0_1("#8BC34A")
 Type.QSP          .color = utils.hex_to_rgba_0_1("#D32F2F")
 Type.RAGS         .color = utils.hex_to_rgba_0_1("#FF9800")
 Type.READ_ME      .color = utils.hex_to_rgba_0_1("#DC143C")
