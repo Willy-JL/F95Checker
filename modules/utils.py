@@ -132,10 +132,14 @@ def constrain_next_window():
     imgui.set_next_window_size_constraints((0, 0), (size.x * 0.9, size.y * 0.9))
 
 
-def close_popup_clicking_outside():
+def close_weak_popup():
     if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID):
         # This is the topmost popup
-        if imgui.is_mouse_clicked():
+        if imgui.io.keys_down[glfw.KEY_ESCAPE]:
+            # Escape is pressed
+            imgui.close_current_popup()
+            return True
+        elif imgui.is_mouse_clicked():
             # Mouse was just clicked
             pos = imgui.get_window_position()
             size = imgui.get_window_size()
@@ -175,7 +179,7 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
     center_next_window()
     if imgui.begin_popup_modal(label, closable or None, flags=globals.gui.popup_flags)[0]:
         if outside:
-             closed = close_popup_clicking_outside()
+             closed = close_weak_popup()
         imgui.begin_group()
         popup_content()
         imgui.end_group()

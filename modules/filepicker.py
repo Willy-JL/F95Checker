@@ -98,7 +98,7 @@ class FilePicker:
         size = io.display_size
         imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
         if imgui.begin_popup_modal(self.title, True, flags=self.flags)[0]:
-            closed = utils.close_popup_clicking_outside()
+            closed = utils.close_weak_popup()
             imgui.begin_group()
             # Up button
             if imgui.button("󰁞"):
