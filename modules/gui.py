@@ -80,6 +80,7 @@ class MainGUI():
         # Variables
         self.focused = True
         self.size_mult = 0.0
+        self.prev_cursor = -1
         self.minimized = False
         self.edit_mode = False
         self.add_box_text = ""
@@ -89,6 +90,7 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
+        self.prev_any_hovered = None
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.bg_mode_timer: float = None
@@ -351,6 +353,19 @@ class MainGUI():
                         scroll_now = 0.0
                         scroll_energy = 0.0
                     imgui.io.mouse_wheel = scroll_now
+
+                # Reactive cursors
+                cursor = imgui.get_mouse_cursor()
+                any_hovered = imgui.is_any_item_hovered()
+                if cursor != self.prev_cursor or any_hovered != self.prev_any_hovered:
+                    shape = glfw.ARROW_CURSOR
+                    if cursor == imgui.MOUSE_CURSOR_TEXT_INPUT:
+                        shape = glfw.IBEAM_CURSOR
+                    elif any_hovered:
+                        shape = glfw.HAND_CURSOR
+                    glfw.set_cursor(self.window, glfw.create_standard_cursor(shape))
+                    self.prev_cursor = cursor
+                    self.prev_any_hovered = any_hovered
 
                 if not utils.is_refreshing() and globals.updated_games:
                     updated_games = dict(globals.updated_games)
