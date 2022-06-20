@@ -700,7 +700,8 @@ class MainGUI():
         def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
-            imgui.push_text_wrap_pos(3 * indent)
+            full_width = 3 * indent
+            imgui.push_text_wrap_pos(full_width)
             for i, id in enumerate(updated_games):
                 old_game = updated_games[id]
                 game = globals.games[id]
@@ -714,34 +715,57 @@ class MainGUI():
                 imgui.pop_font()
 
                 imgui.spacing()
-                imgui.text_ansi(f"\033[1;30mUpdate date:  \033[1;37m{game.last_updated.display}")
+                imgui.text_disabled("Update date: ")
+                imgui.same_line()
+                imgui.text(game.last_updated.display)
 
                 for attr in ("name", "version", "developer"):
                     old_val =  getattr(old_game, attr) or "Unknown"
                     new_val =  getattr(game, attr) or "Unknown"
                     if new_val != old_val:
                         imgui.spacing()
-                        imgui.text_ansi(f"\033[1;30m{attr.title()}:  \033[1;37m{old_val}\033[1;30m  ->  \033[1;37m{new_val}")
+                        imgui.text_disabled(f"{attr.title()}: ")
+                        imgui.same_line()
+                        avail = full_width - imgui.get_cursor_pos_x()
+                        cut = len(old_val)
+                        while imgui.calc_text_size(old_val[:cut]).x > avail:
+                            cut -= 1
+                        imgui.text(old_val[:cut])
+                        if old_val[cut:]:
+                            imgui.text(old_val[cut:])
+                        imgui.same_line()
+                        avail = full_width - imgui.get_cursor_pos_x()
+                        if imgui.calc_text_size(" -> ").x > avail:
+                            imgui.dummy(0, 0)
+                        imgui.text_disabled(" -> ")
+                        imgui.same_line()
+                        avail = full_width - imgui.get_cursor_pos_x()
+                        cut = len(new_val)
+                        while imgui.calc_text_size(new_val[:cut]).x > avail:
+                            cut -= 1
+                        imgui.text(new_val[:cut])
+                        if new_val[cut:]:
+                            imgui.text(new_val[cut:])
 
                 if game.type is not old_game.type:
                     imgui.spacing()
-                    imgui.text_ansi("\033[1;30mType:")
+                    imgui.text_disabled("Type: ")
                     imgui.same_line()
                     self.draw_game_type_widget(old_game)
                     imgui.same_line()
-                    imgui.text_ansi("\033[1;30m -> ")
+                    imgui.text_disabled(" -> ")
                     imgui.same_line()
                     self.draw_game_type_widget(game)
 
                 if game.status is not old_game.status:
                     imgui.spacing()
-                    imgui.text_ansi("\033[1;30mStatus:")
+                    imgui.text_disabled("Status: ")
                     imgui.same_line()
                     imgui.text(old_game.status.name)
                     imgui.same_line()
                     self.draw_game_status_widget(old_game)
                     imgui.same_line()
-                    imgui.text_ansi("\033[1;30m -> ")
+                    imgui.text_disabled(" -> ")
                     imgui.same_line()
                     imgui.text(game.status.name)
                     imgui.same_line()
@@ -758,9 +782,27 @@ class MainGUI():
                 if added or removed:
                     imgui.spacing()
                     if added:
-                        imgui.text_ansi(f"\033[1;30mTags added:  \033[1;37m{added}")
+                        imgui.text_disabled("Tags added: ")
+                        imgui.same_line()
+                        avail = full_width - imgui.get_cursor_pos_x()
+                        added = added.strip()
+                        cut = len(added)
+                        while imgui.calc_text_size(added[:cut]).x > avail:
+                            cut -= 1
+                        imgui.text(added[:cut])
+                        if added[cut:]:
+                            imgui.text(added[cut:])
                     if removed:
-                        imgui.text_ansi(f"\033[1;30mTags removed:  \033[1;37m{removed}")
+                        imgui.text_disabled("Tags removed: ")
+                        imgui.same_line()
+                        avail = full_width - imgui.get_cursor_pos_x()
+                        removed = removed.strip()
+                        cut = len(removed)
+                        while imgui.calc_text_size(removed[:cut]).x > avail:
+                            cut -= 1
+                        imgui.text(removed[:cut])
+                        if removed[cut:]:
+                            imgui.text(removed[cut:])
 
                 imgui.end_group()
                 imgui.unindent(indent)
