@@ -15,7 +15,7 @@ if __name__ == "__main__":
         }
     ).json()
     print(f"release = {json.dumps(release, indent=4)}")
-    body = "# ⬇️ Download\n"
+    body = "---\n## ⬇️ Download\n"
     for asset_type, asset_icon in [("Windows", "🪟"), ("Linux", "🐧"), ("MacOS", "🍎"), ("Source", "🐍")]:
         print(f"Adding {asset_type}")
         for asset in release["assets"]:
@@ -23,12 +23,10 @@ if __name__ == "__main__":
                 asset_url = asset["browser_download_url"]
         body += f">### [{asset_type} {asset_icon}]({asset_url}) ([VirusTotal]())\n\n"
     body += (
-        "<br />\n\n" +
-        "# ❤️ Support\n" +
+        "## ❤️ Support\n" +
         "F95Checker is **Free and Open Source Software**, provided to you **free of cost**. However it is actively **developed by " +
         "one single person only, WillyJL**. Please consider [**donating**](https://linktr.ee/WillyJL) or **sharing this software**!\n\n" +
-        "<br />\n\n" +
-        "# 🚀 Changelog\n" +
+        "## 🚀 Changelog\n" +
         release["body"]
     )
     print(f"Full body:\n\n{body}")
@@ -38,8 +36,9 @@ if __name__ == "__main__":
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {os.environ['GITHUB_TOKEN']}"
         },
-        data={
+        json={
             "body": body
         }
     )
-    print(f"{req.status_code = }\n{req.content = }")
+    if not req.ok:
+        print(f"{req.status_code = }\n{req.content = }")
