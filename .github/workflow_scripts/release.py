@@ -27,7 +27,7 @@ if __name__ == "__main__":
                 "Accept": "application/json",
                 "x-apikey": os.environ["VT_API_KEY"]
             }
-        )
+        ).json()["data"]
         vt_id = requests.post(
             vt_temp,
             headers={
