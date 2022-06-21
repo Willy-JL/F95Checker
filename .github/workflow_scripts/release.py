@@ -1,13 +1,12 @@
 import requests
-import base64
 import json
-import io
 import os
 
 
 if __name__ == "__main__":
     with open(os.environ["GITHUB_EVENT_PATH"]) as f:
         event = json.load(f)
+    print(f"event = {json.dumps(event, indent=4)}")
     release = requests.get(
         f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/releases/{event['release']['id']}",
         headers={
@@ -15,32 +14,14 @@ if __name__ == "__main__":
             "Authorization": f"token {os.environ['GITHUB_TOKEN']}"
         }
     ).json()
+    print(f"release = {json.dumps(release, indent=4)}")
     body = "# ⬇️ Download\n"
     for asset_type, asset_icon in [("Windows", "🪟"), ("Linux", "🐧"), ("MacOS", "🍎"), ("Source", "🐍")]:
+        print(f"Adding {asset_type}")
         for asset in release["assets"]:
             if asset_type.lower() in asset["name"].lower():
                 asset_url = asset["browser_download_url"]
-        asset = requests.get(asset_url).content
-        vt_temp = requests.get(
-            "https://www.virustotal.com/api/v3/files/upload_url",
-            headers={
-                "Accept": "application/json",
-                "x-apikey": os.environ["VT_API_KEY"]
-            }
-        ).json()["data"]
-        vt_id = requests.post(
-            vt_temp,
-            headers={
-                "Accept": "application/json",
-                "x-apikey": os.environ["VT_API_KEY"]
-            },
-            files={
-                "file": io.BytesIO(asset)
-            }
-        ).json()["data"]["id"]
-        vt_hash = str(base64.b64decode(vt_id), encoding="utf-8").split(":")[0]
-        vt_url = f"https://www.virustotal.com/gui/file/{vt_hash}/"
-        body += f">### [{asset_type} {asset_icon}]({asset_url}) ([VirusTotal]({vt_url}))\n\n"
+        body += f">### [{asset_type} {asset_icon}]({asset_url}) ([VirusTotal]())\n\n"
     body += (
         "<br />\n\n" +
         "# ❤️ Support\n" +
@@ -50,6 +31,7 @@ if __name__ == "__main__":
         "# 🚀 Changelog\n" +
         release["body"]
     )
+    print(f"Full body:\n\n{body}")
     requests.patch(
         f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/releases/{release['id']}",
         headers={

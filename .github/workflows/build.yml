@@ -217,7 +217,6 @@ jobs:
       - name: "Update release"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          VT_API_KEY: "${{ secrets.VT_API_KEY }}"
         run: |
           pip install requests
           python src/.github/workflow_scripts/release.py
