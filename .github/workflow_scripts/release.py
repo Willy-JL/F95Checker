@@ -7,14 +7,7 @@ import os
 
 if __name__ == "__main__":
     with open(os.environ["GITHUB_EVENT_PATH"]) as f:
-        release = json.load(f)
-    release = requests.get(
-        f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/releases/{release['id']}",
-        headers={
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": f"token {os.environ['GITHUB_TOKEN']}"
-        }
-    ).json()
+        release = json.load(f)["release"]
     body = "# ⬇️ Download\n"
     for asset_type, asset_icon in [("Windows", "🪟"), ("Linux", "🐧"), ("MacOS", "🍎"), ("Source", "🐍")]:
         for asset in release["assets"]:
