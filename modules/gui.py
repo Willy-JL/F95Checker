@@ -396,6 +396,8 @@ class MainGUI():
                     text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} image{'s' if count > 1 else ''}..."
                 elif (count := api.fulls.count) > 0:
                     text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full recheck{'s' if count > 1 else ''}..."
+                elif globals.last_update_check is None:
+                    text = "Checking for updates..."
                 else:
                     text = self.watermark_text
                 _3 = self.scaled(3)

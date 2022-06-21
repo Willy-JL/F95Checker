@@ -193,6 +193,7 @@ popup_stack = []
 refresh_total = 0
 gui: MainGUI = None
 refresh_progress = 0
+last_update_check = 0.0
 settings: Settings = None
 refresh_task: Future = None
 games: dict[int, Game] = None

@@ -531,6 +531,13 @@ async def check_notifs(login=False):
         globals.gui.tray.push_msg(title="Notifications", msg=msg + ".\nClick here to view them.", icon=QSystemTrayIcon.MessageIcon.Information)
 
 
+async def check_updates():
+    print("aaa")
+    await asyncio.sleep(0.1)
+    globals.last_update_check = time.time()
+    return
+
+
 async def refresh(full=False):
     if not await assert_login():
         return
