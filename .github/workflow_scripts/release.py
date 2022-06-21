@@ -8,7 +8,7 @@ if __name__ == "__main__":
         event = json.load(f)
     print(f"event = {json.dumps(event, indent=4)}")
     release = requests.get(
-        f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/releases/{event['release']['id']}",
+        event["release"]["url"],
         headers={
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {os.environ['GITHUB_TOKEN']}"
@@ -32,8 +32,8 @@ if __name__ == "__main__":
         release["body"]
     )
     print(f"Full body:\n\n{body}")
-    requests.patch(
-        f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/releases/{release['id']}",
+    req = requests.patch(
+        release["url"],
         headers={
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {os.environ['GITHUB_TOKEN']}"
@@ -42,3 +42,4 @@ if __name__ == "__main__":
             "body": body
         }
     )
+    print(f"{req.status_code = }\n{req.content = }")
