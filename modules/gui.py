@@ -771,6 +771,9 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_game_status_widget(game)
 
+                imgui.spacing()
+                self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
+
                 added = ""
                 removed = ""
                 for tag in game.tags:
