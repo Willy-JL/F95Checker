@@ -1,3 +1,4 @@
+// XML conversion utils
 function objectToXml(object) {
     if (object instanceof Array || Object.keys(object).length !== 1) {
         throw 'variable has to be an object with a single property'
@@ -21,7 +22,13 @@ function variableToXml(variable, arrayItemPropertyName = null) {
     return variable
 }
 
-chrome.action.onClicked.addListener(tab => {
+
+// Actual logic
+function addToF95checker(url) {
+    match = /threads\/(?:[^\/]*\.)?\d+/.exec(url)
+    if (!match) {
+        return
+    }
     fetch("http://localhost:57095/", {
         method: "POST",
         body: objectToXml({
@@ -31,12 +38,38 @@ chrome.action.onClicked.addListener(tab => {
                     param: [
                         {
                             value: {
-                                string: /threads\/(?:[^\/]*\.)?\d+/.exec(tab.url)[0]
+                                string: match[0]
                             }
                         }
                     ]
                 }
             }
         })
-    });
-});
+    })
+}
+
+
+// Click on extension icon
+chrome.action.onClicked.addListener(tab => {
+    addToF95checker(tab.url)
+})
+
+
+// Context menus
+chrome.runtime.onInstalled.addListener(async () => {
+    chrome.contextMenus.create({
+        id: `add-page-to-f95checker`,
+        title: `Add this page to F95Checker`,
+        contexts: ["page"],
+        documentUrlPatterns: ["*://*.f95zone.to/threads/*"]
+    })
+    chrome.contextMenus.create({
+        id: `add-link-to-f95checker`,
+        title: `Add this link to F95Checker`,
+        contexts: ["link"],
+        targetUrlPatterns: ["*://*.f95zone.to/threads/*"]
+    })
+})
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    addToF95checker(info.linkUrl || info.pageUrl)
+})
