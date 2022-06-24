@@ -8,6 +8,7 @@ import sys
 import os
 
 version = "9.0"
+is_release = False
 
 rpc_port = 57095
 

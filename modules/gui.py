@@ -75,7 +75,7 @@ class MainGUI():
             imgui.WINDOW_NO_SAVED_SETTINGS |
             imgui.WINDOW_ALWAYS_AUTO_RESIZE
         )
-        self.watermark_text = f"F95Checker v{globals.version} by WillyJL"
+        self.watermark_text = f"F95Checker v{globals.version}{'' if globals.is_release else ' beta'} by WillyJL"
 
         # Variables
         self.focused = True
@@ -1005,7 +1005,7 @@ class MainGUI():
             imgui.push_font(self.big_font)
             imgui.text("F95Checker")
             imgui.pop_font()
-            imgui.text(f"Version {globals.version}")
+            imgui.text(f"Version {globals.version}{'' if globals.is_release else ' beta'}")
             imgui.text("")
             imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
             imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
@@ -2466,7 +2466,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.msg_queue: list[TrayMsg] = []
         super().__init__(self.idle_icon)
 
-        self.watermark = QtGui.QAction(f"F95Checker v{globals.version}")
+        self.watermark = QtGui.QAction(f"F95Checker v{globals.version}{'' if globals.is_release else ' beta'}")
         self.watermark.triggered.connect(lambda *_: callbacks.open_webpage(globals.tool_page))
 
         self.next_refresh = QtGui.QAction("Next Refresh: N/A")
