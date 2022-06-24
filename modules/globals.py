@@ -40,6 +40,7 @@ threads_page      = domain + "/threads/"
 tool_page         = domain + "/threads/44173/"
 github_page       = "https://github.com/Willy-JL/F95Checker"
 developer_page    = "https://linktr.ee/WillyJL"
+update_endpoint   = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
 
 
 from modules.structs import Browser, Game, OldGame, Os, Settings

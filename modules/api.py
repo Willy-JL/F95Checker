@@ -6,14 +6,17 @@ import tempfile
 import aiohttp
 import pathlib
 import asyncio
+import zipfile
 import shlex
+import imgui
 import time
 import json
 import bs4
 import os
+import io
 import re
 
-from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, SearchResult, Status, Tag, Type
+from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status, Tag, Type
 from modules import globals, async_thread, callbacks, db, msgbox, utils
 
 session: aiohttp.ClientSession = None
@@ -532,10 +535,132 @@ async def check_notifs(login=False):
 
 
 async def check_updates():
-    print("aaa")
-    await asyncio.sleep(0.1)
-    globals.last_update_check = time.time()
-    return
+    try:
+        raw, req = await fetch("GET", globals.update_endpoint)
+        res = json.loads(raw)
+        latest = res["tag_name"].split(".")
+        current = globals.version.split(".")
+        if res["prerelease"]:
+            update_available = False  # Release is not ready yet
+        elif (globals.self_path / ".git").is_dir():
+            update_available = False  # Running from git repo, skip update
+        elif len(latest) > len(current):
+            update_available = True  # Longer version, is an update
+        elif len(latest) < len(current):
+            update_available = False  # Shorter version, not an update
+        else:
+            update_available = not globals.is_release  # Allow updating from beta to full release
+            for field in range(len(latest)):
+                if latest[field] == current[field]:
+                    continue  # Ignore this field if same on both versions
+                update_available = int(latest[field]) > int(current[field])
+                break  # If field is bigger then its an update
+        asset_url = None
+        asset_name = None
+        asset_size = None
+        for asset in res["assets"]:
+            if (globals.frozen and globals.os.name.lower() in asset["name"].lower()) or \
+            (not globals.frozen and "source" in asset["name"].lower()):
+                asset_url = asset["browser_download_url"]
+                asset_name = asset["name"]
+                asset_size = asset["size"]
+                break
+        changelog = res["body"].strip("\n")
+        if (match := "## 🚀 Changelog") in changelog:
+            changelog = changelog[changelog.find(match) + len(match):].strip("\n")
+        globals.last_update_check = time.time()
+        if not update_available or not asset_url or not asset_name or not asset_size:
+            return
+    except Exception:
+        with open(globals.self_path / "update_broken.bin", "wb") as f:
+            f.write(raw)
+        raise msgbox.Exc("Update check error", f"Something went wrong checking for F95Checker updates:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}update_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+    async def update_callback():
+        progress = 0.0
+        total = float(asset_size)
+        cancel = [False]
+        status = f"Downloading {asset_name}..."
+        fmt = "{ratio:.0%}"
+        def popup_content():
+            imgui.text(status)
+            ratio = progress / total
+            width = imgui.get_content_region_available_width()
+            height = imgui.get_frame_height()
+            imgui.progress_bar(ratio, (width, height))
+            draw_list = imgui.get_window_draw_list()
+            col = imgui.get_color_u32_rgba(1, 1, 1, 1)
+            text = fmt.format(ratio=ratio, progress=progress)
+            text_size = imgui.calc_text_size(text)
+            screen_pos = imgui.get_cursor_screen_pos()
+            text_x = screen_pos.x + (width - text_size.x) / 2
+            text_y = screen_pos.y - (height + text_size.y) / 2 - imgui.style.item_spacing.y
+            draw_list.add_text(text_x, text_y, col, text)
+        def cancel_callback():
+            cancel[0] = True
+        buttons = {
+            "󰜺 Cancel": cancel_callback
+        }
+        utils.push_popup(utils.popup, "Updating F95checker", popup_content, buttons=buttons, closable=False, outside=False)
+        asset_data = io.BytesIO()
+        async with request("GET", asset_url, timeout=3600) as req:
+            async for chunk in req.content.iter_any():
+                if cancel[0]:
+                    return
+                if chunk:
+                    progress += asset_data.write(chunk)
+                else:
+                    break
+        progress = 0.0
+        total = 1.0
+        status = f"Extracting {asset_name}..."
+        asset_path = pathlib.Path(tempfile.TemporaryDirectory(prefix=asset_name[:asset_name.rfind(".")] + "-").name)
+        with zipfile.ZipFile(asset_data) as z:
+            total = float(len(z.filelist))
+            for file in z.filelist:
+                if cancel[0]:
+                    return
+                z.extract(file.filename, asset_path)
+                progress += 1
+        progress = 5.0
+        total = 5.0
+        status = "Installing update in..."
+        fmt = "{progress:.0f}s"
+        for _ in range(500):
+            if cancel[0]:
+                return
+            await asyncio.sleep(0.01)
+            progress -= 0.01
+        match globals.os.value:
+            case Os.Linux.value:
+                script = "\n".join([
+                    shlex.join(["tail", "--pid", str(os.getpid()), "-f", os.devnull]),
+                    shlex.join(["rm", "-rf", str(globals.self_path)]),
+                    shlex.join(["mv", str(asset_path), str(globals.self_path)]),
+                    globals.start_cmd
+                ])
+                # await asyncio.create_subprocess_exec("bash", "-c", script)
+                globals.gui.close()
+            case Os.Windows.value:
+                script = "\n".join([
+                    shlex.join(["Wait-Process", "-Id", str(os.getpid())]),
+                    shlex.join(["Remove-Item", "-Recurse", str(globals.self_path)]),
+                    shlex.join(["Move-Item", str(asset_path), str(globals.self_path)]),
+                    globals.start_cmd
+                ])
+                # await asyncio.create_subprocess_exec("powershell", script)
+                globals.gui.close()
+            case Os.MacOS.value:
+                pass
+    buttons = {
+        "󰄬 Yes": lambda: async_thread.run(update_callback()),
+        "󰜺 No": None
+    }
+    for popup in globals.popup_stack:
+        if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("F95checker update##"):
+            globals.popup_stack.remove(popup)
+    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on v{globals.version}{'' if globals.is_release else ' beta'}).\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    if globals.gui.minimized or not globals.gui.focused:
+        globals.gui.tray.push_msg(title="F95checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
 
 async def refresh(full=False):
