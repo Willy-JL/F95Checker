@@ -68,7 +68,7 @@ def start_refresh_task(coro: typing.Coroutine):
                 return
         except concurrent.futures.CancelledError:
             return
-        if globals.last_update_check is not None and globals.last_update_check < time.time() - 3600:  # Check updates after refreshing at 1 hour intervals
+        if globals.last_update_check is not None and globals.last_update_check < time.time() - 21600:  # Check updates after refreshing at 6 hour intervals
             from modules import api
             globals.last_update_check = None
             update_check = async_thread.run(api.check_updates())
