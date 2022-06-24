@@ -143,7 +143,7 @@ async def download_webpage(url: str):
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
                 elem.attrs[key] = globals.domain + value
-    with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-", suffix=".html", delete=False) as f:
+    with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-Temp-", suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return f.name
 

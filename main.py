@@ -60,7 +60,7 @@ def main():
     async_thread.wait(db.close())
     async_thread.wait(api.shutdown())
 
-    for file in pathlib.Path(tempfile.gettempdir()).glob("F95Checker-*"):
+    for file in pathlib.Path(tempfile.gettempdir()).glob("F95Checker-Temp-*"):
         try:
             file.unlink()
         except Exception:
