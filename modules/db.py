@@ -13,6 +13,25 @@ from modules import globals, imagehelper, msgbox, utils
 connection: aiosqlite.Connection = None
 
 
+async def create_table(table_name: str, columns: dict[str, str]):
+    await connection.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            {', '.join([f'{column_name} {column_def}' for column_name, column_def in columns.items()])}
+        )
+    """)
+    # Add missing columns for backwards compatibility
+    cursor = await connection.execute(f"""
+        PRAGMA table_info({table_name})
+    """)
+    has_column_names = [tuple(row)[1] for row in await cursor.fetchall()]
+    for column_name, column_def in columns.items():
+        if column_name not in has_column_names:
+            await connection.execute(f"""
+                ALTER TABLE {table_name}
+                ADD COLUMN {column_name} {column_def}
+            """)
+
+
 async def connect():
     global connection
 
@@ -20,48 +39,46 @@ async def connect():
     connection = await aiosqlite.connect(globals.data_path / "db.sqlite3")
     connection.row_factory = aiosqlite.Row  # Return sqlite3.Row instead of tuple
 
-    await connection.execute(f"""
-        CREATE TABLE IF NOT EXISTS settings (
-            _                           INTEGER PRIMARY KEY CHECK (_=0),
-            browser_custom_arguments    TEXT    DEFAULT "",
-            browser_custom_executable   TEXT    DEFAULT "",
-            browser_html                INTEGER DEFAULT 0,
-            browser_private             INTEGER DEFAULT 0,
-            browser                     INTEGER DEFAULT {Browser._None},
-            confirm_on_remove           INTEGER DEFAULT 1,
-            display_mode                INTEGER DEFAULT {DisplayMode.list},
-            default_exe_dir             TEXT    DEFAULT "",
-            fit_images                  INTEGER DEFAULT 0,
-            grid_columns                INTEGER DEFAULT 3,
-            grid_image_ratio            REAL    DEFAULT 3.0,
-            interface_scaling           REAL    DEFAULT 1.0,
-            manual_sort_list            TEXT    DEFAULT "[]",
-            minimize_on_close           INTEGER DEFAULT 0,
-            refresh_completed_games     INTEGER DEFAULT 1,
-            refresh_workers             INTEGER DEFAULT 20,
-            request_timeout             INTEGER DEFAULT 30,
-            scroll_amount               REAL    DEFAULT 1,
-            scroll_smooth               INTEGER DEFAULT 1,
-            scroll_smooth_speed         REAL    DEFAULT 8,
-            select_executable_after_add INTEGER DEFAULT 0,
-            start_in_tray               INTEGER DEFAULT 0,
-            start_refresh               INTEGER DEFAULT 0,
-            style_accent                TEXT    DEFAULT "{DefaultStyle.accent}",
-            style_alt_bg                TEXT    DEFAULT "{DefaultStyle.alt_bg}",
-            style_bg                    TEXT    DEFAULT "{DefaultStyle.bg}",
-            style_border                TEXT    DEFAULT "{DefaultStyle.border}",
-            style_corner_radius         INTEGER DEFAULT {DefaultStyle.corner_radius},
-            style_text                  TEXT    DEFAULT "{DefaultStyle.text}",
-            style_text_dim              TEXT    DEFAULT "{DefaultStyle.text_dim}",
-            tray_refresh_interval       INTEGER DEFAULT 15,
-            update_keep_image           INTEGER DEFAULT 0,
-            vsync_ratio                 INTEGER DEFAULT 1,
-            zoom_amount                 INTEGER DEFAULT 4,
-            zoom_enabled                INTEGER DEFAULT 1,
-            zoom_region                 INTEGER DEFAULT 1,
-            zoom_size                   INTEGER DEFAULT 64
-        )
-    """)
+    await create_table("settings", {
+        "_":                           f'INTEGER PRIMARY KEY CHECK (_=0)',
+        "browser_custom_arguments":    f'TEXT    DEFAULT ""',
+        "browser_custom_executable":   f'TEXT    DEFAULT ""',
+        "browser_html":                f'INTEGER DEFAULT 0',
+        "browser_private":             f'INTEGER DEFAULT 0',
+        "browser":                     f'INTEGER DEFAULT {Browser._None}',
+        "confirm_on_remove":           f'INTEGER DEFAULT 1',
+        "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
+        "default_exe_dir":             f'TEXT    DEFAULT ""',
+        "fit_images":                  f'INTEGER DEFAULT 0',
+        "grid_columns":                f'INTEGER DEFAULT 3',
+        "grid_image_ratio":            f'REAL    DEFAULT 3.0',
+        "interface_scaling":           f'REAL    DEFAULT 1.0',
+        "manual_sort_list":            f'TEXT    DEFAULT "[]"',
+        "minimize_on_close":           f'INTEGER DEFAULT 0',
+        "refresh_completed_games":     f'INTEGER DEFAULT 1',
+        "refresh_workers":             f'INTEGER DEFAULT 20',
+        "request_timeout":             f'INTEGER DEFAULT 30',
+        "scroll_amount":               f'REAL    DEFAULT 1',
+        "scroll_smooth":               f'INTEGER DEFAULT 1',
+        "scroll_smooth_speed":         f'REAL    DEFAULT 8',
+        "select_executable_after_add": f'INTEGER DEFAULT 0',
+        "start_in_tray":               f'INTEGER DEFAULT 0',
+        "start_refresh":               f'INTEGER DEFAULT 0',
+        "style_accent":                f'TEXT    DEFAULT "{DefaultStyle.accent}"',
+        "style_alt_bg":                f'TEXT    DEFAULT "{DefaultStyle.alt_bg}"',
+        "style_bg":                    f'TEXT    DEFAULT "{DefaultStyle.bg}"',
+        "style_border":                f'TEXT    DEFAULT "{DefaultStyle.border}"',
+        "style_corner_radius":         f'INTEGER DEFAULT {DefaultStyle.corner_radius}',
+        "style_text":                  f'TEXT    DEFAULT "{DefaultStyle.text}"',
+        "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
+        "tray_refresh_interval":       f'INTEGER DEFAULT 15',
+        "update_keep_image":           f'INTEGER DEFAULT 0',
+        "vsync_ratio":                 f'INTEGER DEFAULT 1',
+        "zoom_amount":                 f'INTEGER DEFAULT 4',
+        "zoom_enabled":                f'INTEGER DEFAULT 1',
+        "zoom_region":                 f'INTEGER DEFAULT 1',
+        "zoom_size":                   f'INTEGER DEFAULT 64'
+    })
     await connection.execute("""
         INSERT INTO settings
         (_)
@@ -70,38 +87,34 @@ async def connect():
         ON CONFLICT DO NOTHING
     """)
 
-    await connection.execute(f"""
-        CREATE TABLE IF NOT EXISTS games (
-            id                   INTEGER PRIMARY KEY,
-            name                 TEXT    DEFAULT "",
-            version              TEXT    DEFAULT "",
-            developer            TEXT    DEFAULT "",
-            type                 INTEGER DEFAULT {Type.Others},
-            status               INTEGER DEFAULT {Status.Normal},
-            url                  TEXT    DEFAULT "",
-            added_on             INTEGER DEFAULT 0,
-            last_updated         INTEGER DEFAULT 0,
-            last_full_refresh    INTEGER DEFAULT 0,
-            last_refresh_version TEXT    DEFAULT "",
-            last_played          INTEGER DEFAULT 0,
-            rating               INTEGER DEFAULT 0,
-            played               INTEGER DEFAULT 0,
-            installed            TEXT    DEFAULT "",
-            executable           TEXT    DEFAULT "",
-            description          TEXT    DEFAULT "",
-            changelog            TEXT    DEFAULT "",
-            tags                 TEXT    DEFAULT "[]",
-            notes                TEXT    DEFAULT "",
-            image_url            TEXT    DEFAULT ""
-        )
-    """)
+    await create_table("games", {
+        "id":                          f'INTEGER PRIMARY KEY',
+        "name":                        f'TEXT    DEFAULT ""',
+        "version":                     f'TEXT    DEFAULT ""',
+        "developer":                   f'TEXT    DEFAULT ""',
+        "type":                        f'INTEGER DEFAULT {Type.Others}',
+        "status":                      f'INTEGER DEFAULT {Status.Normal}',
+        "url":                         f'TEXT    DEFAULT ""',
+        "added_on":                    f'INTEGER DEFAULT 0',
+        "last_updated":                f'INTEGER DEFAULT 0',
+        "last_full_refresh":           f'INTEGER DEFAULT 0',
+        "last_refresh_version":        f'TEXT    DEFAULT ""',
+        "last_played":                 f'INTEGER DEFAULT 0',
+        "rating":                      f'INTEGER DEFAULT 0',
+        "played":                      f'INTEGER DEFAULT 0',
+        "installed":                   f'TEXT    DEFAULT ""',
+        "executable":                  f'TEXT    DEFAULT ""',
+        "description":                 f'TEXT    DEFAULT ""',
+        "changelog":                   f'TEXT    DEFAULT ""',
+        "tags":                        f'TEXT    DEFAULT "[]"',
+        "notes":                       f'TEXT    DEFAULT ""',
+        "image_url":                   f'TEXT    DEFAULT ""'
+    })
 
-    await connection.execute(f"""
-        CREATE TABLE IF NOT EXISTS cookies (
-            key               TEXT    PRIMARY KEY,
-            value             TEXT    DEFAULT ""
-        )
-    """)
+    await create_table("cookies", {
+        "key":                         f'TEXT    PRIMARY KEY',
+        "value":                       f'TEXT    DEFAULT ""'
+    })
 
     if migrate:
         if (path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file():
