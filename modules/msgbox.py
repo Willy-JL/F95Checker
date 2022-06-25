@@ -46,8 +46,9 @@ def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.
             if imgui.tree_node("More info", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 size = imgui.io.display_size
                 more_size = imgui.calc_text_size(more)
-                width = min(more_size.x, size.x * 0.8 - icon_size.x)
-                height = min(more_size.y, size.y * 0.7 - msg_size_y)
+                _36 = globals.gui.scaled(26) + imgui.style.scrollbar_size
+                width = min(more_size.x + _36, size.x * 0.8 - icon_size.x)
+                height = min(more_size.y + _36, size.y * 0.7 - msg_size_y)
                 imgui.input_text_multiline("##more_info", more, len(more) * 2,  width=width, height=height, flags=imgui.INPUT_TEXT_READ_ONLY)
                 imgui.tree_pop()
         imgui.end_group()
