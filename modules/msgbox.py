@@ -2,7 +2,7 @@ import typing
 import imgui
 
 from modules.structs import MsgBox
-from modules import utils
+from modules import globals, utils
 
 icon_font = None
 popup_flags: int = (
