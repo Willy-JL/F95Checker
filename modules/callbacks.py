@@ -206,6 +206,10 @@ def open_webpage(url: str):
 
 def remove_game(game: Game, bypass_confirm=False):
     def remove_callback():
+        for popup in globals.popup_stack:
+            if popup.func == globals.gui.draw_game_info_popup:
+                globals.popup_stack.remove(popup)
+                break
         id = game.id
         del globals.games[id]
         globals.gui.require_sort = True
