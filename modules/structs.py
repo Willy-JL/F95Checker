@@ -347,6 +347,7 @@ class Settings:
     minimize_on_close           : bool
     refresh_completed_games     : bool
     refresh_workers             : int
+    render_when_unfocused       : bool
     request_timeout             : int
     scroll_amount               : float
     scroll_smooth               : bool

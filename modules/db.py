@@ -57,6 +57,7 @@ async def connect():
         "minimize_on_close":           f'INTEGER DEFAULT 0',
         "refresh_completed_games":     f'INTEGER DEFAULT 1',
         "refresh_workers":             f'INTEGER DEFAULT 20',
+        "render_when_unfocused":       f'INTEGER DEFAULT 1',
         "request_timeout":             f'INTEGER DEFAULT 30',
         "scroll_amount":               f'REAL    DEFAULT 1',
         "scroll_smooth":               f'INTEGER DEFAULT 1',

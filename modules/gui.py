@@ -339,7 +339,7 @@ class MainGUI():
             if not self.focused and glfw.get_window_attrib(self.window, glfw.HOVERED):
                 # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
                 imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
-            if not self.minimized:
+            if not self.minimized and (self.focused or globals.settings.render_when_unfocused):
 
                 # Scroll modifiers (must be before new_frame())
                 imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -2122,6 +2122,24 @@ class MainGUI():
             if changed:
                 glfw.swap_interval(set.vsync_ratio)
                 async_thread.run(db.update_settings("vsync_ratio"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Render if unfocused:")
+            imgui.same_line()
+            self.draw_hover_text(
+                "F95Checker renders its interface using ImGui and OpenGL and this means it has to render the whole interface up "
+                "to hundreds of times per second (look at the framerate below). This process is as optimized as possible but it "
+                "will inevitably consume some CPU and GPU resources. If you absolutely need the performance you can disable this "
+                "option to stop rendering when the checker window is not focused, but keep in mind that it might lead to weird "
+                "interactions and behavior."
+            )
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##render_when_unfocused", set.render_when_unfocused)
+            if changed:
+                set.render_when_unfocused = value
+                async_thread.run(db.update_settings("render_when_unfocused"))
 
             imgui.table_next_row()
             imgui.table_next_column()
