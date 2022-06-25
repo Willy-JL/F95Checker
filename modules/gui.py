@@ -473,6 +473,8 @@ class MainGUI():
             imgui.text_unformatted(hover_text)
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
+            return True
+        return False
 
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_more_info"
@@ -482,6 +484,7 @@ class MainGUI():
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
             utils.push_popup(self.draw_game_info_popup, game)
+        return clicked
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_play_button"
@@ -495,6 +498,7 @@ class MainGUI():
             utils.pop_disabled()
         if clicked:
             callbacks.launch_game_exe(game)
+        return clicked
 
     def draw_game_type_widget(self, game: Game, align=False, *args, **kwargs):
         col = game.type.color
@@ -523,7 +527,7 @@ class MainGUI():
         if game.played:
             imgui.text(game.name, *args, **kwargs)
         else:
-            imgui.text_colored(game.name,*globals.settings.style_accent, *args, **kwargs)
+            imgui.text_colored(game.name, *globals.settings.style_accent, *args, **kwargs)
 
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
@@ -574,6 +578,7 @@ class MainGUI():
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
             callbacks.open_webpage(game.url)
+        return clicked
 
     def draw_game_remove_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_remove"
@@ -583,6 +588,7 @@ class MainGUI():
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
             callbacks.remove_game(game)
+        return clicked
 
     def draw_game_select_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_select_exe"
@@ -596,6 +602,7 @@ class MainGUI():
                     game.executable = selected
                     async_thread.run(db.update_game(game, "executable"))
             utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+        return clicked
 
     def draw_game_unset_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_unset_exe"
@@ -610,6 +617,7 @@ class MainGUI():
         if clicked:
             game.executable = ""
             async_thread.run(db.update_game(game, "executable"))
+        return clicked
 
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_open_folder"
@@ -623,6 +631,7 @@ class MainGUI():
             utils.pop_disabled()
         if clicked:
             callbacks.open_game_folder(game)
+        return clicked
 
     def draw_game_recheck_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_recheck"
@@ -632,6 +641,7 @@ class MainGUI():
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
             utils.start_refresh_task(api.check(game, full=True, login=True))
+        return clicked
 
     def draw_game_context_menu(self, game: Game):
         self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)
