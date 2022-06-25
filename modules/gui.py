@@ -82,7 +82,6 @@ class MainGUI():
         self.size_mult = 0.0
         self.prev_cursor = -1
         self.minimized = False
-        self.edit_mode = False
         self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
@@ -1314,7 +1313,7 @@ class MainGUI():
                     self.draw_game_type_widget(game, align=True)
                 # Name
                 imgui.table_set_column_index(name)
-                if self.edit_mode:
+                if globals.settings.show_remove_btn:
                     self.draw_game_remove_button(game, label="󰩺")
                     imgui.same_line()
                 self.draw_game_name_text(game)
@@ -1479,7 +1478,7 @@ class MainGUI():
                 imgui.spacing()
 
                 # Remove button
-                if showed_img and self.edit_mode:
+                if showed_img and globals.settings.show_remove_btn:
                     old_pos = imgui.get_cursor_pos()
                     imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
                     self.draw_game_remove_button(game, label="󰩺")
@@ -2233,9 +2232,10 @@ class MainGUI():
             imgui.text("Show remove button:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##edit_mode", self.edit_mode)
+            changed, value = imgui.checkbox("##show_remove_btn", set.show_remove_btn)
             if changed:
-                self.edit_mode = value
+                set.show_remove_btn = value
+                async_thread.run(db.update_settings("show_remove_btn"))
 
             imgui.table_next_row()
             imgui.table_next_column()

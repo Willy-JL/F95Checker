@@ -352,6 +352,7 @@ class Settings:
     scroll_smooth               : bool
     scroll_smooth_speed         : float
     select_executable_after_add : bool
+    show_remove_btn             : bool
     start_in_tray               : bool
     start_refresh               : bool
     style_accent                : tuple[float]

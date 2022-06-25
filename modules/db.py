@@ -62,6 +62,7 @@ async def connect():
         "scroll_smooth":               f'INTEGER DEFAULT 1',
         "scroll_smooth_speed":         f'REAL    DEFAULT 8',
         "select_executable_after_add": f'INTEGER DEFAULT 0',
+        "show_remove_btn":             f'INTEGER DEFAULT 0',
         "start_in_tray":               f'INTEGER DEFAULT 0',
         "start_refresh":               f'INTEGER DEFAULT 0',
         "style_accent":                f'TEXT    DEFAULT "{DefaultStyle.accent}"',
