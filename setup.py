@@ -46,6 +46,12 @@ cx_Freeze.setup(
                 path / "resources",
                 path / "LICENSE"
             ],
+            "zip_include_packages": "*",
+            "zip_exclude_packages": [
+                "OpenGL_accelerate",
+                "PyQt6",
+                "glfw"
+            ],
             "silent_level": 1,
             "include_msvcr": True
         },
