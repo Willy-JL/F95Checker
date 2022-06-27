@@ -297,7 +297,7 @@ async def check(game: Game, full=False, login=False):
                 if stripped == ":" or stripped == "":
                     continue
                 value += sibling.text
-            value = value.replace("Spoiler", "").strip()
+            value = value.strip()
             while "\n\n\n" in value:
                 value = value.replace("\n\n\n", "\n\n")
             return value
@@ -324,6 +324,11 @@ async def check(game: Game, full=False, login=False):
             with open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
                 f.write(raw)
             raise msgbox.Exc("Thread parsing error", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+        for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
+            try:
+                next(spoiler.span.span.children).replace_with(html.new_string(""))
+            except Exception:
+                pass
 
         old_name = game.name
         name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
