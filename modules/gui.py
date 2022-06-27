@@ -782,9 +782,6 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_game_status_widget(game)
 
-                imgui.spacing()
-                self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
-
                 added = ""
                 removed = ""
                 for tag in game.tags:
@@ -817,6 +814,9 @@ class MainGUI():
                         imgui.text(removed[:cut])
                         if removed[cut:]:
                             imgui.text(removed[cut:])
+
+                imgui.spacing()
+                self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
 
                 imgui.end_group()
                 imgui.unindent(indent)
