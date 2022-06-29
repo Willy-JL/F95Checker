@@ -339,7 +339,6 @@ class Browser:
         self.private_arg = []
         for search, arg in private_args.items():
             if search in self.name:
-                print(search, arg)
                 self.private_arg.append(arg)
                 break
 
@@ -352,7 +351,6 @@ class Browser:
 
     @classmethod
     def get(cls, hash):
-        print(hash)
         for browser in cls.available.values():
             if browser.hash == hash or browser.hashed_name == hash:
                 return browser

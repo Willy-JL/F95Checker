@@ -82,7 +82,6 @@ if os is Os.Windows:
         if browser.path and browser.path[0] == '"' and browser.path [-1] == '"':
             browser.path = browser.path[1:-1]
 elif os is Os.Linux:
-    print("reading browsers")
     app_dir = pathlib.Path("/usr/share/applications")
     with open(app_dir / "mimeinfo.cache", "rb") as f:
         raw = f.read()
