@@ -78,7 +78,7 @@ if os is Os.Windows:
                 i += 1
         except OSError:
             pass
-    for browser in Browser.available:
+    for browser in Browser.available.values():
         if browser.path and browser.path[0] == '"' and browser.path [-1] == '"':
             browser.path = browser.path[1:-1]
 elif os is Os.Linux:
