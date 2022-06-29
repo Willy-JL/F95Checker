@@ -82,11 +82,13 @@ class MainGUI():
         self.size_mult = 0.0
         self.prev_cursor = -1
         self.minimized = False
+        self.sort_index = None
         self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.require_sort = True
         self.prev_manual_sort = 0
+        self.sort_direction = None
         self.add_box_valid = False
         self.bg_mode_paused = False
         self.prev_any_hovered = None
@@ -1110,6 +1112,10 @@ class MainGUI():
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
             self.require_sort = True
+        if sort_specs.specs_count > 0:
+            sort_spec = sort_specs.specs[0]
+            self.sort_index = sort_spec.column_index
+            self.sort_direction = bool(sort_spec.sort_direction - 1)
         if sort_specs.specs_dirty or self.require_sort:
             if manual_sort:
                 changed = False
@@ -1124,9 +1130,8 @@ class MainGUI():
                 if changed:
                     async_thread.run(db.update_settings("manual_sort_list"))
                 self.sorted_games_ids = globals.settings.manual_sort_list
-            elif sort_specs.specs_count > 0:
-                sort_spec = sort_specs.specs[0]
-                match sort_spec.column_index:
+            else:
+                match self.sort_index:
                     case 5:  # Type
                         key = lambda id: globals.games[id].type.value
                     case 7:  # Developer
@@ -1148,7 +1153,7 @@ class MainGUI():
                     case _:  # Name and all others
                         key = lambda id: globals.games[id].name.lower()
                 ids = list(globals.games)
-                ids.sort(key=key, reverse=bool(sort_spec.sort_direction - 1))
+                ids.sort(key=key, reverse=self.sort_direction)
                 self.sorted_games_ids = ids
             self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Not_Yet_Checked)
             for flt in self.filters:
