@@ -409,6 +409,9 @@ async def check(game: Game, full=False, login=False):
         text = get_game_attr("thread updated", "updated").replace("/", "-")
         try:
             last_updated = dt.datetime.fromisoformat(text).timestamp()
+            delta = dt.datetime.now() - dt.datetime.min
+            delta -= dt.timedelta(days=delta.days)
+            last_updated += delta.total_seconds()
         except ValueError:
             pass
         if not last_updated:
