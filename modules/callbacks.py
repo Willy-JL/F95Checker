@@ -7,7 +7,7 @@ import time
 import stat
 import os
 
-from modules.structs import Browser, Game, MsgBox, Os, SearchResult, ThreadMatch
+from modules.structs import Game, MsgBox, Os, SearchResult, ThreadMatch
 from modules import globals, api, async_thread, db, filepicker, msgbox, utils
 
 
@@ -167,19 +167,19 @@ def open_game_folder(game: Game):
 
 def open_webpage(url: str):
     set = globals.settings
-    if set.browser is Browser._None:
+    if set.browser.unset:
         utils.push_popup(msgbox.msgbox, "Browser not set", "Please select a browser in order to open webpages.", MsgBox.warn)
         return
     name = set.browser.name
-    if set.browser is Browser.Custom:
-        name = "your browser"
+    if set.browser.is_custom:
+        name = "your custom browser"
         path = set.browser_custom_executable
         args = shlex.split(set.browser_custom_arguments)
     else:
         path = set.browser.path
         args = []
         if set.browser_private:
-            args.append(set.browser.private)
+            args.extend(set.browser.private_arg)
     def _open_webpage(url: str):
         try:
             subprocess.Popen(

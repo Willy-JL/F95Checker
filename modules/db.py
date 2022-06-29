@@ -45,7 +45,7 @@ async def connect():
         "browser_custom_executable":   f'TEXT    DEFAULT ""',
         "browser_html":                f'INTEGER DEFAULT 0',
         "browser_private":             f'INTEGER DEFAULT 0',
-        "browser":                     f'INTEGER DEFAULT {Browser._None}',
+        "browser":                     f'INTEGER DEFAULT 0',
         "confirm_on_remove":           f'INTEGER DEFAULT 1',
         "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
         "default_exe_dir":             f'TEXT    DEFAULT ""',
@@ -187,9 +187,6 @@ async def load():
     settings = dict(await cursor.fetchone())
     settings = {key: sql_to_py(value, types[key]) for key, value in settings.items() if key in types}
     globals.settings = Settings(**settings)
-    if globals.settings.browser.name not in Browser._avail_:
-        globals.settings.browser = Browser._None
-    Browser._selected_ = Browser._avail_.index(globals.settings.browser.name)
 
     globals.games = {}
     await load_games()
@@ -205,6 +202,8 @@ async def load():
 def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
     if hasattr(value, "value"):
         value = value.value
+    elif hasattr(value, "hash"):
+        value = value.hash
     elif isinstance(value, bool):
         value = int(value)
     elif isinstance(value, list):
@@ -359,14 +358,14 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
             if browser := options.get("browser"):
                 keys.append("browser")
                 values.append({
-                    "none":    Browser._None,
-                    "chrome":  Browser.Chrome,
-                    "firefox": Browser.Firefox,
-                    "brave":   Browser.Brave,
-                    "edge":    Browser.Edge,
-                    "opera":   Browser.Opera,
-                    "operagx": Browser.Opera_GX
-                }[browser].value)
+                    "none":    0,
+                    "chrome":  utils.hash("Google Chrome"),
+                    "firefox": utils.hash("Mozilla Firefox"),
+                    "brave":   utils.hash("Brave"),
+                    "edge":    utils.hash("Microsoft Edge"),
+                    "opera":   utils.hash("Opera Stable"),
+                    "operagx": utils.hash("Opera GX Stable")
+                }[browser])
 
             if private_browser := options.get("private_browser"):
                 keys.append("browser_private")

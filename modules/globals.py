@@ -2,10 +2,10 @@ from concurrent.futures import Future
 import configparser
 import plistlib
 import pathlib
-import shutil
 import shlex
 import sys
 import os
+import re
 
 version = "9.0"
 is_release = False
@@ -64,91 +64,43 @@ data_path.mkdir(parents=True, exist_ok=True)
 images_path = data_path / "images"
 images_path.mkdir(parents=True, exist_ok=True)
 
-Browser._avail_.append(Browser._None.name)
-if sys.platform.startswith("win"):
+if os is Os.Windows:
     import winreg
-    local_machine = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-    current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-    start_menu_internet = "SOFTWARE\\Clients\\StartMenuInternet"
-    open_command = "shell\\open\\command"
-    for browser in list(Browser):
-        browser.path = ""
-        match browser.value:
-            case Browser.Chrome.value:
-                candidates = ["Google Chrome"]
-            case Browser.Firefox.value:
-                candidates = ["Firefox-308046B0AF4A39CB"]
-            case Browser.Brave.value:
-                candidates = ["Brave"]
-            case Browser.Edge.value:
-                candidates = ["Microsoft Edge"]
-            case Browser.Opera.value:
-                candidates = ["OperaStable"]
-            case Browser.Opera_GX.value:
-                candidates = ["Opera GXStable"]
-            case _:
-                candidates = None
-        if candidates:
-            for candidate in candidates:
-                reg_key = f"{start_menu_internet}\\{candidate}\\{open_command}"
-                try:
-                    path = winreg.QueryValue(local_machine, reg_key)
-                    browser.path = path
-                    Browser._avail_.append(browser.name)
-                    break
-                except Exception:
-                    pass
-                try:
-                    path = winreg.QueryValue(current_user, reg_key)
-                    browser.path = path
-                    Browser._avail_.append(browser.name)
-                    break
-                except Exception:
-                    pass
+    for registry in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        browsers = winreg.OpenKey(registry, "SOFTWARE\\Clients\\StartMenuInternet")
+        try:
+            i = 0
+            while True:
+                key = winreg.EnumKey(browsers, i)
+                name = winreg.QueryValue(browsers, key)
+                path = winreg.QueryValue(browsers, key + "\\shell\\open\\command")
+                Browser.add(name, path=path)
+                i += 1
+        except OSError:
+            pass
+    for browser in Browser.available:
         if browser.path and browser.path[0] == '"' and browser.path [-1] == '"':
             browser.path = browser.path[1:-1]
-else:
-    for browser in list(Browser):
-        browser.path = ""
-        if os is Os.Linux:
-            match browser.value:
-                case Browser.Chrome.value:
-                    candidates = ["chromium-stable", "chromium-browser", "chromium", "google-chrome-stable", "chrome-stable", "chrome-browser", "google-chrome", "chrome"]
-                case Browser.Firefox.value:
-                    candidates = ["firefox-stable", "firefox"]
-                case Browser.Brave.value:
-                    candidates = ["brave-stable", "brave-browser", "brave"]
-                case Browser.Edge.value:
-                    candidates = ["microsoft-edge-stable", "microsoft-edge", "edge-stable", "edge-browser", "edge"]
-                case Browser.Opera.value:
-                    candidates = ["opera-stable", "opera-browser", "opera"]
-                case Browser.Opera_GX.value:
-                    candidates = None  # OperaGX is not yet available for linux
-                case _:
-                    candidates = None
-        elif os is Os.MacOS:
-            match browser.value:
-                case Browser.Chrome.value:
-                    candidates = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
-                case Browser.Firefox.value:
-                    candidates = ["/Applications/Firefox.app/Contents/MacOS/firefox"]
-                case Browser.Brave.value:
-                    candidates = ["/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"]
-                case Browser.Edge.value:
-                    candidates = None  # Edge is not yet available for macos
-                case Browser.Opera.value:
-                    candidates = ["/Applications/Opera.app/Contents/MacOS/Opera"]
-                case Browser.Opera_GX.value:
-                    candidates = ["/Applications/Opera GX.app/Contents/MacOS/Opera"]
-                case _:
-                    candidates = None
-        if candidates:
-            for candidate in candidates:
-                if path := shutil.which(candidate):
-                    browser.path = path
-                    Browser._avail_.append(browser.name)
-                    break
-Browser._avail_.append(Browser.Custom.name)
+elif os is Os.Linux:
+    print("reading browsers")
+    app_dir = pathlib.Path("/usr/share/applications")
+    with open(app_dir / "mimeinfo.cache", "rb") as f:
+        raw = f.read()
+    apps = []
+    for match in re.finditer(br"x-scheme-handler/https?=(.+)", raw):
+        for app in match.group(1)[:-1].split(b";"):
+            app = str(app, encoding="utf-8")
+            if app not in apps:
+                apps.append(app)
+    for app in apps:
+        app_file = app_dir / app
+        if not app_file.is_file():
+            continue
+        parser = configparser.RawConfigParser()
+        parser.read(app_file)
+        name = parser.get("Desktop Entry", "Name")
+        path = shlex.split(parser.get("Desktop Entry", "Exec"))[0]
+        Browser.add(name, path=path)
 
 if frozen:
     start_cmd = shlex.join([sys.executable])

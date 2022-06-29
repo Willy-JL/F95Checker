@@ -1866,16 +1866,15 @@ class MainGUI():
                 "session just for itself."
             )
             imgui.table_next_column()
-            changed, value = imgui.combo("##browser", Browser._selected_, Browser._avail_)
+            changed, value = imgui.combo("##browser", set.browser.index, Browser.avail_list)
             if changed:
-                set.browser = Browser._members_[Browser._avail_[value]]
-                Browser._selected_ = value
+                set.browser = Browser.get(Browser.avail_list[value])
                 async_thread.run(db.update_settings("browser"))
 
-            if set.browser is Browser._None:
+            if set.browser.unset:
                 utils.push_disabled()
 
-            if set.browser is Browser.Custom:
+            if set.browser.is_custom:
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text("Custom browser:")
@@ -1935,7 +1934,7 @@ class MainGUI():
                 set.browser_html = value
                 async_thread.run(db.update_settings("browser_html"))
 
-            if set.browser is Browser._None:
+            if set.browser.unset:
                 utils.pop_disabled()
 
             imgui.end_table()

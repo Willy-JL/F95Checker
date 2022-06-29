@@ -4,6 +4,7 @@ import concurrent
 import functools
 import traceback
 import asyncio
+import hashlib
 import weakref
 import typing
 import random
@@ -14,6 +15,10 @@ import sys
 import re
 
 from modules import globals, async_thread, msgbox
+
+
+def hash(text: str):
+    return int(hashlib.md5(text.encode()).hexdigest()[-12:], 16)
 
 
 def hex_to_rgba_0_1(hex):

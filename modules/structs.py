@@ -126,27 +126,6 @@ class Os(IntEnum, EnumAutoValue):
     Linux   = ()
 
 
-class Browser(EnumNameHack, IntEnum):
-    _None    = 1
-    Chrome   = 2
-    Firefox  = 3
-    Brave    = 4
-    Edge     = 5
-    Opera    = 6
-    Opera_GX = 7
-    Custom   = 8
-
-Browser.Chrome  .private = "-incognito"
-Browser.Firefox .private = "-private-window"
-Browser.Brave   .private = "-incognito"
-Browser.Edge    .private = "-inprivate"
-Browser.Opera   .private = "-private"
-Browser.Opera_GX.private = "-private"
-
-Browser._avail_ = []
-Browser._selected_ = 0
-
-
 class DisplayMode(IntEnum):
     list = 1
     grid = 2
@@ -329,13 +308,67 @@ class Filter:
         self.id = id(self)
 
 
+from modules import imagehelper, utils
+
+@dataclasses.dataclass
+class Browser:
+    name: str
+    hash: int = None
+    path: str = None
+    hashed_name: str = None
+    unset: bool = None
+    is_custom: bool = None
+    private_arg: list = None
+
+    def __post_init__(self):
+        cls = type(self)
+        if not hasattr(cls, "available"):
+            cls.available: dict[str, cls] = {}
+        if self.hash is None:
+            self.hash = utils.hash(self.name)
+        self.hashed_name = f"{self.name}##{self.hash}"
+        self.unset = self.hash == 0
+        self.is_custom = self.hash == -1
+        private_args = {
+            "Opera":   "-private",
+            "Chrom":   "-incognito",
+            "Brave":   "-incognito",
+            "Edge":    "-inprivate",
+            "fox":     "-private-window"
+        }
+        self.private_arg = []
+        for search, arg in private_args.items():
+            if search in self.name:
+                print(search, arg)
+                self.private_arg.append(arg)
+                break
+
+    @classmethod
+    def add(cls, *args, **kwargs):
+        self = cls(*args, **kwargs)
+        cls.available[self.hashed_name] = self
+        cls.avail_list = list(cls.available.keys())
+        self.index = len(cls.avail_list) - 1
+
+    @classmethod
+    def get(cls, hash):
+        print(hash)
+        for browser in cls.available.values():
+            if browser.hash == hash or browser.hashed_name == hash:
+                return browser
+        return cls.get(0)
+
+Browser.add("None", 0)
+Browser.add("Custom", -1)
+
+
 @dataclasses.dataclass
 class Settings:
     browser_custom_arguments    : str
     browser_custom_executable   : str
     browser_html                : bool
     browser_private             : bool
-    browser                     : Browser
+    browser                     : Browser.get
     confirm_on_remove           : bool
     display_mode                : DisplayMode
     default_exe_dir             : str
@@ -371,8 +404,6 @@ class Settings:
     zoom_region                 : bool
     zoom_size                   : int
 
-
-from modules import imagehelper, utils
 
 class Type(EnumNameHack, IntEnum):
     Misc          = 1
