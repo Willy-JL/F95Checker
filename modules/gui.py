@@ -669,7 +669,7 @@ class MainGUI():
                 value=game.notes,
                 buffer_length=9999,
                 width=width or imgui.get_content_region_available_width(),
-                height=self.scaled(100),
+                height=self.scaled(450),
                 *args,
                 **kwargs
             )
@@ -971,35 +971,40 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_open_folder_button(game, label="󱞋 Open Folder")
 
-            imgui.text("")
+            imgui.spacing()
 
-            imgui.text_disabled("Notes:")
-            self.draw_game_notes_widget(game)
+            if imgui.begin_tab_bar("Details"):
 
-            imgui.text("")
+                if imgui.begin_tab_item("Changelog")[0]:
+                    imgui.spacing()
+                    if game.changelog:
+                        imgui.text_unformatted(game.changelog)
+                    else:
+                        imgui.text_unformatted("Either this game doesn't have a changelog, or the thread is not formatted properly!")
+                    imgui.end_tab_item()
 
-            imgui.text_disabled("Tags:")
-            if game.tags:
-                self.draw_game_tags_widget(game)
-            else:
-                imgui.text("This game has no tags!")
+                if imgui.begin_tab_item("Description")[0]:
+                    imgui.spacing()
+                    if game.description:
+                        imgui.text_unformatted(game.description)
+                    else:
+                        imgui.text_unformatted("Either this game doesn't have a description, or the thread is not formatted properly!")
+                    imgui.end_tab_item()
 
-            imgui.text("")
+                if imgui.begin_tab_item("Notes")[0]:
+                    imgui.spacing()
+                    self.draw_game_notes_widget(game)
+                    imgui.end_tab_item()
 
-            imgui.text_disabled("Description:")
-            if game.description:
-                imgui.text_unformatted(game.description)
-            else:
-                imgui.text_unformatted("Either this game doesn't have a description, or the thread is not formatted properly!")
+                if imgui.begin_tab_item("Tags")[0]:
+                    imgui.spacing()
+                    if game.tags:
+                        self.draw_game_tags_widget(game)
+                    else:
+                        imgui.text("This game has no tags!")
+                    imgui.end_tab_item()
 
-            imgui.text("")
-
-            imgui.text_disabled("Changelog:")
-            if game.changelog:
-                imgui.text_unformatted(game.changelog)
-            else:
-                imgui.text_unformatted("Either this game doesn't have a changelog, or the thread is not formatted properly!")
-
+                imgui.end_tab_bar()
             imgui.pop_text_wrap_pos()
         return utils.popup("Game info", popup_content, closable=True, outside=True)
 
