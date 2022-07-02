@@ -532,7 +532,7 @@ class MainGUI():
 
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
-            return f"Installed: {game.installed}  -  Latest: {game.version}"
+            return f"󰅢 {game.installed}   |   󱝁 {game.version}"
         else:
             return game.version
 
