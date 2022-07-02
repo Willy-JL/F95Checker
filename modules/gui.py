@@ -975,7 +975,9 @@ class MainGUI():
 
             if imgui.begin_tab_bar("Details"):
 
-                if imgui.begin_tab_item("󱖫 Changelog")[0]:
+                # The ### lets us specify an arbitrary ID, allowing dynamic tab titles
+
+                if imgui.begin_tab_item(("󰨸" if game.changelog else "󱘡") + " Changelog" + "###Changelog")[0]:
                     imgui.spacing()
                     if game.changelog:
                         imgui.text_unformatted(game.changelog)
@@ -983,7 +985,7 @@ class MainGUI():
                         imgui.text_unformatted("Either this game doesn't have a changelog, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item("󰋽 Description")[0]:
+                if imgui.begin_tab_item(("󰋽" if game.description else "󱞍") + " Description" + "###Description")[0]:
                     imgui.spacing()
                     if game.description:
                         imgui.text_unformatted(game.description)
@@ -991,12 +993,12 @@ class MainGUI():
                         imgui.text_unformatted("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(("󱦹" if game.notes else "󰏪") + " Notes" + "###󰏪 Notes")[0]:  # The ### lets us specify an arbitrary ID, allowing dynamic tab titles
+                if imgui.begin_tab_item(("󱦹" if game.notes else "󰏪") + " Notes" + "###Notes")[0]:
                     imgui.spacing()
                     self.draw_game_notes_widget(game)
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item("󱋷 Tags")[0]:
+                if imgui.begin_tab_item(("󱋷" if len(game.tags) > 1 else "󰓼" if len(game.tags) == 1 else "󱈡") + " Tags" + "###Tags")[0]:
                     imgui.spacing()
                     if game.tags:
                         self.draw_game_tags_widget(game)
