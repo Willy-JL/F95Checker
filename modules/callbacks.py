@@ -32,8 +32,7 @@ def update_start_with_system(toggle: bool):
                 plist = {
                     "Label": "com.github.f95checker",
                     "ProgramArguments": shlex.split(globals.start_cmd),
-                    "KeepAlive": True,
-                    "OnDemand": False,
+                    "KeepAlive": False,
                     "RunAtLoad": True
                 }
                 with globals.autostart.open("wb") as f:
