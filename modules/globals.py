@@ -100,6 +100,27 @@ elif os is Os.Linux:
         name = parser.get("Desktop Entry", "Name")
         path = shlex.split(parser.get("Desktop Entry", "Exec"))[0]
         Browser.add(name, path=path)
+elif os is Os.MacOS:
+    app_dir = pathlib.Path("/Applications")
+    empty = []
+    matches = ["http", "https"]
+    for app in app_dir.glob("*.app"):
+        app_file = app / "Contents/Info.plist"
+        if not app_file.is_file():
+            continue
+        with open(app_file, "rb") as f:
+            parser = plistlib.load(f)
+        found = False
+        for handler in parser.get("CFBundleURLTypes", empty):
+            for scheme in handler.get("CFBundleURLSchemes", empty):
+                if scheme in matches:
+                    name = parser["CFBundleName"]
+                    path = app / f"Contents/MacOS/{parser['CFBundleExecutable']}"
+                    Browser.add(name, path=path)
+                    found = True
+                    break
+            if found:
+                break
 
 if frozen:
     start_cmd = shlex.join([sys.executable])
