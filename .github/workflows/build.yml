@@ -70,6 +70,12 @@ jobs:
           python -m pip install -U numpy
           python -m pip install -U -r requirements.txt
 
+      - name: "Mark as release"
+        if: "github.event_name == 'release'"
+        run: |
+          cd ./src
+          sed -i "s/is_release = False/is_release = True/g" modules/globals.py
+
       - name: "Build"
         if: "runner.os != 'macOS'"
         run: |
