@@ -7,6 +7,7 @@ import aiohttp
 import pathlib
 import asyncio
 import zipfile
+import shutil
 import shlex
 import imgui
 import time
@@ -550,15 +551,15 @@ async def check_updates():
         elif (globals.self_path / ".git").is_dir():
             update_available = False  # Running from git repo, skip update
         elif len(latest) > len(current):
-            update_available = True  # Longer version, is an update
+            update_available = True  # More version fields, is an update
         elif len(latest) < len(current):
-            update_available = False  # Shorter version, not an update
+            update_available = False  # Less version fields, not an update
         else:
             update_available = not globals.is_release  # Allow updating from beta to full release
-            for field in range(len(latest)):
-                if latest[field] == current[field]:
+            for cur, lat in zip(current, latest):
+                if cur == lat:
                     continue  # Ignore this field if same on both versions
-                update_available = int(latest[field]) > int(current[field])
+                update_available = int(lat) > int(cur)
                 break  # If field is bigger then its an update
         asset_url = None
         asset_name = None
@@ -623,6 +624,7 @@ async def check_updates():
             total = float(len(z.filelist))
             for file in z.filelist:
                 if cancel[0]:
+                    shutil.rmtree(asset_path, ignore_errors=True)
                     return
                 z.extract(file.filename, asset_path)
                 progress += 1
@@ -632,30 +634,36 @@ async def check_updates():
         fmt = "{progress:.0f}s"
         for _ in range(500):
             if cancel[0]:
+                shutil.rmtree(asset_path, ignore_errors=True)
                 return
             await asyncio.sleep(0.01)
             progress -= 0.01
-        match globals.os.value:
-            case Os.Linux.value:
-                script = "\n".join([
-                    shlex.join(["tail", "--pid", str(os.getpid()), "-f", os.devnull]),
-                    shlex.join(["rm", "-rf", str(globals.self_path)]),
-                    shlex.join(["mv", str(asset_path), str(globals.self_path)]),
-                    globals.start_cmd
-                ])
-                # await asyncio.create_subprocess_exec("bash", "-c", script)
-                globals.gui.close()
-            case Os.Windows.value:
-                script = "\n".join([
-                    shlex.join(["Wait-Process", "-Id", str(os.getpid())]),
-                    shlex.join(["Remove-Item", "-Recurse", str(globals.self_path)]),
-                    shlex.join(["Move-Item", str(asset_path), str(globals.self_path)]),
-                    globals.start_cmd
-                ])
-                # await asyncio.create_subprocess_exec("powershell", script)
-                globals.gui.close()
-            case Os.MacOS.value:
-                pass
+        if globals.os is Os.Windows:
+            script = "\n".join([
+                shlex.join(["Wait-Process", "-Id", str(os.getpid())]),
+                shlex.join(["Remove-Item", "-Recurse", str(globals.self_path)]),
+                shlex.join(["Move-Item", str(asset_path), str(globals.self_path)]),
+                globals.start_cmd
+            ])
+            await asyncio.create_subprocess_exec("powershell", script)
+        else:
+            if globals.frozen and globals.os is Os.MacOS:
+                src = next(asset_path.glob("*.app"))  # F95Checker-123/F95Checker.app
+                dst = globals.self_path.parent.parent  # F95Checker.app/Contents/MacOS
+            else:
+                src = asset_path
+                dst = globals.self_path
+            shutil.rmtree(dst)
+            shutil.move(src, dst)
+            if globals.frozen and globals.os is Os.MacOS:
+                shutil.rmtree(asset_path, ignore_errors=True)
+            script = "\n".join([
+                shlex.join(["lsof", "-p", str(os.getpid()), "+r", "1"] if globals.os is Os.MacOS else ["tail", "--pid", str(os.getpid()), "-f", os.devnull]),
+                globals.start_cmd
+            ])
+            shell = shutil.which("bash") or shutil.which("zsh") or shutil.which("fish") or shutil.which("sh")
+            await asyncio.create_subprocess_exec(shell, "-c", script)
+        globals.gui.close()
     buttons = {
         "󰄬 Yes": lambda: async_thread.run(update_callback()),
         "󰜺 No": None
@@ -663,7 +671,11 @@ async def check_updates():
     for popup in globals.popup_stack:
         if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("F95checker update##"):
             globals.popup_stack.remove(popup)
-    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on v{globals.version}{'' if globals.is_release else ' beta'}).\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    if globals.frozen and globals.os is Os.MacOS:
+        path = globals.self_path.parent.parent
+    else:
+        path = globals.self_path
+    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on v{globals.version}{'' if globals.is_release else ' beta'}).\nTHIS WILL DELETE EVERYTHING INSIDE {path}, MAKE SURE THAT IS OK!\n\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
     if globals.gui.minimized or not globals.gui.focused:
         globals.gui.tray.push_msg(title="F95checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
