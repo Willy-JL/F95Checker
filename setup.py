@@ -54,6 +54,10 @@ cx_Freeze.setup(
             ],
             "silent_level": 1,
             "include_msvcr": True
+        },
+        "bdist_mac": {
+            "iconfile": icon,
+            "bundle_name": "F95Checker"
         }
     }
 )
