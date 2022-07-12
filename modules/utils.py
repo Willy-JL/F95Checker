@@ -117,12 +117,12 @@ def impl_glfw_init(width: int, height: int, window_name: str):
         print("Could not initialize OpenGL context")
         sys.exit(1)
 
-    # if sys.platform.startswith("darwin"):
-    #     # OS X supports only forward-compatible core profiles from 3.2
-    #     glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-    #     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-    #     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-    #     glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
+    if sys.platform.startswith("darwin"):
+        # OS X supports only forward-compatible core profiles from 3.2
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
 
     # Create a windowed mode window and its OpenGL context
     window = glfw.create_window(width, height, window_name, None, None)
