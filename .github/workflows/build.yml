@@ -77,19 +77,10 @@ jobs:
           sed -i "s/is_release = False/is_release = True/g" modules/globals.py
 
       - name: "Build"
-        if: "runner.os != 'macOS'"
         run: |
           cd ./src
           python setup.py build
           mv build/* dist
-
-      - name: "Build macOS"
-        if: "runner.os == 'macOS'"
-        run: |
-          cd ./src
-          python setup.py bdist_mac
-          mkdir dist/
-          mv build/*.app dist/
 
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"
