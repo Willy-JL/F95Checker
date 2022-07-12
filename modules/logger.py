@@ -74,7 +74,7 @@ def install(path=_path, lowlevel=False):
     _path = str(path)
     if lowlevel:
         print(f"Redirecting stdout and stderr to {_path}")
-        log = open(str(_path), "wb")
+        log = open(_path, "wb")
         # Redirect
         os.dup2(log.fileno(), sys.stdout.fileno())
         os.dup2(log.fileno(), sys.stderr.fileno())
