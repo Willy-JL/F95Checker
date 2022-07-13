@@ -28,13 +28,6 @@ jobs:
 
       # === SETUP ===
 
-      - name: "Import codesign certificate"
-        if: "runner.os == 'macOS'"
-        uses: "apple-actions/import-codesign-certs@v1"
-        with:
-          p12-file-base64: ${{ secrets.CODESIGN_P12 }}
-          p12-password: ${{ secrets.CODESIGN_P12_PASSWORD }}
-
       - name: "Set git to use lf"
         run: |
           git config --global core.autocrlf false
@@ -90,14 +83,22 @@ jobs:
           python setup.py build
           mv build/* dist
 
-      - name: "Build macOS"
+      - name: "Build and sign macOS"
         if: "runner.os == 'macOS'"
         run: |
+          security create-keychain -p "${{ secrets.CODESIGN_P12_PASSWORD }}" "${{ secrets.CODESIGN_P12_NAME }}.keychain"
+          echo "${{ secrets.CODESIGN_P12_BASE64 }}" | base64 -d -o "${{ secrets.CODESIGN_P12_NAME }}.p12"
+          security unlock-keychain -p "${{ secrets.CODESIGN_P12_PASSWORD }}" "${{ secrets.CODESIGN_P12_NAME }}.keychain"
+          security import "${{ secrets.CODESIGN_P12_NAME }}.p12" -k "${{ secrets.CODESIGN_P12_NAME }}.keychain" -f pkcs12 -A -T "$(which codesign)" -T "$(which security)" -P "${{ secrets.CODESIGN_P12_PASSWORD }}"
+          security list-keychains -d user -s $(security list-keychains -d user | sed -e s/\"//g) "${{ secrets.CODESIGN_P12_NAME }}.keychain"
           cd ./src
           python setup.py bdist_mac
           mv build/*.app/Contents/MacOS dist
           cd ./dist
-          find . -exec echo Signing {} \; -exec codesign -s "Willy-JL" {} \;
+          find . -exec echo Signing {} \; -exec codesign -s "${{ secrets.CODESIGN_P12_NAME }}" {} \;
+          cd ../..
+          security delete-keychain "${{ secrets.CODESIGN_P12_NAME }}.keychain"
+          rm -f "${{ secrets.CODESIGN_P12_NAME }}.p12"
 
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"
