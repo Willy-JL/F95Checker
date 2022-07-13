@@ -87,6 +87,7 @@ jobs:
         if: "runner.os == 'macOS'"
         run: |
           security create-keychain -p "${{ secrets.CODESIGN_P12_PASSWORD }}" "${{ secrets.CODESIGN_P12_NAME }}.keychain"
+          security set-keychain-settings -u "${{ secrets.CODESIGN_P12_NAME }}.keychain"
           echo "${{ secrets.CODESIGN_P12_BASE64 }}" | base64 -d -o "${{ secrets.CODESIGN_P12_NAME }}.p12"
           security unlock-keychain -p "${{ secrets.CODESIGN_P12_PASSWORD }}" "${{ secrets.CODESIGN_P12_NAME }}.keychain"
           security import "${{ secrets.CODESIGN_P12_NAME }}.p12" -k "${{ secrets.CODESIGN_P12_NAME }}.keychain" -f pkcs12 -A -T "$(which codesign)" -T "$(which security)" -P "${{ secrets.CODESIGN_P12_PASSWORD }}"
