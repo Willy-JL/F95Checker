@@ -28,6 +28,13 @@ jobs:
 
       # === SETUP ===
 
+      - name: "Import codesign certificate"
+        if: "runner.os == 'macOS'"
+        uses: "apple-actions/import-codesign-certs@v1"
+        with:
+          p12-file-base64: ${{ secrets.CODESIGN_P12 }}
+          p12-password: ${{ secrets.CODESIGN_P12_PASSWORD }}
+
       - name: "Set git to use lf"
         run: |
           git config --global core.autocrlf false
@@ -89,6 +96,8 @@ jobs:
           cd ./src
           python setup.py bdist_mac
           mv build/*.app/Contents/MacOS dist
+          cd ./dist
+          find . -exec echo Signing {} \; -exec codesign -s "Willy-JL" {} \;
 
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"
