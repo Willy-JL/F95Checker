@@ -647,8 +647,16 @@ async def check_updates():
             ])
             await asyncio.create_subprocess_exec("powershell", script)
         else:
-            shutil.rmtree(globals.self_path)
-            shutil.move(asset_path, globals.self_path)
+            if globals.frozen and globals.os is Os.MacOS:
+                src = next(asset_path.glob("*.app"))  # F95Checker-123/F95Checker.app
+                dst = globals.self_path.parent.parent  # F95Checker.app/Contents/MacOS
+            else:
+                src = asset_path
+                dst = globals.self_path
+            shutil.rmtree(dst)
+            shutil.move(src, dst)
+            if globals.frozen and globals.os is Os.MacOS:
+                shutil.rmtree(asset_path, ignore_errors=True)
             script = "\n".join([
                 shlex.join(["lsof", "-p", str(os.getpid()), "+r", "1"] if globals.os is Os.MacOS else ["tail", "--pid", str(os.getpid()), "-f", os.devnull]),
                 globals.start_cmd
@@ -663,7 +671,11 @@ async def check_updates():
     for popup in globals.popup_stack:
         if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("F95checker update##"):
             globals.popup_stack.remove(popup)
-    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on v{globals.version}{'' if globals.is_release else ' beta'}).\nTHIS WILL DELETE EVERYTHING INSIDE {globals.self_path}, MAKE SURE THAT IS OK!\n\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    if globals.frozen and globals.os is Os.MacOS:
+        path = globals.self_path.parent.parent
+    else:
+        path = globals.self_path
+    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on v{globals.version}{'' if globals.is_release else ' beta'}).\nTHIS WILL DELETE EVERYTHING INSIDE {path}, MAKE SURE THAT IS OK!\n\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
     if globals.gui.minimized or not globals.gui.focused:
         globals.gui.tray.push_msg(title="F95checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 

@@ -95,9 +95,12 @@ jobs:
         run: |
           cd ./src
           python setup.py bdist_mac
-          mv build/*.app/Contents/MacOS dist
-          cd ./dist
+          mkdir dist/
+          mv build/*.app dist/
+          cd ./dist/*.app
           find . -exec echo Signing {} \; -exec codesign -s "${{ secrets.CODESIGN_P12_NAME }}" {} \;
+          cd ..
+          codesign -s "${{ secrets.CODESIGN_P12_NAME }}" *.app
 
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"
