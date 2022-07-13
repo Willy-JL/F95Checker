@@ -225,7 +225,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
-          python src/.github/workflow_scripts/release.py
+          python src/.github/workflow_data/release.py
 
       - name: "Delete skipped workflow runs"
         if: "github.event_name == 'release'"
