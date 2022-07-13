@@ -111,8 +111,8 @@ class MainGUI():
         self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
         imgui.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
         imgui.io.config_drag_click_to_input_text = True
-        size = None
-        pos = None
+        size = tuple()
+        pos = tuple()
         try:
             # Get window size
             with open(self.ini_file_name.decode("utf-8"), "r") as f:
@@ -134,12 +134,12 @@ class MainGUI():
                 pass
         except Exception:
             pass
-        if size is None:
+        if not all([isinstance(x, int) for x in size]) or not len(size) == 2:
             size = (1280, 720)
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
-        if pos:
+        if all([isinstance(x, int) for x in pos]) and len(pos) == 2:
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_tray:
