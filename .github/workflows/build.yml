@@ -92,15 +92,13 @@ jobs:
 
       - name: "Build and sign macOS"
         if: "runner.os == 'macOS'"
+        env:
+          CODESIGN_P12_NAME: "${{ secrets.CODESIGN_P12_NAME }}"
         run: |
           cd ./src
           python setup.py bdist_mac
           mkdir dist/
           mv build/*.app dist/
-          cd ./dist/*.app
-          find . -exec echo Signing {} \; -exec codesign -s "${{ secrets.CODESIGN_P12_NAME }}" {} \;
-          cd ..
-          codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep *.app || true
 
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"

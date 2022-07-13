@@ -2,6 +2,8 @@ from ctypes.util import find_library
 import cx_Freeze
 import pathlib
 import sys
+import os
+import re
 
 
 bin_includes = []
@@ -24,9 +26,12 @@ elif sys.platform.startswith("darwin"):
     icon += ".icns"
 else:
     icon += ".png"
+with open(path / "modules/globals.py", "rb") as f:
+    version = str(re.search(rb'version = "([^\s]+)"', f.read()).group(1), encoding="utf-8")
 
 cx_Freeze.setup(
     name="F95Checker",
+    version=version,
     description="An update checker tool for (NSFW) games on the F95Zone platform",
     executables=[
         cx_Freeze.Executable(
@@ -57,7 +62,17 @@ cx_Freeze.setup(
         },
         "bdist_mac": {
             "iconfile": icon,
-            "bundle_name": "F95Checker"
+            "bundle_name": "F95Checker",
+            "plist_items": [
+                ("CFBundleName", "F95Checker"),
+                ("CFBundleDisplayName", "F95Checker"),
+                ("CFBundleIdentifier", "io.github.willy-jl.f95checker"),
+                ("CFBundleVersion", version),
+                ("CFBundlePackageType", "APPL"),
+                ("CFBundleSignature", "????"),
+            ],
+            "codesign_identity": os.environ.get("CODESIGN_P12_NAME"),
+            "codesign_deep": True
         }
     }
 )
