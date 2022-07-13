@@ -30,7 +30,7 @@ def update_start_with_system(toggle: bool):
                     config.write(f, space_around_delimiters=False)
             elif globals.os is Os.MacOS:
                 plist = {
-                    "Label": "com.github.f95checker",
+                    "Label": "io.github.willy-jl.f95checker",
                     "ProgramArguments": shlex.split(globals.start_cmd),
                     "KeepAlive": False,
                     "RunAtLoad": True
