@@ -19,6 +19,7 @@ elif sys.platform.startswith("darwin"):
     bundle_libs("intl")
 
 path = pathlib.Path(__file__).absolute().parent
+
 icon = str(path / "resources/icons/icon")
 if sys.platform.startswith("win"):
     icon += ".ico"
@@ -26,6 +27,7 @@ elif sys.platform.startswith("darwin"):
     icon += ".icns"
 else:
     icon += ".png"
+
 with open(path / "modules/globals.py", "rb") as f:
     version = str(re.search(rb'version = "([^\s]+)"', f.read()).group(1), encoding="utf-8")
 
@@ -70,9 +72,7 @@ cx_Freeze.setup(
                 ("CFBundleVersion", version),
                 ("CFBundlePackageType", "APPL"),
                 ("CFBundleSignature", "????"),
-            ],
-            "codesign_identity": os.environ.get("CODESIGN_P12_NAME"),
-            "codesign_deep": True
+            ]
         }
     }
 )
