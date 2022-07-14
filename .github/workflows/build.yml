@@ -95,11 +95,22 @@ jobs:
         run: |
           cd ./src
           python setup.py bdist_mac
-          mkdir dist/
-          mv build/*.app dist/
-          cd ./dist
+          mkdir dmg/
+          mv build/*.app dmg/
+          cd ./dmg
           find . -type f -empty -delete
           codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep *.app || true
+          ln -s /Applications Applications
+          cp ../.github/workflow_data/macOS_bg.png .bg.png
+          cp ../.github/workflow_data/macOS_DS_Store .DS_Store
+          cp ../resources/icons/icon.icns .VolumeIcon.icns
+          SetFile -a C .VolumeIcon.icns
+          name="$(echo *.app | sed -r "s/(.*)\..*/\1/g")"
+          cd ..
+          mkdir dist/
+          hdiutil create -fs HFSX -format UDZO ./dist/$name.dmg -imagekey zlib-level=9 -srcfolder ./dmg -volname $name
+          cd ./dist
+          codesign -s "${{ secrets.CODESIGN_P12_NAME }}" *.dmg || true
 
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"
@@ -167,11 +178,11 @@ jobs:
         run: |
           cd ./src
           mkdir dist/
-          mv modules/         dist/
-          mv resources/       dist/
-          mv LICENSE          dist/
-          mv main.py          dist/
-          mv requirements.txt dist/
+          cp -r modules/         dist/
+          cp -r resources/       dist/
+          cp    LICENSE          dist/
+          cp    main.py          dist/
+          cp    requirements.txt dist/
 
       # === ARTIFACT ===
 
