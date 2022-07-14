@@ -108,9 +108,7 @@ jobs:
           name="$(echo *.app | sed -r "s/(.*)\..*/\1/g")"
           cd ..
           mkdir dist/
-          hdiutil create -fs HFSX -format UDZO ./dist/$name.dmg -imagekey zlib-level=9 -srcfolder ./dmg -volname $name
-          cd ./dist
-          codesign -s "${{ secrets.CODESIGN_P12_NAME }}" *.dmg || true
+          hdiutil create -fs HFSX -format UDZO ./dist/$name.dmg -imagekey zlib-level=0 -srcfolder ./dmg -volname $name
 
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"
