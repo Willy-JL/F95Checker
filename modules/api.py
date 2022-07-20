@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
 import datetime as dt
+from PIL import Image
 import subprocess
 import contextlib
 import tempfile
@@ -450,7 +451,7 @@ async def check(game: Game, full=False, login=False):
         if fetch_image and image_url and image_url != "-":
             async with images:
                 raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
-                ext = image_url[image_url.rfind("."):]
+                ext = "." + str(Image.open(io.BytesIO(raw)).format or "img").lower()
                 with contextlib.suppress(asyncio.CancelledError):
                     for img in globals.images_path.glob(f"{game.id}.*"):
                         try:
