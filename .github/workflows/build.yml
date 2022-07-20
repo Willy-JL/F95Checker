@@ -50,38 +50,52 @@ jobs:
         with:
           repository: "marcelotduarte/cx_Freeze"
           ref: "${{ matrix.cx-freeze }}"
-          path: "./cx_Freeze"
+          path: "./cx_Freeze/"
 
       - name: "Build cx_Freeze bootloader"
         run: |
-          cd ./cx_Freeze
-          python -m pip install -e .
+          cd ./cx_Freeze/
+          python -m pip install -e ./
 
       # === BUILD ===
 
       - name: "Clone repo"
         uses: "actions/checkout@v2"
         with:
-          path: "./src"
+          path: "./src/"
 
       - name: "Install requirements"
         run: |
-          cd ./src
+          cd ./src/
           python -m pip install -U numpy
-          python -m pip install -U -r requirements.txt
+          python -m pip install -U -r ./requirements.txt
 
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          cd ./src
-          sed -i "s/is_release = False/is_release = True/g" modules/globals.py
+          cd ./src/
+          sed -i "s/is_release = False/is_release = True/g" ./modules/globals.py
 
       - name: "Build"
         if: "runner.os != 'macOS'"
         run: |
-          cd ./src
-          python setup.py build
-          mv build/* dist
+          cd ./src/
+          python ./setup.py build
+          mv ./build/*/ ./dist/
+
+      - name: "Build macOS"
+        if: "runner.os == 'macOS'"
+        run: |
+          cd ./src/
+          python ./setup.py bdist_mac
+          mkdir ./dist/
+          mv ./build/*.app/ ./dist/
+
+      - name: "Resolve symlinks"
+        if: "runner.os != 'Windows'"
+        run: |
+          cd ./src/dist/
+          find ./ -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
 
       - name: "Import macOS codesign certificate"
         if: "runner.os == 'macOS'"
@@ -90,31 +104,28 @@ jobs:
           p12-file-base64: "${{ secrets.CODESIGN_P12_BASE64 }}"
           p12-password: "${{ secrets.CODESIGN_P12_PASSWORD }}"
 
-      - name: "Build and sign macOS"
+      - name: "Codesign macOS"
         if: "runner.os == 'macOS'"
         run: |
-          cd ./src
-          python setup.py bdist_mac
-          mkdir dmg/
-          mv build/*.app dmg/
-          cd ./dmg
-          find . -type f -empty -delete
-          codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep *.app || true
-          ln -s /Applications Applications
-          cp ../.github/workflow_data/macOS_bg.png .bg.png
-          cp ../.github/workflow_data/macOS_DS_Store .DS_Store
-          cp ../resources/icons/icon.icns .VolumeIcon.icns
-          SetFile -a C .VolumeIcon.icns
+          brew install create-dmg
+          cd ./src/dist/
           name="$(echo *.app | sed -r "s/(.*)\..*/\1/g")"
-          cd ..
-          mkdir dist/
-          hdiutil create -fs HFSX -format UDZO ./dist/$name.dmg -imagekey zlib-level=0 -srcfolder ./dmg -volname $name
-
-      - name: "Resolve symlinks"
-        if: "runner.os != 'Windows'"
-        run: |
-          cd ./src/dist
-          find . -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
+          find ./ -type f -empty -delete
+          codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep ./*.app
+          cd ../
+          create-dmg \
+            --volname "$name Installer" \
+            --volicon ./resources/icons/icon.icns \
+            --background ./.github/workflow_data/macOS_bg.png \
+            --window-size 520 257 \
+            --icon-size 100 \
+            --icon "$name.app" 83 77 \
+            --hide-extension "$name.app" \
+            --app-drop-link 337 77 \
+            --codesign "${{ secrets.CODESIGN_P12_NAME }}" \
+            "./dist/$name-Installer.dmg" \
+            "./dist/"
+          rm -rf ./dist/*.app/
 
       # === ARTIFACT ===
 
@@ -174,13 +185,13 @@ jobs:
 
       - name: "Package"
         run: |
-          cd ./src
-          mkdir dist/
-          cp -r modules/         dist/
-          cp -r resources/       dist/
-          cp    LICENSE          dist/
-          cp    main.py          dist/
-          cp    requirements.txt dist/
+          cd    ./src/
+          mkdir ./dist/
+          cp -r ./modules/         ./dist/
+          cp -r ./resources/       ./dist/
+          cp    ./LICENSE          ./dist/
+          cp    ./main.py          ./dist/
+          cp    ./requirements.txt ./dist/
 
       # === ARTIFACT ===
 
@@ -234,7 +245,8 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
-          python src/.github/workflow_data/release.py
+          cd ./src/
+          python ./.github/workflow_data/release.py
 
       - name: "Delete skipped workflow runs"
         if: "github.event_name == 'release'"
