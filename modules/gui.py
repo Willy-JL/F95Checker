@@ -144,20 +144,28 @@ class MainGUI():
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
+        debug_file.write("window\n")
         if all([isinstance(x, int) for x in pos]) and len(pos) == 2:
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
+        debug_file.write("pos\n")
         if globals.settings.start_in_tray:
             self.minimize()
+        debug_file.write("minimize\n")
         icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = imagehelper.ImageHelper(icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
+        debug_file.write("icon\n")
         self.impl = GlfwRenderer(self.window)
+        debug_file.write("impl\n")
         glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.set_window_pos_callback(self.window, self.pos_callback)
+        debug_file.write("callbacks\n")
         glfw.swap_interval(globals.settings.vsync_ratio)
+        debug_file.write("swap\n")
         self.refresh_fonts()
+        debug_file.write("fonts\n")
         debug_file.write("glfw stuff\n")
 
         # Show errors in threads
