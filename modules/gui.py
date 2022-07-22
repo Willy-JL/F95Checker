@@ -940,6 +940,10 @@ class MainGUI():
             imgui.same_line(spacing=_10)
             self.draw_game_remove_button(game, label="󰩺 Remove")
 
+            imgui.text_disabled("Thread/Game ID:")
+            imgui.same_line()
+            imgui.text(str(game.id))
+
             imgui.text_disabled("Personal Rating:")
             imgui.same_line()
             self.draw_game_rating_widget(game)
