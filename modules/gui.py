@@ -1350,6 +1350,9 @@ class MainGUI():
                     self.draw_game_remove_button(game, label="󰩺")
                     imgui.same_line()
                 self.draw_game_name_text(game)
+                if game.notes:
+                    imgui.same_line()
+                    imgui.text_colored("󱦹", *globals.settings.style_accent)
                 if version_enabled:
                     imgui.same_line()
                     imgui.text_disabled(self.get_game_version_text(game))
@@ -1524,6 +1527,13 @@ class MainGUI():
                 # Name
                 did_wrap = imgui.calc_text_size(game.name).x > imgui.get_content_region_available_width()
                 self.draw_game_name_text(game)
+                if game.notes:
+                    imgui.same_line()
+                    text = "󱦹"
+                    did_wrap = imgui.calc_text_size(text).x > imgui.get_content_region_available_width()
+                    if did_wrap or imgui.calc_text_size(text).x > imgui.get_content_region_available_width() - _24:
+                        imgui.dummy(0, 0)
+                    imgui.text_colored(text, *globals.settings.style_accent)
                 if version_enabled:
                     imgui.same_line()
                     version = self.get_game_version_text(game)
