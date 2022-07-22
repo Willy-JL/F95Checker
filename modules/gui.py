@@ -1122,7 +1122,7 @@ class MainGUI():
         if sort_specs.specs_count > 0:
             sort_spec = sort_specs.specs[0]
             self.sort_index = sort_spec.column_index
-            self.sort_direction = bool(sort_spec.sort_direction - 1)
+            self.sort_direction = not bool(sort_spec.sort_direction - 1)
         if sort_specs.specs_dirty or self.require_sort:
             if manual_sort:
                 changed = False
