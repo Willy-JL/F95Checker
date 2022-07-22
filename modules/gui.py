@@ -1265,19 +1265,19 @@ class MainGUI():
             self.ghost_columns_enabled_count += manual_sort
             can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             # Regular columns
-            imgui.table_setup_column("Play Button", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
-            imgui.table_setup_column("Type", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
-            imgui.table_setup_column("Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
-            imgui.table_setup_column("Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
-            imgui.table_setup_column("Last Updated", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
-            imgui.table_setup_column("Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
-            imgui.table_setup_column("Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
-            imgui.table_setup_column("Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
-            imgui.table_setup_column("Installed", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
-            imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
-            imgui.table_setup_column("Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
-            imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
-            imgui.table_setup_column("Copy Link", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 16
+            imgui.table_setup_column("󰐊 Play Button", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
+            imgui.table_setup_column("󱁯 Type", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
+            imgui.table_setup_column("󰙎 Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
+            imgui.table_setup_column("󰀓 Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
+            imgui.table_setup_column("󰚰 Last Updated", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
+            imgui.table_setup_column("󱖑 Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
+            imgui.table_setup_column("󱚈 Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
+            imgui.table_setup_column("󰈼 Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
+            imgui.table_setup_column("󰅢 Installed", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
+            imgui.table_setup_column("󰓒 Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
+            imgui.table_setup_column("󱦹 Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
+            imgui.table_setup_column("󰏌 Open Thread", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
+            imgui.table_setup_column("󰆏 Copy Link", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 16
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
 
             # Enabled columns
@@ -1300,7 +1300,7 @@ class MainGUI():
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
             for i in range(self.game_list_column_count):
                 imgui.table_set_column_index(i)
-                column_name = imgui.table_get_column_name(i)
+                column_name = imgui.table_get_column_name(i)[2:]
                 if i in (0, 1, 2, 4, 15, 16):  # Hide name for small and ghost columns
                     column_name = "##" + column_name
                 elif i == 6:  # Name
