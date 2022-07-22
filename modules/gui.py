@@ -26,7 +26,7 @@ class MainGUI():
     def __init__(self):
         # Constants
         self.sidebar_size = 230
-        self.game_list_column_count = 16
+        self.game_list_column_count = 17
         self.window_flags: int = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
@@ -581,6 +581,16 @@ class MainGUI():
             callbacks.open_webpage(game.url)
         return clicked
 
+    def draw_game_copy_link_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+        id = f"{label}##{game.id}_copy_link"
+        if selectable:
+            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+        else:
+            clicked = imgui.button(id, *args, **kwargs)
+        if clicked:
+            glfw.set_clipboard_string(self.window, game.url)
+        return clicked
+
     def draw_game_remove_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}##{game.id}_remove"
         if selectable:
@@ -650,6 +660,7 @@ class MainGUI():
         imgui.separator()
         self.draw_game_play_button(game, label="󰐊 Play", selectable=True)
         self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
+        self.draw_game_copy_link_button(game, label="󰆏 Copy Link", selectable=True)
         imgui.separator()
         self.draw_game_select_exe_button(game, label="󰷏 Select Exe", selectable=True)
         self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe", selectable=True)
@@ -819,6 +830,8 @@ class MainGUI():
 
                 imgui.spacing()
                 self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
+                imgui.same_line()
+                self.draw_game_copy_link_button(game, label="󰆏 Copy Link")
 
                 imgui.end_group()
                 imgui.unindent(indent)
@@ -917,6 +930,8 @@ class MainGUI():
             self.draw_game_play_button(game, label="󰐊 Play")
             imgui.same_line()
             self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
+            imgui.same_line()
+            self.draw_game_copy_link_button(game, label="󰆏 Copy Link")
             imgui.same_line()
             self.draw_game_played_checkbox(game, label="󰈼 Played")
             _10 = self.scaled(10)
@@ -1262,6 +1277,7 @@ class MainGUI():
             imgui.table_setup_column("Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
             imgui.table_setup_column("Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
             imgui.table_setup_column("Open Thread", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
+            imgui.table_setup_column("Copy Link", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 16
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
 
             # Enabled columns
@@ -1278,13 +1294,14 @@ class MainGUI():
             rating       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             notes        = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             open_thread  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
+            copy_link    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
 
             # Headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
             for i in range(self.game_list_column_count):
                 imgui.table_set_column_index(i)
                 column_name = imgui.table_get_column_name(i)
-                if i in (0, 1, 2, 4, 15):  # Hide name for small and ghost columns
+                if i in (0, 1, 2, 4, 15, 16):  # Hide name for small and ghost columns
                     column_name = "##" + column_name
                 elif i == 6:  # Name
                     if version_enabled:
@@ -1373,6 +1390,10 @@ class MainGUI():
                 if open_thread:
                     imgui.table_set_column_index(open_thread)
                     self.draw_game_open_thread_button(game, label="󰏌")
+                # Open Thread
+                if copy_link:
+                    imgui.table_set_column_index(copy_link)
+                    self.draw_game_copy_link_button(game, label="󰆏")
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -1413,7 +1434,8 @@ class MainGUI():
             rating          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             notes           = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             open_thread     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            button_row = play_button or open_thread or played or installed
+            copy_link       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            button_row = play_button or open_thread or copy_link or played or installed
             data_rows = type + developer + last_updated + last_played + added_on + rating + notes
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
@@ -1422,11 +1444,11 @@ class MainGUI():
         padding = self.scaled(10)
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
         min_width = (
-            imgui.style.item_spacing.x * 10 +  # Padding * (2 left + 2 right + 3 between items + idk)
-            imgui.style.frame_padding.x * 4 +  # Button padding * 2 sides * 2 buttons
-            imgui.style.item_inner_spacing.x * 2 +  # Checkbox and label spacing * 2 checkboxes
+            imgui.style.item_spacing.x * 12 +  # Padding * (2 left + 2 right + 3 between items + idk)
+            imgui.style.frame_padding.x * 6 +  # Button padding * 2 sides * 2 buttons
+            imgui.style.item_inner_spacing.x * 2 +  # Checkbox to label spacing * 2 checkboxes
             imgui.get_frame_height() * 2 +  # Checkbox height = width * 2 checkboxes
-            imgui.calc_text_size("󰐊 Play󰏌 Thread󰈼󰅢").x  # Text
+            imgui.calc_text_size("󰐊 Play󰏌 Thread󰆏 Link󰈼󰅢").x  # Text
         )
         avail = imgui.get_content_region_available_width()
         while column_count > 1 and (avail - (column_count + 1) * padding) / column_count < min_width:
@@ -1521,6 +1543,12 @@ class MainGUI():
                             if did_newline:
                                 imgui.same_line()
                             self.draw_game_open_thread_button(game, label="󰏌 Thread")
+                            did_newline = True
+                        # Copy Link
+                        if copy_link:
+                            if did_newline:
+                                imgui.same_line()
+                            self.draw_game_copy_link_button(game, label="󰆏 Link")
                             did_newline = True
                         # Played
                         if played:
