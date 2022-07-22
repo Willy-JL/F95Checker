@@ -15,7 +15,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, Status, Tag, TrayMsg, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
 from modules import globals, api, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
 
 imgui.io = None
@@ -40,6 +40,7 @@ class MainGUI():
             imgui.TABLE_HIDEABLE |
             imgui.TABLE_SORTABLE |
             imgui.TABLE_RESIZABLE |
+            imgui.TABLE_SORT_MULTI |
             imgui.TABLE_REORDERABLE |
             imgui.TABLE_ROW_BACKGROUND |
             imgui.TABLE_SIZING_FIXED_FIT |
@@ -82,13 +83,11 @@ class MainGUI():
         self.size_mult = 0.0
         self.prev_cursor = -1
         self.minimized = False
-        self.sort_index = None
         self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.require_sort = True
         self.prev_manual_sort = 0
-        self.sort_direction = None
         self.add_box_valid = False
         self.bg_mode_paused = False
         self.prev_any_hovered = None
@@ -97,6 +96,7 @@ class MainGUI():
         self.bg_mode_timer: float = None
         self.filters: list[Filter] = []
         self.type_label_width: float = None
+        self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
 
@@ -1139,9 +1139,9 @@ class MainGUI():
             self.prev_manual_sort = manual_sort
             self.require_sort = True
         if sort_specs.specs_count > 0:
-            sort_spec = sort_specs.specs[0]
-            self.sort_index = sort_spec.column_index
-            self.sort_direction = not bool(sort_spec.sort_direction - 1)
+            self.sort_specs = []
+            for sort_spec in sort_specs.specs:
+                self.sort_specs.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
         if sort_specs.specs_dirty or self.require_sort:
             if manual_sort:
                 changed = False
@@ -1157,29 +1157,30 @@ class MainGUI():
                     async_thread.run(db.update_settings("manual_sort_list"))
                 self.sorted_games_ids = globals.settings.manual_sort_list
             else:
-                match self.sort_index:
-                    case 5:  # Type
-                        key = lambda id: globals.games[id].type.value
-                    case 7:  # Developer
-                        key = lambda id: globals.games[id].developer.lower()
-                    case 8:  # Last Updated
-                        key = lambda id: globals.games[id].last_updated.value
-                    case 9:  # Last Played
-                        key = lambda id: globals.games[id].last_played.value
-                    case 10:  # Added On
-                        key = lambda id: globals.games[id].added_on.value
-                    case 11:  # Played
-                        key = lambda id: globals.games[id].played
-                    case 12:  # Installed
-                        key = lambda id: globals.games[id].installed == globals.games[id].version
-                    case 13:  # Rating
-                        key = lambda id: globals.games[id].rating
-                    case 14:  # Notes
-                        key = lambda id: globals.games[id].notes.lower()
-                    case _:  # Name and all others
-                        key = lambda id: globals.games[id].name.lower()
                 ids = list(globals.games)
-                ids.sort(key=key, reverse=self.sort_direction)
+                for sort_spec in self.sort_specs:
+                    match sort_spec.index:
+                        case 5:  # Type
+                            key = lambda id: globals.games[id].type.name
+                        case 7:  # Developer
+                            key = lambda id: globals.games[id].developer.lower()
+                        case 8:  # Last Updated
+                            key = lambda id: - globals.games[id].last_updated.value
+                        case 9:  # Last Played
+                            key = lambda id: - globals.games[id].last_played.value
+                        case 10:  # Added On
+                            key = lambda id: - globals.games[id].added_on.value
+                        case 11:  # Played
+                            key = lambda id: not globals.games[id].played
+                        case 12:  # Installed
+                            key = lambda id: globals.games[id].installed != globals.games[id].version
+                        case 13:  # Rating
+                            key = lambda id: - globals.games[id].rating
+                        case 14:  # Notes
+                            key = lambda id: globals.games[id].notes.lower() or "z"
+                        case _:  # Name and all others
+                            key = lambda id: globals.games[id].name.lower()
+                    ids.sort(key=key, reverse=sort_spec.reverse)
                 self.sorted_games_ids = ids
             self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Not_Yet_Checked)
             for flt in self.filters:

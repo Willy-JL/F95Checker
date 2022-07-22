@@ -78,6 +78,12 @@ class SearchResult:
 
 
 @dataclasses.dataclass
+class SortSpec:
+    index: int
+    reverse: bool
+
+
+@dataclasses.dataclass
 class TrayMsg:
     title: str
     msg: str
