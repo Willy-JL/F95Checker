@@ -72,25 +72,41 @@ pause = pause_file_output
 def install(path=_path, lowlevel=False):
     global _path
     _path = str(path)
-    if lowlevel:
-        print(f"Redirecting stdout and stderr to {_path}")
-        log = open(_path, "wb")
-        # Redirect
-        os.dup2(log.fileno(), sys.stdout.fileno())
-        os.dup2(log.fileno(), sys.stderr.fileno())
-        # Buffer wrap
-        sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), "wb"))
-        sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), "wb"))
-    else:
-        # Create / clear log file
-        try:
-            open(_path, "w").close()
-        except Exception:
-            pass
-        # Apply overrides
-        sys.stdout = __stdout_override()
-        sys.stderr = __stderr_override()
-        sys.stdin  = __stdin_override ()
+    failed = False
+    try:
+        if lowlevel:
+            try:
+                print(f"Redirecting stdout and stderr to {_path}")
+                log = open(_path, "wb")
+                # Redirect
+                os.dup2(log.fileno(), sys.stdout.fileno())
+                os.dup2(log.fileno(), sys.stderr.fileno())
+                # Buffer wrap
+                sys.stdout = io.TextIOWrapper(os.fdopen(sys.stdout.fileno(), "wb"))
+                sys.stderr = io.TextIOWrapper(os.fdopen(sys.stderr.fileno(), "wb"))
+            except Exception:
+                print("Failed low-level log redirect")
+                lowlevel = False
+                failed = True
+        if not lowlevel:
+            try:
+                # Create / clear log file
+                try:
+                    open(_path, "w").close()
+                except Exception:
+                    pass
+                # Apply overrides
+                sys.stdout = __stdout_override()
+                sys.stderr = __stderr_override()
+                sys.stdin  = __stdin_override ()
+                # Notify of log level switch
+                if failed:
+                    print("Reverted to high-level log redirect")
+            except Exception:
+                print("Failed high-level log redirect")
+    except Exception:
+        return False
+    return True
 
 
 # Example usage
