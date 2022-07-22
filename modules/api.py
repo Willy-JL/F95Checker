@@ -646,7 +646,7 @@ async def check_updates():
                 shlex.join(["Move-Item", str(asset_path), str(globals.self_path)]),
                 globals.start_cmd
             ])
-            await asyncio.create_subprocess_exec("powershell", script)
+            shell = [shutil.which("powershell")]
         else:
             if globals.frozen and globals.os is Os.MacOS:
                 src = next(asset_path.glob("*.app"))  # F95Checker-123/F95Checker.app
@@ -662,8 +662,8 @@ async def check_updates():
                 shlex.join(["lsof", "-p", str(os.getpid()), "+r", "1"] if globals.os is Os.MacOS else ["tail", "--pid", str(os.getpid()), "-f", os.devnull]),
                 globals.start_cmd
             ])
-            shell = shutil.which("bash") or shutil.which("zsh") or shutil.which("fish") or shutil.which("sh")
-            await asyncio.create_subprocess_exec(shell, "-c", script)
+            shell = [shutil.which("bash") or shutil.which("zsh") or shutil.which("sh"), "-c"]
+        await asyncio.create_subprocess_exec(*shell, script)
         globals.gui.close()
     buttons = {
         "󰄬 Yes": lambda: async_thread.run(update_callback()),

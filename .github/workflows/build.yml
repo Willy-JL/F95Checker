@@ -107,25 +107,9 @@ jobs:
       - name: "Codesign macOS"
         if: "runner.os == 'macOS'"
         run: |
-          brew install create-dmg
           cd ./src/dist/
-          name="$(echo *.app | sed -r "s/(.*)\..*/\1/g")"
           find ./ -type f -empty -delete
           codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep ./*.app
-          cd ../
-          create-dmg \
-            --volname "$name Installer" \
-            --volicon ./resources/icons/icon.icns \
-            --background ./.github/workflow_data/macOS_bg.png \
-            --window-size 520 257 \
-            --icon-size 100 \
-            --icon "$name.app" 83 77 \
-            --hide-extension "$name.app" \
-            --app-drop-link 337 77 \
-            --codesign "${{ secrets.CODESIGN_P12_NAME }}" \
-            "./dist/$name-Installer.dmg" \
-            "./dist/"
-          rm -rf ./dist/*.app/
 
       # === ARTIFACT ===
 
