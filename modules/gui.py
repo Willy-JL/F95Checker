@@ -725,13 +725,13 @@ class MainGUI():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
             full_width = 3 * indent
+            img_pos_x = imgui.get_cursor_pos_x()
             imgui.push_text_wrap_pos(full_width)
+            imgui.indent(indent)
             for i, id in enumerate(updated_games):
                 old_game = updated_games[id]
                 game = globals.games[id]
-
-                start_pos = imgui.get_cursor_pos()
-                imgui.indent(indent)
+                img_pos_y = imgui.get_cursor_pos_y()
                 imgui.begin_group()
 
                 imgui.push_font(self.big_font)
@@ -742,6 +742,16 @@ class MainGUI():
                 imgui.text_disabled("Update date: ")
                 imgui.same_line()
                 imgui.text(game.last_updated.display)
+
+                imgui.spacing()
+                imgui.text_disabled("Type: ")
+                imgui.same_line()
+                self.draw_game_type_widget(old_game)
+                if game.type is not old_game.type:
+                    imgui.same_line()
+                    imgui.text_disabled(" -> ")
+                    imgui.same_line()
+                    self.draw_game_type_widget(game)
 
                 for attr in ("name", "version", "developer"):
                     old_val =  getattr(old_game, attr) or "Unknown"
@@ -770,16 +780,6 @@ class MainGUI():
                         imgui.text(new_val[:cut])
                         if new_val[cut:]:
                             imgui.text(new_val[cut:])
-
-                if game.type is not old_game.type:
-                    imgui.spacing()
-                    imgui.text_disabled("Type: ")
-                    imgui.same_line()
-                    self.draw_game_type_widget(old_game)
-                    imgui.same_line()
-                    imgui.text_disabled(" -> ")
-                    imgui.same_line()
-                    self.draw_game_type_widget(game)
 
                 if game.status is not old_game.status:
                     imgui.spacing()
@@ -834,16 +834,14 @@ class MainGUI():
                 self.draw_game_copy_link_button(game, label="󰆏 Copy Link")
 
                 imgui.end_group()
-                imgui.unindent(indent)
-                end_pos = imgui.get_cursor_pos()
-                imgui.set_cursor_pos(start_pos)
                 height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                imgui.set_cursor_pos((img_pos_x, img_pos_y))
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
-                imgui.set_cursor_pos(end_pos)
 
                 if i != count - 1:
                     imgui.text("\n")
+            imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
         return utils.popup(f"{count} updated game{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False)
 
