@@ -1467,12 +1467,20 @@ class MainGUI():
         column_count = globals.settings.grid_columns
         padding = self.scaled(10)
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
+        indent = imgui.style.item_spacing.x * 2
         min_width = (
-            imgui.style.item_spacing.x * 12 +  # Padding * (2 left + 2 right + 3 between items + idk)
-            imgui.style.frame_padding.x * 6 +  # Button padding * 2 sides * 2 buttons
-            imgui.style.item_inner_spacing.x * 2 +  # Checkbox to label spacing * 2 checkboxes
-            imgui.get_frame_height() * 2 +  # Checkbox height = width * 2 checkboxes
-            imgui.calc_text_size("󰐊 Play󰏌 Thread󰆏 Link󰈼󰅢").x  # Text
+            indent * 2 +  # Side padding * 2 sides
+            max((
+                imgui.style.item_spacing.x * 2 * (play_button + open_thread + copy_link + played + installed - 1) +  # Spacing * 2 * (5 items - 1 (between items))
+                imgui.style.frame_padding.x * 2 * (play_button + open_thread + copy_link) +  # Button padding * 2 sides * 3 buttons
+                imgui.style.item_inner_spacing.x * (played + installed) +  # Checkbox to label spacing * 2 checkboxes
+                imgui.get_frame_height() * (played + installed) +  # (Checkbox height = width) * 2 checkboxes
+                imgui.calc_text_size("󰐊 Play" * play_button + "󰏌 Thread" * open_thread + "󰆏 Link" * copy_link + "󰈼" * played + "󰅢" * installed).x  # Text
+            ),
+            (
+                imgui.style.item_spacing.x * 2 +  # Between text * 2
+                imgui.calc_text_size("Last Updated:00/00/0000").x  # Text
+            ))
         )
         avail = imgui.get_content_region_available_width()
         while column_count > 1 and (avail - (column_count + 1) * padding) / column_count < min_width:
@@ -1494,7 +1502,6 @@ class MainGUI():
             draw_list = imgui.get_window_draw_list()
             bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
             rounding = globals.settings.style_corner_radius
-            indent = imgui.style.item_spacing.x * 2
             frame_height = imgui.get_frame_height()
             data_height = data_rows * imgui.get_text_line_height_with_spacing()
 
