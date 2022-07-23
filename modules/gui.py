@@ -966,7 +966,7 @@ class MainGUI():
 
             imgui.text_disabled("Version:")
             imgui.same_line()
-            imgui.text(self.get_game_version_text(game))
+            utils.wrap_text(self.get_game_version_text(game))
 
             imgui.text_disabled("Status:")
             imgui.same_line()
@@ -976,7 +976,7 @@ class MainGUI():
 
             imgui.text_disabled("Developer:")
             imgui.same_line()
-            imgui.text(game.developer or "Unknown")
+            utils.wrap_text(game.developer or "Unknown")
 
             imgui.text_disabled("Type:")
             imgui.same_line()
@@ -996,7 +996,7 @@ class MainGUI():
 
             imgui.text_disabled("Executable:")
             imgui.same_line()
-            imgui.text(game.executable or "Not set")
+            utils.wrap_text(game.executable or "Not set")
 
             imgui.text_disabled("Manage Exe:")
             imgui.same_line()
@@ -1496,9 +1496,12 @@ class MainGUI():
                 imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
             img_ratio = globals.settings.grid_image_ratio
             width = None
-            notes_width = None
             height = None
-            _24 = self.scaled(24)
+            wrap_width = None
+            notes_width = None
+            developer_width = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x * 2
+            notes_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size("󱦹").x
+            status_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size("󰀨").x
             draw_list = imgui.get_window_draw_list()
             bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
             rounding = globals.settings.style_corner_radius
@@ -1516,6 +1519,7 @@ class MainGUI():
                 if width is None:
                     width = imgui.get_content_region_available_width()
                     height = width / img_ratio
+                    wrap_width = width - 2 * indent
 
                 # Cell
                 pos = imgui.get_cursor_pos()
@@ -1526,22 +1530,20 @@ class MainGUI():
                     text_size = imgui.calc_text_size(text)
                     showed_img = imgui.is_rect_visible(width, height)
                     if text_size.x < width:
-                        text_pos = imgui.get_cursor_pos()
-                        imgui.set_cursor_pos((text_pos.x + (width - text_size.x) / 2, text_pos.y + height / 2))
+                        imgui.set_cursor_pos((pos.x + (width - text_size.x) / 2, pos.y + height / 2))
                         self.draw_hover_text(
                             text=text,
                             hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
                         )
-                        imgui.set_cursor_pos(text_pos)
+                        imgui.set_cursor_pos(pos)
                     imgui.dummy(width, height)
                 else:
                     crop = game.image.crop_to_ratio(img_ratio, fit=globals.settings.fit_images)
                     showed_img = game.image.render(width, height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
                 # Setup pt3
                 imgui.indent(indent)
-                imgui.push_text_wrap_pos()
+                imgui.push_text_wrap_pos(pos.x + width - indent)
                 imgui.spacing()
-
                 # Remove button
                 if showed_img and globals.settings.show_remove_btn:
                     old_pos = imgui.get_cursor_pos()
@@ -1549,23 +1551,18 @@ class MainGUI():
                     self.draw_game_remove_button(game, label="󰩺")
                     imgui.set_cursor_pos(old_pos)
                 # Name
-                did_wrap = imgui.calc_text_size(game.name).x > imgui.get_content_region_available_width()
                 self.draw_game_name_text(game)
                 if game.notes:
                     imgui.same_line()
-                    text = "󱦹"
-                    did_wrap = imgui.calc_text_size(text).x > imgui.get_content_region_available_width()
-                    if did_wrap or imgui.calc_text_size(text).x > imgui.get_content_region_available_width() - _24:
+                    if imgui.get_content_region_available_width() < notes_badge_width:
                         imgui.dummy(0, 0)
-                    imgui.text_colored(text, *globals.settings.style_accent)
+                    imgui.text_colored("󱦹", *globals.settings.style_accent)
                 if version_enabled:
-                    imgui.same_line()
-                    version = self.get_game_version_text(game)
-                    if did_wrap or imgui.calc_text_size(version).x > imgui.get_content_region_available_width() - _24:
-                        imgui.dummy(0, 0)
-                    imgui.text_disabled(version)
+                    imgui.text_disabled(self.get_game_version_text(game))
                 if status_enabled:
                     imgui.same_line()
+                    if imgui.get_content_region_available_width() < status_badge_width:
+                        imgui.dummy(0, 0)
                     self.draw_game_status_widget(game)
                 if button_row:
                     if imgui.is_rect_visible(width, frame_height):

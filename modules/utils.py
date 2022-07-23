@@ -10,6 +10,7 @@ import typing
 import random
 import imgui
 import time
+import math
 import glfw
 import sys
 import re
@@ -174,6 +175,37 @@ def close_weak_popup():
                 imgui.close_current_popup()
                 return True
     return False
+
+
+def wrap_text(text: str, *args, width: float = None, offset=0, func: typing.Callable = imgui.text_unformatted, **kwargs):
+    for line in text.split("\n"):
+        while line:= line.strip():
+            if width:
+                if offset is not None:
+                    avail = width - offset
+            else:
+                avail = imgui.get_content_region_available_width()
+            if avail < 0:
+                imgui.dummy(0, 0)
+                if offset:
+                    offset = None
+                    avail = width
+                continue
+            if avail > 0:
+                cut = 1
+                line_len = len(line)
+                step = math.ceil(line_len / 50)
+                while cut <= line_len and imgui.calc_text_size(line[:cut]).x < avail:
+                    cut += step
+                while cut > 1 and (cut > line_len or imgui.calc_text_size(line[:cut]).x >= avail):
+                    cut -= 1
+            else:
+                cut = len(line)
+            func(line[:cut], *args, **kwargs)
+            line = line[cut:]
+            if offset:
+                offset = None
+                avail = width
 
 
 def clean_thread_url(url: str):
