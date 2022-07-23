@@ -1593,7 +1593,7 @@ class MainGUI():
                         if developer:
                             imgui.text_disabled("Developer:")
                             imgui.same_line()
-                            imgui.text(game.developer or "Unknown")
+                            utils.wrap_text(game.developer or "Unknown", width=wrap_width, offset=developer_width)
                         # Last Updated
                         if last_updated:
                             imgui.text_disabled("Last Updated:")
