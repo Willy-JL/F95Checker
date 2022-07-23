@@ -1273,9 +1273,9 @@ class MainGUI():
             # Setup
             # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
             # by starting the table render before the content region.
-            imgui.table_setup_column("Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
-            imgui.table_setup_column("Version", self.ghost_columns_flags)  # 1
-            imgui.table_setup_column("Status", self.ghost_columns_flags)  # 2
+            imgui.table_setup_column("󰆾 Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
+            imgui.table_setup_column("󰆙 Version", self.ghost_columns_flags)  # 1
+            imgui.table_setup_column("󰄳 Status", self.ghost_columns_flags)  # 2
             imgui.table_setup_column("##separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
             self.ghost_columns_enabled_count = 1
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
