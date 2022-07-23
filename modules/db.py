@@ -43,29 +43,29 @@ async def connect():
         "_":                           f'INTEGER PRIMARY KEY CHECK (_=0)',
         "browser_custom_arguments":    f'TEXT    DEFAULT ""',
         "browser_custom_executable":   f'TEXT    DEFAULT ""',
-        "browser_html":                f'INTEGER DEFAULT 0',
-        "browser_private":             f'INTEGER DEFAULT 0',
-        "browser":                     f'INTEGER DEFAULT 0',
-        "confirm_on_remove":           f'INTEGER DEFAULT 1',
+        "browser_html":                f'INTEGER DEFAULT {int(False)}',
+        "browser_private":             f'INTEGER DEFAULT {int(False)}',
+        "browser":                     f'INTEGER DEFAULT {Browser.get(0).hash}',
+        "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
         "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
         "default_exe_dir":             f'TEXT    DEFAULT ""',
-        "fit_images":                  f'INTEGER DEFAULT 0',
+        "fit_images":                  f'INTEGER DEFAULT {int(False)}',
         "grid_columns":                f'INTEGER DEFAULT 3',
         "grid_image_ratio":            f'REAL    DEFAULT 3.0',
         "interface_scaling":           f'REAL    DEFAULT 1.0',
         "manual_sort_list":            f'TEXT    DEFAULT "[]"',
-        "minimize_on_close":           f'INTEGER DEFAULT 0',
-        "refresh_completed_games":     f'INTEGER DEFAULT 1',
+        "minimize_on_close":           f'INTEGER DEFAULT {int(False)}',
+        "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
         "refresh_workers":             f'INTEGER DEFAULT 20',
-        "render_when_unfocused":       f'INTEGER DEFAULT 1',
+        "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',
         "request_timeout":             f'INTEGER DEFAULT 30',
-        "scroll_amount":               f'REAL    DEFAULT 1',
-        "scroll_smooth":               f'INTEGER DEFAULT 1',
-        "scroll_smooth_speed":         f'REAL    DEFAULT 8',
-        "select_executable_after_add": f'INTEGER DEFAULT 0',
-        "show_remove_btn":             f'INTEGER DEFAULT 0',
-        "start_in_tray":               f'INTEGER DEFAULT 0',
-        "start_refresh":               f'INTEGER DEFAULT 0',
+        "scroll_amount":               f'REAL    DEFAULT 1.0',
+        "scroll_smooth":               f'INTEGER DEFAULT {int(True)}',
+        "scroll_smooth_speed":         f'REAL    DEFAULT 8.0',
+        "select_executable_after_add": f'INTEGER DEFAULT {int(False)}',
+        "show_remove_btn":             f'INTEGER DEFAULT {int(False)}',
+        "start_in_tray":               f'INTEGER DEFAULT {int(False)}',
+        "start_refresh":               f'INTEGER DEFAULT {int(False)}',
         "style_accent":                f'TEXT    DEFAULT "{DefaultStyle.accent}"',
         "style_alt_bg":                f'TEXT    DEFAULT "{DefaultStyle.alt_bg}"',
         "style_bg":                    f'TEXT    DEFAULT "{DefaultStyle.bg}"',
@@ -74,11 +74,11 @@ async def connect():
         "style_text":                  f'TEXT    DEFAULT "{DefaultStyle.text}"',
         "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
         "tray_refresh_interval":       f'INTEGER DEFAULT 15',
-        "update_keep_image":           f'INTEGER DEFAULT 0',
+        "update_keep_image":           f'INTEGER DEFAULT {int(False)}',
         "vsync_ratio":                 f'INTEGER DEFAULT 1',
         "zoom_amount":                 f'INTEGER DEFAULT 4',
-        "zoom_enabled":                f'INTEGER DEFAULT 1',
-        "zoom_region":                 f'INTEGER DEFAULT 1',
+        "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',
+        "zoom_region":                 f'INTEGER DEFAULT {int(True)}',
         "zoom_size":                   f'INTEGER DEFAULT 64'
     })
     await connection.execute("""
@@ -94,8 +94,8 @@ async def connect():
         "name":                        f'TEXT    DEFAULT ""',
         "version":                     f'TEXT    DEFAULT ""',
         "developer":                   f'TEXT    DEFAULT ""',
-        "type":                        f'INTEGER DEFAULT {Type.Others}',
-        "status":                      f'INTEGER DEFAULT {Status.Normal}',
+        "type":                        f'INTEGER DEFAULT {Type.Misc}',
+        "status":                      f'INTEGER DEFAULT {Status.Not_Yet_Checked}',
         "url":                         f'TEXT    DEFAULT ""',
         "added_on":                    f'INTEGER DEFAULT 0',
         "last_updated":                f'INTEGER DEFAULT 0',
@@ -103,7 +103,7 @@ async def connect():
         "last_refresh_version":        f'TEXT    DEFAULT ""',
         "last_played":                 f'INTEGER DEFAULT 0',
         "rating":                      f'INTEGER DEFAULT 0',
-        "played":                      f'INTEGER DEFAULT 0',
+        "played":                      f'INTEGER DEFAULT {int(False)}',
         "installed":                   f'TEXT    DEFAULT ""',
         "executable":                  f'TEXT    DEFAULT ""',
         "description":                 f'TEXT    DEFAULT ""',
@@ -118,9 +118,8 @@ async def connect():
         "value":                       f'TEXT    DEFAULT ""'
     })
 
-    if migrate:
-        if (path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file():
-            await migrate_legacy(path)
+    if migrate and ((path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file()):
+        await migrate_legacy(path)
 
 
 async def save():
