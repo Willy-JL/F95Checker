@@ -371,7 +371,9 @@ class MainGUI():
                 if not utils.is_refreshing() and globals.updated_games:
                     updated_games = dict(globals.updated_games)
                     globals.updated_games.clear()
-                    utils.push_popup(self.draw_updated_games_popup, updated_games, len(updated_games))
+                    sorted_ids = list(updated_games)
+                    sorted_ids.sort(key=lambda id: 2 if updated_games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if updated_games[id].type is Type.Media else 0)
+                    utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids, len(updated_games))
 
                 imgui.new_frame()
 
@@ -720,7 +722,7 @@ class MainGUI():
         imgui.dummy(0, 0)
         imgui.pop_style_color(3)
 
-    def draw_updated_games_popup(self, updated_games, count):
+    def draw_updates_popup(self, updated_games, sorted_ids, count):
         def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
@@ -733,11 +735,33 @@ class MainGUI():
             tags_removed_offset = imgui.calc_text_size("Tags removed: ").x + 2 * imgui.style.item_spacing.x
             arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
             img_pos_x = imgui.get_cursor_pos_x()
+            category = -1
+            category_open = False
             imgui.push_text_wrap_pos(full_width)
             imgui.indent(indent)
-            for i, id in enumerate(updated_games):
+            for i, id in enumerate(sorted_ids):
                 old_game = updated_games[id]
                 game = globals.games[id]
+                if old_game.type is Type.Media:
+                    new_category = 1
+                elif old_game.type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial):
+                    new_category = 2
+                else:
+                    new_category = 0
+                if new_category != category:
+                    category = new_category
+                    imgui.push_font(self.big_font)
+                    imgui.set_cursor_pos_x(img_pos_x - self.scaled(8))
+                    match category:
+                        case 1:
+                            category_open = imgui.tree_node(f"Media", flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
+                        case 2:
+                            category_open = imgui.tree_node(f"Misc", flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
+                        case _:
+                            category_open = imgui.tree_node(f"Games", flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
+                    imgui.pop_font()
+                if not category_open:
+                    continue
                 img_pos_y = imgui.get_cursor_pos_y()
                 imgui.begin_group()
 
@@ -827,7 +851,7 @@ class MainGUI():
                     imgui.text("\n")
             imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
-        return utils.popup(f"{count} updated game{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False)
+        return utils.popup(f"{count} update{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False)
 
     def draw_game_info_popup(self, game: Game):
         def popup_content():

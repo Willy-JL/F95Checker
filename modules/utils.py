@@ -67,7 +67,7 @@ def start_refresh_task(coro: typing.Coroutine):
         globals.gui.tray.update_status()
         globals.gui.require_sort = True
         if (globals.gui.minimized or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
-            globals.gui.tray.push_msg(title="Updated games", msg=f"{count} of your games {'has' if count == 1 else 'have'} received updates, click here to view {'it' if count == 1 else 'them'}.", icon=QSystemTrayIcon.MessageIcon.Information)
+            globals.gui.tray.push_msg(title="Updates", msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates, click here to view {'it' if count == 1 else 'them'}.", icon=QSystemTrayIcon.MessageIcon.Information)
         # Continues after this only if the task completed successfully
         try:
             if future.exception():
