@@ -725,6 +725,13 @@ class MainGUI():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
             full_width = 3 * indent
+            wrap_width = 2 * indent - imgui.style.item_spacing.x
+            name_offset = imgui.calc_text_size("Name: ").x + 2 * imgui.style.item_spacing.x
+            version_offset = imgui.calc_text_size("Version: ").x + 2 * imgui.style.item_spacing.x
+            developer_offset = imgui.calc_text_size("Developer: ").x + 2 * imgui.style.item_spacing.x
+            tags_added_offset = imgui.calc_text_size("Tags added: ").x + 2 * imgui.style.item_spacing.x
+            tags_removed_offset = imgui.calc_text_size("Tags removed: ").x + 2 * imgui.style.item_spacing.x
+            arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
             img_pos_x = imgui.get_cursor_pos_x()
             imgui.push_text_wrap_pos(full_width)
             imgui.indent(indent)
@@ -743,43 +750,20 @@ class MainGUI():
                 imgui.same_line()
                 imgui.text(game.last_updated.display)
 
-                imgui.spacing()
-                imgui.text_disabled("Type: ")
-                imgui.same_line()
-                self.draw_game_type_widget(old_game)
-                if game.type is not old_game.type:
-                    imgui.same_line()
-                    imgui.text_disabled(" -> ")
-                    imgui.same_line()
-                    self.draw_game_type_widget(game)
-
-                for attr in ("name", "version", "developer"):
+                for attr, offset in (("name", name_offset), ("version", version_offset), ("developer", developer_offset)):
                     old_val =  getattr(old_game, attr) or "Unknown"
                     new_val =  getattr(game, attr) or "Unknown"
                     if new_val != old_val:
                         imgui.spacing()
                         imgui.text_disabled(f"{attr.title()}: ")
                         imgui.same_line()
-                        avail = full_width - imgui.get_cursor_pos_x()
-                        cut = len(old_val)
-                        while imgui.calc_text_size(old_val[:cut]).x > avail:
-                            cut -= 1
-                        imgui.text(old_val[:cut])
-                        if old_val[cut:]:
-                            imgui.text(old_val[cut:])
+                        utils.wrap_text(old_val, width=wrap_width, offset=offset)
                         imgui.same_line()
-                        avail = full_width - imgui.get_cursor_pos_x()
-                        if imgui.calc_text_size(" -> ").x > avail:
+                        if full_width - imgui.get_cursor_pos_x() < arrow_width:
                             imgui.dummy(0, 0)
                         imgui.text_disabled(" -> ")
                         imgui.same_line()
-                        avail = full_width - imgui.get_cursor_pos_x()
-                        cut = len(new_val)
-                        while imgui.calc_text_size(new_val[:cut]).x > avail:
-                            cut -= 1
-                        imgui.text(new_val[:cut])
-                        if new_val[cut:]:
-                            imgui.text(new_val[cut:])
+                        utils.wrap_text(new_val, width=wrap_width, offset=imgui.get_cursor_pos_x() - indent)
 
                 if game.status is not old_game.status:
                     imgui.spacing()
@@ -789,11 +773,25 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_game_status_widget(old_game)
                     imgui.same_line()
+                    if full_width - imgui.get_cursor_pos_x() < arrow_width:
+                        imgui.dummy(0, 0)
                     imgui.text_disabled(" -> ")
                     imgui.same_line()
                     imgui.text(game.status.name)
                     imgui.same_line()
                     self.draw_game_status_widget(game)
+
+                if game.type is not old_game.type:
+                    imgui.spacing()
+                    imgui.text_disabled("Type: ")
+                    imgui.same_line()
+                    self.draw_game_type_widget(old_game)
+                    imgui.same_line()
+                    if full_width - imgui.get_cursor_pos_x() < arrow_width:
+                        imgui.dummy(0, 0)
+                    imgui.text_disabled(" -> ")
+                    imgui.same_line()
+                    self.draw_game_type_widget(game)
 
                 added = ""
                 removed = ""
@@ -808,25 +806,11 @@ class MainGUI():
                     if added:
                         imgui.text_disabled("Tags added: ")
                         imgui.same_line()
-                        avail = full_width - imgui.get_cursor_pos_x()
-                        added = added.strip()
-                        cut = len(added)
-                        while imgui.calc_text_size(added[:cut]).x > avail:
-                            cut -= 1
-                        imgui.text(added[:cut])
-                        if added[cut:]:
-                            imgui.text(added[cut:])
+                        utils.wrap_text(added, width=wrap_width, offset=tags_added_offset)
                     if removed:
                         imgui.text_disabled("Tags removed: ")
                         imgui.same_line()
-                        avail = full_width - imgui.get_cursor_pos_x()
-                        removed = removed.strip()
-                        cut = len(removed)
-                        while imgui.calc_text_size(removed[:cut]).x > avail:
-                            cut -= 1
-                        imgui.text(removed[:cut])
-                        if removed[cut:]:
-                            imgui.text(removed[cut:])
+                        utils.wrap_text(removed, width=wrap_width, offset=tags_removed_offset)
 
                 imgui.spacing()
                 self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
