@@ -24,8 +24,6 @@ imgui.style = None
 
 class MainGUI():
     def __init__(self):
-        from main import debug_file
-        debug_file.write("gui init\n")
         # Constants
         self.sidebar_size = 230
         self.game_list_column_count = 17
@@ -101,13 +99,11 @@ class MainGUI():
         self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
-        debug_file.write("gui init end\n")
 
         # Setup Qt objects
         QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
-        debug_file.write("qt stuff\n")
 
         # Setup ImGui
         imgui.create_context()
@@ -140,33 +136,23 @@ class MainGUI():
             pass
         if not all([isinstance(x, int) for x in size]) or not len(size) == 2:
             size = (1280, 720)
-        debug_file.write("imgui stuff\n")
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
-        debug_file.write("window\n")
         if all([isinstance(x, int) for x in pos]) and len(pos) == 2:
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
-        debug_file.write("pos\n")
         if globals.settings.start_in_tray:
             self.minimize()
-        debug_file.write("minimize\n")
         icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = imagehelper.ImageHelper(icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
-        debug_file.write("icon\n")
         self.impl = GlfwRenderer(self.window)
-        debug_file.write("impl\n")
         glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.set_window_pos_callback(self.window, self.pos_callback)
-        debug_file.write("callbacks\n")
         glfw.swap_interval(globals.settings.vsync_ratio)
-        debug_file.write("swap\n")
         self.refresh_fonts()
-        debug_file.write("fonts\n")
-        debug_file.write("glfw stuff\n")
 
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
@@ -187,7 +173,6 @@ class MainGUI():
                 return
             utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
         async_thread.done_callback = asyncexcepthook
-        debug_file.write("excepthook stuff\n")
 
         # Load style configuration
         imgui.style = imgui.get_style()
@@ -217,7 +202,6 @@ class MainGUI():
             imgui.pop_style_color()
             return result
         imgui.combo = combo
-        debug_file.write("style stuff\n")
 
     def refresh_styles(self):
         globals.settings.style_accent = \
