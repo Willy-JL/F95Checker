@@ -1678,7 +1678,16 @@ class MainGUI():
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
-        activated, value = imgui.input_text("##filter_add_bar", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        if not imgui.is_any_item_active():
+            for key, pressed in enumerate(imgui.io.keys_down):
+                if pressed:
+                    try:
+                        key_utf8 = glfw.get_key_name(key, glfw.get_key_scancode(key))
+                        if key_utf8:
+                            imgui.set_keyboard_focus_here()
+                            imgui.io.add_input_characters_utf8(key_utf8)
+                    except Exception:
+                        pass
         if imgui.begin_popup_context_item(f"##refresh_context"):
             # Right click = more options context menu
             if imgui.selectable("󰋽 More info", False)[0]:
