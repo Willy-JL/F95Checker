@@ -1688,6 +1688,7 @@ class MainGUI():
                             imgui.io.add_input_characters_utf8(key_utf8)
                     except Exception:
                         pass
+        activated, value = imgui.input_text_with_hint("##filter_add_bar", "Start typing to search your library, press enter to add a game (thread link / search term)", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         if imgui.begin_popup_context_item(f"##refresh_context"):
             # Right click = more options context menu
             if imgui.selectable("󰋽 More info", False)[0]:
