@@ -67,20 +67,25 @@ images_path.mkdir(parents=True, exist_ok=True)
 if os is Os.Windows:
     import winreg
     for registry in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-        browsers = winreg.OpenKey(registry, "SOFTWARE\\Clients\\StartMenuInternet")
         try:
-            i = 0
-            while True:
-                key = winreg.EnumKey(browsers, i)
-                name = winreg.QueryValue(browsers, key)
-                path = winreg.QueryValue(browsers, key + "\\shell\\open\\command")
-                Browser.add(name, path=path)
-                i += 1
-        except OSError:
-            pass
-    for browser in Browser.available.values():
-        if browser.path and browser.path[0] == '"' and browser.path [-1] == '"':
-            browser.path = browser.path[1:-1]
+            browsers = winreg.OpenKey(registry, "SOFTWARE\\Clients\\StartMenuInternet")
+            try:
+                i = 0
+                while True:
+                    key = winreg.EnumKey(browsers, i)
+                    try:
+                        name = winreg.QueryValue(browsers, key)
+                        path = winreg.QueryValue(browsers, key + "\\shell\\open\\command")
+                        if path.startswith('"') and path.endswith('"'):
+                            path = path[1:-1]
+                        Browser.add(name, path=path)
+                    except Exception:
+                        pass  # Non-standard key
+                    i += 1
+            except OSError:
+                pass  # Stop iteration
+        except FileNotFoundError:
+            pass  # Key diesn't exist
 elif os is Os.Linux:
     app_dir = pathlib.Path("/usr/share/applications")
     with open(app_dir / "mimeinfo.cache", "rb") as f:
