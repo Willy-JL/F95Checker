@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
 import datetime as dt
 from PIL import Image
+import configparser
 import subprocess
 import contextlib
 import tempfile
@@ -176,6 +177,20 @@ async def quick_search(query: str):
             continue
         results.append(SearchResult(title=title, url=url, id=id))
     return results
+
+
+async def import_url_shortcut(file: str | pathlib.Path):
+    parser = configparser.RawConfigParser()
+    threads = []
+    try:
+        parser.read(file)
+        threads += utils.extract_thread_matches(parser.get("InternetShortcut", "URL"))
+    except Exception:
+        pass
+    if threads:
+        await callbacks.add_games(*threads)
+    else:
+        utils.push_popup(msgbox.msgbox, "Invalid shortcut", "This shortcut file does not point to a valid thread to import!", MsgBox.warn)
 
 
 async def import_browser_bookmarks(file: str | pathlib.Path):

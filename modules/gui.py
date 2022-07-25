@@ -8,6 +8,7 @@ import configparser
 import threading
 import platform
 import asyncio
+import pathlib
 import aiohttp
 import OpenGL
 import imgui
@@ -154,6 +155,7 @@ class MainGUI():
         glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.set_window_pos_callback(self.window, self.pos_callback)
+        glfw.set_drop_callback(self.window, self.drop_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
@@ -319,6 +321,22 @@ class MainGUI():
     def pos_callback(self, window: glfw._GLFWwindow, x: int, y: int):
         self.screen_pos = (x, y)
 
+    def drop_callback(self, window: glfw._GLFWwindow, items: list[str]):
+        paths = [pathlib.Path(item) for item in items]
+        if globals.popup_stack and isinstance(picker := globals.popup_stack[-1], filepicker.FilePicker):
+            path = paths[0]
+            if (picker.dir_picker and path.is_dir()) or (not picker.dir_picker and path.is_file()):
+                picker.selected = str(path)
+                if picker.callback:
+                    picker.callback(picker.selected)
+                picker.active = False
+        else:
+            for path in paths:
+                if path.suffix and path.suffix.lower() == ".html":
+                    async_thread.run(api.import_browser_bookmarks(path))
+                elif path.suffix and path.suffix.lower() == ".url":
+                    async_thread.run(api.import_url_shortcut(path))
+
     def minimize(self, *args, **kwargs):
         self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
@@ -432,10 +450,14 @@ class MainGUI():
                 imgui.text(text)
 
                 open_popup_count = 0
-                for popup_func in globals.popup_stack:
+                for popup in globals.popup_stack:
+                    if hasattr(popup, "tick"):
+                        popup_func = popup.tick
+                    else:
+                        popup_func = popup
                     opened, closed =  popup_func()
                     if closed:
-                        globals.popup_stack.remove(popup_func)
+                        globals.popup_stack.remove(popup)
                     open_popup_count += opened
                 # Popups are closed all at the end to allow stacking
                 for _ in range(open_popup_count):
@@ -479,9 +501,10 @@ class MainGUI():
         self.impl.shutdown()
         glfw.terminate()
 
-    def draw_hover_text(self, hover_text: str, text="(?)", *args, **kwargs):
-        imgui.text_disabled(text, *args, **kwargs)
-        if imgui.is_item_hovered():
+    def draw_hover_text(self, hover_text: str, text="(?)", force=False, *args, **kwargs):
+        if text:
+            imgui.text_disabled(text, *args, **kwargs)
+        if force or imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
             imgui.text_unformatted(hover_text)
@@ -625,7 +648,7 @@ class MainGUI():
                 if selected:
                     game.executable = selected
                     async_thread.run(db.update_game(game, "executable"))
-            utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+            utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback))
         return clicked
 
     def draw_game_unset_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
@@ -1975,7 +1998,7 @@ class MainGUI():
                                 if selected:
                                     set.browser_custom_executable = selected
                                     async_thread.run(db.update_settings("browser_custom_executable"))
-                            utils.push_popup(filepicker.FilePicker(title="Select browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
+                            utils.push_popup(filepicker.FilePicker(title="Select or drop browser executable", start_dir=set.browser_custom_executable, callback=callback))
                         imgui.text("Arguments: ")
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
@@ -2259,15 +2282,24 @@ class MainGUI():
                     utils.start_refresh_task(api.import_f95_bookmarks())
                 if imgui.button("F95 watched threads", width=-offset):
                     utils.start_refresh_task(api.import_f95_watched_threads())
-                if imgui.button("Browser Bookmarks", width=-offset):
+                if imgui.button("Browser bookmarks", width=-offset):
                     def callback(selected):
                         if selected:
                             async_thread.run(api.import_browser_bookmarks(selected))
                     buttons={
-                        "󰄬 Ok": lambda: utils.push_popup(filepicker.FilePicker("Select bookmark file", callback=callback).tick),
+                        "󰄬 Ok": lambda: utils.push_popup(filepicker.FilePicker("Select or drop bookmark file", callback=callback)),
                         "󰜺 Cancel": None
                     }
                     utils.push_popup(msgbox.msgbox, "Bookmark file", "F95Checker can import your browser bookmarks using an exported bookmark HTML.\nExporting such a file may vary between browsers, but generally speaking you need to:\n - Open your browser's bookmark manager\n - Find an import / export section, menu or dropdown\n - Click export as HTML\n - Save the file in some place you can find easily\n\nOnce you have done this click Ok and select this file.", MsgBox.info, buttons)
+                file_hover = imgui.is_item_hovered()
+                if imgui.button("URL Shortcut file", width=-offset):
+                    def callback(selected):
+                        if selected:
+                            async_thread.run(api.import_url_shortcut(selected))
+                    utils.push_popup(filepicker.FilePicker("Select or drop shortcut file", callback=callback)),
+                file_hover = file_hover or imgui.is_item_hovered()
+                if file_hover:
+                    self.draw_hover_text("You can also drag and drop .html and .url files into the window for this!", text=None, force=True)
                 imgui.tree_pop()
             if imgui.tree_node("Export", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x
@@ -2324,7 +2356,7 @@ class MainGUI():
                     if selected:
                         set.default_exe_dir = selected
                         async_thread.run(db.update_settings("default_exe_dir"))
-                utils.push_popup(filepicker.DirPicker("Selecte default exe dir", callback=select_callback).tick)
+                utils.push_popup(filepicker.DirPicker("Selecte or drop default exe dir", callback=select_callback))
 
             imgui.table_next_row()
             imgui.table_next_column()

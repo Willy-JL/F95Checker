@@ -117,7 +117,7 @@ def launch_game_exe(game: Game):
                     async_thread.run(db.update_game(game, "executable"))
                     _launch_game()
             buttons = {
-                "󰄬 Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+                "󰄬 Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback)),
                 "󰜺 No": None
             }
             utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to select another one?", MsgBox.warn, buttons)
@@ -129,7 +129,7 @@ def launch_game_exe(game: Game):
                 game.executable = selected
                 async_thread.run(db.update_game(game, "executable"))
                 _launch_game()
-        utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+        utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback))
     else:
         _launch_game()
 
@@ -246,7 +246,7 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
                     if selected:
                         game.executable = selected
                         async_thread.run(db.update_game(game, "executable"))
-                utils.push_popup(filepicker.FilePicker(f"Select executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+                utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback))
         dupe_count = len(dupes)
         added_count = len(added)
         if dupe_count > 0 or added_count > 1:
