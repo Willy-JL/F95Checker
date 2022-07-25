@@ -93,11 +93,13 @@ class MainGUI():
         self.prev_any_hovered = None
         self.game_hitbox_click = False
         self.hovered_game: Game = None
-        self.bg_mode_timer: float = None
         self.filters: list[Filter] = []
+        self.bg_mode_timer: float = None
+        self.input_chars: list[int] = []
         self.type_label_width: float = None
         self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
+        self.input_chars_next: list[int] = []
         self.sorted_games_ids: list[int] = []
 
         # Setup Qt objects
@@ -148,6 +150,7 @@ class MainGUI():
         self.icon_texture = imagehelper.ImageHelper(icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(icon_path))
         self.impl = GlfwRenderer(self.window)
+        glfw.set_char_callback(self.window, self.char_callback)
         glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.set_window_pos_callback(self.window, self.pos_callback)
@@ -301,6 +304,10 @@ class MainGUI():
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
 
+    def char_callback(self, window: glfw._GLFWwindow, char: int):
+        self.impl.char_callback(window, char)
+        self.input_chars.append(char)
+
     def close_callback(self, window: glfw._GLFWwindow):
         if globals.settings.minimize_on_close:
             self.minimize()
@@ -336,6 +343,10 @@ class MainGUI():
         while not glfw.window_should_close(self.window):
             self.qt_app.processEvents()
             self.tray.tick_msgs()
+            for char in self.input_chars_next:
+                imgui.io.add_input_character(char)
+            self.input_chars.clear()
+            self.input_chars_next.clear()
             glfw.poll_events()
             self.impl.process_inputs()
             if not self.focused and glfw.get_window_attrib(self.window, glfw.HOVERED):
@@ -1681,16 +1692,9 @@ class MainGUI():
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
-        if not imgui.is_any_item_active():
-            for key, pressed in enumerate(imgui.io.keys_down):
-                if pressed:
-                    try:
-                        key_utf8 = glfw.get_key_name(key, glfw.get_key_scancode(key))
-                        if key_utf8:
-                            imgui.set_keyboard_focus_here()
-                            imgui.io.add_input_characters_utf8(key_utf8)
-                    except Exception:
-                        pass
+        if not imgui.is_any_item_active() and self.input_chars:
+            imgui.set_keyboard_focus_here()
+            self.input_chars_next = list(self.input_chars)
         activated, value = imgui.input_text_with_hint("##filter_add_bar", "Start typing to search your library, press enter to add a game (thread link / search term)", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         if imgui.begin_popup_context_item(f"##refresh_context"):
             # Right click = more options context menu
