@@ -418,6 +418,7 @@ async def check(game: Game, full=False, login=False):
                 last_updated = int(elem.find("time").get("data-time"))
             else:
                 last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
+        last_updated = int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(last_updated).date().toordinal()).timestamp())
 
         last_full_refresh = int(time.time())
 
