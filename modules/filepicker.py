@@ -83,7 +83,7 @@ class FilePicker:
 
     def tick(self):
         if not self.active:
-            return 0
+            return 0, True
         io = imgui.get_io()
         # Auto refresh
         self.elapsed += io.delta_time
