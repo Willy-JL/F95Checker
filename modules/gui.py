@@ -956,7 +956,8 @@ class MainGUI():
 
             imgui.text_disabled("Version:")
             imgui.same_line()
-            utils.wrap_text(self.get_game_version_text(game))
+            offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
+            utils.wrap_text(self.get_game_version_text(game), width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             imgui.text_disabled("Status:")
             imgui.same_line()
@@ -966,7 +967,8 @@ class MainGUI():
 
             imgui.text_disabled("Developer:")
             imgui.same_line()
-            utils.wrap_text(game.developer or "Unknown")
+            offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
+            utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             imgui.text_disabled("Type:")
             imgui.same_line()
@@ -986,7 +988,8 @@ class MainGUI():
 
             imgui.text_disabled("Executable:")
             imgui.same_line()
-            utils.wrap_text(game.executable or "Not set")
+            offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
+            utils.wrap_text(game.executable or "Not set", width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             imgui.text_disabled("Manage Exe:")
             imgui.same_line()
