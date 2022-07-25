@@ -88,6 +88,7 @@ class MainGUI():
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.require_sort = True
+        self.repeat_chars = False
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
@@ -100,7 +101,6 @@ class MainGUI():
         self.type_label_width: float = None
         self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
-        self.input_chars_next: list[int] = []
         self.sorted_games_ids: list[int] = []
 
         # Setup Qt objects
@@ -361,10 +361,11 @@ class MainGUI():
         while not glfw.window_should_close(self.window):
             self.qt_app.processEvents()
             self.tray.tick_msgs()
-            for char in self.input_chars_next:
-                imgui.io.add_input_character(char)
+            if self.repeat_chars:
+                for char in self.input_chars:
+                    imgui.io.add_input_character(char)
+                self.repeat_chars = False
             self.input_chars.clear()
-            self.input_chars_next.clear()
             glfw.poll_events()
             self.impl.process_inputs()
             if not self.focused and glfw.get_window_attrib(self.window, glfw.HOVERED):
@@ -1715,9 +1716,12 @@ class MainGUI():
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
-        if not imgui.is_any_item_active() and self.input_chars:
+        if not imgui.is_any_item_active() and (self.input_chars or any(imgui.io.keys_down)):
+            if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
+                self.add_box_text = self.add_box_text[:-1]
+            if self.input_chars:
+                self.repeat_chars = True
             imgui.set_keyboard_focus_here()
-            self.input_chars_next = list(self.input_chars)
         activated, value = imgui.input_text_with_hint("##filter_add_bar", "Start typing to search your library, press enter to add a game (thread link / search term)", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         if imgui.begin_popup_context_item(f"##refresh_context"):
             # Right click = more options context menu
