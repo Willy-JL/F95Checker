@@ -467,7 +467,10 @@ async def check(game: Game, full=False, login=False):
         if fetch_image and image_url and image_url != "-":
             async with images:
                 raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
-                ext = "." + str(Image.open(io.BytesIO(raw)).format or "img").lower()
+                try:
+                    ext = "." + str(Image.open(io.BytesIO(raw)).format or "img").lower()
+                except Exception:
+                    ext = ".img"
                 with contextlib.suppress(asyncio.CancelledError):
                     for img in globals.images_path.glob(f"{game.id}.*"):
                         try:

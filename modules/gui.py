@@ -901,6 +901,14 @@ class MainGUI():
                     text=text,
                     hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
                 )
+            elif image.invalid:
+                text = "Invalid image!"
+                width = imgui.calc_text_size(text).x
+                imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
+                self.draw_hover_text(
+                    text=text,
+                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
+                )
             else:
                 aspect_ratio = image.height / image.width
                 width = min(avail.x, image.width)
@@ -1567,6 +1575,18 @@ class MainGUI():
                         )
                         imgui.set_cursor_pos(pos)
                     imgui.dummy(width, height)
+                elif game.image.invalid:
+                    text = "Invalid image!"
+                    text_size = imgui.calc_text_size(text)
+                    showed_img = imgui.is_rect_visible(width, height)
+                    if text_size.x < width:
+                        imgui.set_cursor_pos((pos.x + (width - text_size.x) / 2, pos.y + height / 2))
+                        self.draw_hover_text(
+                            text=text,
+                            hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
+                        )
+                        imgui.set_cursor_pos(pos)
+                    imgui.dummy(width, height)
                 else:
                     crop = game.image.crop_to_ratio(img_ratio, fit=globals.settings.fit_images)
                     showed_img = game.image.render(width, height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
@@ -1822,6 +1842,8 @@ class MainGUI():
             game = self.hovered_game
             if game.image.missing:
                 imgui.button("Image missing!", width=width, height=height)
+            elif game.image.invalid:
+                imgui.button("Invalid image!", width=width, height=height)
             else:
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)

@@ -17,6 +17,7 @@ class ImageHelper:
         self.loading = False
         self.applied = False
         self.missing = False
+        self.invalid = False
         self.frame_count = 1
         self.animated = False
         self.prev_time = 0.0
@@ -71,8 +72,11 @@ class ImageHelper:
             return
         try:
             image = Image.open(self.resolved_path)
+            self.invalid = False
         except UnidentifiedImageError:
-            self.set_missing()
+            self.invalid = True
+            self.loaded = True
+            self.loading = False
             return
         self.width, self.height = image.size
         if hasattr(image, "n_frames") and image.n_frames > 1:
