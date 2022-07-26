@@ -1173,6 +1173,8 @@ class MainGUI():
             imgui.text("ploper26: Suggested HEAD requests for refreshing")
             imgui.bullet()
             imgui.text("ascsd: Helped with brainstorming on some issues and gave some tips")
+            imgui.bullet()
+            imgui.text("blackop: Helped fix some login window issues on Linux")
             imgui.spacing()
             imgui.spacing()
             imgui.text("Community:")

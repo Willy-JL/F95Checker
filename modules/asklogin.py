@@ -42,6 +42,10 @@ def asklogin(url: str):
     # Subprocess for login webview, Qt WebEngine didn't
     # like running alongside another OpenGL application
 
+    # Linux had issues with blank login pages and these helped out,
+    # hese options might also prevent further problems on other platforms
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox --disable-gpu --enable-logging --log-level=0"
+
     # Redirect stdout to avoid cookie pollution
     original_stdout_fd = sys.stdout.fileno()
     saved_stdout_fd = os.dup(original_stdout_fd)
