@@ -83,6 +83,7 @@ class MainGUI():
         self.focused = True
         self.size_mult = 0.0
         self.prev_cursor = -1
+        self.iconized = False
         self.minimized = False
         self.add_box_text = ""
         self.prev_size = (0, 0)
@@ -153,6 +154,7 @@ class MainGUI():
         self.impl = GlfwRenderer(self.window)
         glfw.set_char_callback(self.window, self.char_callback)
         glfw.set_window_close_callback(self.window, self.close_callback)
+        glfw.set_window_iconify_callback(self.window, self.iconify_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.set_window_pos_callback(self.window, self.pos_callback)
         glfw.set_drop_callback(self.window, self.drop_callback)
@@ -315,6 +317,9 @@ class MainGUI():
             self.minimize()
             glfw.set_window_should_close(self.window, False)
 
+    def iconify_callback(self, window: glfw._GLFWwindow, iconized: int):
+        self.iconized = iconized
+
     def focus_callback(self, window: glfw._GLFWwindow, focused: int):
         self.focused = focused
 
@@ -371,7 +376,7 @@ class MainGUI():
             if not self.focused and glfw.get_window_attrib(self.window, glfw.HOVERED):
                 # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
                 imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
-            if not self.minimized and (self.focused or globals.settings.render_when_unfocused):
+            if not self.minimized and not self.iconized and (self.focused or globals.settings.render_when_unfocused):
 
                 # Scroll modifiers (must be before new_frame())
                 imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -482,7 +487,10 @@ class MainGUI():
                         self.tray.update_status()
                     elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
                         utils.start_refresh_task(api.refresh())
-                time.sleep(0.01)
+                if self.tray.menu_open:
+                    time.sleep(0.05)
+                else:
+                    time.sleep(0.5)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         ini = imgui.save_ini_settings_to_memory()
         try:
@@ -2666,6 +2674,9 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.menu.addAction(self.toggle_gui)
         self.menu.addAction(self.quit)
         self.setContextMenu(self.menu)
+        self.menu_open = False
+        self.menu.aboutToShow.connect(self.showing_menu)
+        self.menu.aboutToHide.connect(self.hiding_menu)
         self.menu.aboutToShow.connect(self.update_menu)
 
         self.activated.connect(self.activated_filter)
@@ -2680,6 +2691,12 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             self.setIcon(self.paused_icon)
         else:
             self.setIcon(self.idle_icon)
+
+    def showing_menu(self, *_):
+        self.menu_open = True
+
+    def hiding_menu(self, *_):
+        self.menu_open = False
 
     def update_menu(self, *_):
         if self.main_gui.minimized:
