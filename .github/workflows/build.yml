@@ -33,13 +33,6 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: "Get short sha string"
-        if: "github.event_name != 'release'"
-        uses: "benjlevesque/short-sha@v1.2"
-        id: "short-sha"
-        with:
-          length: 7
-
       - name: "Setup python"
         uses: "actions/setup-python@v2"
         with:
@@ -113,24 +106,16 @@ jobs:
 
       # === ARTIFACT ===
 
-      - name: "Zip commit package"
-        if: "github.event_name != 'release'"
+      - name: "Zip artifact"
         run: |
-          7z a -r ./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ runner.os }}.zip ./src/dist/*
+          7z a -r ./${{ github.event.repository.name }}-${{ runner.os }}.zip ./src/dist/*
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
         uses: "actions/upload-artifact@v2"
         with:
           name: "${{ runner.os }}"
-          path: "./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-${{ runner.os }}.zip"
-
-      # === RELEASE ===
-
-      - name: "Zip release package"
-        if: "github.event_name == 'release'"
-        run: |
-          7z a -r ./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ runner.os }}.zip ./src/dist/*
+          path: "./${{ github.event.repository.name }}-${{ runner.os }}.zip"
 
       - name: "Upload release artifact"
         if: "github.event_name == 'release'"
@@ -138,7 +123,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
-          files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-${{ runner.os }}.zip"
+          files: "./${{ github.event.repository.name }}-${{ runner.os }}.zip"
 
   source:
     name: "source"
@@ -152,13 +137,6 @@ jobs:
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
-
-      - name: "Get short sha string"
-        if: "github.event_name != 'release'"
-        uses: "benjlevesque/short-sha@v1.2"
-        id: "short-sha"
-        with:
-          length: 7
 
       # === PACKAGE ===
 
@@ -179,24 +157,16 @@ jobs:
 
       # === ARTIFACT ===
 
-      - name: "Zip commit package"
-        if: "github.event_name != 'release'"
+      - name: "Zip artifact"
         run: |
-          7z a -r ./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-Source.zip ./src/dist/*
+          7z a -r ./${{ github.event.repository.name }}-Source.zip ./src/dist/*
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
         uses: "actions/upload-artifact@v2"
         with:
           name: "Source"
-          path: "./${{ github.event.repository.name }}-${{ steps.short-sha.outputs.sha }}-Source.zip"
-
-      # === RELEASE ===
-
-      - name: "Zip release package"
-        if: "github.event_name == 'release'"
-        run: |
-          7z a -r ./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-Source.zip ./src/dist/*
+          path: "./${{ github.event.repository.name }}-Source.zip"
 
       - name: "Upload release artifact"
         if: "github.event_name == 'release'"
@@ -204,7 +174,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
-          files: "./${{ github.event.repository.name }}-v${{ github.event.release.tag_name }}-Source.zip"
+          files: "./${{ github.event.repository.name }}-Source.zip"
 
   release:
     name: "release"
