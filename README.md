@@ -61,7 +61,7 @@ My daily machine runs Arch Linux but I have both Windows and MacOS virtual machi
 
 Versions after 7.0 are hosted in the [GitHub releases section](https://github.com/Willy-JL/f95checker/releases), while older versions are archived in the [F95Zone thread](https://f95zone.to/threads/44173/).
 
-#### Get the latest release [here](https://github.com/Willy-JL/F95Checker/releases/latest).
+### Get the latest release [here](https://github.com/Willy-JL/F95Checker/releases/latest).
 
 ## Browser extension
 
