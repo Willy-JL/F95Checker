@@ -486,6 +486,12 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                     VALUES
                     ({", ".join("?" * len(values))})
                 """, tuple(values))
+
+        if advanced := config.get("advanced"):
+
+            if cookies := advanced.get("cookies"):
+                await update_cookies(cookies)
+
         await save()
     except Exception:
         utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong migrating {str(path)}:\n\n{utils.get_traceback()}", MsgBox.error)
