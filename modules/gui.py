@@ -1136,9 +1136,9 @@ class MainGUI():
             imgui.spacing()
             imgui.text("")
             imgui.push_font(self.big_font)
-            size = imgui.calc_text_size("Cool People")
+            size = imgui.calc_text_size("Cool people")
             imgui.set_cursor_pos_x((width - size.x + imgui.style.scrollbar_size) / 2)
-            imgui.text("Cool People")
+            imgui.text("Cool people")
             imgui.pop_font()
             imgui.spacing()
             imgui.spacing()
@@ -1161,20 +1161,22 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Community:")
             for name in [
-                "AtotehZ",
                 "abada25",
-                "d_pedestrian",
-                "yohudood",
-                "GrammerCop",
-                "SmurfyBlue",
+                "AtotehZ",
                 "bitogno",
+                "d_pedestrian",
+                "DarK x Duke",
+                "GrammerCop",
                 "MillenniumEarl",
-                "DarK x Duke"
+                "SmurfyBlue",
+                "yohudood"
             ]:
                 if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
                     imgui.dummy(0, 0)
                 imgui.bullet_text(name)
                 imgui.same_line(spacing=16)
+            imgui.dummy(0, 0)
+            imgui.bullet_text("And others that I might be forgetting")
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True)
 
