@@ -74,7 +74,25 @@ The F95Checker browser addon allows you to easily add games while browsing the f
 The extension is available for both major browser families (for example Brave counts as Chrome, LibreWolf counts as Firefox):
 
 - **Chrome:** Install from [Web Store](https://chrome.google.com/webstore/detail/f95checker-browser-addon/fcipbnanhmafkfgbhgbagidnaempgmjb)
+
 - **Firefox:** Install from [AMO](https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/)
+
+## FAQ:
+
+- **Can you make it download game updates?** and **Can you make it detect my game folders?**
+  The main reason I decided to make this tool is because all the other alternatives were, in my opinion, too complicated to setup and did way more than what I wanted / needed. Most of this overhead I believe comes from trying to manage your game folders and files on disk, which introduces SO much complexity and room for error. That is what brought me to making my own program, which will NEVER download updates, manage your folders and so on. **F95Checker is not a tool that manages your games, it is a tool that helps you manage your games yourself.**
+
+- **Where is my data stored?**
+  F95Checker stores all it's data at:
+
+  - `%APPDATA%\f95checker\` on Windows
+    (usually `C:\Users\username\AppData\Roaming\f95checker\`)
+  - `~/.f95checker/` on Linux
+    (usually `/home/username/.f95checker/`)
+  - `~/Library/Application Support/f95checker/` on MacOS
+    (usually `/Users/username/Library/Application Support/f95checker/`)
+
+  in a file named `db.sqlite3`, while images are saved in the `images` folder as `thread-id.ext`. The `imgui.ini` file stores some interface preferences, like window size and position, enabled columns and so on. Files named `f95checker.json` and `config.ini` are remainders from previous versions (pre v9.0 and pre v7.0 respectively). When opening v9.0+ it will attempt to migrate these old configs to the new database system, once that is done these old files will be ignored.
 
 ## About the speed™:
 

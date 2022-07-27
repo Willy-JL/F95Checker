@@ -1,10 +1,8 @@
 [IMG]https://raw.githubusercontent.com/Willy-JL/F95Checker/main/.github/images/F95Checker.png[/IMG]
 
 
-
 [CENTER][SIZE=5][B]Tired of checking dozens of threads for game updates?[/B][/SIZE]
 [SIZE=4]May I introduce you to F95Checker, a tool that keeps you up to speed with updates for your favorite games.[/SIZE][/CENTER]
-
 
 
 [SIZE=5][B]Features:[/B][/SIZE]
@@ -46,13 +44,11 @@
 
 
 [SIZE=5][B]Compatibility:[/B][/SIZE]
-
 Built with Python 3.10+ for Windows, Linux and MacOS.
 
 Binaries are available for all 3 platforms, requiring no setup at all. If instead you want to run from source note that Python 3.10+ is required and you'll need to install the requirements with pip (development packages might be needed to compile them).
 
 My daily machine runs Arch Linux but I have both Windows and MacOS virtual machines. I always try my best to test the updates on all platforms before release and to help you when things go wrong, but I can only do so much and with some obscure errors I might not be able to help you.
-
 
 
 [SIZE=5][B]Installation:[/B][/SIZE]
@@ -64,17 +60,13 @@ My daily machine runs Arch Linux but I have both Windows and MacOS virtual machi
 [/LIST]
 
 
-
 [SIZE=5][B]Download:[/B][/SIZE]
-
 Versions after 7.0 are hosted in the [URL='https://github.com/Willy-JL/f95checker/releases']GitHub releases section[/URL], while older versions are archived in the [URL='https://f95zone.to/threads/44173/']F95Zone thread[/URL].
 
 [SIZE=4][B]Get the latest release [URL='(https://github.com/Willy-JL/F95Checker/releases/latest']here[/URL].[/B][/SIZE]
 
 
-
 [SIZE=5][B]Browser extension:[/B][/SIZE]
-
 The F95Checker browser addon allows you to easily add games while browsing the forum in 3 ways:
 [LIST]
 [*]Clicking the extension icon while viewing a thread
@@ -88,11 +80,30 @@ The extension is available for both major browser families (for example Brave co
 [/LIST]
 
 
+[SIZE=5][B]FAQ:[/B][/SIZE]
+[LIST]
+[*][B]Can you make it download game updates?[/B] and [B]Can you make it detect my game folders?[/B]
+
+The main reason I decided to make this tool is because all the other alternatives were, in my opinion, too complicated to setup and did way more than what I wanted / needed. Most of this overhead I believe comes from trying to manage your game folders and files on disk, which introduces SO much complexity and room for error. That is what brought me to making my own program, which will NEVER download updates, manage your folders and so on. [B]F95Checker is not a tool that manages your games, it is a tool that helps you manage your games yourself.[/B]
+
+
+[*][B]Where is my data stored?[/B]
+
+F95Checker stores all it's data at:
+[LIST]
+[*][ICODE]%APPDATA%\f95checker\[/ICODE] on Windows
+(usually [ICODE]C:\Users\username\AppData\Roaming\f95checker\[/ICODE])
+[*][ICODE]~/.f95checker/[/ICODE] on Linux
+(usually [ICODE]/home/username/.f95checker/[/ICODE])
+[*][ICODE]~/Library/Application Support/f95checker/[/ICODE] on MacOS
+(usually [ICODE]/Users/username/Library/Application Support/f95checker/[/ICODE])
+[/LIST]
+in a file named [ICODE]db.sqlite3[/ICODE], while images are saved in the [ICODE]images[/ICODE] folder as [ICODE]thread-id.ext[/ICODE]. The [ICODE]imgui.ini[/ICODE] file stores some interface preferences, like window size and position, enabled columns and so on. Files named [ICODE]f95checker.json[/ICODE] and [ICODE]config.ini[/ICODE] are remainders from previous versions (pre v9.0 and pre v7.0 respectively). When opening v9.0+ it will attempt to migrate these old configs to the new database system, once that is done these old files will be ignored.
+[/LIST]
+
 
 [SIZE=5][B]About the speed™:[/B][/SIZE]
-
 F95Zone does not yet have a proper API serving the information needed by this tool, so the only way to gather them is by requesting the full game threads like a normal browser would. However this is not practical because it consumes a lot of network and computing resources, takes way too long and puts unnecessary stress on the forum servers. This tool makes a compromise: it makes small HEAD requests to the threads, basically checking if a redirect happens. The URL will usually change when the thread title is changed, and since many titles contain the version numbers, a redirect will often indicate an update and in that case the full thread will be fetched and scanned for all the game details. This is what allows F95Checker to quickly check hundreds of games in a matter of seconds. However this will not detect many other changes, like status and description, so the tool will run periodic full rechecks once a week. When a full recheck happens you will see the status text in the bottom right corner saying "Running x full rechecks".
-
 
 
 [SIZE=5][B]Planned features tracker:[/B][/SIZE]
@@ -102,7 +113,6 @@ F95Zone does not yet have a proper API serving the information needed by this to
 [/LIST]
 Btw I also use this as a self note of what I have to do, so ignore the things that might not make much sense to you
 [/SPOILER]
-
 
 
 [SIZE=5][B]Milestones:[/B][/SIZE]
@@ -169,7 +179,6 @@ Sticky Thread?:
 
 idk thought this could be a cool idea... dont want to make it seem like i have an ego twice the size of the earth, its just that this means a lot to me and im happy that people use it and find it useful <3
 [/SPOILER]
-
 
 
 [B][SIZE=5]Old versions:[/SIZE][/B]
@@ -516,23 +525,17 @@ v8.5v8.4v8.3h3v8.3h2v8.3h1v8.3v8.2v8.1v8.0h1v8.0v7.1h2v7.1h1v7.1v7.0v6.9h1v6.9v6
 [/SPOILER]
 
 
-
 [B][SIZE=5]Disclaimer:[/SIZE][/B]
-
 Due to the lack of a proper F95Zone API, this tool needs to grab the threads just like a browser would, and this entails requiring an account to read spoiler content. I know you might be skeptical about inserting your account credentials into some random dude's program, and I totally agree with you if you are, but you can read through the code and you will see that this doesn't do anything harmful. If you still aren't sure you can create a second account just for this program.
 
 
-
 [SIZE=5][B]Contributing:[/B][/SIZE]
-
 Please do! I poured my heart and soul into this tool and hearing suggestions or getting help with the code really helps!
 
 You can help out in many ways, from simply suggesting features or reporting bugs (you can do those in the [URL='https://github.com/Willy-JL/F95Checker/issues']Github issues[/URL] or on the [URL='https://f95zone.to/threads/44173/']F95Zone thread[/URL]), to adding to the codebase (through [URL='https://github.com/Willy-JL/F95Checker/pulls']GitHub pull requests[/URL]) or by posting patches in the [URL='https://f95zone.to/threads/44173/']F95Zone thread[/URL]).
 
 
-
 [SIZE=5][B]Developer note:[/B][/SIZE]
-
 This software is licensed under the 3rd revision of the GNU General Public License (GPLv3) and is provided to you for free. Furthermore, due to its license, it is also free as in freedom: you are free to use, study, modify and share this software in whatever way you wish as long as you keep the same license.
 
 However, F95Checker is actively developed by one person only, WillyJL, and not with the aim of profit but out of personal interest and benefit for the whole F95Zone community. Donations are although greatly appreciated and aid the development of this software. You can find donation links [URL='https://linktr.ee/WillyJL']here[/URL].
@@ -542,9 +545,7 @@ If you find bugs or have some feedback, don't be afraid to let me know either on
 Please note that this software is not ( yet ;) ) officially affiliated with the F95Zone platform.
 
 
-
 [SIZE=5][B]Cool people:[/B][/SIZE]
-
 Supporters:
 [LIST]
 [*][USER=2913051]FaceCrap[/USER]
