@@ -143,7 +143,7 @@ class MainGUI():
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
-        if all([isinstance(x, int) for x in pos]) and len(pos) == 2:
+        if all([isinstance(x, int) for x in pos]) and len(pos) == 2 and self.window_visible(*pos, *size):
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_tray:
@@ -308,6 +308,29 @@ class MainGUI():
     def close(self, *args, **kwargs):
         glfw.set_window_should_close(self.window, True)
 
+    def window_visible(self, x, y, width, height):
+        window_pos = (x, y)
+        window_size = (width, height)
+        visible = False
+        for monitor in glfw.get_monitors():
+            monitor_area = glfw.get_monitor_workarea(monitor)
+            monitor_pos = glfw.get_monitor_pos(monitor)
+            monitor_pos = (monitor_pos[0] + monitor_area[0], monitor_pos[1] + monitor_area[1])
+            monitor_size = (monitor_area[2], monitor_area[3])
+            # Horizontal check, at least 1 pixel on x axis must be in monitor
+            if (window_pos[0]) >= (monitor_pos[0] + monitor_size[0]):
+                continue  # Too right
+            if (window_pos[0] + window_size[0]) <= (monitor_pos[0]):
+                continue  # Too left
+            # Vertical check, at least the pixel above window must be in monitor (titlebar)
+            if (window_pos[1] - 1) >= (monitor_pos[1] + monitor_size[1]):
+                continue  # Too low
+            if (window_pos[1]) <= (monitor_pos[1]):
+                continue  # Too high
+            visible = True
+            break
+        return visible
+
     def char_callback(self, window: glfw._GLFWwindow, char: int):
         self.impl.char_callback(window, char)
         self.input_chars.append(char)
@@ -324,7 +347,8 @@ class MainGUI():
         self.focused = focused
 
     def pos_callback(self, window: glfw._GLFWwindow, x: int, y: int):
-        self.screen_pos = (x, y)
+        if self.window_visible(x, y, *glfw.get_window_size(self.window)):
+            self.screen_pos = (x, y)
 
     def drop_callback(self, window: glfw._GLFWwindow, items: list[str]):
         paths = [pathlib.Path(item) for item in items]
@@ -352,7 +376,8 @@ class MainGUI():
         self.bg_mode_timer = None
         glfw.hide_window(self.window)
         glfw.show_window(self.window)
-        glfw.set_window_pos(self.window, *self.screen_pos)
+        if self.window_visible(*self.screen_pos, *self.prev_size):
+            glfw.set_window_pos(self.window, *self.screen_pos)
         self.minimized = False
         self.tray.update_status()
 
