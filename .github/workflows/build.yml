@@ -66,8 +66,8 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          cd ./src/
-          sed -i "s/is_release = False/is_release = True/g" modules/globals.py
+          cd ./src/modules/
+          sed -i '' "s/is_release = False/is_release = True/g" globals.py
 
       - name: "Build"
         if: "runner.os != 'macOS'"
@@ -148,8 +148,8 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          cd ./src/
-          sed -i "s/is_release = False/is_release = True/g" modules/globals.py
+          cd ./src/modules/
+          sed -i '' "s/is_release = False/is_release = True/g" globals.py
 
       - name: "Package"
         run: |
