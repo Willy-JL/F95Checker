@@ -67,7 +67,7 @@ jobs:
         if: "github.event_name == 'release'"
         run: |
           cd ./src/
-          sed -i "s/is_release = False/is_release = True/g" ./modules/globals.py
+          sed -i "s/is_release = False/is_release = True/g" modules/globals.py
 
       - name: "Build"
         if: "runner.os != 'macOS'"
@@ -144,6 +144,12 @@ jobs:
         uses: "actions/checkout@v2"
         with:
           path: "./src"
+
+      - name: "Mark as release"
+        if: "github.event_name == 'release'"
+        run: |
+          cd ./src/
+          sed -i "s/is_release = False/is_release = True/g" modules/globals.py
 
       - name: "Package"
         run: |
