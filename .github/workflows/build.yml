@@ -67,7 +67,7 @@ jobs:
         if: "github.event_name == 'release'"
         run: |
           cd ./src/
-          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py
+          cat ./modules/globals.py | sed "s/is_release = False/is_release = True/g" > ./modules/globals.py
 
       - name: "Build"
         if: "runner.os != 'macOS'"
@@ -149,7 +149,7 @@ jobs:
         if: "github.event_name == 'release'"
         run: |
           cd ./src/
-          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py
+          cat ./modules/globals.py | sed "s/is_release = False/is_release = True/g" > ./modules/globals.py
 
       - name: "Package"
         run: |
