@@ -33,11 +33,6 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: "Install the real sed"
-        if: "runner.os == 'macOS'"
-        run: |
-          brew install gnu-sed --with-default-names
-
       - name: "Setup python"
         uses: "actions/setup-python@v2"
         with:
@@ -72,7 +67,7 @@ jobs:
         if: "github.event_name == 'release'"
         run: |
           cd ./src/
-          sed -i "s/is_release = False/is_release = True/g" ./modules/globals.py
+          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py
 
       - name: "Build"
         if: "runner.os != 'macOS'"
@@ -154,7 +149,7 @@ jobs:
         if: "github.event_name == 'release'"
         run: |
           cd ./src/
-          sed -i "s/is_release = False/is_release = True/g" ./modules/globals.py
+          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py
 
       - name: "Package"
         run: |
