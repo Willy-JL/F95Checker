@@ -18,8 +18,11 @@ def main():
 
     from modules.structs import Os
     if globals.os is not Os.Windows:
-        import uvloop
-        uvloop.install()
+        try:
+            import uvloop
+            uvloop.install()
+        except Exception:
+            pass
 
     from modules import singleton
     try:

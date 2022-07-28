@@ -14,7 +14,7 @@ def bundle_libs(*libs):
             bin_includes.append(name)
 
 if sys.platform.startswith("linux"):
-    bundle_libs("ffi")
+    bundle_libs("ffi", "ssl")
 elif sys.platform.startswith("darwin"):
     bundle_libs("intl")
 
