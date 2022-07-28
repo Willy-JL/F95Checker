@@ -320,7 +320,7 @@ from modules import imagehelper, utils
 class Browser:
     name: str
     hash: int = None
-    path: str = None
+    args: list[str] = None
     hashed_name: str = None
     unset: bool = None
     is_custom: bool = None

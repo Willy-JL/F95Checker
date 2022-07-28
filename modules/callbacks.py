@@ -2,6 +2,7 @@ import configparser
 import subprocess
 import plistlib
 import pathlib
+import asyncio
 import shlex
 import time
 import stat
@@ -172,21 +173,15 @@ def open_webpage(url: str):
     name = set.browser.name
     if set.browser.is_custom:
         name = "your custom browser"
-        path = set.browser_custom_executable
-        args = shlex.split(set.browser_custom_arguments)
+        args = [set.browser_custom_executable, *shlex.split(set.browser_custom_arguments)]
     else:
-        path = set.browser.path
-        args = []
+        args = [*set.browser.args]
         if set.browser_private:
             args.extend(set.browser.private_arg)
-    def _open_webpage(url: str):
+    async def _open_webpage(url: str):
         try:
-            subprocess.Popen(
-                [
-                    path,
-                    *args,
-                    url
-                ],
+            await asyncio.create_subprocess_exec(
+                *args, url,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
@@ -197,10 +192,10 @@ def open_webpage(url: str):
         async def _fetch_open_page():
             html = await api.download_webpage(url)
             if html:
-                _open_webpage(html)
+                await _open_webpage(html)
         async_thread.run(_fetch_open_page())
     else:
-        _open_webpage(url)
+        async_thread.run(_open_webpage(url))
 
 
 def remove_game(game: Game, bypass_confirm=False):

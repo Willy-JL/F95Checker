@@ -75,10 +75,8 @@ if os is Os.Windows:
                     key = winreg.EnumKey(browsers, i)
                     try:
                         name = winreg.QueryValue(browsers, key)
-                        path = winreg.QueryValue(browsers, key + "\\shell\\open\\command")
-                        if path.startswith('"') and path.endswith('"'):
-                            path = path[1:-1]
-                        Browser.add(name, path=path)
+                        args = shlex.split(winreg.QueryValue(browsers, key + "\\shell\\open\\command"))
+                        Browser.add(name, args=args)
                     except Exception:
                         pass  # Non-standard key
                     i += 1
@@ -103,8 +101,8 @@ elif os is Os.Linux:
         parser = configparser.RawConfigParser()
         parser.read(app_file)
         name = parser.get("Desktop Entry", "Name")
-        path = shlex.split(parser.get("Desktop Entry", "Exec"))[0]
-        Browser.add(name, path=path)
+        args = [arg for arg in shlex.split(parser.get("Desktop Entry", "Exec")) if not (len(arg) == 2 and arg.startswith("%"))]
+        Browser.add(name, args=args)
 elif os is Os.MacOS:
     app_dir = pathlib.Path("/Applications")
     empty = []
@@ -120,8 +118,8 @@ elif os is Os.MacOS:
             for scheme in handler.get("CFBundleURLSchemes", empty):
                 if scheme in matches:
                     name = parser["CFBundleName"]
-                    path = app / f"Contents/MacOS/{parser['CFBundleExecutable']}"
-                    Browser.add(name, path=path)
+                    args = [app / f"Contents/MacOS/{parser['CFBundleExecutable']}"]
+                    Browser.add(name, args=args)
                     found = True
                     break
             if found:
