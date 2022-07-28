@@ -125,6 +125,7 @@ Please note that this software is not ( yet ;) ) officially affiliated with the 
 Supporters:
 
 - [FaceCrap](https://f95zone.to/members/2913051/)
+- [Jarulf](https://f95zone.to/members/2709937/)
 
 Contributors:
 
