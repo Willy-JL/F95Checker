@@ -1162,6 +1162,7 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Supporters:")
             imgui.bullet_text("FaceCrap")
+            imgui.bullet_text("Jarulf")
             imgui.spacing()
             imgui.spacing()
             imgui.text("Contributors:")
