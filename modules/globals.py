@@ -2,6 +2,7 @@ from concurrent.futures import Future
 import configparser
 import plistlib
 import pathlib
+import shutil
 import shlex
 import sys
 import os
@@ -76,7 +77,8 @@ if os is Os.Windows:
                     try:
                         name = winreg.QueryValue(browsers, key)
                         args = shlex.split(winreg.QueryValue(browsers, key + "\\shell\\open\\command"))
-                        Browser.add(name, args=args)
+                        if args and pathlib.Path(shutil.which(args[0])).exists():
+                            Browser.add(name, args=args)
                     except Exception:
                         pass  # Non-standard key
                     i += 1
@@ -102,7 +104,8 @@ elif os is Os.Linux:
         parser.read(app_file)
         name = parser.get("Desktop Entry", "Name")
         args = [arg for arg in shlex.split(parser.get("Desktop Entry", "Exec")) if not (len(arg) == 2 and arg.startswith("%"))]
-        Browser.add(name, args=args)
+        if args and pathlib.Path(shutil.which(args[0])).exists():
+            Browser.add(name, args=args)
 elif os is Os.MacOS:
     app_dir = pathlib.Path("/Applications")
     empty = []
@@ -119,7 +122,8 @@ elif os is Os.MacOS:
                 if scheme in matches:
                     name = parser["CFBundleName"]
                     args = [app / f"Contents/MacOS/{parser['CFBundleExecutable']}"]
-                    Browser.add(name, args=args)
+                    if args and pathlib.Path(shutil.which(args[0])).exists():
+                        Browser.add(name, args=args)
                     found = True
                     break
             if found:
