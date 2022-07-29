@@ -1,5 +1,6 @@
 import configparser
 import aiosqlite
+import sqlite3
 import asyncio
 import pathlib
 import typing
@@ -352,74 +353,81 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
         keys = []
         values = []
 
-        if options := config.get("options"):
+        if (options := config.get("options")) is not None:
 
-            if browser := options.get("browser"):
-                keys.append("browser")
-                values.append({
-                    "none":    0,
-                    "chrome":  utils.hash("Google Chrome"),
-                    "firefox": utils.hash("Mozilla Firefox"),
-                    "brave":   utils.hash("Brave"),
-                    "edge":    utils.hash("Microsoft Edge"),
-                    "opera":   utils.hash("Opera Stable"),
-                    "operagx": utils.hash("Opera GX Stable")
-                }[browser])
+            keys.append("browser")
+            match options.get("browser"):
+                case "chrome":
+                    value = utils.hash("Google Chrome")
+                case "firefox":
+                    value = utils.hash("Mozilla Firefox")
+                case "brave":
+                    value = utils.hash("Brave")
+                case "edge":
+                    value = utils.hash("Microsoft Edge")
+                case "opera":
+                    value = utils.hash("Opera Stable")
+                case "operagx":
+                    value = utils.hash("Opera GX Stable")
+                case _:
+                    value = 0
+            values.append(value)
 
-            if private_browser := options.get("private_browser"):
+            if (private_browser := options.get("private_browser")) is not None:
                 keys.append("browser_private")
                 values.append(int(private_browser))
 
-            if open_html := options.get("open_html"):
+            if (open_html := options.get("open_html")) is not None:
                 keys.append("browser_html")
                 values.append(int(open_html))
 
-            if start_refresh := options.get("start_refresh"):
+            if (start_refresh := options.get("start_refresh")) is not None:
                 keys.append("start_refresh")
                 values.append(int(start_refresh))
 
-            if bg_mode_delay_mins := options.get("bg_mode_delay_mins"):
+            if (bg_mode_delay_mins := options.get("bg_mode_delay_mins")) is not None:
                 keys.append("tray_refresh_interval")
                 values.append(bg_mode_delay_mins)
 
-            if refresh_completed_games := options.get("refresh_completed_games"):
+            if (refresh_completed_games := options.get("refresh_completed_games")) is not None:
                 keys.append("refresh_completed_games")
                 values.append(int(refresh_completed_games))
 
-            if keep_image_on_game_update := options.get("keep_image_on_game_update"):
+            if (keep_image_on_game_update := options.get("keep_image_on_game_update")) is not None:
                 keys.append("update_keep_image")
                 values.append(int(keep_image_on_game_update))
 
-        if style := config.get("style"):
+        if (style := config.get("style")) is not None:
 
-            if accent := style.get("accent"):
+            if (accent := style.get("accent")) is not None:
                 keys.append("style_accent")
                 values.append(accent)
 
-            if alt := style.get("alt"):
+            if (alt := style.get("alt")) is not None:
                 keys.append("style_alt_bg")
                 values.append(alt)
 
-            if back := style.get("back"):
+            if (back := style.get("back")) is not None:
                 keys.append("style_bg")
                 values.append(back)
 
-            if border := style.get("border"):
+            if (border := style.get("border")) is not None:
                 keys.append("style_border")
                 values.append(border)
 
-            if radius := style.get("radius"):
+            if (radius := style.get("radius")) is not None:
                 keys.append("style_corner_radius")
                 values.append(int(radius))
 
-        await connection.execute(f"""
-            UPDATE settings
-            SET
-                {", ".join(f"{key} = ?" for key in keys)}
-            WHERE _=0
-        """, tuple(values))
+        if keys and values:
+            await connection.execute(f"""
+                UPDATE settings
+                SET
+                    {", ".join(f"{key} = ?" for key in keys)}
+                WHERE _=0
+            """, tuple(values))
 
-        if games := config.get("games"):
+        if (games := config.get("games")) is not None:
             for game in games.values():
                 match = utils.extract_thread_matches(game["link"])
                 if not match:
@@ -428,70 +436,76 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                 keys = ["id"]
                 values = [id]
 
-                if name := game.get("name"):
-                    keys.append("name")
-                    values.append(name)
+                keys.append("name")
+                values.append(game.get("name") or f"Unknown ({id})")
 
-                if version := game.get("version"):
-                    keys.append("version")
-                    values.append(version)
+                keys.append("version")
+                values.append(version := (game.get("version") or "Not Yet Checked"))
 
-                if status := game.get("status"):
-                    keys.append("status")
-                    values.append(Status[{
-                        "none":      "Normal",
-                        "completed": "Completed",
-                        "onhold":    "OnHold",
-                        "abandoned": "Abandoned"
-                    }[status]].value)
+                keys.append("status")
+                match game.get("status"):
+                    case "none":
+                        value = Status.Normal.value
+                    case "completed":
+                        value = Status.Completed.value
+                    case "onhold":
+                        value = Status.OnHold.value
+                    case "abandoned":
+                        value = Status.Abandoned.value
+                    case _:
+                        value = Status.Not_Yet_Checked.value
+                values.append(value)
 
-                if installed := game.get("installed"):
+                if (installed := game.get("installed")) is not None:
                     keys.append("installed")
-                    if installed and type(version) is str:
+                    if installed:
                         values.append(version)
                     else:
                         values.append("")
 
-                if played := game.get("played"):
+                if (played := game.get("played")) is not None:
                     keys.append("played")
                     values.append(int(played))
 
-                if exe_path := game.get("exe_path"):
+                if (exe_path := game.get("exe_path")) is not None:
                     keys.append("executable")
                     values.append(exe_path)
 
-                if link := game.get("link"):
+                if (link := game.get("link")) is not None:
                     keys.append("url")
                     values.append(utils.clean_thread_url(link))
 
-                if add_time := game.get("add_time"):
+                if (add_time := game.get("add_time")) is not None:
                     keys.append("added_on")
                     values.append(int(add_time))
 
-                if updated_time := game.get("updated_time"):
+                if (updated_time := game.get("updated_time")) is not None:
                     keys.append("last_updated")
                     values.append(int(updated_time))
 
-                if changelog := game.get("changelog"):
+                if (changelog := game.get("changelog")) is not None:
                     keys.append("changelog")
                     values.append(changelog)
 
-                if notes := game.get("notes"):
+                if (notes := game.get("notes")) is not None:
                     keys.append("notes")
                     values.append(notes)
 
-                await connection.execute(f"""
-                    INSERT INTO games
-                    ({", ".join(keys)})
-                    VALUES
-                    ({", ".join("?" * len(values))})
-                """, tuple(values))
+                try:
+                    await connection.execute(f"""
+                        INSERT INTO games
+                        ({", ".join(keys)})
+                        VALUES
+                        ({", ".join("?" * len(values))})
+                    """, tuple(values))
+                except sqlite3.IntegrityError:
+                    pass  # Duplicates
 
-        if advanced := config.get("advanced"):
+        if (advanced := config.get("advanced")) is not None:
 
-            if cookies := advanced.get("cookies"):
+            if (cookies := advanced.get("cookies")) is not None:
                 await update_cookies(cookies)
 
         await save()
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong transferring from the previous version:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong transferring data from the previous version:\n\n{utils.get_traceback()}", MsgBox.error)
