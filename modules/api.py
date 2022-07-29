@@ -10,6 +10,7 @@ import pathlib
 import asyncio
 import zipfile
 import shutil
+import socket
 import shlex
 import imgui
 import time
@@ -466,7 +467,25 @@ async def check(game: Game, full=False, login=False):
 
         if fetch_image and image_url and image_url != "-":
             async with images:
-                raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
+                try:
+                    raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
+                except socket.gaierror:
+                    if re.search(f"^https?://[^/]*\.?{globals.host}/", image_url):
+                        raise  # Not a foreign host, raise normal internet connection message
+                    f95zone_ok = True
+                    foreign_ok = True
+                    try:
+                        socket.gethostbyname(globals.host)
+                    except Exception:
+                        f95zone_ok = False
+                    try:
+                        socket.gethostbyname(re.search("^https?://([^/]+)", image_url).group(1))
+                    except Exception:
+                        foreign_ok = False
+                    if f95zone_ok and not foreign_ok:
+                        image_url = "-"
+                    else:
+                        raise  # Foreign host might not actually be dead
                 try:
                     ext = "." + str(Image.open(io.BytesIO(raw)).format or "img").lower()
                 except Exception:
@@ -477,8 +496,9 @@ async def check(game: Game, full=False, login=False):
                             img.unlink()
                         except Exception:
                             pass
-                    with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
-                        f.write(raw)
+                    if image_url != "-":
+                        with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
+                            f.write(raw)
                     game.image.loaded = False
                     game.image.resolve()
 
