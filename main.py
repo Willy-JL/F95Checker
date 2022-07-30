@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 import sys
-if sys.platform.startswith("win"):
+if sys.platform.startswith("win") and getattr(sys, "frozen", False) and "nohide" not in sys.argv:
     # Hide conhost if frozen
-    import os
     import ctypes
-    from win32 import win32process
-    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
-    if win32process.GetWindowThreadProcessId(hwnd)[1] == os.getpid():
-        ctypes.windll.user32.ShowWindow(hwnd, 0)
+    ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
 import tempfile
 import pathlib
 
