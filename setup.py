@@ -2,7 +2,6 @@ from ctypes.util import find_library
 import cx_Freeze
 import pathlib
 import sys
-import os
 import re
 
 
@@ -14,7 +13,7 @@ def bundle_libs(*libs):
             bin_includes.append(name)
 
 if sys.platform.startswith("linux"):
-    bundle_libs("ffi", "ssl")
+    bundle_libs("ffi", "ssl", "crypto")
 elif sys.platform.startswith("darwin"):
     bundle_libs("intl")
 
