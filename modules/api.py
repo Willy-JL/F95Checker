@@ -469,9 +469,11 @@ async def check(game: Game, full=False, login=False):
             async with images:
                 try:
                     raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
-                except socket.gaierror:
+                except aiohttp.ClientConnectorError as exc:
+                    if not isinstance(exc.os_error, socket.gaierror):
+                        raise  # Not a dead link
                     if re.search(f"^https?://[^/]*\.?{globals.host}/", image_url):
-                        raise  # Not a foreign host, raise normal internet connection message
+                        raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True
                     try:
