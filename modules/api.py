@@ -477,11 +477,11 @@ async def check(game: Game, full=False, login=False):
                     f95zone_ok = True
                     foreign_ok = True
                     try:
-                        socket.gethostbyname(globals.host)
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, globals.host)
                     except Exception:
                         f95zone_ok = False
                     try:
-                        socket.gethostbyname(re.search("^https?://([^/]+)", image_url).group(1))
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search("^https?://([^/]+)", image_url).group(1))
                     except Exception:
                         foreign_ok = False
                     if f95zone_ok and not foreign_ok:
