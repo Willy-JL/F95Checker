@@ -1161,8 +1161,17 @@ class MainGUI():
             imgui.spacing()
             imgui.spacing()
             imgui.text("Supporters:")
-            imgui.bullet_text("FaceCrap")
-            imgui.bullet_text("Jarulf")
+            for name in [
+                "FaceCrap",
+                "ascsd",
+                "Jarulf",
+                "DarkVermilion",
+                "And 1 anon"
+            ]:
+                if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
+                    imgui.dummy(0, 0)
+                imgui.bullet_text(name)
+                imgui.same_line(spacing=16)
             imgui.spacing()
             imgui.spacing()
             imgui.text("Contributors:")
@@ -1190,14 +1199,13 @@ class MainGUI():
                 "GrammerCop",
                 "MillenniumEarl",
                 "SmurfyBlue",
-                "yohudood"
+                "yohudood",
+                "And others that I might be forgetting"
             ]:
                 if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
                     imgui.dummy(0, 0)
                 imgui.bullet_text(name)
                 imgui.same_line(spacing=16)
-            imgui.dummy(0, 0)
-            imgui.bullet_text("And others that I might be forgetting")
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True)
 
