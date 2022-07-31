@@ -62,6 +62,8 @@ def request(method: str, url: str, **kwargs):
         url,
         cookies=globals.cookies,
         timeout=timeout,
+        allow_redirects=True,
+        max_redirects=None,
         ssl=False,
         **kwargs
     )
