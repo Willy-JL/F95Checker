@@ -264,8 +264,21 @@ async def check(game: Game, full=False, login=False):
             return
         globals.refresh_progress = 1
 
-    skip_first_check_for_version = game.last_refresh_version != globals.version
-    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or skip_first_check_for_version
+    last_breaking_changes_version = "9.0"
+    checked = game.last_refresh_version.split(".")
+    breaking = last_breaking_changes_version.split(".")
+    if len(breaking) > len(checked):
+        breaking_changes = True  # More version fields, is breaking
+    elif len(breaking) < len(checked):
+        breaking_changes = False  # Less version fields, not breaking
+    else:
+        breaking_changes = False
+        for ch, br in zip(checked, breaking):
+            if ch == br:
+                continue  # Ignore this field if same on both versions
+            breaking_changes = int(br) > int(ch)
+            break  # If field is bigger then its breaking
+    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_changes
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:
@@ -438,11 +451,15 @@ async def check(game: Game, full=False, login=False):
 
         last_full_refresh = int(time.time())
 
-        # Do not reset played checkbox if first refresh on this version
+        # Do not reset played and installed checkboxes if refreshing with braking changes
         played = game.played
-        if version != old_version and not skip_first_check_for_version:
-            played = False
-        last_refresh_version = globals.version
+        installed = game.installed
+        if breaking_changes:
+            if old_version == installed:
+                installed = version  # Is breaking and was previously installed, mark again as installed
+        else:
+            if version != old_version:
+                played = False  # Not breaking and version changed, remove played checkbox
 
         description = get_long_game_attr("overview", "story")
 
@@ -462,7 +479,7 @@ async def check(game: Game, full=False, login=False):
         else:
             image_url = "-"
         fetch_image = game.image.missing
-        if not globals.settings.update_keep_image and not skip_first_check_for_version:
+        if not globals.settings.update_keep_image and not breaking_changes:
             fetch_image = fetch_image or (image_url != game.image_url)
 
         if fetch_image and image_url and image_url != "-":
@@ -504,6 +521,8 @@ async def check(game: Game, full=False, login=False):
                     game.image.loaded = False
                     game.image.resolve()
 
+        last_refresh_version = globals.version
+
         with contextlib.suppress(asyncio.CancelledError):
             game.name = name
             game.version = version
@@ -515,13 +534,14 @@ async def check(game: Game, full=False, login=False):
             game.last_full_refresh = last_full_refresh
             game.last_refresh_version = last_refresh_version
             game.played = played
+            game.installed = installed
             game.description = description
             game.changelog = changelog
             game.tags = tags
             game.image_url = image_url
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
 
-            if old_status is not Status.Not_Yet_Checked and not skip_first_check_for_version and (
+            if old_status is not Status.Not_Yet_Checked and not breaking_changes and (
                 name != old_name or
                 version != old_version or
                 developer != old_developer or
