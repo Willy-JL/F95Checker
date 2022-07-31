@@ -690,7 +690,9 @@ async def check_updates():
                 if cancel[0]:
                     shutil.rmtree(asset_path, ignore_errors=True)
                     return
-                z.extract(file.filename, asset_path)
+                extracted = z.extract(file, asset_path)
+                if (attr := file.external_attr >> 16) != 0:
+                    os.chmod(extracted, attr)
                 progress += 1
         progress = 5.0
         total = 5.0
