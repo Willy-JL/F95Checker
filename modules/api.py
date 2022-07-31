@@ -728,7 +728,13 @@ async def check_updates():
                 globals.start_cmd
             ])
             shell = [shutil.which("bash") or shutil.which("zsh") or shutil.which("sh"), "-c"]
-        await asyncio.create_subprocess_exec(*shell, script)
+        await asyncio.create_subprocess_exec(
+            *shell, script,
+            cwd=globals.self_path.parent,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
         globals.gui.close()
     buttons = {
         "󰄬 Yes": lambda: async_thread.run(update_callback()),
