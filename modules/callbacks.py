@@ -50,7 +50,7 @@ def update_start_with_system(toggle: bool):
         utils.push_popup(msgbox.msgbox, "Start with system error", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
 
 
-def _launch(path: str | pathlib.Path):
+async def _launch(path: str | pathlib.Path):
     exe = pathlib.Path(path).absolute()
     if not exe.is_file():
         raise FileNotFoundError()
@@ -76,10 +76,8 @@ def _launch(path: str | pathlib.Path):
                         file.chmod(mode | stat.S_IEXEC)
         if executable:
             # Run as executable
-            subprocess.Popen(
-                [
-                    str(exe)
-                ],
+            await asyncio.create_subprocess_exec(
+                str(exe),
                 cwd=str(exe.parent),
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
@@ -91,11 +89,8 @@ def _launch(path: str | pathlib.Path):
                 open_util = "xdg-open"
             elif globals.os is Os.MacOS:
                 open_util = "open"
-            subprocess.Popen(
-                [
-                    open_util,
-                    str(exe)
-                ],
+            await asyncio.create_subprocess_exec(
+                open_util, str(exe),
                 cwd=str(exe.parent),
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
@@ -104,11 +99,11 @@ def _launch(path: str | pathlib.Path):
 
 
 def launch_game_exe(game: Game):
-    def _launch_game():
+    async def _launch_game():
         if not game.executable:
             return
         try:
-            _launch(game.executable)
+            await _launch(game.executable)
             game.last_played.update(time.time())
             async_thread.run(db.update_game(game, "last_played"))
         except FileNotFoundError:
@@ -116,7 +111,7 @@ def launch_game_exe(game: Game):
                 if selected:
                     game.executable = selected
                     async_thread.run(db.update_game(game, "executable"))
-                    _launch_game()
+                    async_thread.run(_launch_game())
             buttons = {
                 "󰄬 Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback)),
                 "󰜺 No": None
@@ -129,10 +124,10 @@ def launch_game_exe(game: Game):
             if selected:
                 game.executable = selected
                 async_thread.run(db.update_game(game, "executable"))
-                _launch_game()
+                async_thread.run(_launch_game())
         utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback))
     else:
-        _launch_game()
+        async_thread.run(_launch_game())
 
 
 def open_game_folder(game: Game):
@@ -154,15 +149,12 @@ def open_game_folder(game: Game):
             open_util = "xdg-open"
         elif globals.os is Os.MacOS:
             open_util = "open"
-        subprocess.Popen(
-            [
-                open_util,
-                str(dir)
-            ],
+        async_thread.run(asyncio.create_subprocess_exec(
+            open_util, str(dir),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
-        )
+        ))
 
 
 def open_webpage(url: str):
