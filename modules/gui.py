@@ -143,7 +143,7 @@ class MainGUI():
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
-        if all([isinstance(x, int) for x in pos]) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
+        if all([isinstance(x, int) for x in pos]) and len(pos) == 2:
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_tray:
@@ -324,7 +324,7 @@ class MainGUI():
         self.focused = focused
 
     def pos_callback(self, window: glfw._GLFWwindow, x: int, y: int):
-        if utils.validate_geometry(x, y, *glfw.get_window_size(self.window)):
+        if not glfw.get_window_attrib(self.window, glfw.ICONIFIED):
             self.screen_pos = (x, y)
 
     def drop_callback(self, window: glfw._GLFWwindow, items: list[str]):
@@ -353,8 +353,7 @@ class MainGUI():
         self.bg_mode_timer = None
         glfw.hide_window(self.window)
         glfw.show_window(self.window)
-        if utils.validate_geometry(*self.screen_pos, *self.prev_size):
-            glfw.set_window_pos(self.window, *self.screen_pos)
+        glfw.set_window_pos(self.window, *self.screen_pos)
         self.minimized = False
         self.tray.update_status()
 
@@ -415,7 +414,7 @@ class MainGUI():
                 imgui.new_frame()
 
                 imgui.set_next_window_position(0, 0, imgui.ONCE)
-                if (size := imgui.io.display_size) != self.prev_size and utils.validate_geometry(*glfw.get_window_pos(self.window), *size):
+                if (size := imgui.io.display_size) != self.prev_size and not self.iconized:
                     imgui.set_next_window_size(*size, imgui.ALWAYS)
 
                 imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
