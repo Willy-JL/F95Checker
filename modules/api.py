@@ -637,7 +637,7 @@ async def check_updates():
                 break
         changelog = res["body"].strip("\n")
         if (match := "## 🚀 Changelog") in changelog:
-            changelog = changelog[changelog.find(match) + len(match):].strip("\n")
+            changelog = changelog[changelog.find(match) + len(match):].strip()
         globals.last_update_check = time.time()
         if not update_available or not asset_url or not asset_name or not asset_size:
             return
