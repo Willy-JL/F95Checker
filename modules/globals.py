@@ -8,7 +8,7 @@ import sys
 import os
 import re
 
-version = "9.0"
+version = "9.1"
 is_release = False
 
 rpc_port = 57095
