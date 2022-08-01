@@ -1635,7 +1635,7 @@ class MainGUI():
                     imgui.text_colored("󱦹", *globals.settings.style_accent)
                 if version_enabled:
                     imgui.text_disabled(self.get_game_version_text(game))
-                if status_enabled:
+                if status_enabled and game.status is not Status.Normal:
                     imgui.same_line()
                     if imgui.get_content_region_available_width() < status_badge_width:
                         imgui.dummy(0, 0)
