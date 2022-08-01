@@ -709,7 +709,7 @@ async def check_updates():
                 shlex.join(["Wait-Process", "-Id", str(os.getpid())]),
                 shlex.join(["Remove-Item", "-Recurse", str(globals.self_path)]),
                 shlex.join(["Move-Item", str(asset_path), str(globals.self_path)]),
-                globals.start_cmd
+                "& " + globals.start_cmd
             ])
             shell = [shutil.which("powershell")]
         else:
