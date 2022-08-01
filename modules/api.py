@@ -3,8 +3,8 @@ import datetime as dt
 from PIL import Image
 import configparser
 import subprocess
-import contextlib
 import tempfile
+import aiofiles
 import aiohttp
 import pathlib
 import asyncio
@@ -114,8 +114,8 @@ async def is_logged_in():
                     globals.popup_stack.remove(exc.popup)
                     return False
                 raise
-            with open(globals.self_path / "login_broken.bin", "wb") as f:
-                f.write(raw)
+            async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
+                await f.write(raw)
             raise msgbox.Exc("Login assertion failure", f"Something went wrong checking the validity of your login session.\n\nF95Zone replied with a status code of {req.status} at this URL:\n{str(req.real_url)}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}login_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
         return True
 
@@ -128,9 +128,8 @@ async def login():
         )
         with utils.daemon(proc):
             data = await proc.communicate()
-        with contextlib.suppress(asyncio.CancelledError):
-            new_cookies = json.loads(data[0])
-            await db.update_cookies(new_cookies)
+        new_cookies = json.loads(data[0])
+        await asyncio.shield(db.update_cookies(new_cookies))
     except Exception:
         raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
 
@@ -197,8 +196,8 @@ async def import_url_shortcut(file: str | pathlib.Path):
 
 
 async def import_browser_bookmarks(file: str | pathlib.Path):
-    with open(file, "rb") as f:
-        raw = f.read()
+    async with aiofiles.open(file, "rb") as f:
+        raw = await f.read()
     html = bs4.BeautifulSoup(raw, "lxml")
     threads = []
     for bookmark in html.find_all(lambda elem: hasattr(elem, "attrs") and "href" in elem.attrs):
@@ -354,8 +353,8 @@ async def check(game: Game, full=False, login=False):
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
-            with open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
-                f.write(raw)
+            async with aiofiles.open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
+                await f.write(raw)
             raise msgbox.Exc("Thread parsing error", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:
@@ -511,21 +510,22 @@ async def check(game: Game, full=False, login=False):
                     ext = "." + str(Image.open(io.BytesIO(raw)).format or "img").lower()
                 except Exception:
                     ext = ".img"
-                with contextlib.suppress(asyncio.CancelledError):
+                async def replace_image():
                     for img in globals.images_path.glob(f"{game.id}.*"):
                         try:
                             img.unlink()
                         except Exception:
                             pass
                     if image_url != "-":
-                        with open(globals.images_path / f"{game.id}{ext}", "wb") as f:
-                            f.write(raw)
+                        async with aiofiles.open(globals.images_path / f"{game.id}{ext}", "wb") as f:
+                            await f.write(raw)
                     game.image.loaded = False
                     game.image.resolve()
+                await asyncio.shield(replace_image())
 
         last_refresh_version = globals.version
 
-        with contextlib.suppress(asyncio.CancelledError):
+        async def update_game():
             game.name = name
             game.version = version
             game.developer = developer
@@ -561,6 +561,7 @@ async def check(game: Game, full=False, login=False):
                     tags=old_tags
                 )
                 globals.updated_games[game.id] = old_game
+        await asyncio.shield(update_game())
 
 
 async def check_notifs(login=False):
@@ -576,8 +577,8 @@ async def check_notifs(login=False):
         alerts = int(res["visitor"]["alerts_unread"])
         inbox  = int(res["visitor"]["conversations_unread"])
     except Exception:
-        with open(globals.self_path / "notifs_broken.bin", "wb") as f:
-            f.write(raw)
+        async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
+            await f.write(raw)
         raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     if alerts != 0 and inbox != 0:
         msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})."
@@ -642,8 +643,8 @@ async def check_updates():
         if not update_available or not asset_url or not asset_name or not asset_size:
             return
     except Exception:
-        with open(globals.self_path / "update_broken.bin", "wb") as f:
-            f.write(raw)
+        async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
+            await f.write(raw)
         raise msgbox.Exc("Update check error", f"Something went wrong checking for F95Checker updates:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}update_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     async def update_callback():
         progress = 0.0

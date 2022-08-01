@@ -6,6 +6,7 @@ uvloop ; sys_platform != "win32"
 PyQt6-WebEngine
 beautifulsoup4
 aiosqlite
+aiofiles
 aiohttp
 Pillow
 PyQt6
