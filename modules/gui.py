@@ -1221,8 +1221,12 @@ class MainGUI():
         if sort_specs.specs_dirty or self.require_sort:
             if manual_sort:
                 changed = False
+                to_remove = []
                 for id in globals.settings.manual_sort_list:
                     if id not in globals.games:
+                        to_remove.append(id)
+                for id in to_remove:
+                    while id in globals.settings.manual_sort_list:
                         globals.settings.manual_sort_list.remove(id)
                         changed = True
                 for id in globals.games:
