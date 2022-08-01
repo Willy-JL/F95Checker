@@ -543,7 +543,9 @@ class MainGUI():
             clicked = imgui.button(id, *args, **kwargs)
         if not game.installed:
             utils.pop_disabled()
-        if clicked:
+        if imgui.is_item_clicked(2):
+            callbacks.open_game_folder(game)
+        elif clicked:
             callbacks.launch_game_exe(game)
         return clicked
 
