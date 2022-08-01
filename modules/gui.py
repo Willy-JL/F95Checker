@@ -507,9 +507,9 @@ class MainGUI():
                     elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
                         utils.start_refresh_task(api.refresh())
                 if self.tray.menu_open:
-                    time.sleep(0.05)
+                    time.sleep(1 / 60)
                 else:
-                    time.sleep(0.5)
+                    time.sleep(1 / 3)
         imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
         ini = imgui.save_ini_settings_to_memory()
         try:
