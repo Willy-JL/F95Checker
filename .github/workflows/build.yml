@@ -18,9 +18,9 @@ jobs:
           - "ubuntu-latest"
           - "macos-latest"
         python:
-          - "3.10.4"
+          - "3.10.x"
         cx-freeze:
-          - "6.10"
+          - "6.11.1"
     name: "${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
