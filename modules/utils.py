@@ -68,10 +68,9 @@ def start_refresh_task(coro: typing.Coroutine):
         globals.gui.require_sort = True
         if (globals.gui.minimized or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
             globals.gui.tray.push_msg(title="Updates", msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates, click here to view {'it' if count == 1 else 'them'}.", icon=QSystemTrayIcon.MessageIcon.Information)
-        # Continues after this only if the task completed successfully
+        # Continues after this only if the task was not cancelled
         try:
-            if future.exception():
-                return
+            future.exception()
         except concurrent.futures.CancelledError:
             return
         if globals.last_update_check is not None and globals.last_update_check < time.time() - 21600:  # Check updates after refreshing at 6 hour intervals
