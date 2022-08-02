@@ -266,7 +266,7 @@ async def check(game: Game, full=False, login=False):
         globals.refresh_progress = 1
 
     last_breaking_changes_version = "9.0"
-    checked = (game.last_refresh_version or "8.5").split(".")
+    checked = (game.last_refresh_version or "0").split(".")
     breaking = last_breaking_changes_version.split(".")
     if len(breaking) > len(checked):
         checked += ["0" for _ in range(len(breaking) - len(checked))]
