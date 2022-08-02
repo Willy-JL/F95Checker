@@ -105,7 +105,6 @@ class MainGUI():
         self.sorted_games_ids: list[int] = []
 
         # Setup Qt objects
-        QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
 
