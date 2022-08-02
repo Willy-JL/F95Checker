@@ -326,7 +326,7 @@ class MainGUI():
             tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
         except SystemError:
             tex_height = 1
-            max_size = 0
+            max_tex_size = 0
         if tex_height > max_tex_size:
             globals.settings.interface_scaling = 1.0
             async_thread.run(db.update_settings("interface_scaling"))
