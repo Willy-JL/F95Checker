@@ -318,6 +318,7 @@ class MainGUI():
         # Big font + more glyphs
         self.big_font = imgui.io.fonts.add_font_from_file_ttf(karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
         imgui.io.fonts.add_font_from_file_ttf(                noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
+        imgui.io.fonts.add_font_from_file_ttf(                mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
         # MsgBox type icons
         msgbox.icon_font = imgui.io.fonts.add_font_from_file_ttf(mdi_path, size_69, glyph_ranges=msgbox_range)
         self.impl.refresh_font_texture()
@@ -918,6 +919,8 @@ class MainGUI():
         return utils.popup(f"{count} update{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False)
 
     def draw_game_info_popup(self, game: Game):
+        popup_pos = [None]
+        popup_size = [None]
         def popup_content():
             # Image
             image = game.image
@@ -1108,7 +1111,44 @@ class MainGUI():
 
                 imgui.end_tab_bar()
             imgui.pop_text_wrap_pos()
-        return utils.popup("Game info", popup_content, closable=True, outside=True)
+            popup_pos[0] = imgui.get_window_position()
+            popup_size[0] = imgui.get_window_size()
+        return_args = utils.popup("Game info", popup_content, closable=True, outside=True)
+        if not imgui.is_any_item_active() and getattr(globals.popup_stack[-1], "func", None) == self.draw_game_info_popup and game.id in self.sorted_games_ids:
+            imgui.push_font(self.big_font)
+            text_size = imgui.calc_text_size("󰁒")
+            offset = self.scaled(10)
+            pos = popup_pos[0]
+            size = popup_size[0]
+            mouse_pos = imgui.get_mouse_pos()
+            mouse_clicked = imgui.is_mouse_clicked()
+            y = pos.y + (size.y + text_size.y) / 2
+            x1 = pos.x - offset - text_size.x
+            x2 = pos.x + size.x + offset
+            draw_list = imgui.get_foreground_draw_list()
+            col = imgui.get_color_u32_rgba(*globals.settings.style_text_dim)
+            draw_list.add_text(x1, y, col, "󰁒")
+            draw_list.add_text(x2, y, col, "󰁙")
+            y_ok = y <= mouse_pos.y <= y + text_size.y
+            clicked_left = mouse_clicked and x1 <= mouse_pos.x <= x1 + text_size.x and y_ok
+            clicked_right = mouse_clicked and x2 <= mouse_pos.x <= x2 + text_size.x and y_ok
+            imgui.pop_font()
+            change_id = None
+            idx = self.sorted_games_ids.index(game.id)
+            if imgui.is_key_pressed(glfw.KEY_LEFT) or clicked_left:
+                idx -= 1
+                if idx == -1:
+                    idx = len(self.sorted_games_ids) - 1
+                change_id = self.sorted_games_ids[idx]
+            if imgui.is_key_pressed(glfw.KEY_RIGHT) or clicked_right:
+                idx += 1
+                if idx == len(self.sorted_games_ids):
+                    idx = 0
+                change_id = self.sorted_games_ids[idx]
+            if change_id is not None:
+                utils.push_popup(self.draw_game_info_popup, globals.games[change_id])
+                return 1, True
+        return return_args
 
     def draw_about_popup(self):
         def popup_content():
