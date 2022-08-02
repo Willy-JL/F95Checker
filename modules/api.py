@@ -610,6 +610,10 @@ async def check_updates():
     try:
         raw, req = await fetch("GET", globals.update_endpoint)
         res = json.loads(raw)
+        globals.last_update_check = time.time()
+        if "tag_name" in res:
+            utils.push_popup(msgbox.msgbox, "Update check error", "Failed to fetch latest F95Checker release information.\nThis might be a temporary issue.", MsgBox.warn)
+            return
         if res["prerelease"]:
             return  # Release is not ready yet
         latest_name = res["tag_name"]
@@ -638,7 +642,6 @@ async def check_updates():
         changelog = res["body"].strip("\n")
         if (match := "## 🚀 Changelog") in changelog:
             changelog = changelog[changelog.find(match) + len(match):].strip()
-        globals.last_update_check = time.time()
         if not update_available or not asset_url or not asset_name or not asset_size:
             return
     except Exception:
