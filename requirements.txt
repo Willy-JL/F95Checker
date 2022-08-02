@@ -1,5 +1,5 @@
 git+https://github.com/Willy-JL/pyopengl.git@fix-numpy#subdirectory=accelerate
-git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
+git+https://github.com/Willy-JL/pyimgui.git@some-fixes
 git+https://github.com/Willy-JL/pyopengl.git@fix-numpy
 pywin32 ; sys_platform == "win32"
 uvloop ; sys_platform != "win32"
