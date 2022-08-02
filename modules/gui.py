@@ -320,9 +320,13 @@ class MainGUI():
         imgui.io.fonts.add_font_from_file_ttf(                mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
         # MsgBox type icons
         msgbox.icon_font = imgui.io.fonts.add_font_from_file_ttf(mdi_path, size_69, glyph_ranges=msgbox_range)
-        width, height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
-        max_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
-        if height > max_size:
+        try:
+            width, height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
+            max_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
+        except SystemError:
+            height = 1
+            max_size = 0
+        if imgui.io.fonts.texture_height > max_size:
             globals.settings.interface_scaling = 1.0
             return self.refresh_fonts()
         imgui.io.fonts.texture_desired_width = max_size
