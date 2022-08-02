@@ -328,8 +328,6 @@ class Browser:
 
     def __post_init__(self):
         cls = type(self)
-        if not hasattr(cls, "available"):
-            cls.available: dict[str, cls] = {}
         if self.hash is None:
             self.hash = utils.hash(self.name)
         self.hashed_name = f"{self.name}##{self.hash}"
@@ -351,9 +349,16 @@ class Browser:
     @classmethod
     def add(cls, *args, **kwargs):
         self = cls(*args, **kwargs)
+        if not hasattr(cls, "available"):
+            cls.available: dict[str, cls] = {}
+        if not hasattr(cls, "avail_list"):
+            cls.avail_list: list[str] = []
+        if self.hashed_name in cls.available:
+            return
         cls.available[self.hashed_name] = self
-        cls.avail_list = list(cls.available.keys())
-        self.index = len(cls.avail_list) - 1
+        cls.avail_list.append(self.hashed_name)
+        for browser in cls.available.values():
+            browser.index = cls.avail_list.index(browser.hashed_name)
 
     @classmethod
     def get(cls, hash):
