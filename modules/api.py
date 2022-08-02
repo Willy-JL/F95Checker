@@ -269,16 +269,15 @@ async def check(game: Game, full=False, login=False):
     checked = game.last_refresh_version.split(".")
     breaking = last_breaking_changes_version.split(".")
     if len(breaking) > len(checked):
-        breaking_changes = True  # More version fields, is breaking
-    elif len(breaking) < len(checked):
-        breaking_changes = False  # Less version fields, not breaking
-    else:
-        breaking_changes = False
-        for ch, br in zip(checked, breaking):
-            if ch == br:
-                continue  # Ignore this field if same on both versions
-            breaking_changes = int(br) > int(ch)
-            break  # If field is bigger then its breaking
+        checked += ["0" for _ in range(len(breaking) - len(checked))]
+    elif len(checked) > len(breaking):
+        breaking += ["0" for _ in range(len(checked) - len(breaking))]
+    breaking_changes = False
+    for ch, br in zip(checked, breaking):
+        if ch == br:
+            continue  # Ignore this field if same on both versions
+        breaking_changes = int(br) > int(ch)
+        break  # If field is bigger then its breaking
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_changes
     if not full:
         async with request("HEAD", game.url) as req:
@@ -606,32 +605,32 @@ async def check_notifs(login=False):
 
 
 async def check_updates():
+    if (globals.self_path / ".git").is_dir():
+        return  # Running from git repo, skip update
     try:
         raw, req = await fetch("GET", globals.update_endpoint)
         res = json.loads(raw)
-        latest = res["tag_name"].split(".")
-        current = globals.version.split(".")
         if res["prerelease"]:
-            update_available = False  # Release is not ready yet
-        elif (globals.self_path / ".git").is_dir():
-            update_available = False  # Running from git repo, skip update
+            return  # Release is not ready yet
+        latest_name = res["tag_name"]
+        latest = latest_name.split(".")
+        current = globals.version.split(".")
+        if len(current) > len(latest):
+            latest += ["0" for _ in range(len(current) - len(latest))]
         elif len(latest) > len(current):
-            update_available = True  # More version fields, is an update
-        elif len(latest) < len(current):
-            update_available = False  # Less version fields, not an update
-        else:
-            update_available = not globals.is_release  # Allow updating from beta to full release
-            for cur, lat in zip(current, latest):
-                if cur == lat:
-                    continue  # Ignore this field if same on both versions
-                update_available = int(lat) > int(cur)
-                break  # If field is bigger then its an update
+            current += ["0" for _ in range(len(latest) - len(current))]
+        update_available = not globals.is_release  # Allow updating from beta to full release
+        for cur, lat in zip(current, latest):
+            if cur == lat:
+                continue  # Ignore this field if same on both versions
+            update_available = int(lat) > int(cur)
+            break  # If field is bigger then its an update
         asset_url = None
         asset_name = None
         asset_size = None
+        asset_type = globals.os.name.lower() if globals.frozen else "source"
         for asset in res["assets"]:
-            if (globals.frozen and globals.os.name.lower() in asset["name"].lower()) or \
-            (not globals.frozen and "source" in asset["name"].lower()):
+            if asset_type in asset["name"].lower():
                 asset_url = asset["browser_download_url"]
                 asset_name = asset["name"]
                 asset_size = asset["size"]
@@ -758,7 +757,7 @@ async def check_updates():
         path = globals.self_path.parent.parent
     else:
         path = globals.self_path
-    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on {globals.version_name}).\nTHIS WILL DELETE EVERYTHING INSIDE {path}, MAKE SURE THAT IS OK!\n\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\nTHIS WILL DELETE EVERYTHING INSIDE {path}, MAKE SURE THAT IS OK!\n\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
     if globals.gui.minimized or not globals.gui.focused:
         globals.gui.tray.push_msg(title="F95checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
