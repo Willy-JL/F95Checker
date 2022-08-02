@@ -8,7 +8,7 @@ import sys
 import os
 import re
 
-version = "9.2.2"
+version = "9.2.3"
 is_release = False
 build_number = 0
 version_name = f"{version}{'' if is_release else ' beta'}{'' if is_release or not build_number else ' ' + str(build_number)}"
