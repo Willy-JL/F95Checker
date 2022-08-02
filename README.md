@@ -89,8 +89,8 @@ The extension is available for both major browser families (for example Brave co
 
   - `%APPDATA%\f95checker\` on Windows
     (usually `C:\Users\username\AppData\Roaming\f95checker\`)
-  - `~/.f95checker/` on Linux
-    (usually `/home/username/.f95checker/`)
+  - `~/.config/f95checker/` on Linux
+    (usually `/home/username/.config/f95checker/`)
   - `~/Library/Application Support/f95checker/` on MacOS
     (usually `/Users/username/Library/Application Support/f95checker/`)
 

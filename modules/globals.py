@@ -50,12 +50,16 @@ update_endpoint   = "https://api.github.com/repos/Willy-JL/F95Checker/releases/l
 from modules.structs import Browser, Game, OldGame, Os, Settings
 from modules.gui import MainGUI
 
+home = pathlib.Path.home()
 if sys.platform.startswith("win"):
     os = Os.Windows
     data_path = "AppData/Roaming/f95checker"
 elif sys.platform.startswith("linux"):
     os = Os.Linux
-    data_path = ".f95checker"
+    if (home / ".f95checker").exists() and not (home / ".config/f95checker").exists():
+        (home / ".config").mkdir(parents=True, exist_ok=True)
+        shutil.move(home / ".f95checker", home / ".config/f95checker")
+    data_path = ".config/f95checker"
 elif sys.platform.startswith("darwin"):
     os = Os.MacOS
     data_path = "Library/Application Support/f95checker"
@@ -63,7 +67,7 @@ else:
     print("Your system is not officially supported at the moment!\n"
           "You can let me know on the tool thread or on GitHub, or you can try porting yourself ;)")
     sys.exit(1)
-data_path = pathlib.Path.home() / data_path
+data_path = home / data_path
 data_path.mkdir(parents=True, exist_ok=True)
 images_path = data_path / "images"
 images_path.mkdir(parents=True, exist_ok=True)
