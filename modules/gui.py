@@ -292,6 +292,8 @@ class MainGUI():
 
     def refresh_fonts(self):
         imgui.io.fonts.clear()
+        max_tex_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
+        imgui.io.fonts.texture_desired_width = max_tex_size
         win_w, win_h = glfw.get_window_size(self.window)
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
@@ -321,15 +323,14 @@ class MainGUI():
         # MsgBox type icons
         msgbox.icon_font = imgui.io.fonts.add_font_from_file_ttf(mdi_path, size_69, glyph_ranges=msgbox_range)
         try:
-            width, height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
-            max_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
+            tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
         except SystemError:
-            height = 1
+            tex_height = 1
             max_size = 0
-        if imgui.io.fonts.texture_height > max_size:
+        if tex_height > max_tex_size:
             globals.settings.interface_scaling = 1.0
+            async_thread.run(db.update_settings("interface_scaling"))
             return self.refresh_fonts()
-        imgui.io.fonts.texture_desired_width = max_size
         self.impl.refresh_font_texture()
         self.type_label_width = None
 
@@ -507,7 +508,7 @@ class MainGUI():
                 if self.size_mult != globals.settings.interface_scaling:
                     self.refresh_fonts()
                     self.refresh_styles()
-                    async_thread.run(db.update_settings("interface_scaling"))  # Update here in case of crash
+                    async_thread.run(db.update_settings("interface_scaling"))
                 glfw.swap_buffers(self.window)  # Also waits idle time
             else:
                 if self.minimized and not self.bg_mode_paused:
@@ -2251,6 +2252,7 @@ class MainGUI():
             changed, value = imgui.drag_float("##interface_scaling", set.interface_scaling, change_speed=imgui.FLOAT_MIN, min_value=0.5, max_value=4, format="%.2fx")
             if imgui.is_item_deactivated():  # Only change when editing by text input and accepting the edit
                 set.interface_scaling = min(max(value, 0.5), 4)
+                async_thread.run(db.update_settings("interface_scaling"))
 
             imgui.table_next_row()
             imgui.table_next_column()
