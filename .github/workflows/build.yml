@@ -67,15 +67,17 @@ jobs:
         if: "github.event_name == 'release'"
         run: |
           cd ./src/
-          sed -i.old "s/is_release = False/is_release = True/g" ./modules/globals.py
-          rm ./modules/globals.py.old
+          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
+          rm ./modules/globals.py
+          mv ./modules/globals.py.new ./modules/globals.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
           cd ./src/
-          sed -i.old "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py
-          rm ./modules/globals.py.old
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
+          rm ./modules/globals.py
+          mv ./modules/globals.py.new ./modules/globals.py
 
       - name: "Build"
         if: "runner.os != 'macOS'"
@@ -157,15 +159,17 @@ jobs:
         if: "github.event_name == 'release'"
         run: |
           cd ./src/
-          sed -i.old "s/is_release = False/is_release = True/g" ./modules/globals.py
-          rm ./modules/globals.py.old
+          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
+          rm ./modules/globals.py
+          mv ./modules/globals.py.new ./modules/globals.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
           cd ./src/
-          sed -i.old "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py
-          rm ./modules/globals.py.old
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
+          rm ./modules/globals.py
+          mv ./modules/globals.py.new ./modules/globals.py
 
       - name: "Package"
         run: |
