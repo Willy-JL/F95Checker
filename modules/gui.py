@@ -77,7 +77,7 @@ class MainGUI():
             imgui.WINDOW_NO_SAVED_SETTINGS |
             imgui.WINDOW_ALWAYS_AUTO_RESIZE
         )
-        self.watermark_text = f"F95Checker v{globals.version}{'' if globals.is_release else ' beta'} by WillyJL"
+        self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.is_release else ' by WillyJL'}"
 
         # Variables
         self.focused = True
@@ -1112,18 +1112,19 @@ class MainGUI():
 
     def draw_about_popup(self):
         def popup_content():
-            _50 = self.scaled(50)
-            _210 = self.scaled(210)
+            _60 = self.scaled(60)
+            _230 = self.scaled(230)
             imgui.begin_group()
-            imgui.dummy(_50, _210)
+            imgui.dummy(_60, _230)
             imgui.same_line()
-            self.icon_texture.render(_210, _210, rounding=globals.settings.style_corner_radius)
+            self.icon_texture.render(_230, _230, rounding=globals.settings.style_corner_radius)
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(self.big_font)
             imgui.text("F95Checker")
             imgui.pop_font()
-            imgui.text(f"Version {globals.version}{'' if globals.is_release else ' beta'}")
+            imgui.text(f"Version {globals.version_name}")
+            imgui.text("Made with <3 by WillyJL")
             imgui.text("")
             imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
             imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
@@ -1138,10 +1139,10 @@ class MainGUI():
                 imgui.text(f"{platform.system()} {platform.release()}")
             imgui.end_group()
             imgui.same_line()
-            imgui.dummy(_50, _210)
+            imgui.dummy(_60, _230)
             imgui.end_group()
             imgui.spacing()
-            width = imgui.get_item_rect_size().x
+            width = imgui.get_content_region_available_width()
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
             if imgui.button("󰏌 F95Zone Thread", width=btn_width):
                 callbacks.open_webpage(globals.tool_page)
@@ -2680,7 +2681,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.msg_queue: list[TrayMsg] = []
         super().__init__(self.idle_icon)
 
-        self.watermark = QtGui.QAction(f"F95Checker v{globals.version}{'' if globals.is_release else ' beta'}")
+        self.watermark = QtGui.QAction(f"F95Checker {globals.version_name}")
         self.watermark.triggered.connect(lambda *_: callbacks.open_webpage(globals.tool_page))
 
         self.next_refresh = QtGui.QAction("Next Refresh: N/A")

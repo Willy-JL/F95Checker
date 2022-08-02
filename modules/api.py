@@ -758,7 +758,7 @@ async def check_updates():
         path = globals.self_path.parent.parent
     else:
         path = globals.self_path
-    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on v{globals.version}{'' if globals.is_release else ' beta'}).\nTHIS WILL DELETE EVERYTHING INSIDE {path}, MAKE SURE THAT IS OK!\n\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {'.'.join(latest)} (you are on {globals.version_name}).\nTHIS WILL DELETE EVERYTHING INSIDE {path}, MAKE SURE THAT IS OK!\n\nDo you want to update?", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
     if globals.gui.minimized or not globals.gui.focused:
         globals.gui.tray.push_msg(title="F95checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
