@@ -613,7 +613,7 @@ async def check_updates():
         raw, req = await fetch("GET", globals.update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(raw)
         globals.last_update_check = time.time()
-        if "tag_name" in res:
+        if "tag_name" not in res:
             utils.push_popup(msgbox.msgbox, "Update check error", "Failed to fetch latest F95Checker release information.\nThis might be a temporary issue.", MsgBox.warn)
             return
         if res["prerelease"]:
