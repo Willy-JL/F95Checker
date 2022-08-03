@@ -15,6 +15,7 @@ import shlex
 import imgui
 import time
 import json
+import sys
 import bs4
 import os
 import io
@@ -47,6 +48,7 @@ def is_class(name: str):
 def setup():
     global session
     session = aiohttp.ClientSession(loop=async_thread.loop)
+    session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{'.'.join(str(num) for num in sys.version_info[:3])} aiohttp/{aiohttp.__version__}"
 
 
 async def shutdown():
