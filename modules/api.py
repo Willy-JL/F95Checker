@@ -608,7 +608,7 @@ async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
     try:
-        raw, req = await fetch("GET", globals.update_endpoint)
+        raw, req = await fetch("GET", globals.update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(raw)
         globals.last_update_check = time.time()
         if "tag_name" in res:
