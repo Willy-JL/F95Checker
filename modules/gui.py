@@ -142,7 +142,7 @@ class MainGUI():
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
-        if all([isinstance(x, int) for x in pos]) and len(pos) == 2:
+        if all([isinstance(x, int) for x in pos]) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_tray:
@@ -382,7 +382,8 @@ class MainGUI():
         self.bg_mode_timer = None
         glfw.hide_window(self.window)
         glfw.show_window(self.window)
-        glfw.set_window_pos(self.window, *self.screen_pos)
+        if utils.validate_geometry(*self.screen_pos, *self.prev_size):
+            glfw.set_window_pos(self.window, *self.screen_pos)
         self.minimized = False
         self.tray.update_status()
 

@@ -136,6 +136,29 @@ def impl_glfw_init(width: int, height: int, window_name: str):
     return window
 
 
+def validate_geometry(x, y, width, height):
+    window_pos = (x, y)
+    window_size = (width, height)
+    valid = False
+    for monitor in glfw.get_monitors():
+        monitor_area = glfw.get_monitor_workarea(monitor)
+        monitor_pos = (monitor_area[0], monitor_area[1])
+        monitor_size = (monitor_area[2], monitor_area[3])
+        # Horizontal check, at least 1 pixel on x axis must be in monitor
+        if (window_pos[0]) >= (monitor_pos[0] + monitor_size[0]):
+            continue  # Too right
+        if (window_pos[0] + window_size[0]) <= (monitor_pos[0]):
+            continue  # Too left
+        # Vertical check, at least the pixel above window must be in monitor (titlebar)
+        if (window_pos[1] - 1) >= (monitor_pos[1] + monitor_size[1]):
+            continue  # Too low
+        if (window_pos[1]) <= (monitor_pos[1]):
+            continue  # Too high
+        valid = True
+        break
+    return valid
+
+
 def push_disabled(block_interaction=True):
     if block_interaction:
         imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
