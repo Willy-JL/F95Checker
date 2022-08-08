@@ -762,6 +762,11 @@ class MainGUI():
                 *args,
                 **kwargs
             )
+            if imgui.begin_popup_context_item(f"##notes_context"):
+                if imgui.selectable("󰆒 Paste", False)[0]:
+                    value += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                    changed = True
+                imgui.end_popup()
         else:
             imgui.set_next_item_width(width or imgui.get_content_region_available_width())
             if (offset := game.notes.find("\n")) != -1:
@@ -776,6 +781,11 @@ class MainGUI():
                 *args,
                 **kwargs
             )
+            if imgui.begin_popup_context_item(f"##notes_context"):
+                if imgui.selectable("󰆒 Paste", False)[0]:
+                    value += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                    changed = True
+                imgui.end_popup()
             if changed and offset != -1:
                 # Merge with remaining lines
                 value = value + game.notes[offset:]
@@ -1845,6 +1855,9 @@ class MainGUI():
         activated = bool(activated and value)
         if imgui.begin_popup_context_item(f"##bottombar_context"):
             # Right click = more options context menu
+            if imgui.selectable("󰆒 Paste", False)[0]:
+                value += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+            imgui.separator()
             if imgui.selectable("󰋽 More info", False)[0]:
                 utils.push_popup(
                     msgbox.msgbox, "About the bottom bar",
@@ -2112,6 +2125,11 @@ class MainGUI():
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
                         changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999)
+                        if imgui.begin_popup_context_item(f"##browser_context"):
+                            if imgui.selectable("󰆒 Paste", False)[0]:
+                                set.browser_custom_executable += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                                changed = True
+                            imgui.end_popup()
                         if changed:
                             async_thread.run(db.update_settings("browser_custom_executable"))
                         imgui.same_line()
@@ -2130,6 +2148,11 @@ class MainGUI():
                         imgui.set_cursor_pos_x(pos)
                         imgui.set_next_item_width(args_width)
                         changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999)
+                        if imgui.begin_popup_context_item(f"##browser_args_context"):
+                            if imgui.selectable("󰆒 Paste", False)[0]:
+                                set.browser_custom_arguments += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                                changed = True
+                            imgui.end_popup()
                         if changed:
                             async_thread.run(db.update_settings("browser_custom_arguments"))
                     utils.push_popup(utils.popup, "Configure custom browser", popup_content, buttons=True, closable=True, outside=False)
@@ -2401,6 +2424,10 @@ class MainGUI():
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6
                         )
+                        if imgui.begin_popup_context_item(f"##thread_links_context"):
+                            if imgui.selectable("󰆒 Paste", False)[0]:
+                                thread_links[0] += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                            imgui.end_popup()
                     buttons={
                         "󰄬 Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0]))),
                         "󰜺 Cancel": None

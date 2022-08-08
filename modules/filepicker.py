@@ -3,10 +3,11 @@ import pathlib
 import typing
 import string
 import imgui
+import glfw
 import sys
 import os
 
-from modules import utils
+from modules import globals, utils
 
 
 class FilePicker:
@@ -114,6 +115,11 @@ class FilePicker:
             imgui.same_line()
             imgui.set_next_item_width(size.x * 0.7)
             confirmed, dir = imgui.input_text("##location_bar", str(self.dir), 9999, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+            if imgui.begin_popup_context_item(f"##location_context"):
+                if imgui.selectable("󰆒 Paste", False)[0]:
+                    dir = str(glfw.get_clipboard_string(globals.gui.window), encoding="utf-8")
+                    confirmed = True
+                imgui.end_popup()
             if confirmed:
                 self.goto(dir)
             # Refresh button
