@@ -111,14 +111,13 @@ class MainGUI():
         # Setup ImGui
         imgui.create_context()
         imgui.io = imgui.get_io()
-        self.ini_file_name = str(globals.data_path / "imgui.ini").encode()
-        imgui.io.ini_file_name = self.ini_file_name  # Cannot set directly because reference gets lost due to a bug
+        imgui.io.ini_file_name = str(globals.data_path / "imgui.ini")
         imgui.io.config_drag_click_to_input_text = True
         size = tuple()
         pos = tuple()
         try:
             # Get window size
-            with open(self.ini_file_name.decode("utf-8"), "r") as f:
+            with open(imgui.io.ini_file_name, "r") as f:
                 ini = f.read()
             imgui.load_ini_settings_from_memory(ini)
             start = ini.find("[Window][F95Checker]")
@@ -522,7 +521,7 @@ class MainGUI():
                     time.sleep(1 / 60)
                 else:
                     time.sleep(1 / 3)
-        imgui.save_ini_settings_to_disk(self.ini_file_name.decode("utf-8"))
+        imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
         ini = imgui.save_ini_settings_to_memory()
         try:
             start = ini.find("[Window][F95Checker]")
@@ -536,7 +535,7 @@ class MainGUI():
                 new_ini = ini
         except Exception:
             new_ini = ini
-        with open(self.ini_file_name.decode("utf-8"), "w") as f:
+        with open(imgui.io.ini_file_name, "w") as f:
             f.write(new_ini)
         self.impl.shutdown()
         glfw.terminate()
