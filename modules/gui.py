@@ -1125,7 +1125,7 @@ class MainGUI():
             popup_pos[0] = imgui.get_window_position()
             popup_size[0] = imgui.get_window_size()
         return_args = utils.popup("Game info", popup_content, closable=True, outside=True)
-        if not imgui.is_any_item_active() and getattr(globals.popup_stack[-1], "func", None) == self.draw_game_info_popup and game.id in self.sorted_games_ids:
+        if not imgui.is_any_item_active() and globals.popup_stack and getattr(globals.popup_stack[-1], "func", None) == self.draw_game_info_popup and game.id in self.sorted_games_ids:
             pos = popup_pos[0]
             size = popup_size[0]
             if size and pos:
