@@ -53,9 +53,11 @@ My daily machine runs Arch Linux but I have both Windows and MacOS virtual machi
 
 - **Linux:** Extract and run `F95Checker`
 
-- **MacOS:** Extract, right click `F95Checker.app`, select "Open" in the menu and click "Open" in the next popup
+- **MacOS:** Extract, right click `F95Checker.app`, select "Open" in the menu and click "Open" in the next popup **\***
 
 - **Source:** Make sure you have Python 3.10+, install requirements with `pip3 install -U -r requirements.txt` and run with `python3 main.py` (this file is marked executable and has a shebang, you might be able to just double click it!)
+
+**\*** If you get a message saying that the application is damaged and should be moved to the trash you need to: close the popup, open a terminal, navigate to the location of the `F95Checker.app`, type in `xattr -d com.apple.quarantine F95Checker.app` and press enter; after this the method above to open the app should work fine.
 
 ## Download:
 
