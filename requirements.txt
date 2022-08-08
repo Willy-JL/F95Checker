@@ -1,7 +1,7 @@
+git+https://github.com/mcfletch/pyopengl.git#subdirectory=accelerate
 git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
 pywin32 ; sys_platform == "win32"
 uvloop ; sys_platform != "win32"
-PyOpenGL-accelerate
 PyQt6-WebEngine
 beautifulsoup4
 aiosqlite
