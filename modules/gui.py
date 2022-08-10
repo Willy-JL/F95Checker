@@ -1452,7 +1452,7 @@ class MainGUI():
             # Sorting
             sort_specs = imgui.table_get_sort_specs()
             self.sort_games(sort_specs, manual_sort)
-            not_filtering = len(self.filters) == 0
+            not_filtering = len(self.filters) == 0 and not self.add_box_text
 
             # Loop rows
             frame_height = imgui.get_frame_height()
@@ -1555,7 +1555,7 @@ class MainGUI():
             sort_specs = imgui.table_get_sort_specs()
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             self.sort_games(sort_specs, manual_sort)
-            not_filtering = len(self.filters) == 0
+            not_filtering = len(self.filters) == 0 and not self.add_box_text
             # Enabled attributes
             version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
