@@ -30,6 +30,8 @@ else:
 with open(path / "modules/globals.py", "rb") as f:
     version = str(re.search(rb'version = "([^\s]+)"', f.read()).group(1), encoding="utf-8")
 
+py_modules = []
+
 cx_Freeze.setup(
     name="F95Checker",
     version=version,
