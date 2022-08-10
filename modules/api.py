@@ -374,10 +374,8 @@ async def check(game: Game, full=False, login=False):
         if not version:
             version = "N/A"
 
-        old_developer = game.developer
         developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-").strip()
 
-        old_type = game.type
         # Content Types
         if game_has_prefixes("Cheat Mod"):
             type = Type.Cheat_Mod
@@ -467,7 +465,6 @@ async def check(game: Game, full=False, login=False):
 
         changelog = get_long_game_attr("changelog", "change-log")
 
-        old_tags = game.tags
         tags = []
         if (taglist := head.find(is_class("js-tagList"))) is not None:
             for child in taglist.children:
@@ -547,19 +544,13 @@ async def check(game: Game, full=False, login=False):
             if old_status is not Status.Not_Yet_Checked and not breaking_changes and (
                 name != old_name or
                 version != old_version or
-                developer != old_developer or
-                type != old_type or
-                status != old_status or
-                tags != old_tags
+                status != old_status
             ):
                 old_game = OldGame(
                     id=game.id,
                     name=old_name,
                     version=old_version,
-                    developer=old_developer,
-                    type=old_type,
                     status=old_status,
-                    tags=old_tags
                 )
                 globals.updated_games[game.id] = old_game
         await asyncio.shield(update_game())

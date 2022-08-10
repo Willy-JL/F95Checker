@@ -493,7 +493,4 @@ class OldGame:
     id                   : int
     name                 : str
     version              : str
-    developer            : str
-    type                 : Type
     status               : Status
-    tags                 : list[Tag]

@@ -437,7 +437,7 @@ class MainGUI():
                     updated_games = dict(globals.updated_games)
                     globals.updated_games.clear()
                     sorted_ids = list(updated_games)
-                    sorted_ids.sort(key=lambda id: 2 if updated_games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if updated_games[id].type is Type.Media else 0)
+                    sorted_ids.sort(key=lambda id: 2 if globals.games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if globals.games[id].type is Type.Media else 0)
                     utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids, len(updated_games))
 
                 imgui.new_frame()
@@ -815,9 +815,6 @@ class MainGUI():
             wrap_width = 2 * indent - imgui.style.item_spacing.x
             name_offset = imgui.calc_text_size("Name: ").x + 2 * imgui.style.item_spacing.x
             version_offset = imgui.calc_text_size("Version: ").x + 2 * imgui.style.item_spacing.x
-            developer_offset = imgui.calc_text_size("Developer: ").x + 2 * imgui.style.item_spacing.x
-            tags_added_offset = imgui.calc_text_size("Tags added: ").x + 2 * imgui.style.item_spacing.x
-            tags_removed_offset = imgui.calc_text_size("Tags removed: ").x + 2 * imgui.style.item_spacing.x
             arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
             img_pos_x = imgui.get_cursor_pos_x()
             category = -1
@@ -827,9 +824,9 @@ class MainGUI():
             for i, id in enumerate(sorted_ids):
                 old_game = updated_games[id]
                 game = globals.games[id]
-                if old_game.type is Type.Media:
+                if game.type is Type.Media:
                     new_category = 1
-                elif old_game.type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial):
+                elif game.type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial):
                     new_category = 2
                 else:
                     new_category = 0
@@ -859,7 +856,7 @@ class MainGUI():
                 imgui.same_line()
                 imgui.text(game.last_updated.display)
 
-                for attr, offset in (("name", name_offset), ("version", version_offset), ("developer", developer_offset)):
+                for attr, offset in (("name", name_offset), ("version", version_offset)):
                     old_val =  getattr(old_game, attr) or "Unknown"
                     new_val =  getattr(game, attr) or "Unknown"
                     if new_val != old_val:
@@ -889,37 +886,6 @@ class MainGUI():
                     imgui.text(game.status.name)
                     imgui.same_line()
                     self.draw_game_status_widget(game)
-
-                if game.type is not old_game.type:
-                    imgui.spacing()
-                    imgui.text_disabled("Type: ")
-                    imgui.same_line()
-                    self.draw_game_type_widget(old_game)
-                    imgui.same_line()
-                    if full_width - imgui.get_cursor_pos_x() < arrow_width:
-                        imgui.dummy(0, 0)
-                    imgui.text_disabled(" -> ")
-                    imgui.same_line()
-                    self.draw_game_type_widget(game)
-
-                added = ""
-                removed = ""
-                for tag in game.tags:
-                    if tag not in old_game.tags:
-                        added += f"{tag.name}   "
-                for tag in old_game.tags:
-                    if tag not in game.tags:
-                        removed += f"{tag.name}   "
-                if added or removed:
-                    imgui.spacing()
-                    if added:
-                        imgui.text_disabled("Tags added: ")
-                        imgui.same_line()
-                        utils.wrap_text(added, width=wrap_width, offset=tags_added_offset)
-                    if removed:
-                        imgui.text_disabled("Tags removed: ")
-                        imgui.same_line()
-                        utils.wrap_text(removed, width=wrap_width, offset=tags_removed_offset)
 
                 imgui.spacing()
                 self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
