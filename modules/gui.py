@@ -1822,7 +1822,7 @@ class MainGUI():
             if self.input_chars:
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
-        activated, value = imgui.input_text_with_hint("##bottombar", "Start typing to search your library, press enter to add a game (thread link / search term)", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        activated, value = imgui.input_text_with_hint("##bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         activated = bool(activated and value)
         if imgui.begin_popup_context_item(f"##bottombar_context"):
             # Right click = more options context menu
