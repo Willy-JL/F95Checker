@@ -1810,9 +1810,11 @@ class MainGUI():
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
+        changed = False
         if not globals.popup_stack and not imgui.is_any_item_active() and (self.input_chars or any(imgui.io.keys_down)):
             if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
                 self.add_box_text = self.add_box_text[:-1]
+                changed = True
             if self.input_chars:
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
@@ -1835,7 +1837,7 @@ class MainGUI():
                     MsgBox.info
                 )
             imgui.end_popup()
-        if value != self.add_box_text:
+        if changed or value != self.add_box_text:
             self.add_box_text = value
             self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
             self.require_sort = True
