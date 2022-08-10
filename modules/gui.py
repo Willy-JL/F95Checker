@@ -1964,7 +1964,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text(f"Total games count: {len(globals.games)}")
             imgui.spacing()
-            if len(self.filters) > 0:
+            if len(self.filters) > 0 or self.add_box_text:
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.text(f"Filtered games count: {len(self.sorted_games_ids)}")
