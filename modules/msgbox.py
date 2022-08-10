@@ -49,7 +49,7 @@ def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.
                 _36 = globals.gui.scaled(26) + imgui.style.scrollbar_size
                 width = min(more_size.x + _36, size.x * 0.8 - icon_size.x)
                 height = min(more_size.y + _36, size.y * 0.7 - msg_size_y)
-                imgui.input_text_multiline("##more_info", more, len(more) * 2,  width=width, height=height, flags=imgui.INPUT_TEXT_READ_ONLY)
+                imgui.input_text_multiline("##more_info", more,  width=width, height=height, flags=imgui.INPUT_TEXT_READ_ONLY)
                 imgui.tree_pop()
         imgui.end_group()
         imgui.same_line(spacing=spacing)

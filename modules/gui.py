@@ -755,7 +755,6 @@ class MainGUI():
             changed, value = imgui.input_text_multiline(
                 f"##{game.id}_notes",
                 value=game.notes,
-                buffer_length=9999,
                 width=width or imgui.get_content_region_available_width(),
                 height=self.scaled(450),
                 *args,
@@ -776,7 +775,6 @@ class MainGUI():
             changed, value = imgui.input_text(
                 f"##{game.id}_notes",
                 value=value,
-                buffer_length=9999,
                 *args,
                 **kwargs
             )
@@ -1822,7 +1820,7 @@ class MainGUI():
             if self.input_chars:
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
-        activated, value = imgui.input_text_with_hint("##bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, 200, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        activated, value = imgui.input_text_with_hint("##bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         activated = bool(activated and value)
         if imgui.begin_popup_context_item(f"##bottombar_context"):
             # Right click = more options context menu
@@ -2095,7 +2093,7 @@ class MainGUI():
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
-                        changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable, 9999)
+                        changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable)
                         if imgui.begin_popup_context_item(f"##browser_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
                                 set.browser_custom_executable += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
@@ -2118,7 +2116,7 @@ class MainGUI():
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
                         imgui.set_next_item_width(args_width)
-                        changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments, 9999)
+                        changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments)
                         if imgui.begin_popup_context_item(f"##browser_args_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
                                 set.browser_custom_arguments += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
@@ -2391,7 +2389,6 @@ class MainGUI():
                         _, thread_links[0] = imgui.input_text_multiline(
                             f"##import_links",
                             value=thread_links[0],
-                            buffer_length=9999999,
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6
                         )
@@ -2435,7 +2432,6 @@ class MainGUI():
                         imgui.input_text_multiline(
                             f"##import_links",
                             value=thread_links,
-                            buffer_length=len(thread_links) * 2,
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6,
                             flags=imgui.INPUT_TEXT_READ_ONLY
