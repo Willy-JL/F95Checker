@@ -198,6 +198,8 @@ def remove_game(game: Game, bypass_confirm=False):
                 break
         id = game.id
         del globals.games[id]
+        if id in globals.updated_games:
+            del globals.updated_games[id]
         globals.gui.require_sort = True
         async_thread.run(db.remove_game(id))
         for img in globals.images_path.glob(f"{id}.*"):
