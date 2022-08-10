@@ -905,6 +905,7 @@ class MainGUI():
     def draw_game_info_popup(self, game: Game):
         popup_pos = [None]
         popup_size = [None]
+        zoom_popup = [False]
         def popup_content():
             # Image
             image = game.image
@@ -956,6 +957,7 @@ class MainGUI():
                         fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
                     # Zoom
                     elif globals.settings.zoom_enabled:
+                        zoom_popup[0] = True
                         size = globals.settings.zoom_size
                         zoom = globals.settings.zoom_amount
                         zoomed_size = size * zoom
@@ -1110,22 +1112,23 @@ class MainGUI():
                 y = pos.y + (size.y + text_size.y) / 2
                 x1 = pos.x - offset - text_size.x
                 x2 = pos.x + size.x + offset
-                draw_list = imgui.get_foreground_draw_list()
-                col = imgui.get_color_u32_rgba(*globals.settings.style_text_dim)
-                draw_list.add_text(x1, y, col, "󰁒")
-                draw_list.add_text(x2, y, col, "󰁙")
+                if not zoom_popup[0]:
+                    draw_list = imgui.get_foreground_draw_list()
+                    col = imgui.get_color_u32_rgba(*globals.settings.style_text_dim)
+                    draw_list.add_text(x1, y, col, "󰁒")
+                    draw_list.add_text(x2, y, col, "󰁙")
                 y_ok = y <= mouse_pos.y <= y + text_size.y
                 clicked_left = mouse_clicked and x1 <= mouse_pos.x <= x1 + text_size.x and y_ok
                 clicked_right = mouse_clicked and x2 <= mouse_pos.x <= x2 + text_size.x and y_ok
                 imgui.pop_font()
                 change_id = None
                 idx = self.sorted_games_ids.index(game.id)
-                if imgui.is_key_pressed(glfw.KEY_LEFT) or clicked_left:
+                if imgui.is_key_pressed(glfw.KEY_LEFT, repeat=True) or clicked_left:
                     idx -= 1
                     if idx == -1:
                         idx = len(self.sorted_games_ids) - 1
                     change_id = self.sorted_games_ids[idx]
-                if imgui.is_key_pressed(glfw.KEY_RIGHT) or clicked_right:
+                if imgui.is_key_pressed(glfw.KEY_RIGHT, repeat=True) or clicked_right:
                     idx += 1
                     if idx == len(self.sorted_games_ids):
                         idx = 0
