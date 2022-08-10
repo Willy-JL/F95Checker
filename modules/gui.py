@@ -1330,12 +1330,16 @@ class MainGUI():
                         key = None
                 if key is not None:
                     self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
-            if not self.add_box_valid and self.add_box_text:
-                search = self.add_box_text.lower()
-                def key(id):
-                    game = globals.games[id]
-                    return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
-                self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
+            if self.add_box_text:
+                if self.add_box_valid:
+                    matches = [match.id for match in utils.extract_thread_matches(self.add_box_text)]
+                    self.sorted_games_ids = list(filter(lambda id: id in matches, self.sorted_games_ids))
+                else:
+                    search = self.add_box_text.lower()
+                    def key(id):
+                        game = globals.games[id]
+                        return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
+                    self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
             sort_specs.specs_dirty = False
             self.require_sort = False
 
