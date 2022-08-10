@@ -60,6 +60,7 @@ def start_refresh_task(coro: typing.Coroutine):
     globals.gui.bg_mode_timer = None
     globals.refresh_progress = 0
     globals.refresh_total = 1
+    globals.gui.refresh_ratio_smooth = 0.0
     globals.refresh_task = async_thread.run(coro)
     globals.gui.tray.update_status()
     def done_callback(future: asyncio.Future):

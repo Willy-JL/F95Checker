@@ -97,6 +97,7 @@ class MainGUI():
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.filters: list[Filter] = []
+        self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
         self.type_label_width: float = None
@@ -1902,7 +1903,8 @@ class MainGUI():
         if utils.is_refreshing():
             # Refresh progress bar
             ratio = globals.refresh_progress / globals.refresh_total
-            imgui.progress_bar(ratio, (width, height))
+            self.refresh_ratio_smooth += (ratio - self.refresh_ratio_smooth) * imgui.io.delta_time * 8
+            imgui.progress_bar(self.refresh_ratio_smooth, (width, height))
             draw_list = imgui.get_window_draw_list()
             screen_pos = imgui.get_cursor_screen_pos()
             col = imgui.get_color_u32_rgba(1, 1, 1, 1)
