@@ -763,7 +763,7 @@ class MainGUI():
             )
             if imgui.begin_popup_context_item(f"##notes_context"):
                 if imgui.selectable("󰆒 Paste", False)[0]:
-                    value += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                    value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                     changed = True
                 imgui.end_popup()
         else:
@@ -781,7 +781,7 @@ class MainGUI():
             )
             if imgui.begin_popup_context_item(f"##notes_context"):
                 if imgui.selectable("󰆒 Paste", False)[0]:
-                    value += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                    value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                     changed = True
                 imgui.end_popup()
             if changed and offset != -1:
@@ -1829,7 +1829,7 @@ class MainGUI():
         if imgui.begin_popup_context_item(f"##bottombar_context"):
             # Right click = more options context menu
             if imgui.selectable("󰆒 Paste", False)[0]:
-                value += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
             imgui.separator()
             if imgui.selectable("󰋽 More info", False)[0]:
                 utils.push_popup(
@@ -2101,7 +2101,7 @@ class MainGUI():
                         changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable)
                         if imgui.begin_popup_context_item(f"##browser_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
-                                set.browser_custom_executable += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                                set.browser_custom_executable += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                                 changed = True
                             imgui.end_popup()
                         if changed:
@@ -2124,7 +2124,7 @@ class MainGUI():
                         changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments)
                         if imgui.begin_popup_context_item(f"##browser_args_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
-                                set.browser_custom_arguments += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                                set.browser_custom_arguments += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                                 changed = True
                             imgui.end_popup()
                         if changed:
@@ -2399,7 +2399,7 @@ class MainGUI():
                         )
                         if imgui.begin_popup_context_item(f"##thread_links_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
-                                thread_links[0] += str(glfw.get_clipboard_string(self.window), encoding="utf-8")
+                                thread_links[0] += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                             imgui.end_popup()
                     buttons={
                         "󰄬 Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0]))),
