@@ -110,6 +110,12 @@ The extension is available for both major browser families (for example Brave co
 
 F95Zone does not yet have a proper API serving the information needed by this tool, so the only way to gather them is by requesting the full game threads like a normal browser would. However this is not practical because it consumes a lot of network and computing resources, takes way too long and puts unnecessary stress on the forum servers. This tool makes a compromise: it makes small HEAD requests to the threads, basically checking if a redirect happens. The URL will usually change when the thread title is changed, and since many titles contain the version numbers, a redirect will often indicate an update and in that case the full thread will be fetched and scanned for all the game details. This is what allows F95Checker to quickly check hundreds of games in a matter of seconds. However this will not detect many other changes, like status and description, so the tool will run periodic full rechecks once a week. When a full recheck happens you will see the status text in the bottom right corner saying "Running x full rechecks".
 
+## Progress and plans tracker:
+
+Upcoming features and fixes are now tracked on the [GitHub Project page](https://github.com/users/Willy-JL/projects/2/views/1).
+
+You can pitch your feature requests and bug reports either in the [GitHub issues](https://github.com/Willy-JL/F95Checker/issues) or on the [F95Zone thread](https://f95zone.to/threads/44173/).
+
 ## Disclaimer:
 
 Due to the lack of a proper F95Zone API, this tool needs to grab the threads just like a browser would, and this entails requiring an account to read spoiler content. I know you might be skeptical about inserting your account credentials into some random dude's program, and I totally agree with you if you are, but you can read through the code and you will see that this doesn't do anything harmful. If you still aren't sure you can create a second account just for this program.
