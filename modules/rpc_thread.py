@@ -10,9 +10,11 @@ thread: threading.Thread = None
 
 
 def start():
-    global server, thread
+    global thread
 
     def run_loop():
+        global server
+
         try:
             server = xmlrpc.server.SimpleXMLRPCServer(("localhost", globals.rpc_port), logRequests=False, allow_none=True)
         except Exception:
@@ -33,3 +35,11 @@ def start():
     thread = threading.Thread(target=run_loop, daemon=True)
     thread.start()
 
+
+def stop():
+    global server, thread
+    if thread is not None and thread.is_alive() and server is not None:
+        server.shutdown()
+        thread.join()
+    server = None
+    thread = None

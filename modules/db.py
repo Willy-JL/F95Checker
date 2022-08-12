@@ -95,6 +95,7 @@ async def connect():
         "refresh_workers":             f'INTEGER DEFAULT 20',
         "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',
         "request_timeout":             f'INTEGER DEFAULT 30',
+        "rpc_enabled":                 f'INTEGER DEFAULT {int(True)}',
         "scroll_amount":               f'REAL    DEFAULT 1.0',
         "scroll_smooth":               f'INTEGER DEFAULT {int(True)}',
         "scroll_smooth_speed":         f'REAL    DEFAULT 8.0',

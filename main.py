@@ -53,8 +53,9 @@ def main():
     from modules import gui
     globals.gui = gui.MainGUI()
 
-    from modules import rpc_thread
-    rpc_thread.start()
+    if globals.settings.rpc_enabled:
+        from modules import rpc_thread
+        rpc_thread.start()
 
     globals.gui.main_loop()
 

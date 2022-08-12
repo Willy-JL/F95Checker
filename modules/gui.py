@@ -17,7 +17,7 @@ import glfw
 import sys
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
-from modules import globals, api, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, utils
+from modules import globals, api, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, rpc_thread, utils
 
 imgui.io = None
 imgui.style = None
@@ -2504,6 +2504,26 @@ class MainGUI():
             if changed:
                 set.confirm_on_remove = value
                 async_thread.run(db.update_settings("confirm_on_remove"))
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("RPC enabled:")
+            imgui.same_line()
+            self.draw_hover_text(
+                f"The RPC allows other programs on your pc to interact with F95Checker via the xmlrpc on localhost:{globals.rpc_port}. "
+                "Essentially this is what makes the web browser extension work. Disable this if you are having issues with the RPC, "
+                "but do note that doing so will prevent the extension from working at all."
+            )
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("##rpc_enabled", set.rpc_enabled)
+            if changed:
+                set.rpc_enabled = value
+                async_thread.run(db.update_settings("rpc_enabled"))
+                if set.rpc_enabled:
+                    rpc_thread.start()
+                else:
+                    rpc_thread.stop()
 
             imgui.end_table()
             imgui.spacing()

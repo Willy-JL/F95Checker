@@ -392,6 +392,7 @@ class Settings:
     refresh_workers             : int
     render_when_unfocused       : bool
     request_timeout             : int
+    rpc_enabled                 : bool
     scroll_amount               : float
     scroll_smooth               : bool
     scroll_smooth_speed         : float
