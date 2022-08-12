@@ -615,7 +615,7 @@ class MainGUI():
             return game.version
 
     def draw_game_status_widget(self, game: Game, *args, **kwargs):
-        if game.status is Status.Not_Yet_Checked:
+        if game.status is Status.Unchecked:
             imgui.text_colored("󰀨", 0.50, 0.50, 0.50, *args, **kwargs)
         elif game.status is Status.Completed:
             imgui.text_colored("󰄳", 0.00, 0.85, 0.00, *args, **kwargs)
@@ -1310,7 +1310,7 @@ class MainGUI():
                             key = lambda id: globals.games[id].name.lower()
                     ids.sort(key=key, reverse=sort_spec.reverse)
                 self.sorted_games_ids = ids
-            self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Not_Yet_Checked)
+            self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Unchecked)
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Type.value:

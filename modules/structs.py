@@ -143,7 +143,7 @@ class Status(EnumNameHack, IntEnum):
     Completed       = 2
     OnHold          = 3
     Abandoned       = 4
-    Not_Yet_Checked = 5
+    Unchecked       = 5
 
 
 class Tag(EnumNameHack, IntEnum):
@@ -416,6 +416,7 @@ class Settings:
 
 
 class Type(EnumNameHack, IntEnum):
+    Unchecked     = 23
     Misc          = 1
     ADRIFT        = 2
     Cheat_Mod     = 3
@@ -439,6 +440,7 @@ class Type(EnumNameHack, IntEnum):
     WebGL         = 21
     Wolf_RPG      = 22
 
+Type.Unchecked .color = utils.hex_to_rgba_0_1("#393939")
 Type.Misc      .color = utils.hex_to_rgba_0_1("#B8B00C")
 Type.ADRIFT    .color = utils.hex_to_rgba_0_1("#2196F3")
 Type.Cheat_Mod .color = utils.hex_to_rgba_0_1("#D32F2F")

@@ -541,7 +541,7 @@ async def check(game: Game, full=False, login=False):
             game.image_url = image_url
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
 
-            if old_status is not Status.Not_Yet_Checked and not breaking_changes and (
+            if old_status is not Status.Unchecked and not breaking_changes and (
                 name != old_name or
                 version != old_version or
                 status != old_status

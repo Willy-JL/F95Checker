@@ -128,10 +128,10 @@ async def connect():
     await create_table("games", {
         "id":                          f'INTEGER PRIMARY KEY',
         "name":                        f'TEXT    DEFAULT ""',
-        "version":                     f'TEXT    DEFAULT ""',
+        "version":                     f'TEXT    DEFAULT "Unchecked"',
         "developer":                   f'TEXT    DEFAULT ""',
-        "type":                        f'INTEGER DEFAULT {Type.Misc}',
-        "status":                      f'INTEGER DEFAULT {Status.Not_Yet_Checked}',
+        "type":                        f'INTEGER DEFAULT {Type.Unchecked}',
+        "status":                      f'INTEGER DEFAULT {Status.Unchecked}',
         "url":                         f'TEXT    DEFAULT ""',
         "added_on":                    f'INTEGER DEFAULT 0',
         "last_updated":                f'INTEGER DEFAULT 0',
@@ -290,10 +290,10 @@ async def remove_game(id: int):
 async def add_game(thread: ThreadMatch | SearchResult):
     await connection.execute(f"""
         INSERT INTO games
-        (id, name, version, status, url, added_on)
+        (id, name, url, added_on)
         VALUES
         (?,  ?,    ?,       ?,      ?,   ?       )
-    """, (thread.id, thread.title or f"Unknown ({thread.id})", "Not Yet Checked", Status.Not_Yet_Checked.value, f"{globals.threads_page}{thread.id}", time.time()))
+    """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{globals.threads_page}{thread.id}", time.time()))
 
 
 async def update_cookies(new_cookies: dict[str, str]):
@@ -474,22 +474,12 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                 keys.append("name")
                 values.append(game.get("name") or f"Unknown ({id})")
 
-                keys.append("version")
-                values.append(version := (game.get("version") or "Not Yet Checked"))
+                if version := game.get("version"):
+                    keys.append("version")
+                    values.append(version)
 
                 keys.append("status")
-                match game.get("status"):
-                    case "none":
-                        value = Status.Normal.value
-                    case "completed":
-                        value = Status.Completed.value
-                    case "onhold":
-                        value = Status.OnHold.value
-                    case "abandoned":
-                        value = Status.Abandoned.value
-                    case _:
-                        value = Status.Not_Yet_Checked.value
-                values.append(value)
+                values.append(Status.Unchecked.value)
 
                 if (installed := game.get("installed")) is not None:
                     keys.append("installed")
