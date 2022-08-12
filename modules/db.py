@@ -293,7 +293,7 @@ async def add_game(thread: ThreadMatch | SearchResult):
         INSERT INTO games
         (id, name, url, added_on)
         VALUES
-        (?,  ?,    ?,       ?,      ?,   ?       )
+        (?,  ?,    ?,   ?       )
     """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{globals.threads_page}{thread.id}", time.time()))
 
 
