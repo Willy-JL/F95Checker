@@ -113,6 +113,7 @@ class IntEnum(enum.IntEnum):
         if not hasattr(cls, "_members_"):
             cls._members_ = {}
         cls._members_[self._name_] = self
+        cls._members_list_ = list(cls._members_)
         super().__init__()
 
 

@@ -1982,13 +1982,13 @@ class MainGUI():
                 flt = Filter(FilterMode(value + 1))
                 match flt.mode.value:
                     case FilterMode.Type.value:
-                        flt.match = Type.Others
+                        flt.match = Type._members_[Type._members_list_[0]]
                     case FilterMode.Status.value:
-                        flt.match = Status.Normal
+                        flt.match = Status._members_[Status._members_list_[0]]
                     case FilterMode.Rating.value:
                         flt.match = 0
                     case FilterMode.Tag.value:
-                        flt.match = Tag._2d__game
+                        flt.match = Tag._members_[Tag._members_list_[0]]
                 self.filters.append(flt)
                 self.require_sort = True
 
@@ -2030,9 +2030,9 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Status value:")
                     imgui.table_next_column()
-                    changed, value = imgui.combo(f"##filter_{flt.id}", flt.match.value - 1, list(Status._members_))
+                    changed, value = imgui.combo(f"##filter_{flt.id}", Status._members_list_.index(flt.match.name), Status._members_list_)
                     if changed:
-                        flt.match = Status(value + 1)
+                        flt.match = Status._members_[Status._members_list_[value]]
                         self.require_sort = True
 
                 elif flt.mode is FilterMode.Tag:
@@ -2040,9 +2040,9 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Tag value:")
                     imgui.table_next_column()
-                    changed, value = imgui.combo(f"##filter_{flt.id}", flt.match.value - 1, list(Tag._members_))
+                    changed, value = imgui.combo(f"##filter_{flt.id}", Tag._members_list_.index(flt.match.name), Tag._members_list_)
                     if changed:
-                        flt.match = Tag(value + 1)
+                        flt.match = Tag._members_[Tag._members_list_[value]]
                         self.require_sort = True
 
                 elif flt.mode is FilterMode.Type:
@@ -2050,9 +2050,9 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Type value:")
                     imgui.table_next_column()
-                    changed, value = imgui.combo(f"##filter_{flt.id}", flt.match.value - 1, list(Type._members_))
+                    changed, value = imgui.combo(f"##filter_{flt.id}", Type._members_list_.index(flt.match.name), Type._members_list_)
                     if changed:
-                        flt.match = Type(value + 1)
+                        flt.match = Type._members_[Type._members_list_[value]]
                         self.require_sort = True
 
                 imgui.table_next_row()
