@@ -438,7 +438,7 @@ class MainGUI():
                     updated_games = dict(globals.updated_games)
                     globals.updated_games.clear()
                     sorted_ids = list(updated_games)
-                    sorted_ids.sort(key=lambda id: 2 if globals.games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if globals.games[id].type is Type.Media else 0)
+                    sorted_ids.sort(key=lambda id: 2 if globals.games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if globals.games[id].type in (Type.Collection, Type.Manga, Type.SiteRip, Type.Comics, Type.CG, Type.Pinup, Type.Video, Type.GIF) else 0)
                     utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids, len(updated_games))
 
                 imgui.new_frame()
@@ -823,7 +823,7 @@ class MainGUI():
             for i, id in enumerate(sorted_ids):
                 old_game = updated_games[id]
                 game = globals.games[id]
-                if game.type is Type.Media:
+                if game.type in (Type.Collection, Type.Manga, Type.SiteRip, Type.Comics, Type.CG, Type.Pinup, Type.Video, Type.GIF):
                     new_category = 1
                 elif game.type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial):
                     new_category = 2

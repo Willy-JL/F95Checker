@@ -285,7 +285,8 @@ async def check(game: Game, full=False, login=False):
     breaking_popup = breaking_version
     breaking_image = is_breaking("9.0")
     breaking_download = is_breaking("9.4")
-    any_breaking = breaking_version or breaking_image or breaking_popup or breaking_download
+    breaking_type = is_breaking("9.4")
+    any_breaking = breaking_version  or breaking_popup or breaking_image or breaking_download or breaking_type
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or any_breaking
     if not full:
         async with request("HEAD", game.url) as req:
@@ -385,8 +386,6 @@ async def check(game: Game, full=False, login=False):
         # Content Types
         if game_has_prefixes("Cheat Mod"):
             type = Type.Cheat_Mod
-        elif game_has_prefixes("Collection", "Manga", "SiteRip", "Comics", "CG", "Pinup", "Video", "GIF"):
-            type = Type.Media
         elif game_has_prefixes("Mod"):
             type = Type.Mod
         elif game_has_prefixes("Tool"):
@@ -398,6 +397,23 @@ async def check(game: Game, full=False, login=False):
             type = Type.Request
         elif game_has_prefixes("Tutorial"):
             type = Type.Tutorial
+        # Media Types
+        elif game_has_prefixes("Collection"):
+            type = Type.Collection
+        elif game_has_prefixes("SiteRip"):
+            type = Type.SiteRip
+        elif game_has_prefixes("Video"):
+            type = Type.Video
+        elif game_has_prefixes("GIF"):
+            type = Type.GIF
+        elif game_has_prefixes("Pinup"):
+            type = Type.Pinup
+        elif game_has_prefixes("CG"):
+            type = Type.CG
+        elif game_has_prefixes("Manga"):
+            type = Type.Manga
+        elif game_has_prefixes("Comics"):
+            type = Type.Comics
         # Game Engines
         elif game_has_prefixes("ADRIFT"):
             type = Type.ADRIFT
