@@ -267,20 +267,26 @@ async def check(game: Game, full=False, login=False):
             return
         globals.refresh_progress = 1
 
-    last_breaking_changes_version = "9.0"
-    checked = (game.last_refresh_version or "0").split(".")
-    breaking = last_breaking_changes_version.split(".")
-    if len(breaking) > len(checked):
-        checked += ["0" for _ in range(len(breaking) - len(checked))]
-    elif len(checked) > len(breaking):
-        breaking += ["0" for _ in range(len(checked) - len(breaking))]
-    breaking_changes = False
-    for ch, br in zip(checked, breaking):
-        if ch == br:
-            continue  # Ignore this field if same on both versions
-        breaking_changes = int(br) > int(ch)
-        break  # If field is bigger then its breaking
-    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_changes
+    def is_breaking(breaking):
+        checked = (game.last_refresh_version or "0").split(".")
+        breaking = breaking.split(".")
+        if len(breaking) > len(checked):
+            checked += ["0" for _ in range(len(breaking) - len(checked))]
+        elif len(checked) > len(breaking):
+            breaking += ["0" for _ in range(len(checked) - len(breaking))]
+        breaking_changes = False
+        for ch, br in zip(checked, breaking):
+            if ch == br:
+                continue  # Ignore this field if same on both versions
+            breaking_changes = int(br) > int(ch)
+            break  # If field is bigger then its breaking
+        return breaking_changes
+    breaking_version = is_breaking("9.0")
+    breaking_popup = breaking_version
+    breaking_image = is_breaking("9.0")
+    breaking_download = is_breaking("9.4")
+    any_breaking = breaking_version or breaking_image or breaking_popup or breaking_download
+    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or any_breaking
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:
@@ -454,7 +460,7 @@ async def check(game: Game, full=False, login=False):
         # Do not reset played and installed checkboxes if refreshing with braking changes
         played = game.played
         installed = game.installed
-        if breaking_changes:
+        if breaking_version:
             if old_version == installed:
                 installed = version  # Is breaking and was previously installed, mark again as installed
         else:
@@ -478,7 +484,7 @@ async def check(game: Game, full=False, login=False):
         else:
             image_url = "-"
         fetch_image = game.image.missing
-        if not globals.settings.update_keep_image and not breaking_changes:
+        if not globals.settings.update_keep_image and not breaking_image:
             fetch_image = fetch_image or (image_url != game.image_url)
 
         if fetch_image and image_url and image_url != "-":
@@ -541,7 +547,7 @@ async def check(game: Game, full=False, login=False):
             game.image_url = image_url
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
 
-            if old_status is not Status.Unchecked and not breaking_changes and (
+            if old_status is not Status.Unchecked and not breaking_popup and (
                 name != old_name or
                 version != old_version or
                 status != old_status
