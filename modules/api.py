@@ -667,7 +667,7 @@ async def check_updates():
         buttons = {
             "󰜺 Cancel": cancel_callback
         }
-        utils.push_popup(utils.popup, "Updating F95checker", popup_content, buttons=buttons, closable=False, outside=False)
+        utils.push_popup(utils.popup, "Updating F95Checker", popup_content, buttons=buttons, closable=False, outside=False)
         asset_data = io.BytesIO()
         async with request("GET", asset_url, timeout=3600) as req:
             async for chunk in req.content.iter_any():
@@ -748,15 +748,15 @@ async def check_updates():
         "󰜺 No": None
     }
     for popup in globals.popup_stack:
-        if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("F95checker update##"):
+        if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("F95Checker update##"):
             globals.popup_stack.remove(popup)
     if globals.frozen and globals.os is Os.MacOS:
         path = globals.self_path.parent.parent
     else:
         path = globals.self_path
-    utils.push_popup(msgbox.msgbox, "F95checker update", f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\nUPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n{path}\n\nDo you want to update?\n(The app will restart automatically, DON'T reopen manually!)", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    utils.push_popup(msgbox.msgbox, "F95Checker update", f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\nUPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n{path}\n\nDo you want to update?\n(The app will restart automatically, DON'T reopen manually!)", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
     if globals.gui.minimized or not globals.gui.focused:
-        globals.gui.tray.push_msg(title="F95checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
+        globals.gui.tray.push_msg(title="F95Checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
 
 async def refresh(full=False):

@@ -118,7 +118,7 @@ Due to the lack of a proper F95Zone API, this tool needs to grab the threads jus
 
 Please do! I poured my heart and soul into this tool and hearing suggestions or getting help with the code really helps!
 
-You can help out in many ways, from simply suggesting features or reporting bugs (you can do those in the [Github issues](https://github.com/Willy-JL/F95Checker/issues) or on the [F95Zone thread](https://f95zone.to/threads/44173/)), to adding to the codebase (through [GitHub pull requests](https://github.com/Willy-JL/F95Checker/pulls) or by posting patches in the [F95Zone thread](https://f95zone.to/threads/44173/)).
+You can help out in many ways, from simply suggesting features or reporting bugs (you can do those in the [GitHub issues](https://github.com/Willy-JL/F95Checker/issues) or on the [F95Zone thread](https://f95zone.to/threads/44173/)), to adding to the codebase (through [GitHub pull requests](https://github.com/Willy-JL/F95Checker/pulls) or by posting patches in the [F95Zone thread](https://f95zone.to/threads/44173/)).
 
 ## Developer note:
 

@@ -24,7 +24,7 @@ function variableToXml(variable, arrayItemPropertyName = null) {
 
 
 // Actual logic
-function addToF95checker(url) {
+function addToF95Checker(url) {
     match = /threads\/(?:[^\/]*\.)?\d+/.exec(url)
     if (!match) {
         return
@@ -51,7 +51,7 @@ function addToF95checker(url) {
 
 // Click on extension icon
 chrome.action.onClicked.addListener(tab => {
-    addToF95checker(tab.url)
+    addToF95Checker(tab.url)
 })
 
 
@@ -71,5 +71,5 @@ chrome.runtime.onInstalled.addListener(async () => {
     })
 })
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    addToF95checker(info.linkUrl || info.pageUrl)
+    addToF95Checker(info.linkUrl || info.pageUrl)
 })
