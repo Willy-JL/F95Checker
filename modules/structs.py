@@ -199,8 +199,8 @@ class Tag(EnumNameHack, IntEnum):
     dystopian__setting       = 50
     exhibitionism            = 51
     fantasy                  = 52
-    femaledomination         = 53
     female__protagonist      = 54
+    femaledomination         = 53
     footjob                  = 55
     furry                    = 56
     futa__trans              = 57
@@ -222,8 +222,8 @@ class Tag(EnumNameHack, IntEnum):
     lactation                = 73
     lesbian                  = 74
     loli                     = 75
-    maledomination           = 76
     male__protagonist        = 77
+    maledomination           = 76
     management               = 78
     masturbation             = 79
     milf                     = 80
@@ -374,14 +374,14 @@ Browser.add("Custom", -1)
 
 @dataclasses.dataclass
 class Settings:
+    browser                     : Browser.get
     browser_custom_arguments    : str
     browser_custom_executable   : str
     browser_html                : bool
     browser_private             : bool
-    browser                     : Browser.get
     confirm_on_remove           : bool
-    display_mode                : DisplayMode
     default_exe_dir             : str
+    display_mode                : DisplayMode
     fit_images                  : bool
     grid_columns                : int
     grid_image_ratio            : float
@@ -430,9 +430,9 @@ class Type(EnumNameHack, IntEnum):
     QSP           = 10
     RAGS          = 11
     READ_ME       = 12
-    RPGM          = 13
     RenPy         = 14
     Request       = 15
+    RPGM          = 13
     Tads          = 16
     Tool          = 17
     Tutorial      = 18
@@ -454,9 +454,9 @@ Type.Others    .color = utils.hex_to_rgba_0_1("#8BC34A")
 Type.QSP       .color = utils.hex_to_rgba_0_1("#D32F2F")
 Type.RAGS      .color = utils.hex_to_rgba_0_1("#FF9800")
 Type.READ_ME   .color = utils.hex_to_rgba_0_1("#DC143C")
-Type.RPGM      .color = utils.hex_to_rgba_0_1("#2196F3")
 Type.RenPy     .color = utils.hex_to_rgba_0_1("#B069E8")
 Type.Request   .color = utils.hex_to_rgba_0_1("#D32F2F")
+Type.RPGM      .color = utils.hex_to_rgba_0_1("#2196F3")
 Type.Tads      .color = utils.hex_to_rgba_0_1("#2196F3")
 Type.Tool      .color = utils.hex_to_rgba_0_1("#EC5555")
 Type.Tutorial  .color = utils.hex_to_rgba_0_1("#EC5555")
