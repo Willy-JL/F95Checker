@@ -112,7 +112,7 @@ F95Zone does not yet have a proper API serving the information needed by this to
 
 ## Progress and plans tracker:
 
-Upcoming features and fixes are now tracked on the [GitHub Project page](https://github.com/users/Willy-JL/projects/2/views/1).
+Upcoming features and fixes are tracked on the [GitHub Project page](https://github.com/users/Willy-JL/projects/2/views/1).
 
 You can pitch your feature requests and bug reports either in the [GitHub issues](https://github.com/Willy-JL/F95Checker/issues) or on the [F95Zone thread](https://f95zone.to/threads/44173/).
 
