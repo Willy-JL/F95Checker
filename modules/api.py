@@ -307,22 +307,9 @@ async def check(game: Game, full=False, login=False):
             return False
         def get_game_attr(*names: list[str]):
             for name in names:
-                if elem := post.find(is_text(name)):
-                    break
-            if not elem:
-                return ""
-            elem = elem.next_sibling or elem.parent.next_sibling
-            if not elem:
-                return ""
-            stripped = elem.text.strip()
-            if stripped == ":" or stripped == "":
-                elem = elem.next_sibling or elem.parent.next_sibling
-            if not elem:
-                return ""
-            text = elem.text.lstrip(":")
-            if "\n" in text:
-                text = text[:text.find("\n")]
-            return text.strip()
+                if match := re.search(r"^\s*" + re.escape(name) + r"\s*:?\s*\n\s*:?\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
+                    return match.group(1).strip()
+            return ""
         def get_long_game_attr(*names: list[str]):
             for name in names:
                 if elem := post.find(is_text(name)):
@@ -369,6 +356,7 @@ async def check(game: Game, full=False, login=False):
                 next(spoiler.span.span.children).replace_with(html.new_string(""))
             except Exception:
                 pass
+        plain = post.find("article").get_text(separator="\n", strip=False)
 
         old_name = game.name
         name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
@@ -381,7 +369,7 @@ async def check(game: Game, full=False, login=False):
         if not version:
             version = "N/A"
 
-        developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-").strip()
+        developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-/").strip()
 
         # Content Types
         if game_has_prefixes("Cheat Mod"):
