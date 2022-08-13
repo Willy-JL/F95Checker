@@ -385,10 +385,14 @@ async def check(game: Game, full=False, login=False):
         elif game_has_prefixes("Tutorial"):
             type = Type.Tutorial
         # Media Types
-        elif game_has_prefixes("Collection"):
-            type = Type.Collection
         elif game_has_prefixes("SiteRip"):
             type = Type.SiteRip
+        elif game_has_prefixes("Collection"):
+            type = Type.Collection
+        elif game_has_prefixes("Manga"):
+            type = Type.Manga
+        elif game_has_prefixes("Comics"):
+            type = Type.Comics
         elif game_has_prefixes("Video"):
             type = Type.Video
         elif game_has_prefixes("GIF"):
@@ -397,10 +401,6 @@ async def check(game: Game, full=False, login=False):
             type = Type.Pinup
         elif game_has_prefixes("CG"):
             type = Type.CG
-        elif game_has_prefixes("Manga"):
-            type = Type.Manga
-        elif game_has_prefixes("Comics"):
-            type = Type.Comics
         # Game Engines
         elif game_has_prefixes("ADRIFT"):
             type = Type.ADRIFT
