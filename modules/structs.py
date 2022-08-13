@@ -420,7 +420,7 @@ class Type(EnumNameHack, IntEnum):
     Unchecked     = 23
     Misc          = 1
     ADRIFT        = 2
-    CG            = 23
+    CG            = 30
     Cheat_Mod     = 3
     Collection    = 7
     Comics        = 24
