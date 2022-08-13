@@ -61,11 +61,11 @@ def asklogin(url: str):
     window.layout().setSpacing(0)
     window.setStyleSheet("""
         QProgressBar {
-            background: #000000;
+            background: #0A0A0A;
             border-radius: 0px;
         }
         QProgressBar::chunk {
-            background: #0066FF;
+            background: #D4202E;
             border-radius: 0px;
         }
         QLabel {
