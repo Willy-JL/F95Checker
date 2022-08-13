@@ -267,7 +267,7 @@ async def check(game: Game, full=False, login=False):
             return
         globals.refresh_progress = 1
 
-    def is_breaking(breaking):
+    def last_refresh_before(breaking):
         checked = (game.last_refresh_version or "0").split(".")
         breaking = breaking.split(".")
         if len(breaking) > len(checked):
@@ -281,12 +281,11 @@ async def check(game: Game, full=False, login=False):
             breaking_changes = int(br) > int(ch)
             break  # If field is bigger then its breaking
         return breaking_changes
-    breaking_version = is_breaking("9.0")
+    breaking_version = last_refresh_before("9.0")
     breaking_popup = breaking_version
-    breaking_image = is_breaking("9.0")
-    breaking_download = is_breaking("9.4")
-    breaking_type = is_breaking("9.4")
-    any_breaking = breaking_version  or breaking_popup or breaking_image or breaking_download or breaking_type
+    breaking_image = last_refresh_before("9.0")
+    breaking_generic = last_refresh_before("9.4")
+    any_breaking = breaking_version  or breaking_popup or breaking_image or breaking_generic
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or any_breaking
     if not full:
         async with request("HEAD", game.url) as req:
