@@ -368,7 +368,7 @@ async def check(game: Game, full=False, login=False):
         if not version:
             version = "N/A"
 
-        developer = get_game_attr("developer", "artist", "publisher", "developer/publisher", "developer / publisher").rstrip("(|-/").strip()
+        developer = get_game_attr("developer", "developers", "original developer", "artist", "animator", "producer", "publisher", "developer/publisher", "developer\n/\npublisher", "developer / publisher", "developer & publisher", "modder", "remake by", "game by", "posted by").rstrip("(|-/").strip()
 
         # Content Types
         if game_has_prefixes("Cheat Mod"):
