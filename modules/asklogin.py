@@ -92,13 +92,13 @@ def asklogin(url: str):
     def load_progress(value):
         progress.setValue(max(1, value))
         progress.repaint()
+        if "xf_user" in webview.cookies:
+            window.close()
     def load_finished(*_):
         loading[0] = False
         progress.setValue(0)
         progress.repaint()
         window.setWindowTitle("Login to F95Zone")
-        if "xf_user" in webview.cookies:
-            window.close()
     webview.loadStarted.connect(load_started)
     webview.loadProgress.connect(load_progress)
     webview.loadFinished.connect(load_finished)
