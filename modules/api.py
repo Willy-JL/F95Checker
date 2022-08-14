@@ -316,13 +316,20 @@ async def check(game: Game, full=False, login=False):
             if not elem:
                 return ""
             value = ""
-            for sibling in elem.next_siblings:
-                if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
+            while True:
+                if is_class("bbWrapper")(elem) or elem.parent.name == "article":
                     break
-                stripped = sibling.text.strip()
-                if stripped == ":" or stripped == "":
+                for sibling in elem.next_siblings:
+                    if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
+                        break
+                    stripped = sibling.text.strip()
+                    if stripped == ":" or stripped == "":
+                        continue
+                    value += sibling.text
+                else:
+                    elem = elem.parent
                     continue
-                value += sibling.text
+                break
             value = value.strip()
             while "\n\n\n" in value:
                 value = value.replace("\n\n\n", "\n\n")
