@@ -1072,7 +1072,7 @@ class MainGUI():
                     if game.changelog:
                         imgui.text_unformatted(game.changelog)
                     else:
-                        imgui.text_unformatted("Either this game doesn't have a changelog, or the thread is not formatted properly!")
+                        imgui.text_disabled("Either this game doesn't have a changelog, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item(("󰋽" if game.description else "󱞍") + " Description" + "###Description")[0]:
@@ -1080,7 +1080,7 @@ class MainGUI():
                     if game.description:
                         imgui.text_unformatted(game.description)
                     else:
-                        imgui.text_unformatted("Either this game doesn't have a description, or the thread is not formatted properly!")
+                        imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item(("󱦹" if game.notes else "󰏪") + " Notes" + "###Notes")[0]:
