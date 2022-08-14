@@ -28,7 +28,7 @@ else:
     icon += ".png"
 
 with open(path / "modules/globals.py", "rb") as f:
-    version = str(re.search(rb'version = "([^\s]+)"', f.read()).group(1), encoding="utf-8")
+    version = str(re.search(rb'version = "(\S+)"', f.read()).group(1), encoding="utf-8")
 
 cx_Freeze.setup(
     name="F95Checker",
