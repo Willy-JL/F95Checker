@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QSystemTrayIcon
 import datetime as dt
 from PIL import Image
 import configparser
+import contextlib
 import subprocess
 import tempfile
 import aiofiles
@@ -44,11 +45,15 @@ def is_class(name: str):
         return name in elem.get_attribute_list("class")
     return _is_class
 
-
+@contextlib.contextmanager
 def setup():
     global session
     session = aiohttp.ClientSession(loop=async_thread.loop)
     session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{'.'.join(str(num) for num in sys.version_info[:3])} aiohttp/{aiohttp.__version__}"
+    try:
+        yield
+    finally:
+        async_thread.wait(session.close())
 
 
 async def shutdown():

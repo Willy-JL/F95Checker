@@ -48,16 +48,16 @@ def main():
     async_thread.run(db.save_loop())
 
     from modules import api
-    api.setup()
+    with api.setup():
 
-    from modules import gui
-    globals.gui = gui.MainGUI()
+        from modules import gui
+        globals.gui = gui.MainGUI()
 
-    if globals.settings.rpc_enabled:
-        from modules import rpc_thread
-        rpc_thread.start()
+        if globals.settings.rpc_enabled:
+            from modules import rpc_thread
+            rpc_thread.start()
 
-    globals.gui.main_loop()
+        globals.gui.main_loop()
 
     async_thread.wait(db.close())
     async_thread.wait(api.shutdown())
@@ -77,4 +77,7 @@ if __name__ == "__main__":
         from modules import asklogin
         asklogin.asklogin(sys.argv[sys.argv.index("asklogin") + 1])
     else:
-        main()
+        try:
+            main()
+        except KeyboardInterrupt:
+            pass
