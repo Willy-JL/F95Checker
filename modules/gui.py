@@ -742,9 +742,9 @@ class MainGUI():
         self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
         self.draw_game_copy_link_button(game, label="󰆏 Copy Link", selectable=True)
         imgui.separator()
-        self.draw_game_select_exe_button(game, label="󰷏 Select Exe", selectable=True)
+        self.draw_game_select_exe_button(game, label="󰷎 Select Exe", selectable=True)
         self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe", selectable=True)
-        self.draw_game_open_folder_button(game, label="󱞋 Open Folder", selectable=True)
+        self.draw_game_open_folder_button(game, label="󰷏 Open Folder", selectable=True)
         imgui.separator()
         self.draw_game_played_checkbox(game, label="󰈼 Played")
         self.draw_game_installed_checkbox(game, label="󰅢 Installed")
@@ -1057,11 +1057,11 @@ class MainGUI():
 
             imgui.text_disabled("Manage Exe:")
             imgui.same_line()
-            self.draw_game_select_exe_button(game, label="󰷏 Select Exe")
+            self.draw_game_select_exe_button(game, label="󰷎 Select Exe")
             imgui.same_line()
             self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe")
             imgui.same_line()
-            self.draw_game_open_folder_button(game, label="󱞋 Open Folder")
+            self.draw_game_open_folder_button(game, label="󰷏 Open Folder")
 
             imgui.spacing()
 
