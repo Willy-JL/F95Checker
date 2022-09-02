@@ -301,7 +301,7 @@ class MainGUI():
         self.size_mult = globals.settings.interface_scaling
         karla_path = str(globals.self_path / "resources/fonts/Karla-Regular.ttf")
         noto_path = str(globals.self_path / "resources/fonts/NotoSans-Regular.ttf")
-        mdi_path = str(globals.self_path / "resources/fonts/materialdesignicons-webfont.ttf")
+        mdi_path = str(next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")))
         karla_config = imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         noto_config = imgui.core.FontConfig(merge_mode=True, oversample_h=3, oversample_v=3)
         mdi_config = imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1)
