@@ -452,7 +452,7 @@ class MainGUI():
                 imgui.pop_style_var()
                 sidebar_size = self.scaled(self.sidebar_size)
 
-                imgui.begin_child("##main_frame", width=-sidebar_size)
+                imgui.begin_child("###main_frame", width=-sidebar_size)
                 self.hovered_game = None
                 if globals.settings.display_mode is DisplayMode.list:
                     self.draw_games_list()
@@ -476,12 +476,12 @@ class MainGUI():
                 text_y = size.y - text_size.y - _6
 
                 imgui.same_line(spacing=1)
-                imgui.begin_child("##sidebar_frame", width=sidebar_size - 1, height=-text_size.y)
+                imgui.begin_child("###sidebar_frame", width=sidebar_size - 1, height=-text_size.y)
                 self.draw_sidebar()
                 imgui.end_child()
 
                 imgui.set_cursor_screen_pos((text_x - _3, text_y))
-                if imgui.invisible_button("##watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
+                if imgui.invisible_button("###watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
                     utils.push_popup(self.draw_about_popup)
                 imgui.set_cursor_screen_pos((text_x, text_y))
                 imgui.text(text)
@@ -554,7 +554,7 @@ class MainGUI():
         return False
 
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_more_info"
+        id = f"{label}###{game.id}_more_info"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
@@ -564,7 +564,7 @@ class MainGUI():
         return clicked
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_play_button"
+        id = f"{label}###{game.id}_play_button"
         if not game.installed:
             utils.push_disabled()
         if selectable:
@@ -596,7 +596,7 @@ class MainGUI():
         if align:
             imgui.begin_group()
             imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
-        imgui.button(f"{game.type.name}##{game.id}_type", *args, width=self.type_label_width, **kwargs)
+        imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width, **kwargs)
         if align:
             imgui.end_group()
         imgui.pop_style_color(3)
@@ -627,13 +627,13 @@ class MainGUI():
             imgui.text("", *args, **kwargs)
 
     def draw_game_played_checkbox(self, game: Game, label="", *args, **kwargs):
-        changed, game.played = imgui.checkbox(f"{label}##{game.id}_played", game.played, *args, **kwargs)
+        changed, game.played = imgui.checkbox(f"{label}###{game.id}_played", game.played, *args, **kwargs)
         if changed:
             async_thread.run(db.update_game(game, "played"))
             self.require_sort = True
 
     def draw_game_installed_checkbox(self, game: Game, label="", *args, **kwargs):
-        changed, installed = imgui.checkbox(f"{label}##{game.id}_installed", game.installed == game.version, *args, **kwargs)
+        changed, installed = imgui.checkbox(f"{label}###{game.id}_installed", game.installed == game.version, *args, **kwargs)
         if changed:
             if installed:
                 game.installed = game.version
@@ -650,7 +650,7 @@ class MainGUI():
             self.require_sort = True
 
     def draw_game_open_thread_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_open_thread"
+        id = f"{label}###{game.id}_open_thread"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
@@ -660,7 +660,7 @@ class MainGUI():
         return clicked
 
     def draw_game_copy_link_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_copy_link"
+        id = f"{label}###{game.id}_copy_link"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
@@ -670,7 +670,7 @@ class MainGUI():
         return clicked
 
     def draw_game_remove_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_remove"
+        id = f"{label}###{game.id}_remove"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
@@ -680,7 +680,7 @@ class MainGUI():
         return clicked
 
     def draw_game_select_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_select_exe"
+        id = f"{label}###{game.id}_select_exe"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
@@ -694,7 +694,7 @@ class MainGUI():
         return clicked
 
     def draw_game_unset_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_unset_exe"
+        id = f"{label}###{game.id}_unset_exe"
         if not game.executable:
             utils.push_disabled()
         if selectable:
@@ -709,7 +709,7 @@ class MainGUI():
         return clicked
 
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_open_folder"
+        id = f"{label}###{game.id}_open_folder"
         if not game.executable:
             utils.push_disabled()
         if selectable:
@@ -723,7 +723,7 @@ class MainGUI():
         return clicked
 
     def draw_game_recheck_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}##{game.id}_recheck"
+        id = f"{label}###{game.id}_recheck"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
@@ -754,14 +754,14 @@ class MainGUI():
     def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None, *args, **kwargs):
         if multiline:
             changed, value = imgui.input_text_multiline(
-                f"##{game.id}_notes",
+                f"###{game.id}_notes",
                 value=game.notes,
                 width=width or imgui.get_content_region_available_width(),
                 height=self.scaled(450),
                 *args,
                 **kwargs
             )
-            if imgui.begin_popup_context_item(f"##notes_context"):
+            if imgui.begin_popup_context_item(f"###notes_context"):
                 if imgui.selectable("󰆒 Paste", False)[0]:
                     value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                     changed = True
@@ -774,12 +774,12 @@ class MainGUI():
             else:
                 value = game.notes
             changed, value = imgui.input_text(
-                f"##{game.id}_notes",
+                f"###{game.id}_notes_inline",
                 value=value,
                 *args,
                 **kwargs
             )
-            if imgui.begin_popup_context_item(f"##notes_context"):
+            if imgui.begin_popup_context_item(f"###notes_inline_context"):
                 if imgui.selectable("󰆒 Paste", False)[0]:
                     value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                     changed = True
@@ -1065,9 +1065,7 @@ class MainGUI():
 
             if imgui.begin_tab_bar("Details"):
 
-                # The ### lets us specify an arbitrary ID, allowing dynamic tab titles
-
-                if imgui.begin_tab_item(("󰨸" if game.changelog else "󱘡") + " Changelog" + "###Changelog")[0]:
+                if imgui.begin_tab_item(("󰨸" if game.changelog else "󱘡") + " Changelog###changelog")[0]:
                     imgui.spacing()
                     if game.changelog:
                         imgui.text_unformatted(game.changelog)
@@ -1075,7 +1073,7 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a changelog, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(("󰋽" if game.description else "󱞍") + " Description" + "###Description")[0]:
+                if imgui.begin_tab_item(("󰋽" if game.description else "󱞍") + " Description###description")[0]:
                     imgui.spacing()
                     if game.description:
                         imgui.text_unformatted(game.description)
@@ -1083,12 +1081,12 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(("󱦹" if game.notes else "󰏪") + " Notes" + "###Notes")[0]:
+                if imgui.begin_tab_item(("󱦹" if game.notes else "󰏪") + " Notes###notes")[0]:
                     imgui.spacing()
                     self.draw_game_notes_widget(game)
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(("󱋷" if len(game.tags) > 1 else "󰓼" if len(game.tags) == 1 else "󱈡") + " Tags" + "###Tags")[0]:
+                if imgui.begin_tab_item(("󱋷" if len(game.tags) > 1 else "󰓼" if len(game.tags) == 1 else "󱈡") + " Tags###tags")[0]:
                     imgui.spacing()
                     if game.tags:
                         self.draw_game_tags_widget(game)
@@ -1371,7 +1369,7 @@ class MainGUI():
                     lst[game_i], lst[payload] = lst[payload], lst[game_i]
                     async_thread.run(db.update_settings("manual_sort_list"))
                 imgui.end_drag_drop_target()
-        if imgui.begin_popup_context_item(f"##{game.id}_context"):
+        if imgui.begin_popup_context_item(f"###{game.id}_context"):
             # Right click = context menu
             self.draw_game_context_menu(game)
             imgui.end_popup()
@@ -1381,7 +1379,7 @@ class MainGUI():
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         if imgui.begin_table(
-            "##game_list",
+            "###game_list",
             column=self.game_list_column_count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
@@ -1392,7 +1390,7 @@ class MainGUI():
             imgui.table_setup_column("󰆾 Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
             imgui.table_setup_column("󰆙 Version", self.ghost_columns_flags)  # 1
             imgui.table_setup_column("󰄳 Status", self.ghost_columns_flags)  # 2
-            imgui.table_setup_column("##separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
+            imgui.table_setup_column("###separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
             self.ghost_columns_enabled_count = 1
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
@@ -1439,7 +1437,7 @@ class MainGUI():
                 imgui.table_set_column_index(i)
                 column_name = imgui.table_get_column_name(i)[2:]
                 if i in (0, 1, 2, 4, 15, 16):  # Hide name for small and ghost columns
-                    column_name = "##" + column_name
+                    column_name = "###" + column_name
                 elif i == 6:  # Name
                     if version_enabled:
                         column_name += "   -   Version"
@@ -1468,7 +1466,7 @@ class MainGUI():
                     # Skip if outside view
                     imgui.dummy(0, frame_height)
                     continue
-                imgui.button(f"##{game.id}_id", width=imgui.FLOAT_MIN)  # Button because it aligns the following text calls to center vertically
+                imgui.button(f"###{game.id}_id", width=imgui.FLOAT_MIN)  # Button because it aligns the following text calls to center vertically
                 # Play Button
                 if play_button:
                     imgui.table_set_column_index(play_button)
@@ -1538,7 +1536,7 @@ class MainGUI():
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
                 imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha *  0.25)
-                imgui.selectable(f"##{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
+                imgui.selectable(f"###{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
                 imgui.pop_style_var()
                 self.handle_game_hitbox_events(game, game_i, manual_sort, not_filtering)
 
@@ -1548,7 +1546,7 @@ class MainGUI():
         # Hack: get sort and column specs for list mode in grid mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
-            "##game_list",
+            "###game_list",
             column=self.game_list_column_count,
             flags=self.game_list_table_flags,
             outer_size_height=1
@@ -1602,14 +1600,14 @@ class MainGUI():
         while column_count > 1 and (avail - (column_count + 1) * padding) / column_count < min_width:
             column_count -= 1
         if imgui.begin_table(
-            "##game_grid",
+            "###game_grid",
             column=column_count,
             flags=self.game_grid_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
             # Setup
             for i in range(column_count):
-                imgui.table_setup_column(f"##game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+                imgui.table_setup_column(f"###game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
             img_ratio = globals.settings.grid_image_ratio
             width = None
             height = None
@@ -1778,7 +1776,7 @@ class MainGUI():
                 cell_height = imgui.get_item_rect_size().y
                 if imgui.is_rect_visible(width, cell_height):
                     # Skip if outside view
-                    imgui.invisible_button(f"##{game.id}_hitbox", width, cell_height)
+                    imgui.invisible_button(f"###{game.id}_grid_hitbox", width, cell_height)
                     self.handle_game_hitbox_events(game, game_i, manual_sort, not_filtering)
                     pos = imgui.get_item_rect_min()
                     pos2 = imgui.get_item_rect_max()
@@ -1824,9 +1822,9 @@ class MainGUI():
             if self.input_chars:
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
-        activated, value = imgui.input_text_with_hint("##bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        activated, value = imgui.input_text_with_hint("###bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         activated = bool(activated and value)
-        if imgui.begin_popup_context_item(f"##bottombar_context"):
+        if imgui.begin_popup_context_item(f"###bottombar_context"):
             # Right click = more options context menu
             if imgui.selectable("󰆒 Paste", False)[0]:
                 value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
@@ -1867,7 +1865,7 @@ class MainGUI():
                     for result in results:
                         if result.id in globals.games:
                             utils.push_disabled()
-                        clicked = imgui.selectable(f"{result.title}##result_{result.id}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
+                        clicked = imgui.selectable(f"{result.title}###result_{result.id}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
                         if result.id in globals.games:
                             utils.pop_disabled()
                         if clicked:
@@ -1883,10 +1881,10 @@ class MainGUI():
             header = imgui.collapsing_header(name)[0]
         else:
             header = True
-        opened = header and imgui.begin_table(f"##{name}", column=2, flags=imgui.TABLE_NO_CLIP)
+        opened = header and imgui.begin_table(f"###settings_{name}", column=2, flags=imgui.TABLE_NO_CLIP)
         if opened:
-            imgui.table_setup_column(f"##{name}_left", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-            imgui.table_setup_column(f"##{name}_right", imgui.TABLE_COLUMN_WIDTH_FIXED)
+            imgui.table_setup_column(f"###settings_{name}_left", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            imgui.table_setup_column(f"###settings_{name}_right", imgui.TABLE_COLUMN_WIDTH_FIXED)
             imgui.table_next_row()
             imgui.table_set_column_index(1)  # Right
             imgui.dummy(right_width, 1)
@@ -1936,7 +1934,7 @@ class MainGUI():
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):
                 utils.start_refresh_task(api.refresh())
-            if imgui.begin_popup_context_item(f"##refresh_context"):
+            if imgui.begin_popup_context_item(f"###refresh_context"):
                 # Right click = more options context menu
                 if imgui.selectable("󰅸 Only notifs", False)[0]:
                     utils.start_refresh_task(api.check_notifs(login=True))
@@ -1977,7 +1975,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Add filter:")
             imgui.table_next_column()
-            changed, value = imgui.combo("##add_filter", 0, list(FilterMode._members_))
+            changed, value = imgui.combo("###add_filter", 0, list(FilterMode._members_))
             if changed and value > 0:
                 flt = Filter(FilterMode(value + 1))
                 match flt.mode.value:
@@ -1999,8 +1997,10 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text(f"Filter by {flt.mode.name}:")
                 imgui.table_next_column()
-                if imgui.button(f"Remove##filter_{flt.id}", width=right_width):
-                    self.filters.remove(flt)
+                if imgui.button(f"Remove###filter_{flt.id}_remove", width=right_width):
+                    for i, search in enumerate(self.filters):
+                        if search.id == flt.id:
+                            self.filters.pop(i)
                     self.require_sort = True
 
                 if flt.mode is FilterMode.Installed:
@@ -2009,7 +2009,7 @@ class MainGUI():
                     imgui.text("Include outdated:")
                     imgui.table_next_column()
                     imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                    changed, value = imgui.checkbox(f"##filter_{flt.id}", flt.include_outdated)
+                    changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.include_outdated)
                     if changed:
                         flt.include_outdated = value
                         self.require_sort = True
@@ -2019,7 +2019,7 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Rating value:")
                     imgui.table_next_column()
-                    changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}", flt.match)
+                    changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
                     if changed:
                         flt.match = value
                         self.require_sort = True
@@ -2030,7 +2030,7 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Status value:")
                     imgui.table_next_column()
-                    changed, value = imgui.combo(f"##filter_{flt.id}", Status._members_list_.index(flt.match.name), Status._members_list_)
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", Status._members_list_.index(flt.match.name), Status._members_list_)
                     if changed:
                         flt.match = Status._members_[Status._members_list_[value]]
                         self.require_sort = True
@@ -2040,7 +2040,7 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Tag value:")
                     imgui.table_next_column()
-                    changed, value = imgui.combo(f"##filter_{flt.id}", Tag._members_list_.index(flt.match.name), Tag._members_list_)
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", Tag._members_list_.index(flt.match.name), Tag._members_list_)
                     if changed:
                         flt.match = Tag._members_[Tag._members_list_[value]]
                         self.require_sort = True
@@ -2050,7 +2050,7 @@ class MainGUI():
                     imgui.table_next_column()
                     imgui.text("Type value:")
                     imgui.table_next_column()
-                    changed, value = imgui.combo(f"##filter_{flt.id}", Type._members_list_.index(flt.match.name), Type._members_list_)
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", Type._members_list_.index(flt.match.name), Type._members_list_)
                     if changed:
                         flt.match = Type._members_[Type._members_list_[value]]
                         self.require_sort = True
@@ -2060,7 +2060,7 @@ class MainGUI():
                 imgui.text("Invert filter:")
                 imgui.table_next_column()
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox(f"##filter_invert_{flt.id}", flt.invert)
+                changed, value = imgui.checkbox(f"###filter_{flt.id}_invert", flt.invert)
                 if changed:
                     flt.invert = value
                     self.require_sort = True
@@ -2079,7 +2079,7 @@ class MainGUI():
                 "session just for itself."
             )
             imgui.table_next_column()
-            changed, value = imgui.combo("##browser", set.browser.index, Browser.avail_list)
+            changed, value = imgui.combo("###browser", set.browser.index, Browser.avail_list)
             if changed:
                 set.browser = Browser.get(Browser.avail_list[value])
                 async_thread.run(db.update_settings("browser"))
@@ -2098,8 +2098,8 @@ class MainGUI():
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
-                        changed, set.browser_custom_executable = imgui.input_text("##browser_custom_executable", set.browser_custom_executable)
-                        if imgui.begin_popup_context_item(f"##browser_context"):
+                        changed, set.browser_custom_executable = imgui.input_text("###browser_custom_executable", set.browser_custom_executable)
+                        if imgui.begin_popup_context_item(f"###browser_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
                                 set.browser_custom_executable += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                                 changed = True
@@ -2121,8 +2121,8 @@ class MainGUI():
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
                         imgui.set_next_item_width(args_width)
-                        changed, set.browser_custom_arguments = imgui.input_text("##browser_custom_arguments", set.browser_custom_arguments)
-                        if imgui.begin_popup_context_item(f"##browser_args_context"):
+                        changed, set.browser_custom_arguments = imgui.input_text("###browser_custom_arguments", set.browser_custom_arguments)
+                        if imgui.begin_popup_context_item(f"###browser_args_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
                                 set.browser_custom_arguments += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                                 changed = True
@@ -2136,7 +2136,7 @@ class MainGUI():
                 imgui.text("Use private mode:")
                 imgui.table_next_column()
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox("##browser_private", set.browser_private)
+                changed, value = imgui.checkbox("###browser_private", set.browser_private)
                 if changed:
                     set.browser_private = value
                     async_thread.run(db.update_settings("browser_private"))
@@ -2152,7 +2152,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##browser_html", set.browser_html)
+            changed, value = imgui.checkbox("###browser_html", set.browser_html)
             if changed:
                 set.browser_html = value
                 async_thread.run(db.update_settings("browser_html"))
@@ -2174,7 +2174,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##fit_images", set.fit_images)
+            changed, value = imgui.checkbox("###fit_images", set.fit_images)
             if changed:
                 set.fit_images = value
                 async_thread.run(db.update_settings("fit_images"))
@@ -2190,7 +2190,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##update_keep_image", set.update_keep_image)
+            changed, value = imgui.checkbox("###update_keep_image", set.update_keep_image)
             if changed:
                 set.update_keep_image = value
                 async_thread.run(db.update_settings("update_keep_image"))
@@ -2200,7 +2200,7 @@ class MainGUI():
             imgui.text("Zoom on hover:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##zoom_enabled", set.zoom_enabled)
+            changed, value = imgui.checkbox("###zoom_enabled", set.zoom_enabled)
             if changed:
                 set.zoom_enabled = value
                 async_thread.run(db.update_settings("zoom_enabled"))
@@ -2212,7 +2212,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Zoom amount:")
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##zoom_amount", set.zoom_amount, change_speed=0.1, min_value=1, max_value=20, format="%dx")
+            changed, value = imgui.drag_int("###zoom_amount", set.zoom_amount, change_speed=0.1, min_value=1, max_value=20, format="%dx")
             set.zoom_amount = min(max(value, 1), 20)
             if changed:
                 async_thread.run(db.update_settings("zoom_amount"))
@@ -2221,7 +2221,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Zoom size:")
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##zoom_size", set.zoom_size, change_speed=5, min_value=16, max_value=1024, format="%d px")
+            changed, value = imgui.drag_int("###zoom_size", set.zoom_size, change_speed=5, min_value=16, max_value=1024, format="%d px")
             set.zoom_size = min(max(value, 16), 1024)
             if changed:
                 async_thread.run(db.update_settings("zoom_size"))
@@ -2231,7 +2231,7 @@ class MainGUI():
             imgui.text("Show zoom region:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##zoom_region", set.zoom_region)
+            changed, value = imgui.checkbox("###zoom_region", set.zoom_region)
             if changed:
                 set.zoom_region = value
                 async_thread.run(db.update_settings("zoom_region"))
@@ -2247,7 +2247,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Scaling:")
             imgui.table_next_column()
-            changed, value = imgui.drag_float("##interface_scaling", set.interface_scaling, change_speed=imgui.FLOAT_MIN, min_value=0.5, max_value=4, format="%.2fx")
+            changed, value = imgui.drag_float("###interface_scaling", set.interface_scaling, change_speed=imgui.FLOAT_MIN, min_value=0.5, max_value=4, format="%.2fx")
             if imgui.is_item_deactivated():  # Only change when editing by text input and accepting the edit
                 set.interface_scaling = min(max(value, 0.5), 4)
                 async_thread.run(db.update_settings("interface_scaling"))
@@ -2261,7 +2261,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##minimize_on_close", set.minimize_on_close)
+            changed, value = imgui.checkbox("###minimize_on_close", set.minimize_on_close)
             if changed:
                 set.minimize_on_close = value
                 async_thread.run(db.update_settings("minimize_on_close"))
@@ -2275,7 +2275,7 @@ class MainGUI():
                 "space to show all these columns, the number will be internally reduced to render each grid cell properly."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##grid_columns", set.grid_columns, change_speed=0.05, min_value=1, max_value=10)
+            changed, value = imgui.drag_int("###grid_columns", set.grid_columns, change_speed=0.05, min_value=1, max_value=10)
             set.grid_columns = min(max(value, 1), 10)
             if changed:
                 async_thread.run(db.update_settings("grid_columns"))
@@ -2289,7 +2289,7 @@ class MainGUI():
                 "is compared to its height. Default is 3:1."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_float("##grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5, format="%.1f:1")
+            changed, value = imgui.drag_float("###grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5, format="%.1f:1")
             set.grid_image_ratio = min(max(value, 0.5), 5)
             if changed:
                 async_thread.run(db.update_settings("grid_image_ratio"))
@@ -2299,7 +2299,7 @@ class MainGUI():
             imgui.text("Smooth scrolling:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##scroll_smooth", set.scroll_smooth)
+            changed, value = imgui.checkbox("###scroll_smooth", set.scroll_smooth)
             if changed:
                 set.scroll_smooth = value
                 async_thread.run(db.update_settings("scroll_smooth"))
@@ -2315,7 +2315,7 @@ class MainGUI():
                 "How fast or slow the smooth scrolling animation is. Default is 8."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_float("##scroll_smooth_speed", set.scroll_smooth_speed, change_speed=0.25, min_value=0.1, max_value=50)
+            changed, value = imgui.drag_float("###scroll_smooth_speed", set.scroll_smooth_speed, change_speed=0.25, min_value=0.1, max_value=50)
             set.scroll_smooth_speed = min(max(value, 0.1), 50)
             if changed:
                 async_thread.run(db.update_settings("scroll_smooth_speed"))
@@ -2331,7 +2331,7 @@ class MainGUI():
                 "Multiplier for how much a single scroll event should actually scroll. Default is 1."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_float("##scroll_amount", set.scroll_amount, change_speed=0.05, min_value=0.1, max_value=10, format="%.2fx")
+            changed, value = imgui.drag_float("###scroll_amount", set.scroll_amount, change_speed=0.05, min_value=0.1, max_value=10, format="%.2fx")
             set.scroll_amount = min(max(value, 0.1), 10)
             if changed:
                 async_thread.run(db.update_settings("scroll_amount"))
@@ -2346,7 +2346,7 @@ class MainGUI():
                 "For example a ratio of 1:2 means the app refreshes every 2nd monitor frame, resulting in half the framerate."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##vsync_ratio", set.vsync_ratio, change_speed=0.05, min_value=0, max_value=10, format="1:%d")
+            changed, value = imgui.drag_int("###vsync_ratio", set.vsync_ratio, change_speed=0.05, min_value=0, max_value=10, format="1:%d")
             set.vsync_ratio = min(max(value, 0), 10)
             if changed:
                 glfw.swap_interval(set.vsync_ratio)
@@ -2365,7 +2365,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##render_when_unfocused", set.render_when_unfocused)
+            changed, value = imgui.checkbox("###render_when_unfocused", set.render_when_unfocused)
             if changed:
                 set.render_when_unfocused = value
                 async_thread.run(db.update_settings("render_when_unfocused"))
@@ -2392,12 +2392,12 @@ class MainGUI():
                     def popup_content():
                         imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
                         _, thread_links[0] = imgui.input_text_multiline(
-                            f"##import_links",
+                            f"###import_links",
                             value=thread_links[0],
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6
                         )
-                        if imgui.begin_popup_context_item(f"##thread_links_context"):
+                        if imgui.begin_popup_context_item(f"###import_links_context"):
                             if imgui.selectable("󰆒 Paste", False)[0]:
                                 thread_links[0] += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                             imgui.end_popup()
@@ -2435,7 +2435,7 @@ class MainGUI():
                     thread_links = "\n".join(game.url for game in globals.games.values())
                     def popup_content():
                         imgui.input_text_multiline(
-                            f"##import_links",
+                            f"###export_links",
                             value=thread_links,
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6,
@@ -2464,7 +2464,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##select_executable_after_add", set.select_executable_after_add)
+            changed, value = imgui.checkbox("###select_executable_after_add", set.select_executable_after_add)
             if changed:
                 set.select_executable_after_add = value
                 async_thread.run(db.update_settings("select_executable_after_add"))
@@ -2490,7 +2490,7 @@ class MainGUI():
             imgui.text("Show remove button:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##show_remove_btn", set.show_remove_btn)
+            changed, value = imgui.checkbox("###show_remove_btn", set.show_remove_btn)
             if changed:
                 set.show_remove_btn = value
                 async_thread.run(db.update_settings("show_remove_btn"))
@@ -2500,7 +2500,7 @@ class MainGUI():
             imgui.text("Confirm when removing:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##confirm_on_remove", set.confirm_on_remove)
+            changed, value = imgui.checkbox("###confirm_on_remove", set.confirm_on_remove)
             if changed:
                 set.confirm_on_remove = value
                 async_thread.run(db.update_settings("confirm_on_remove"))
@@ -2516,7 +2516,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##rpc_enabled", set.rpc_enabled)
+            changed, value = imgui.checkbox("###rpc_enabled", set.rpc_enabled)
             if changed:
                 set.rpc_enabled = value
                 async_thread.run(db.update_settings("rpc_enabled"))
@@ -2534,7 +2534,7 @@ class MainGUI():
             imgui.text("Refresh if completed:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##refresh_completed_games", set.refresh_completed_games)
+            changed, value = imgui.checkbox("###refresh_completed_games", set.refresh_completed_games)
             if changed:
                 set.refresh_completed_games = value
                 async_thread.run(db.update_settings("refresh_completed_games"))
@@ -2549,7 +2549,7 @@ class MainGUI():
                 "will freeze the program. In most cases 20 workers is a good compromise."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
+            changed, value = imgui.drag_int("###refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
             set.refresh_workers = min(max(value, 1), 100)
             if changed:
                 async_thread.run(db.update_settings("refresh_workers"))
@@ -2564,7 +2564,7 @@ class MainGUI():
                 "A timeout 10-30 seconds is most typical."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##request_timeout", set.request_timeout, change_speed=0.6, min_value=1, max_value=120, format="%d sec")
+            changed, value = imgui.drag_int("###request_timeout", set.request_timeout, change_speed=0.6, min_value=1, max_value=120, format="%d sec")
             set.request_timeout = min(max(value, 1), 120)
             if changed:
                 async_thread.run(db.update_settings("request_timeout"))
@@ -2578,7 +2578,7 @@ class MainGUI():
                 "often (in minutes) this happens."
             )
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=15, max_value=720, format="%d min")
+            changed, value = imgui.drag_int("###tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=15, max_value=720, format="%d min")
             set.tray_refresh_interval = min(max(value, 15), 720)
             if changed:
                 async_thread.run(db.update_settings("tray_refresh_interval"))
@@ -2592,7 +2592,7 @@ class MainGUI():
             imgui.text("Refresh at start:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##start_refresh", set.start_refresh)
+            changed, value = imgui.checkbox("###start_refresh", set.start_refresh)
             if changed:
                 set.start_refresh = value
                 async_thread.run(db.update_settings("start_refresh"))
@@ -2606,7 +2606,7 @@ class MainGUI():
             )
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##start_in_tray", set.start_in_tray)
+            changed, value = imgui.checkbox("###start_in_tray", set.start_in_tray)
             if changed:
                 set.start_in_tray = value
                 async_thread.run(db.update_settings("start_in_tray"))
@@ -2616,7 +2616,7 @@ class MainGUI():
             imgui.text("Start with system:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.checkbox("##start_with_system", globals.start_with_system)
+            changed, value = imgui.checkbox("###start_with_system", globals.start_with_system)
             if changed:
                 callbacks.update_start_with_system(value)
 
@@ -2628,7 +2628,7 @@ class MainGUI():
             imgui.table_next_column()
             imgui.text("Corner radius:")
             imgui.table_next_column()
-            changed, value = imgui.drag_int("##style_corner_radius", set.style_corner_radius, change_speed=0.04, min_value=0, max_value=6, format="%d px")
+            changed, value = imgui.drag_int("###style_corner_radius", set.style_corner_radius, change_speed=0.04, min_value=0, max_value=6, format="%d px")
             set.style_corner_radius = min(max(value, 0), 6)
             if changed:
                 imgui.style.window_rounding = imgui.style.frame_rounding = imgui.style.tab_rounding = \
@@ -2641,7 +2641,7 @@ class MainGUI():
             imgui.text("Accent:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.color_edit3("##style_accent", *set.style_accent[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            changed, value = imgui.color_edit3("###style_accent", *set.style_accent[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
             if changed:
                 set.style_accent = (*value, 1.0)
                 self.refresh_styles()
@@ -2652,7 +2652,7 @@ class MainGUI():
             imgui.text("Background:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.color_edit3("##style_bg", *set.style_bg[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            changed, value = imgui.color_edit3("###style_bg", *set.style_bg[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
             if changed:
                 set.style_bg = (*value, 1.0)
                 self.refresh_styles()
@@ -2663,7 +2663,7 @@ class MainGUI():
             imgui.text("Alt background:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.color_edit3("##style_alt_bg", *set.style_alt_bg[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            changed, value = imgui.color_edit3("###style_alt_bg", *set.style_alt_bg[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
             if changed:
                 set.style_alt_bg = (*value, 1.0)
                 self.refresh_styles()
@@ -2674,7 +2674,7 @@ class MainGUI():
             imgui.text("Border:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.color_edit3("##style_border", *set.style_border[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            changed, value = imgui.color_edit3("###style_border", *set.style_border[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
             if changed:
                 set.style_border = (*value, 1.0)
                 self.refresh_styles()
@@ -2685,7 +2685,7 @@ class MainGUI():
             imgui.text("Text:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.color_edit3("##style_text", *set.style_text[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            changed, value = imgui.color_edit3("###style_text", *set.style_text[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
             if changed:
                 set.style_text = (*value, 1.0)
                 self.refresh_styles()
@@ -2696,7 +2696,7 @@ class MainGUI():
             imgui.text("Text dim:")
             imgui.table_next_column()
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-            changed, value = imgui.color_edit3("##style_text_dim", *set.style_text_dim[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+            changed, value = imgui.color_edit3("###style_text_dim", *set.style_text_dim[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
             if changed:
                 set.style_text_dim = (*value, 1.0)
                 self.refresh_styles()

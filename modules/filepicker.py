@@ -108,14 +108,14 @@ class FilePicker:
             if self.windows:
                 imgui.same_line()
                 imgui.set_next_item_width(imgui.get_font_size() * 4)
-                changed, value = imgui.combo("##drive_selector", self.current_drive, self.drives)
+                changed, value = imgui.combo("###drive_selector", self.current_drive, self.drives)
                 if changed:
                     self.goto(self.drives[value])
             # Location bar
             imgui.same_line()
             imgui.set_next_item_width(size.x * 0.7)
-            confirmed, dir = imgui.input_text("##location_bar", str(self.dir), flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
-            if imgui.begin_popup_context_item(f"##location_context"):
+            confirmed, dir = imgui.input_text("###location_bar", str(self.dir), flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+            if imgui.begin_popup_context_item(f"###location_context"):
                 if imgui.selectable("󰆒 Paste", False)[0] and (clip := glfw.get_clipboard_string(globals.gui.window)):
                     dir = str(clip, encoding="utf-8")
                     confirmed = True
@@ -131,7 +131,7 @@ class FilePicker:
 
             # Main list
             imgui.set_next_item_width(width)
-            _, value = imgui.listbox(f"##file_list", self.current, self.items, (size.y * 0.65) / imgui.get_frame_height())
+            _, value = imgui.listbox(f"###file_list", self.current, self.items, (size.y * 0.65) / imgui.get_frame_height())
             if value != -1:
                 self.current = min(max(value, 0), len(self.items) - 1)
                 item = self.items[self.current]

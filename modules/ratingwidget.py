@@ -17,7 +17,7 @@ def ratingwidget(id: str, current: int, num_stars=5, *args, **kwargs):
             imgui.push_style_color(imgui.COLOR_TEXT, *accent_col)
         else:
             label = "󰓒"  # Empty / unselected star
-        if imgui.small_button(f"{label}##{id}_{i}", *args, **kwargs):
+        if imgui.small_button(f"{label}###{id}_{i}", *args, **kwargs):
             value = i if current != i else 0  # Clicking the current value resets the rating to 0
         if i <= current:
             imgui.pop_style_color()

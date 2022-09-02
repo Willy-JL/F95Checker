@@ -285,13 +285,13 @@ def push_popup(*args, bottom=False, **kwargs):
     if len(args) + len(kwargs) > 1:
         if args[0] is popup or args[0] is msgbox.msgbox:
             args = list(args)
-            args[1] = args[1] + "##" + rand_num_str()
+            args[1] = args[1] + "###popup_" + rand_num_str()
         popup_func = functools.partial(*args, **kwargs)
     else:
         popup_func = args[0]
     if globals.gui:
         if (globals.gui.minimized or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] is MsgBox.warn or args[3] is MsgBox.error):
-            if globals.gui.minimized and args[1].startswith("Daily backups##"):
+            if globals.gui.minimized and args[1].startswith("Daily backups###popup_"):
                 return
             globals.gui.tray.push_msg(title="Oops", msg="Something went wrong, click here to view the error.", icon=QSystemTrayIcon.MessageIcon.Critical)
     if bottom:

@@ -331,7 +331,7 @@ class Browser:
         cls = type(self)
         if self.hash is None:
             self.hash = utils.hash(self.name)
-        self.hashed_name = f"{self.name}##{self.hash}"
+        self.hashed_name = f"{self.name}###{self.hash}"
         self.unset = self.hash == 0
         self.is_custom = self.hash == -1
         private_args = {
