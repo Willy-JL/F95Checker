@@ -655,7 +655,9 @@ class MainGUI():
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
-        if clicked:
+        if imgui.is_item_clicked(2):
+            glfw.set_clipboard_string(self.window, game.url)
+        elif clicked:
             callbacks.open_webpage(game.url)
         return clicked
 
