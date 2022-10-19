@@ -89,6 +89,7 @@ class FilePicker:
         if not self.active:
             return 0, True
         io = imgui.get_io()
+        style = imgui.get_style()
         # Auto refresh
         self.elapsed += io.delta_time
         if self.elapsed > 2 or self.update_filter:
@@ -134,7 +135,7 @@ class FilePicker:
 
             # Main list
             imgui.set_next_item_width(width)
-            imgui.push_style_color(imgui.COLOR_HEADER, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+            imgui.push_style_color(imgui.COLOR_HEADER, *style.colors[imgui.COLOR_BUTTON_HOVERED])
             _, value = imgui.listbox(f"###file_list", self.current, self.items, (size.y * 0.65) / imgui.get_frame_height())
             imgui.pop_style_color()
             if value != -1:
@@ -161,7 +162,7 @@ class FilePicker:
             imgui.same_line()
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):
                 imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
-                imgui.push_style_var(imgui.STYLE_ALPHA, imgui.get_style().alpha *  0.5)
+                imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
             if imgui.button("󰄬 Ok"):
                 if value == -1:
                     self.selected = str(self.dir)
@@ -181,7 +182,7 @@ class FilePicker:
                 else:
                     imgui.text(f"Selected:  {item[len(self.dir_icon if self.dir_picker else self.file_icon):]}")
             # Filter bar
-            if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active() and (globals.gui.input_chars or any(imgui.io.keys_down)):
+            if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active() and (globals.gui.input_chars or any(io.keys_down)):
                 if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
                     self.filter_box_text = self.filter_box_text[:-1]
                 if globals.gui.input_chars:
@@ -190,7 +191,7 @@ class FilePicker:
             imgui.same_line()
             new_pos_x = prev_pos_x + width * 0.5
             imgui.set_cursor_pos_x(new_pos_x)
-            imgui.set_next_item_width(width - new_pos_x + 2 * imgui.style.item_spacing.x)
+            imgui.set_next_item_width(width - new_pos_x + 2 * style.item_spacing.x)
             self.update_filter, self.filter_box_text = imgui.input_text_with_hint("###filterbar", "Filter...", self.filter_box_text)
         else:
             opened = 0
