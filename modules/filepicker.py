@@ -131,7 +131,9 @@ class FilePicker:
 
             # Main list
             imgui.set_next_item_width(width)
+            imgui.push_style_color(imgui.COLOR_HEADER, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
             _, value = imgui.listbox(f"###file_list", self.current, self.items, (size.y * 0.65) / imgui.get_frame_height())
+            imgui.pop_style_color()
             if value != -1:
                 self.current = min(max(value, 0), len(self.items) - 1)
                 item = self.items[self.current]
