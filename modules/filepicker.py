@@ -28,9 +28,11 @@ class FilePicker:
         self.file_icon = "󰈔  "
         self.callback = callback
         self.selected: str = None
+        self.filter_box_text = ""
+        self.update_filter = False
         self.items: list[str] = []
-        self.dir: pathlib.Path = None
         self.dir_picker = dir_picker
+        self.dir: pathlib.Path = None
         self.flags = custom_popup_flags or self.flags
         self.windows = sys.platform.startswith("win")
         if self.windows:
@@ -48,6 +50,7 @@ class FilePicker:
             self.dir = pathlib.Path(os.getcwd())
         self.dir = self.dir.absolute()
         self.current = -1
+        self.filter_box_text = ""
         self.refresh()
 
     def refresh(self):
@@ -57,14 +60,14 @@ class FilePicker:
             selected = ""
         self.items.clear()
         try:
-            items = list(self.dir.iterdir())
+            items = list(filter(lambda item: self.filter_box_text.lower() in item.name.lower(), self.dir.iterdir()))
             if len(items) > 0:
                 items.sort(key=lambda item: item.name.lower())  # Sort alphabetically
                 items.sort(key=lambda item: item.is_dir(), reverse=True)  # Sort dirs first
                 for item in items:
                     self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + item.name)
             else:
-                self.items.append("This folder is empty!")
+                self.items.append("No items match your filter!" if self.filter_box_text else "This folder is empty!")
         except Exception:
             self.items.append("Cannot open this folder!")
         if self.windows:
@@ -88,7 +91,7 @@ class FilePicker:
         io = imgui.get_io()
         # Auto refresh
         self.elapsed += io.delta_time
-        if self.elapsed > 2:
+        if self.elapsed > 2 or self.update_filter:
             self.elapsed = 0.0
             self.refresh()
         # Setup popup
@@ -170,12 +173,25 @@ class FilePicker:
                 imgui.internal.pop_item_flag()
                 imgui.pop_style_var()
             # Selected text
+            imgui.same_line()
+            prev_pos_x = imgui.get_cursor_pos_x()
             if (is_file and not self.dir_picker) or (is_dir and self.dir_picker):
-                imgui.same_line()
                 if value == -1:
                     imgui.text(f"Selected:  {self.dir.name}")
                 else:
                     imgui.text(f"Selected:  {item[len(self.dir_icon if self.dir_picker else self.file_icon):]}")
+            # Filter bar
+            if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active() and (globals.gui.input_chars or any(imgui.io.keys_down)):
+                if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
+                    self.filter_box_text = self.filter_box_text[:-1]
+                if globals.gui.input_chars:
+                    globals.gui.repeat_chars = True
+                imgui.set_keyboard_focus_here()
+            imgui.same_line()
+            new_pos_x = prev_pos_x + width * 0.5
+            imgui.set_cursor_pos_x(new_pos_x)
+            imgui.set_next_item_width(width - new_pos_x + 2 * imgui.style.item_spacing.x)
+            self.update_filter, self.filter_box_text = imgui.input_text_with_hint("###filterbar", "Filter...", self.filter_box_text)
         else:
             opened = 0
             closed = True
