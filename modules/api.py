@@ -23,7 +23,7 @@ import io
 import re
 
 from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status, Tag, Type
-from modules import globals, async_thread, callbacks, db, msgbox, utils
+from modules import globals, async_thread, callbacks, db, icons, msgbox, utils
 
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
@@ -344,8 +344,8 @@ async def check(game: Game, full=False, login=False):
         raise_f95zone_error(raw)
         if req.status == 404 or req.status == 403:
             buttons = {
-                "󰄬 Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
-                "󰜺 No": None
+                f"{icons.check} Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                f"{icons.cancel} No": None
             }
             if req.status == 404:
                 title = "Thread not found"
@@ -607,8 +607,8 @@ async def check_notifs(login=False):
         if inbox > 0:
             callbacks.open_webpage(globals.inbox_page)
     buttons = {
-        "󰄬 Yes": open_callback,
-        "󰜺 No": None
+        f"{icons.check} Yes": open_callback,
+        f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:
         if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("Notifications###popup_"):
@@ -686,7 +686,7 @@ async def check_updates():
         def cancel_callback():
             cancel[0] = True
         buttons = {
-            "󰜺 Cancel": cancel_callback
+            f"{icons.cancel} Cancel": cancel_callback
         }
         utils.push_popup(utils.popup, "Updating F95Checker", popup_content, buttons=buttons, closable=False, outside=False)
         asset_data = io.BytesIO()
@@ -765,8 +765,8 @@ async def check_updates():
         )
         globals.gui.close()
     buttons = {
-        "󰄬 Yes": lambda: async_thread.run(update_callback()),
-        "󰜺 No": None
+        f"{icons.check} Yes": lambda: async_thread.run(update_callback()),
+        f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:
         if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("F95Checker update###popup_"):

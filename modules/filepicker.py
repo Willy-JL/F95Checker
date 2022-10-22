@@ -7,7 +7,7 @@ import glfw
 import sys
 import os
 
-from modules import globals, utils
+from modules import globals, icons, utils
 
 
 class FilePicker:
@@ -24,8 +24,8 @@ class FilePicker:
         self.title = title
         self.active = True
         self.elapsed = 0.0
-        self.dir_icon = "󰉋  "
-        self.file_icon = "󰈔  "
+        self.dir_icon = f"{icons.folder}  "
+        self.file_icon = f"{icons.file}  "
         self.callback = callback
         self.selected: str = None
         self.filter_box_text = ""
@@ -107,7 +107,7 @@ class FilePicker:
             closed = utils.close_weak_popup()
             imgui.begin_group()
             # Up button
-            if imgui.button("󰁞"):
+            if imgui.button(icons.arrow_up_thick):
                 self.goto(self.dir.parent)
             # Drive selector
             if self.windows:
@@ -121,7 +121,7 @@ class FilePicker:
             imgui.set_next_item_width(size.x * 0.7)
             confirmed, dir = imgui.input_text("###location_bar", str(self.dir), flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if imgui.begin_popup_context_item(f"###location_context"):
-                if imgui.selectable("󰆒 Paste", False)[0] and (clip := glfw.get_clipboard_string(globals.gui.window)):
+                if imgui.selectable(f"{icons.content_paste} Paste", False)[0] and (clip := glfw.get_clipboard_string(globals.gui.window)):
                     dir = str(clip, encoding="utf-8")
                     confirmed = True
                 imgui.end_popup()
@@ -129,7 +129,7 @@ class FilePicker:
                 self.goto(dir)
             # Refresh button
             imgui.same_line()
-            if imgui.button("󰑐"):
+            if imgui.button(icons.refresh):
                 self.refresh()
             imgui.end_group()
             width = imgui.get_item_rect_size().x
@@ -156,7 +156,7 @@ class FilePicker:
                 is_file = False
 
             # Cancel button
-            if imgui.button("󰜺 Cancel"):
+            if imgui.button(f"{icons.cancel} Cancel"):
                 imgui.close_current_popup()
                 closed = True
             # Ok button
@@ -164,7 +164,7 @@ class FilePicker:
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):
                 imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
                 imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
-            if imgui.button("󰄬 Ok"):
+            if imgui.button(f"{icons.check} Ok"):
                 if value == -1:
                     self.selected = str(self.dir)
                 else:

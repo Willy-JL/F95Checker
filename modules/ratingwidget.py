@@ -1,6 +1,8 @@
 # https://gist.github.com/Willy-JL/e9e9dac70b7970b6ee12fcf52b9b8f11
 import imgui
 
+from modules import icons
+
 
 def ratingwidget(id: str, current: int, num_stars=5, *args, **kwargs):
     value = current
@@ -13,10 +15,10 @@ def ratingwidget(id: str, current: int, num_stars=5, *args, **kwargs):
     imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
     for i in range(1, num_stars + 1):
         if i <= current:
-            label = "󰓎"  # Filled / selected star
+            label = icons.star  # Filled / selected star
             imgui.push_style_color(imgui.COLOR_TEXT, *accent_col)
         else:
-            label = "󰓒"  # Empty / unselected star
+            label = icons.star_outline  # Empty / unselected star
         if imgui.small_button(f"{label}###{id}_{i}", *args, **kwargs):
             value = i if current != i else 0  # Clicking the current value resets the rating to 0
         if i <= current:

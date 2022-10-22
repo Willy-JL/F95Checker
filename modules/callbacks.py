@@ -9,7 +9,7 @@ import stat
 import os
 
 from modules.structs import Game, MsgBox, Os, SearchResult, ThreadMatch
-from modules import globals, api, async_thread, db, filepicker, msgbox, utils
+from modules import globals, api, async_thread, db, filepicker, icons, msgbox, utils
 
 
 def update_start_with_system(toggle: bool):
@@ -113,8 +113,8 @@ def launch_game_exe(game: Game):
                     async_thread.run(db.update_game(game, "executable"))
                     async_thread.run(_launch_game())
             buttons = {
-                "󰄬 Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
-                "󰜺 No": None
+                f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+                f"{icons.cancel} No": None
             }
             utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to select another one?", MsgBox.warn, buttons)
         except Exception:
@@ -137,8 +137,8 @@ def open_game_folder(game: Game):
             game.executable = ""
             async_thread.run(db.update_game(game, "executable"))
         buttons = {
-            "󰄬 Yes": reset_callback,
-            "󰜺 No": None
+            f"{icons.check} Yes": reset_callback,
+            f"{icons.cancel} No": None
         }
         utils.push_popup(msgbox.msgbox, "Folder not found", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
         return
@@ -209,8 +209,8 @@ def remove_game(game: Game, bypass_confirm=False):
                 pass
     if not bypass_confirm and globals.settings.confirm_on_remove:
         buttons = {
-            "󰄬 Yes": remove_callback,
-            "󰜺 No": None
+            f"{icons.check} Yes": remove_callback,
+            f"{icons.cancel} No": None
         }
         utils.push_popup(msgbox.msgbox, "Remove game", f"Are you sure you want to remove {game.name} from your list?", MsgBox.warn, buttons)
     else:
@@ -245,8 +245,8 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
     count = len(threads)
     if ask_exe and count > 1:
         buttons = {
-            "󰄬 Yes": lambda: async_thread.run(_add_games()),
-            "󰜺 No": None
+            f"{icons.check} Yes": lambda: async_thread.run(_add_games()),
+            f"{icons.cancel} No": None
         }
         utils.push_popup(msgbox.msgbox, "Are you sure?", f"You are about to add {count} games and you have enabled the \"Ask path on add\" setting enabled.\nThis means that you will be asked to select the executable for all {count} games.\n\nDo you wish to continue?", MsgBox.warn, buttons)
     else:

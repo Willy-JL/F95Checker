@@ -2,7 +2,7 @@ import typing
 import imgui
 
 from modules.structs import MsgBox
-from modules import globals, utils
+from modules import globals, icons, utils
 
 icon_font = None
 popup_flags: int = (
@@ -18,13 +18,13 @@ def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.
     def popup_content():
         spacing = 2 * imgui.style.item_spacing.x
         if type is MsgBox.info:
-            icon = "󰋼"
+            icon = icons.information
             color = (0.10, 0.69, 0.95)
         elif type is MsgBox.warn:
-            icon = "󱇎"
+            icon = icons.alert_rhombus
             color = (0.95, 0.69, 0.10)
         elif type is MsgBox.error:
-            icon = "󰀩"
+            icon = icons.alert_octagon
             color = (0.95, 0.22, 0.22)
         else:
             icon = None

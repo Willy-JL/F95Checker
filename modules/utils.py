@@ -15,7 +15,7 @@ import glfw
 import sys
 import re
 
-from modules import globals, async_thread, msgbox
+from modules import globals, async_thread, icons, msgbox
 
 
 def hash(text: str):
@@ -247,7 +247,7 @@ def extract_thread_matches(text: str) -> list[ThreadMatch]:
 def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, popup_uuid: str = ""):
     if buttons is True:
         buttons = {
-            "󰄬 Ok": None
+            f"{icons.check} Ok": None
         }
     label = label + "###popup_" + popup_uuid
     if not imgui.is_popup_open(label):

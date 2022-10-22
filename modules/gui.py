@@ -17,7 +17,7 @@ import glfw
 import sys
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
-from modules import globals, api, async_thread, callbacks, db, filepicker, imagehelper, msgbox, ratingwidget, rpc_thread, utils
+from modules import globals, api, async_thread, callbacks, db, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils
 
 imgui.io = None
 imgui.style = None
@@ -307,8 +307,18 @@ class MainGUI():
         mdi_config = imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1)
         karla_range = imgui.core.GlyphRanges([0x1, 0x131, 0])
         noto_range = imgui.core.GlyphRanges([0x1, 0x10663, 0])
-        mdi_range = imgui.core.GlyphRanges([0xf0000, 0xf2000, 0])
-        msgbox_range = imgui.core.GlyphRanges([0xf02fc, 0xf02fc, 0xf11ce, 0xf11ce, 0xf0029, 0xf0029, 0])
+        mdi_range_values = []
+        for name, icon in vars(icons).items():
+            if name.startswith("_"):
+                continue
+            mdi_range_values += [ord(icon), ord(icon)]
+        mdi_range_values.append(0)
+        mdi_range = imgui.core.GlyphRanges(mdi_range_values)
+        msgbox_range_values = []
+        for icon in [icons.information, icons.alert_rhombus, icons.alert_octagon]:
+            msgbox_range_values += [ord(icon), ord(icon)]
+        msgbox_range_values.append(0)
+        msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
         size_18 = 18 * font_scaling_factor * self.size_mult
         size_28 = 28 * font_scaling_factor * self.size_mult
         size_69 = 69 * font_scaling_factor * self.size_mult
@@ -599,7 +609,7 @@ class MainGUI():
         imgui.pop_style_var(2)
 
     def draw_game_update_icon(self, game: Game, *args, **kwargs):
-        imgui.text_colored("󰓏", 0.85, 0.85, 0.00, *args, **kwargs)
+        imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00, *args, **kwargs)
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -619,19 +629,19 @@ class MainGUI():
 
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
-            return f"󰅢 {game.installed}   |   󱝁 {game.version}"
+            return f"{icons.cloud_download} {game.installed}   |   {icons.star_shooting} {game.version}"
         else:
             return game.version
 
     def draw_game_status_widget(self, game: Game, *args, **kwargs):
         if game.status is Status.Unchecked:
-            imgui.text_colored("󰀨", 0.50, 0.50, 0.50, *args, **kwargs)
+            imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50, *args, **kwargs)
         elif game.status is Status.Completed:
-            imgui.text_colored("󰄳", 0.00, 0.85, 0.00, *args, **kwargs)
+            imgui.text_colored(icons.checkbox_marked_circle, 0.00, 0.85, 0.00, *args, **kwargs)
         elif game.status is Status.OnHold:
-            imgui.text_colored("󰏥", 0.00, 0.50, 0.95, *args, **kwargs)
+            imgui.text_colored(icons.pause_circle, 0.00, 0.50, 0.95, *args, **kwargs)
         elif game.status is Status.Abandoned:
-            imgui.text_colored("󰅙", 0.87, 0.20, 0.20, *args, **kwargs)
+            imgui.text_colored(icons.close_circle, 0.87, 0.20, 0.20, *args, **kwargs)
         else:
             imgui.text("", *args, **kwargs)
 
@@ -744,23 +754,23 @@ class MainGUI():
         return clicked
 
     def draw_game_context_menu(self, game: Game):
-        self.draw_game_more_info_button(game, label="󰋽 More Info", selectable=True)
-        self.draw_game_recheck_button(game, label="󱄋 Full Recheck", selectable=True)
+        self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info", selectable=True)
+        self.draw_game_recheck_button(game, label=f"{icons.reload_alert} Full Recheck", selectable=True)
         imgui.separator()
-        self.draw_game_play_button(game, label="󰐊 Play", selectable=True)
-        self.draw_game_open_thread_button(game, label="󰏌 Open Thread", selectable=True)
-        self.draw_game_copy_link_button(game, label="󰆏 Copy Link", selectable=True)
+        self.draw_game_play_button(game, label=f"{icons.play} Play", selectable=True)
+        self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Open Thread", selectable=True)
+        self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Copy Link", selectable=True)
         imgui.separator()
-        self.draw_game_select_exe_button(game, label="󰷎 Select Exe", selectable=True)
-        self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe", selectable=True)
-        self.draw_game_open_folder_button(game, label="󰷏 Open Folder", selectable=True)
+        self.draw_game_select_exe_button(game, label=f"{icons.folder_edit_outline} Select Exe", selectable=True)
+        self.draw_game_unset_exe_button(game, label=f"{icons.folder_remove_outline} Unset Exe", selectable=True)
+        self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
-        self.draw_game_played_checkbox(game, label="󰈼 Played")
-        self.draw_game_installed_checkbox(game, label="󰅢 Installed")
+        self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
+        self.draw_game_installed_checkbox(game, label=f"{icons.cloud_download} Installed")
         imgui.separator()
         self.draw_game_rating_widget(game)
         imgui.separator()
-        self.draw_game_remove_button(game, label="󰩺 Remove", selectable=True)
+        self.draw_game_remove_button(game, label=f"{icons.trash_can_outline} Remove", selectable=True)
 
     def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None, *args, **kwargs):
         if multiline:
@@ -773,7 +783,7 @@ class MainGUI():
                 **kwargs
             )
             if imgui.begin_popup_context_item(f"###notes_context"):
-                if imgui.selectable("󰆒 Paste", False)[0]:
+                if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
                     value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                     changed = True
                 imgui.end_popup()
@@ -791,7 +801,7 @@ class MainGUI():
                 **kwargs
             )
             if imgui.begin_popup_context_item(f"###notes_inline_context"):
-                if imgui.selectable("󰆒 Paste", False)[0]:
+                if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
                     value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                     changed = True
                 imgui.end_popup()
@@ -898,7 +908,7 @@ class MainGUI():
                     self.draw_game_status_widget(game)
 
                 imgui.spacing()
-                self.draw_game_more_info_button(game, label="󰋽 More Info and Actions")
+                self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info and Actions")
 
                 imgui.end_group()
                 height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
@@ -1004,18 +1014,18 @@ class MainGUI():
             self.draw_game_name_text(game)
             imgui.pop_font()
 
-            self.draw_game_play_button(game, label="󰐊 Play")
+            self.draw_game_play_button(game, label=f"{icons.play} Play")
             imgui.same_line()
-            self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
+            self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Open Thread")
             imgui.same_line()
-            self.draw_game_copy_link_button(game, label="󰆏 Copy Link")
+            self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Copy Link")
             imgui.same_line()
-            self.draw_game_played_checkbox(game, label="󰈼 Played")
+            self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
             _10 = self.scaled(10)
             imgui.same_line(spacing=_10)
-            self.draw_game_installed_checkbox(game, label="󰅢 Installed")
+            self.draw_game_installed_checkbox(game, label=f"{icons.cloud_download} Installed")
             imgui.same_line(spacing=_10)
-            self.draw_game_remove_button(game, label="󰩺 Remove")
+            self.draw_game_remove_button(game, label=f"{icons.trash_can_outline} Remove")
 
             imgui.text_disabled("Thread/Game ID:")
             imgui.same_line()
@@ -1064,17 +1074,17 @@ class MainGUI():
 
             imgui.text_disabled("Manage Exe:")
             imgui.same_line()
-            self.draw_game_select_exe_button(game, label="󰷎 Select Exe")
+            self.draw_game_select_exe_button(game, label=f"{icons.folder_edit_outline} Select Exe")
             imgui.same_line()
-            self.draw_game_unset_exe_button(game, label="󰮞 Unset Exe")
+            self.draw_game_unset_exe_button(game, label=f"{icons.folder_remove_outline} Unset Exe")
             imgui.same_line()
-            self.draw_game_open_folder_button(game, label="󰷏 Open Folder")
+            self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Open Folder")
 
             imgui.spacing()
 
             if imgui.begin_tab_bar("Details"):
 
-                if imgui.begin_tab_item(("󰨸" if game.changelog else "󱘡") + " Changelog###changelog")[0]:
+                if imgui.begin_tab_item((icons.clipboard_text_outline if game.changelog else icons.clipboard_text_off_outline) + " Changelog###changelog")[0]:
                     imgui.spacing()
                     if game.changelog:
                         imgui.text_unformatted(game.changelog)
@@ -1082,7 +1092,7 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a changelog, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(("󰋽" if game.description else "󱞍") + " Description###description")[0]:
+                if imgui.begin_tab_item((icons.information_outline if game.description else icons.information_off_outline) + " Description###description")[0]:
                     imgui.spacing()
                     if game.description:
                         imgui.text_unformatted(game.description)
@@ -1090,12 +1100,12 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(("󱦹" if game.notes else "󰏪") + " Notes###notes")[0]:
+                if imgui.begin_tab_item((icons.draw_pen if game.notes else icons.pen) + " Notes###notes")[0]:
                     imgui.spacing()
                     self.draw_game_notes_widget(game)
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(("󱋷" if len(game.tags) > 1 else "󰓼" if len(game.tags) == 1 else "󱈡") + " Tags###tags")[0]:
+                if imgui.begin_tab_item((icons.tag_multiple_outline if len(game.tags) > 1 else icons.tag_outline if len(game.tags) == 1 else icons.tag_off_outline) + " Tags###tags")[0]:
                     imgui.spacing()
                     if game.tags:
                         self.draw_game_tags_widget(game)
@@ -1113,7 +1123,7 @@ class MainGUI():
             size = popup_size[0]
             if size and pos:
                 imgui.push_font(self.big_font)
-                text_size = imgui.calc_text_size("󰁒")
+                text_size = imgui.calc_text_size(icons.arrow_left_drop_circle)
                 offset = self.scaled(10)
                 mouse_pos = imgui.get_mouse_pos()
                 mouse_clicked = imgui.is_mouse_clicked()
@@ -1123,8 +1133,8 @@ class MainGUI():
                 if not zoom_popup[0]:
                     draw_list = imgui.get_foreground_draw_list()
                     col = imgui.get_color_u32_rgba(*globals.settings.style_text_dim)
-                    draw_list.add_text(x1, y, col, "󰁒")
-                    draw_list.add_text(x2, y, col, "󰁙")
+                    draw_list.add_text(x1, y, col, icons.arrow_left_drop_circle)
+                    draw_list.add_text(x2, y, col, icons.arrow_right_drop_circle)
                 y_ok = y <= mouse_pos.y <= y + text_size.y
                 clicked_left = mouse_clicked and x1 <= mouse_pos.x <= x1 + text_size.x and y_ok
                 clicked_right = mouse_clicked and x2 <= mouse_pos.x <= x2 + text_size.x and y_ok
@@ -1180,13 +1190,13 @@ class MainGUI():
             imgui.spacing()
             width = imgui.get_content_region_available_width()
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
-            if imgui.button("󰏌 F95Zone Thread", width=btn_width):
+            if imgui.button(f"{icons.open_in_new} F95Zone Thread", width=btn_width):
                 callbacks.open_webpage(globals.tool_page)
             imgui.same_line()
-            if imgui.button("󰊤 GitHub Repo", width=btn_width):
+            if imgui.button(f"{icons.github} GitHub Repo", width=btn_width):
                 callbacks.open_webpage(globals.github_page)
             imgui.same_line()
-            if imgui.button("󰌹 Donate + Links", width=btn_width):
+            if imgui.button(f"{icons.link_variant} Donate + Links", width=btn_width):
                 callbacks.open_webpage(globals.developer_page)
             imgui.spacing()
             imgui.spacing()
@@ -1398,9 +1408,9 @@ class MainGUI():
             # Setup
             # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
             # by starting the table render before the content region.
-            imgui.table_setup_column("󰆾 Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
-            imgui.table_setup_column("󰆙 Version", self.ghost_columns_flags)  # 1
-            imgui.table_setup_column("󰄳 Status", self.ghost_columns_flags)  # 2
+            imgui.table_setup_column(f"{icons.cursor_move} Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
+            imgui.table_setup_column(f"{icons.counter} Version", self.ghost_columns_flags)  # 1
+            imgui.table_setup_column(f"{icons.checkbox_marked_circle} Status", self.ghost_columns_flags)  # 2
             imgui.table_setup_column("###separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
             self.ghost_columns_enabled_count = 1
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
@@ -1411,20 +1421,20 @@ class MainGUI():
             self.ghost_columns_enabled_count += manual_sort
             can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
             # Regular columns
-            imgui.table_setup_column("󰐊 Play Button", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
-            imgui.table_setup_column("󱁯 Type", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
-            imgui.table_setup_column("󰙎 Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
-            imgui.table_setup_column("󰀓 Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
-            imgui.table_setup_column("󰚰 Last Updated", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
-            imgui.table_setup_column("󱖑 Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
-            imgui.table_setup_column("󱚈 Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
-            imgui.table_setup_column("󰈼 Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
-            imgui.table_setup_column("󰅢 Installed", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
-            imgui.table_setup_column("󰓒 Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
-            imgui.table_setup_column("󱦹 Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
-            imgui.table_setup_column("󰏌 Open Thread", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
-            imgui.table_setup_column("󰆏 Copy Link", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 16
-            imgui.table_setup_column("󰷏 Open Folder", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 17
+            imgui.table_setup_column(f"{icons.play} Play Button", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
+            imgui.table_setup_column(f"{icons.book_information_variant} Type", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
+            imgui.table_setup_column(f"{icons.information_variant} Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
+            imgui.table_setup_column(f"{icons.account_outline} Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
+            imgui.table_setup_column(f"{icons.update} Last Updated", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
+            imgui.table_setup_column(f"{icons.motion_play_outline} Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
+            imgui.table_setup_column(f"{icons.book_clock} Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
+            imgui.table_setup_column(f"{icons.flag_checkered} Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
+            imgui.table_setup_column(f"{icons.cloud_download} Installed", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
+            imgui.table_setup_column(f"{icons.star_outline} Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
+            imgui.table_setup_column(f"{icons.draw_pen} Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
+            imgui.table_setup_column(f"{icons.open_in_new} Open Thread", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
+            imgui.table_setup_column(f"{icons.content_copy} Copy Link", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 16
+            imgui.table_setup_column(f"{icons.folder_open_outline} Open Folder", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 17
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
 
             # Enabled columns
@@ -1457,9 +1467,9 @@ class MainGUI():
                     if status_enabled:
                         column_name += "   -   Status"
                 elif i == 11:  # Played
-                    column_name = "󰈼"
+                    column_name = icons.flag_checkered
                 elif i == 12:  # Installed
-                    column_name = "󰅢"
+                    column_name = icons.cloud_download
                 imgui.table_header(column_name)
 
             # Sorting
@@ -1483,7 +1493,7 @@ class MainGUI():
                 # Play Button
                 if play_button:
                     imgui.table_set_column_index(play_button)
-                    self.draw_game_play_button(game, label="󰐊")
+                    self.draw_game_play_button(game, label=icons.play)
                 # Type
                 if type:
                     imgui.table_set_column_index(type)
@@ -1491,7 +1501,7 @@ class MainGUI():
                 # Name
                 imgui.table_set_column_index(name)
                 if globals.settings.show_remove_btn:
-                    self.draw_game_remove_button(game, label="󰩺")
+                    self.draw_game_remove_button(game, label=icons.trash_can_outline)
                     imgui.same_line()
                 if game.installed and game.installed != game.version:
                     self.draw_game_update_icon(game)
@@ -1499,7 +1509,7 @@ class MainGUI():
                 self.draw_game_name_text(game)
                 if game.notes:
                     imgui.same_line()
-                    imgui.text_colored("󱦹", *globals.settings.style_accent)
+                    imgui.text_colored(icons.draw_pen, *globals.settings.style_accent)
                 if version_enabled:
                     imgui.same_line()
                     imgui.text_disabled(self.get_game_version_text(game))
@@ -1543,15 +1553,15 @@ class MainGUI():
                 # Open Thread
                 if open_thread:
                     imgui.table_set_column_index(open_thread)
-                    self.draw_game_open_thread_button(game, label="󰏌")
+                    self.draw_game_open_thread_button(game, label=icons.open_in_new)
                 # Copy Link
                 if copy_link:
                     imgui.table_set_column_index(copy_link)
-                    self.draw_game_copy_link_button(game, label="󰆏")
+                    self.draw_game_copy_link_button(game, label=icons.content_copy)
                 # Open Folder
                 if open_folder:
                     imgui.table_set_column_index(open_folder)
-                    self.draw_game_open_folder_button(game, label="󰷏")
+                    self.draw_game_open_folder_button(game, label=icons.folder_open_outline)
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -1610,7 +1620,7 @@ class MainGUI():
                 imgui.style.frame_padding.x * 2 * (play_button + open_folder + open_thread + copy_link) +  # Button padding * 2 sides * 4 buttons
                 imgui.style.item_inner_spacing.x * (played + installed) +  # Checkbox to label spacing * 2 checkboxes
                 imgui.get_frame_height() * (played + installed) +  # (Checkbox height = width) * 2 checkboxes
-                imgui.calc_text_size("󰐊 Play" * play_button + "󰷏 Folder" * open_folder + "󰏌 Thread" * open_thread + "󰆏 Link" * copy_link + "󰈼" * played + "󰅢" * installed).x  # Text
+                imgui.calc_text_size(f"{icons.play} Play" * play_button + f"{icons.folder_open_outline} Folder" * open_folder + f"{icons.open_in_new} Thread" * open_thread + f"{icons.content_copy} Link" * copy_link + icons.flag_checkered * played + icons.cloud_download * installed).x  # Text
             ),
             (
                 imgui.style.item_spacing.x * 2 +  # Between text * 2
@@ -1635,8 +1645,8 @@ class MainGUI():
             wrap_width = None
             notes_width = None
             developer_width = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x * 2
-            notes_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size("󱦹").x
-            status_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size("󰀨").x
+            notes_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size(icons.draw_pen).x
+            status_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size(icons.alert_circle).x
             draw_list = imgui.get_window_draw_list()
             bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
             rounding = globals.settings.style_corner_radius
@@ -1695,7 +1705,7 @@ class MainGUI():
                 if showed_img and globals.settings.show_remove_btn:
                     old_pos = imgui.get_cursor_pos()
                     imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
-                    self.draw_game_remove_button(game, label="󰩺")
+                    self.draw_game_remove_button(game, label=icons.trash_can_outline)
                     imgui.set_cursor_pos(old_pos)
                 # Name
                 if game.installed and game.installed != game.version:
@@ -1706,7 +1716,7 @@ class MainGUI():
                     imgui.same_line()
                     if imgui.get_content_region_available_width() < notes_badge_width:
                         imgui.dummy(0, 0)
-                    imgui.text_colored("󱦹", *globals.settings.style_accent)
+                    imgui.text_colored(icons.draw_pen, *globals.settings.style_accent)
                 if version_enabled:
                     imgui.text_disabled(self.get_game_version_text(game))
                 if status_enabled and game.status is not Status.Normal:
@@ -1721,37 +1731,37 @@ class MainGUI():
                         if play_button:
                             if did_newline:
                                 imgui.same_line()
-                            self.draw_game_play_button(game, label="󰐊 Play")
+                            self.draw_game_play_button(game, label=f"{icons.play} Play")
                             did_newline = True
                         # Open Folder
                         if open_folder:
                             if did_newline:
                                 imgui.same_line()
-                            self.draw_game_open_folder_button(game, label="󰷏 Folder")
+                            self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Folder")
                             did_newline = True
                         # Open Thread
                         if open_thread:
                             if did_newline:
                                 imgui.same_line()
-                            self.draw_game_open_thread_button(game, label="󰏌 Thread")
+                            self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Thread")
                             did_newline = True
                         # Copy Link
                         if copy_link:
                             if did_newline:
                                 imgui.same_line()
-                            self.draw_game_copy_link_button(game, label="󰆏 Link")
+                            self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Link")
                             did_newline = True
                         # Played
                         if played:
                             if did_newline:
                                 imgui.same_line()
-                            self.draw_game_played_checkbox(game, label="󰈼")
+                            self.draw_game_played_checkbox(game, label=icons.flag_checkered)
                             did_newline = True
                         # Installed
                         if installed:
                             if did_newline:
                                 imgui.same_line()
-                            self.draw_game_installed_checkbox(game, label="󰅢")
+                            self.draw_game_installed_checkbox(game, label=icons.cloud_download)
                             did_newline = True
                     else:
                         # Skip if outside view
@@ -1821,7 +1831,7 @@ class MainGUI():
 
         if globals.settings.display_mode is DisplayMode.list:
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-        if imgui.button("󱇘"):
+        if imgui.button(icons.view_agenda_outline):
             new_display_mode = DisplayMode.list
         if globals.settings.display_mode is DisplayMode.list:
             imgui.pop_style_color()
@@ -1830,7 +1840,7 @@ class MainGUI():
 
         if globals.settings.display_mode is DisplayMode.grid:
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-        if imgui.button("󱇙"):
+        if imgui.button(icons.view_grid_outline):
             new_display_mode = DisplayMode.grid
         if globals.settings.display_mode is DisplayMode.grid:
             imgui.pop_style_color()
@@ -1856,10 +1866,10 @@ class MainGUI():
         activated = bool(activated and value)
         if imgui.begin_popup_context_item(f"###bottombar_context"):
             # Right click = more options context menu
-            if imgui.selectable("󰆒 Paste", False)[0]:
+            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
                 value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
             imgui.separator()
-            if imgui.selectable("󰋽 More info", False)[0]:
+            if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                 utils.push_popup(
                     msgbox.msgbox, "About the bottom bar",
                     "This is the filter/add bar. By typing inside it you can search your game list.\n"
@@ -1992,12 +2002,12 @@ class MainGUI():
                 utils.start_refresh_task(api.refresh())
             if imgui.begin_popup_context_item(f"###refresh_context"):
                 # Right click = more options context menu
-                if imgui.selectable("󰅸 Check notifs", False)[0]:
+                if imgui.selectable(f"{icons.bell_badge_outline} Check notifs", False)[0]:
                     utils.start_refresh_task(api.check_notifs(login=True))
-                if imgui.selectable("󱄋 Full Refresh", False)[0]:
+                if imgui.selectable(f"{icons.reload_alert} Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
                 imgui.separator()
-                if imgui.selectable("󰋽 More info", False)[0]:
+                if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                     utils.push_popup(
                         msgbox.msgbox, "About refreshing",
                         "Refreshing is the process by which F95Checker goes through your games and checks\n"
@@ -2124,14 +2134,14 @@ class MainGUI():
                         pos = imgui.get_cursor_pos_x()
                         changed, set.browser_custom_executable = imgui.input_text("###browser_custom_executable", set.browser_custom_executable)
                         if imgui.begin_popup_context_item(f"###browser_context"):
-                            if imgui.selectable("󰆒 Paste", False)[0]:
+                            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
                                 set.browser_custom_executable += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                                 changed = True
                             imgui.end_popup()
                         if changed:
                             async_thread.run(db.update_settings("browser_custom_executable"))
                         imgui.same_line()
-                        clicked = imgui.button("󰷏")
+                        clicked = imgui.button(icons.folder_open_outline)
                         imgui.same_line(spacing=0)
                         args_width = imgui.get_cursor_pos_x() - pos
                         imgui.dummy(0, 0)
@@ -2147,7 +2157,7 @@ class MainGUI():
                         imgui.set_next_item_width(args_width)
                         changed, set.browser_custom_arguments = imgui.input_text("###browser_custom_arguments", set.browser_custom_arguments)
                         if imgui.begin_popup_context_item(f"###browser_args_context"):
-                            if imgui.selectable("󰆒 Paste", False)[0]:
+                            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
                                 set.browser_custom_arguments += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                                 changed = True
                             imgui.end_popup()
@@ -2324,12 +2334,12 @@ class MainGUI():
                             height=imgui.io.display_size.y * 0.6
                         )
                         if imgui.begin_popup_context_item(f"###import_links_context"):
-                            if imgui.selectable("󰆒 Paste", False)[0]:
+                            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
                                 thread_links[0] += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
                             imgui.end_popup()
                     buttons={
-                        "󰄬 Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0]))),
-                        "󰜺 Cancel": None
+                        f"{icons.check} Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0]))),
+                        f"{icons.cancel} Cancel": None
                     }
                     utils.push_popup(utils.popup, "Import thread links", popup_content, buttons, closable=True, outside=False)
                 if imgui.button("F95 bookmarks", width=-offset):
@@ -2341,8 +2351,8 @@ class MainGUI():
                         if selected:
                             async_thread.run(api.import_browser_bookmarks(selected))
                     buttons={
-                        "󰄬 Ok": lambda: utils.push_popup(filepicker.FilePicker("Select or drop bookmark file", callback=callback).tick),
-                        "󰜺 Cancel": None
+                        f"{icons.check} Ok": lambda: utils.push_popup(filepicker.FilePicker("Select or drop bookmark file", callback=callback).tick),
+                        f"{icons.cancel} Cancel": None
                     }
                     utils.push_popup(msgbox.msgbox, "Bookmark file", "F95Checker can import your browser bookmarks using an exported bookmark HTML.\nExporting such a file may vary between browsers, but generally speaking you need to:\n - Open your browser's bookmark manager\n - Find an import / export section, menu or dropdown\n - Click export as HTML\n - Save the file in some place you can find easily\n\nOnce you have done this click Ok and select this file.", MsgBox.info, buttons)
                 file_hover = imgui.is_item_hovered()
@@ -2373,8 +2383,8 @@ class MainGUI():
                 offset = imgui.get_cursor_pos_x() - pos.x
                 if imgui.button("All cookies", width=-offset):
                     buttons = {
-                        "󰄬 Yes": lambda: async_thread.run(db.update_cookies({})),
-                        "󰜺 No": None
+                        f"{icons.check} Yes": lambda: async_thread.run(db.update_cookies({})),
+                        f"{icons.cancel} No": None
                     }
                     utils.push_popup(msgbox.msgbox, "Clear cookies", "Are you sure you want to clear your session cookies?\nThis will invalidate your login session, but might help\nif you are having issues.", MsgBox.warn, buttons)
                 imgui.tree_pop()
