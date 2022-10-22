@@ -45,7 +45,7 @@ def main():
     from modules import db
     async_thread.wait(db.connect())
     async_thread.wait(db.load())
-    async_thread.run(db.save_loop())
+    db_save_loop = async_thread.run(db.save_loop())
 
     from modules import api
     with api.setup():
@@ -59,6 +59,7 @@ def main():
 
         globals.gui.main_loop()
 
+    db_save_loop.cancel()
     async_thread.wait(db.close())
     async_thread.wait(api.shutdown())
 
