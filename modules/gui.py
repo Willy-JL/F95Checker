@@ -885,9 +885,7 @@ class MainGUI():
                     self.draw_game_status_widget(game)
 
                 imgui.spacing()
-                self.draw_game_open_thread_button(game, label="󰏌 Open Thread")
-                imgui.same_line()
-                self.draw_game_copy_link_button(game, label="󰆏 Copy Link")
+                self.draw_game_more_info_button(game, label="󰋽 More Info and Actions")
 
                 imgui.end_group()
                 height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
