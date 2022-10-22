@@ -311,7 +311,7 @@ async def check(game: Game, full=False, login=False):
             return False
         def get_game_attr(*names: list[str]):
             for name in names:
-                if match := re.search(r"^\s*" + re.escape(name) + r"\s*:?\s*\n\s*:?\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
+                if match := re.search(r"^\s*" + name + r"\s*:?\s*\n\s*:?\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
                     return match.group(1).strip()
             return ""
         def get_long_game_attr(*names: list[str]):
@@ -380,7 +380,7 @@ async def check(game: Game, full=False, login=False):
         if not version:
             version = "N/A"
 
-        developer = get_game_attr("developer", "developers", "original developer", "artist", "animator", "producer", "publisher", "developer/publisher", "developer\n/\npublisher", "developer / publisher", "developer & publisher", "modder", "remake by", "game by", "posted by").rstrip("(|-/").strip()
+        developer = get_game_attr("developer/publisher", "developer & publisher", "developer / publisher", "developer\n/\npublisher", "original developer", "developers", "developer", "publisher", "artist", "animator", "producer", "modder", "remake by", "game by", "posted by").rstrip("(|-/").strip()
 
         # Content Types
         if game_has_prefixes("Cheat Mod"):
