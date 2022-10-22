@@ -2491,10 +2491,9 @@ class MainGUI():
             imgui.table_next_column()
             if imgui.button("Choose", width=right_width):
                 def select_callback(selected):
-                    if selected:
-                        set.default_exe_dir = selected
-                        async_thread.run(db.update_settings("default_exe_dir"))
-                utils.push_popup(filepicker.DirPicker("Selecte or drop default exe dir", callback=select_callback).tick)
+                    set.default_exe_dir = selected or ""
+                    async_thread.run(db.update_settings("default_exe_dir"))
+                utils.push_popup(filepicker.DirPicker("Selecte or drop default exe dir", start_dir=set.default_exe_dir, callback=select_callback).tick)
 
             imgui.table_next_row()
             imgui.table_next_column()
