@@ -666,7 +666,7 @@ async def check_updates():
         progress = 0.0
         total = float(asset_size)
         cancel = [False]
-        status = f"Downloading {asset_name}..."
+        status = f"(1/3) Downloading {asset_name}..."
         fmt = "{ratio:.0%}"
         def popup_content():
             imgui.text(status)
@@ -700,7 +700,7 @@ async def check_updates():
                     break
         progress = 0.0
         total = 1.0
-        status = f"Extracting {asset_name}..."
+        status = f"(2/3) Extracting {asset_name}..."
         asset_path = pathlib.Path(tempfile.TemporaryDirectory(prefix=asset_name[:asset_name.rfind(".")] + "-").name)
         with zipfile.ZipFile(asset_data) as z:
             total = float(len(z.filelist))
@@ -714,7 +714,7 @@ async def check_updates():
                 progress += 1
         progress = 5.0
         total = 5.0
-        status = "Installing update in..."
+        status = "(3/3) Installing update in..."
         fmt = "{progress:.0f}s"
         for _ in range(500):
             if cancel[0]:
