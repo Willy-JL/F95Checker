@@ -244,11 +244,12 @@ def extract_thread_matches(text: str) -> list[ThreadMatch]:
     return matches
 
 
-def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True):
+def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, popup_uuid: str = ""):
     if buttons is True:
         buttons = {
             "󰄬 Ok": None
         }
+    label = label + "###popup_" + popup_uuid
     if not imgui.is_popup_open(label):
         imgui.open_popup(label)
     closed = False
@@ -268,8 +269,8 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
             new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btns_width
             if new_pos_x > cur_pos_x:
                 imgui.set_cursor_pos_x(new_pos_x)
-            for label, callback in buttons.items():
-                if imgui.button(label):
+            for text, callback in buttons.items():
+                if imgui.button(text):
                     if callback:
                         callback()
                     imgui.close_current_popup()
@@ -282,13 +283,7 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
 
 
 def push_popup(*args, bottom=False, **kwargs):
-    if len(args) + len(kwargs) > 1:
-        if args[0] is popup or args[0] is msgbox.msgbox:
-            args = list(args)
-            args[1] = args[1] + "###popup_" + rand_num_str()
-        popup_func = functools.partial(*args, **kwargs)
-    else:
-        popup_func = args[0]
+    popup_func = functools.partial(*args, **kwargs, popup_uuid=f"{time.time()}{rand_num_str()}")
     if globals.gui:
         if (globals.gui.minimized or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] is MsgBox.warn or args[3] is MsgBox.error):
             if globals.gui.minimized and args[1].startswith("Daily backups###popup_"):

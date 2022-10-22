@@ -85,7 +85,7 @@ class FilePicker:
         else:
             self.current = -1
 
-    def tick(self):
+    def tick(self, popup_uuid: str = ""):
         if not self.active:
             return 0, True
         io = imgui.get_io()
@@ -96,13 +96,14 @@ class FilePicker:
             self.elapsed = 0.0
             self.refresh()
         # Setup popup
-        if not imgui.is_popup_open(self.title):
-            imgui.open_popup(self.title)
+        label = self.title + "###picker_" + popup_uuid
+        if not imgui.is_popup_open(label):
+            imgui.open_popup(label)
         closed = False
         opened = 1
         size = io.display_size
         imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
-        if imgui.begin_popup_modal(self.title, True, flags=self.flags)[0]:
+        if imgui.begin_popup_modal(label, True, flags=self.flags)[0]:
             closed = utils.close_weak_popup()
             imgui.begin_group()
             # Up button

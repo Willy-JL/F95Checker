@@ -487,14 +487,10 @@ class MainGUI():
                 imgui.text(text)
 
                 open_popup_count = 0
-                for popup in globals.popup_stack:
-                    if hasattr(popup, "tick"):
-                        popup_func = popup.tick
-                    else:
-                        popup_func = popup
+                for popup_func in globals.popup_stack:
                     opened, closed =  popup_func()
                     if closed:
-                        globals.popup_stack.remove(popup)
+                        globals.popup_stack.remove(popup_func)
                     open_popup_count += opened
                 # Popups are closed all at the end to allow stacking
                 for _ in range(open_popup_count):
@@ -692,7 +688,7 @@ class MainGUI():
                 if selected:
                     game.executable = selected
                     async_thread.run(db.update_game(game, "executable"))
-            utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback))
+            utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
         return clicked
 
     def draw_game_unset_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
@@ -808,7 +804,7 @@ class MainGUI():
         imgui.dummy(0, 0)
         imgui.pop_style_color(3)
 
-    def draw_updates_popup(self, updated_games, sorted_ids, count):
+    def draw_updates_popup(self, updated_games, sorted_ids, count, popup_uuid: str = ""):
         def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
@@ -903,9 +899,9 @@ class MainGUI():
                     imgui.text("\n")
             imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
-        return utils.popup(f"{count} update{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False)
+        return utils.popup(f"{count} update{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False, popup_uuid=popup_uuid)
 
-    def draw_game_info_popup(self, game: Game):
+    def draw_game_info_popup(self, game: Game, popup_uuid: str = ""):
         popup_pos = [None]
         popup_size = [None]
         zoom_popup = [False]
@@ -1100,8 +1096,8 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             popup_pos[0] = imgui.get_window_position()
             popup_size[0] = imgui.get_window_size()
-        return_args = utils.popup(f"{game.name}###game_info", popup_content, closable=True, outside=True)
-        if not imgui.is_any_item_active() and globals.popup_stack and getattr(globals.popup_stack[-1], "func", None) == self.draw_game_info_popup and game.id in self.sorted_games_ids:
+        return_args = utils.popup(game.name, popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+        if not imgui.is_any_item_active() and len(globals.popup_stack) == 1 and game.id in self.sorted_games_ids:
             pos = popup_pos[0]
             size = popup_size[0]
             if size and pos:
@@ -1139,7 +1135,7 @@ class MainGUI():
                     return 1, True
         return return_args
 
-    def draw_about_popup(self):
+    def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
             _60 = self.scaled(60)
             _230 = self.scaled(230)
@@ -1256,7 +1252,7 @@ class MainGUI():
                 imgui.bullet_text(name)
                 imgui.same_line(spacing=16)
             imgui.pop_text_wrap_pos()
-        return utils.popup("About F95Checker", popup_content, closable=True, outside=True)
+        return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs, manual_sort: int | bool):
         if manual_sort != self.prev_manual_sort:
@@ -2131,7 +2127,7 @@ class MainGUI():
                                 if selected:
                                     set.browser_custom_executable = selected
                                     async_thread.run(db.update_settings("browser_custom_executable"))
-                            utils.push_popup(filepicker.FilePicker(title="Select or drop browser executable", start_dir=set.browser_custom_executable, callback=callback))
+                            utils.push_popup(filepicker.FilePicker(title="Select or drop browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
                         imgui.text("Arguments: ")
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
@@ -2430,7 +2426,7 @@ class MainGUI():
                         if selected:
                             async_thread.run(api.import_browser_bookmarks(selected))
                     buttons={
-                        "󰄬 Ok": lambda: utils.push_popup(filepicker.FilePicker("Select or drop bookmark file", callback=callback)),
+                        "󰄬 Ok": lambda: utils.push_popup(filepicker.FilePicker("Select or drop bookmark file", callback=callback).tick),
                         "󰜺 Cancel": None
                     }
                     utils.push_popup(msgbox.msgbox, "Bookmark file", "F95Checker can import your browser bookmarks using an exported bookmark HTML.\nExporting such a file may vary between browsers, but generally speaking you need to:\n - Open your browser's bookmark manager\n - Find an import / export section, menu or dropdown\n - Click export as HTML\n - Save the file in some place you can find easily\n\nOnce you have done this click Ok and select this file.", MsgBox.info, buttons)
@@ -2439,7 +2435,7 @@ class MainGUI():
                     def callback(selected):
                         if selected:
                             async_thread.run(api.import_url_shortcut(selected))
-                    utils.push_popup(filepicker.FilePicker("Select or drop shortcut file", callback=callback)),
+                    utils.push_popup(filepicker.FilePicker("Select or drop shortcut file", callback=callback).tick),
                 file_hover = file_hover or imgui.is_item_hovered()
                 if file_hover:
                     self.draw_hover_text("You can also drag and drop .html and .url files into the window for this!", text=None, force=True)
@@ -2498,7 +2494,7 @@ class MainGUI():
                     if selected:
                         set.default_exe_dir = selected
                         async_thread.run(db.update_settings("default_exe_dir"))
-                utils.push_popup(filepicker.DirPicker("Selecte or drop default exe dir", callback=select_callback))
+                utils.push_popup(filepicker.DirPicker("Selecte or drop default exe dir", callback=select_callback).tick)
 
             imgui.table_next_row()
             imgui.table_next_column()

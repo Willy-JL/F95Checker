@@ -14,7 +14,7 @@ popup_flags: int = (
 )
 
 
-def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None):
+def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None, popup_uuid: str = ""):
     def popup_content():
         spacing = 2 * imgui.style.item_spacing.x
         if type is MsgBox.info:
@@ -54,7 +54,7 @@ def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.
         imgui.end_group()
         imgui.same_line(spacing=spacing)
         imgui.dummy(0, 0)
-    return utils.popup(title, popup_content, buttons, closable=False, outside=False)
+    return utils.popup(title, popup_content, buttons, closable=False, outside=False, popup_uuid=popup_uuid)
 
 
 class Exc(Exception):
