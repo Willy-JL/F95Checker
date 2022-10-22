@@ -82,6 +82,7 @@ async def connect():
         "browser_html":                f'INTEGER DEFAULT {int(False)}',
         "browser_private":             f'INTEGER DEFAULT {int(False)}',
         "browser":                     f'INTEGER DEFAULT {Browser.get(0).hash}',
+        "check_notifs":                f'INTEGER DEFAULT {int(True)}',
         "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
         "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
         "default_exe_dir":             f'TEXT    DEFAULT ""',

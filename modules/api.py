@@ -800,7 +800,7 @@ async def refresh(full=False):
         game_queue.put_nowait(game)
 
     globals.refresh_progress += 1
-    globals.refresh_total += game_queue.qsize() + 1
+    globals.refresh_total += game_queue.qsize() + int(globals.settings.check_notifs)
     images.avail = int(max(1, globals.settings.refresh_workers / 10))
 
     game_refresh_task = asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
@@ -810,4 +810,5 @@ async def refresh(full=False):
     game_refresh_task.add_done_callback(reset_counts)
     await game_refresh_task
 
-    await check_notifs()
+    if globals.settings.check_notifs:
+        await check_notifs()

@@ -379,6 +379,7 @@ class Settings:
     browser_custom_executable   : str
     browser_html                : bool
     browser_private             : bool
+    check_notifs                : bool
     confirm_on_remove           : bool
     default_exe_dir             : str
     display_mode                : DisplayMode

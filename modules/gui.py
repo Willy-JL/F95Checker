@@ -1945,7 +1945,7 @@ class MainGUI():
                 utils.start_refresh_task(api.refresh())
             if imgui.begin_popup_context_item(f"###refresh_context"):
                 # Right click = more options context menu
-                if imgui.selectable("󰅸 Only notifs", False)[0]:
+                if imgui.selectable("󰅸 Check notifs", False)[0]:
                     utils.start_refresh_task(api.check_notifs(login=True))
                 if imgui.selectable("󱄋 Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
@@ -2537,6 +2537,16 @@ class MainGUI():
             imgui.spacing()
 
         if self.start_settings_section("Refresh", right_width):
+            imgui.table_next_row()
+            imgui.table_next_column()
+            imgui.text("Check alerts and inbox:")
+            imgui.table_next_column()
+            imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+            changed, value = imgui.checkbox("###check_notifs", set.check_notifs)
+            if changed:
+                set.check_notifs = value
+                async_thread.run(db.update_settings("check_notifs"))
+
             imgui.table_next_row()
             imgui.table_next_column()
             imgui.text("Refresh if completed:")
