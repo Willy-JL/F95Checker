@@ -302,6 +302,7 @@ class FilterMode(EnumNameHack, IntEnum, EnumAutoValue):
     Status    = ()
     Tag       = ()
     Type      = ()
+    Updated   = ()
 
 
 @dataclasses.dataclass

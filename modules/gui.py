@@ -598,6 +598,19 @@ class MainGUI():
         imgui.pop_style_color(3)
         imgui.pop_style_var(2)
 
+    def draw_game_update_icon(self, game: Game, *args, **kwargs):
+        imgui.text_colored("󰓏", 0.85, 0.85, 0.00, *args, **kwargs)
+        if imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+            imgui.text_unformatted(
+                "This game has an update available!\n"
+                f"Installed version: {game.installed}\n"
+                f"Latest version: {game.version}"
+            )
+            imgui.pop_text_wrap_pos()
+            imgui.end_tooltip()
+
     def draw_game_name_text(self, game: Game, *args, **kwargs):
         if game.played:
             imgui.text(game.name, *args, **kwargs)
@@ -1307,21 +1320,23 @@ class MainGUI():
             self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Unchecked)
             for flt in self.filters:
                 match flt.mode.value:
-                    case FilterMode.Type.value:
-                        key = lambda id: flt.invert != (globals.games[id].type is flt.match)
-                    case FilterMode.Status.value:
-                        key = lambda id: flt.invert != (globals.games[id].status is flt.match)
-                    case FilterMode.Rating.value:
-                        key = lambda id: flt.invert != (globals.games[id].rating == flt.match)
-                    case FilterMode.Played.value:
-                        key = lambda id: flt.invert != (globals.games[id].played is True)
                     case FilterMode.Installed.value:
                         if flt.include_outdated:
                             key = lambda id: flt.invert != (globals.games[id].installed != "")
                         else:
                             key = lambda id: flt.invert != (globals.games[id].installed == globals.games[id].version)
+                    case FilterMode.Played.value:
+                        key = lambda id: flt.invert != (globals.games[id].played is True)
+                    case FilterMode.Rating.value:
+                        key = lambda id: flt.invert != (globals.games[id].rating == flt.match)
+                    case FilterMode.Status.value:
+                        key = lambda id: flt.invert != (globals.games[id].status is flt.match)
                     case FilterMode.Tag.value:
                         key = lambda id: flt.invert != (flt.match in globals.games[id].tags)
+                    case FilterMode.Type.value:
+                        key = lambda id: flt.invert != (globals.games[id].type is flt.match)
+                    case FilterMode.Updated.value:
+                        key = lambda id: flt.invert != (globals.games[id].installed != "" and globals.games[id].installed != globals.games[id].version)
                     case _:
                         key = None
                 if key is not None:
@@ -1477,6 +1492,9 @@ class MainGUI():
                 imgui.table_set_column_index(name)
                 if globals.settings.show_remove_btn:
                     self.draw_game_remove_button(game, label="󰩺")
+                    imgui.same_line()
+                if game.installed and game.installed != game.version:
+                    self.draw_game_update_icon(game)
                     imgui.same_line()
                 self.draw_game_name_text(game)
                 if game.notes:
@@ -1680,6 +1698,9 @@ class MainGUI():
                     self.draw_game_remove_button(game, label="󰩺")
                     imgui.set_cursor_pos(old_pos)
                 # Name
+                if game.installed and game.installed != game.version:
+                    self.draw_game_update_icon(game)
+                    imgui.same_line()
                 self.draw_game_name_text(game)
                 if game.notes:
                     imgui.same_line()
@@ -2010,14 +2031,14 @@ class MainGUI():
             if changed and value > 0:
                 flt = Filter(FilterMode(value + 1))
                 match flt.mode.value:
-                    case FilterMode.Type.value:
-                        flt.match = Type._members_[Type._members_list_[0]]
-                    case FilterMode.Status.value:
-                        flt.match = Status._members_[Status._members_list_[0]]
                     case FilterMode.Rating.value:
                         flt.match = 0
+                    case FilterMode.Status.value:
+                        flt.match = Status._members_[Status._members_list_[0]]
                     case FilterMode.Tag.value:
                         flt.match = Tag._members_[Tag._members_list_[0]]
+                    case FilterMode.Type.value:
+                        flt.match = Type._members_[Type._members_list_[0]]
                 self.filters.append(flt)
                 self.require_sort = True
 
