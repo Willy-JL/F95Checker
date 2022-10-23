@@ -286,12 +286,11 @@ async def check(game: Game, full=False, login=False):
             breaking_changes = int(br) > int(ch)
             break  # If field is bigger then its breaking
         return breaking_changes
-    breaking_version = last_refresh_before("9.0")
-    breaking_popup = breaking_version
-    breaking_image = last_refresh_before("9.0")
-    breaking_generic = last_refresh_before("9.4")
-    any_breaking = breaking_version  or breaking_popup or breaking_image or breaking_generic
-    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or any_breaking
+    breaking_version_parsing = last_refresh_before("9.0")
+    breaking_keep_old_image = last_refresh_before("9.0")
+    breaking_parsing_changes = last_refresh_before("9.4")
+    breaking_skip_update_popup = breaking_version_parsing
+    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_parsing_changes
     if not full:
         async with request("HEAD", game.url) as req:
             if (redirect := str(req.real_url)) != game.url:
@@ -475,7 +474,7 @@ async def check(game: Game, full=False, login=False):
         # Do not reset played and installed checkboxes if refreshing with braking changes
         played = game.played
         installed = game.installed
-        if breaking_version:
+        if breaking_version_parsing:
             if old_version == installed:
                 installed = version  # Is breaking and was previously installed, mark again as installed
         else:
@@ -499,7 +498,7 @@ async def check(game: Game, full=False, login=False):
         else:
             image_url = "-"
         fetch_image = game.image.missing
-        if not globals.settings.update_keep_image and not breaking_image:
+        if not globals.settings.update_keep_image and not breaking_keep_old_image:
             fetch_image = fetch_image or (image_url != game.image_url)
 
         if fetch_image and image_url and image_url != "-":
@@ -562,7 +561,7 @@ async def check(game: Game, full=False, login=False):
             game.image_url = image_url
             await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
 
-            if old_status is not Status.Unchecked and not breaking_popup and (
+            if old_status is not Status.Unchecked and not breaking_skip_update_popup and (
                 name != old_name or
                 version != old_version or
                 status != old_status
