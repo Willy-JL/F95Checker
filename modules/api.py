@@ -811,3 +811,6 @@ async def refresh(full=False):
 
     if globals.settings.check_notifs:
         await check_notifs()
+
+    globals.settings.last_successful_refresh.update(time.time())
+    await db.update_settings("last_successful_refresh")

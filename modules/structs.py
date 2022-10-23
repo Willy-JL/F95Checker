@@ -40,7 +40,7 @@ class CounterContext:
 
 
 class Timestamp:
-    def __init__(self, unix_time: int | float, format="%d/%m/%Y"):
+    def __init__(self, unix_time: int | float, format="%d/%m/%Y %H:%M"):
         self.format = format
         self.display = ""
         self.value = 0
@@ -51,7 +51,12 @@ class Timestamp:
         if self.value == 0:
             self.display = ""
         else:
-            self.display = datetime.date.fromtimestamp(unix_time).strftime(self.format)
+            self.display = datetime.datetime.fromtimestamp(unix_time).strftime(self.format)
+
+
+class Datestamp(Timestamp):
+    def __init__(self, unix_time: int | float):
+        super().__init__(unix_time, format="%d/%m/%Y")
 
 
 class DefaultStyle:
@@ -388,6 +393,7 @@ class Settings:
     grid_columns                : int
     grid_image_ratio            : float
     interface_scaling           : float
+    last_successful_refresh     : Timestamp
     manual_sort_list            : list
     minimize_on_close           : bool
     refresh_completed_games     : bool
@@ -491,11 +497,11 @@ class Game:
     type                 : Type
     status               : Status
     url                  : str
-    added_on             : Timestamp
-    last_updated         : Timestamp
+    added_on             : Datestamp
+    last_updated         : Datestamp
     last_full_refresh    : int
     last_refresh_version : str
-    last_played          : Timestamp
+    last_played          : Datestamp
     rating               : int
     played               : bool
     installed            : str

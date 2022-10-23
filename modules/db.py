@@ -90,6 +90,7 @@ async def connect():
         "grid_columns":                f'INTEGER DEFAULT 3',
         "grid_image_ratio":            f'REAL    DEFAULT 3.0',
         "interface_scaling":           f'REAL    DEFAULT 1.0',
+        "last_successful_refresh":     f'INTEGER DEFAULT 0',
         "manual_sort_list":            f'TEXT    DEFAULT "[]"',
         "minimize_on_close":           f'INTEGER DEFAULT {int(False)}',
         "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',

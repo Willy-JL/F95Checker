@@ -2481,6 +2481,10 @@ class MainGUI():
             if changed:
                 async_thread.run(db.update_settings("tray_refresh_interval"))
 
+            draw_settings_label(f"Last refresh: {set.last_successful_refresh.display or 'Never'}")
+            imgui.text("")
+            imgui.spacing()
+
             imgui.end_table()
             imgui.spacing()
 
