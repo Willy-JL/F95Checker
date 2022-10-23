@@ -1522,7 +1522,7 @@ class MainGUI():
                 self.draw_game_name_text(game)
                 if game.notes:
                     imgui.same_line()
-                    imgui.text_colored(icons.draw_pen, *globals.settings.style_accent)
+                    imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
                 if version_enabled:
                     imgui.same_line()
                     imgui.text_disabled(self.get_game_version_text(game))
@@ -1729,7 +1729,7 @@ class MainGUI():
                     imgui.same_line()
                     if imgui.get_content_region_available_width() < notes_badge_width:
                         imgui.dummy(0, 0)
-                    imgui.text_colored(icons.draw_pen, *globals.settings.style_accent)
+                    imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
                 if version_enabled:
                     imgui.text_disabled(self.get_game_version_text(game))
                 if status_enabled and game.status is not Status.Normal:
