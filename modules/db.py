@@ -211,9 +211,7 @@ async def load_games(id: int = None):
     cursor = await connection.execute(query)
     games = await cursor.fetchall()
     for game in games:
-        game = dict(game)
-        game = {key: sql_to_py(value, types[key]) for key, value in game.items() if key in types}
-        game["image"] = imagehelper.ImageHelper(globals.images_path, glob=f"{game['id']}.*")
+        game = {key: sql_to_py(value, types[key]) for key, value in dict(game).items() if key in types}
         globals.games[game["id"]] = Game(**game)
 
 
@@ -223,8 +221,7 @@ async def load():
         SELECT *
         FROM settings
     """)
-    settings = dict(await cursor.fetchone())
-    settings = {key: sql_to_py(value, types[key]) for key, value in settings.items() if key in types}
+    settings = {key: sql_to_py(value, types[key]) for key, value in dict(await cursor.fetchone()).items() if key in types}
     globals.settings = Settings(**settings)
 
     globals.games = {}

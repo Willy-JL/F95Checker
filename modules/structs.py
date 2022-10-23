@@ -5,6 +5,8 @@ import asyncio
 import enum
 import os
 
+from modules import globals
+
 
 class ContextLimiter:
     count = 0
@@ -293,6 +295,12 @@ class Tag(EnumNameHack, IntEnum):
     voyeurism                = 139
 
 
+class ExeState(IntEnum, EnumAutoValue):
+    Invalid   = ()
+    Selected  = ()
+    Unset     = ()
+
+
 class MsgBox(IntEnum, EnumAutoValue):
     info  = ()
     warn  = ()
@@ -301,6 +309,7 @@ class MsgBox(IntEnum, EnumAutoValue):
 
 class FilterMode(EnumNameHack, IntEnum, EnumAutoValue):
     Choose    = ()
+    Exe_State = ()
     Installed = ()
     Played    = ()
     Rating    = ()
@@ -511,8 +520,24 @@ class Game:
     changelog            : str
     tags                 : list[Tag]
     notes                : str
-    image                : imagehelper.ImageHelper
     image_url            : str
+    image                : imagehelper.ImageHelper = None
+    _executable_valid    : bool = None
+
+    @property
+    def executable_valid(self):
+        if self._executable_valid is None:
+            self.validate_executable()
+        return self._executable_valid
+
+    def __post_init__(self):
+        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+
+    def validate_executable(self):
+        if self.executable:
+            self._executable_valid = os.path.isfile(self.executable)
+        else:
+            self._executable_valid = False
 
 
 @dataclasses.dataclass

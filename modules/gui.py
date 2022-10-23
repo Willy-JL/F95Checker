@@ -16,7 +16,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
 from modules import globals, api, async_thread, callbacks, db, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils
 
 imgui.io = None
@@ -581,14 +581,16 @@ class MainGUI():
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}###{game.id}_play_button"
-        if not game.installed:
-            utils.push_disabled()
+        if not game.executable:
+            imgui.push_style_color(imgui.COLOR_TEXT, *imgui.style.colors[imgui.COLOR_TEXT_DISABLED][:3], 0.75)
+        elif not game.executable_valid:
+            imgui.push_style_color(imgui.COLOR_TEXT, 0.87, 0.20, 0.20)
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
-        if not game.installed:
-            utils.pop_disabled()
+        if not game.executable or not game.executable_valid:
+            imgui.pop_style_color()
         if imgui.is_item_clicked(2):
             callbacks.open_game_folder(game)
         elif clicked:
@@ -1357,6 +1359,8 @@ class MainGUI():
             self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Unchecked)
             for flt in self.filters:
                 match flt.mode.value:
+                    case FilterMode.Exe_State.value:
+                        key = lambda id: flt.invert != ((globals.games[id].executable == "") if flt.match is ExeState.Unset else ((globals.games[id].executable != "") and (globals.games[id].executable_valid != (flt.match is ExeState.Invalid))))
                     case FilterMode.Installed.value:
                         key = lambda id: flt.invert != ((globals.games[id].installed != "") if flt.include_outdated else (globals.games[id].installed == globals.games[id].version))
                     case FilterMode.Played.value:
@@ -2065,6 +2069,8 @@ class MainGUI():
             if changed and value > 0:
                 flt = Filter(FilterMode(value + 1))
                 match flt.mode.value:
+                    case FilterMode.Exe_State.value:
+                        flt.match = ExeState._members_[ExeState._members_list_[0]]
                     case FilterMode.Rating.value:
                         flt.match = 0
                     case FilterMode.Status.value:
@@ -2086,7 +2092,14 @@ class MainGUI():
                             self.filters.pop(i)
                     self.require_sort = True
 
-                if flt.mode is FilterMode.Installed:
+                if flt.mode is FilterMode.Exe_State:
+                    draw_settings_label("Executable state:")
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", ExeState._members_list_.index(flt.match.name), ExeState._members_list_)
+                    if changed:
+                        flt.match = ExeState._members_[ExeState._members_list_[value]]
+                        self.require_sort = True
+
+                elif flt.mode is FilterMode.Installed:
                     draw_settings_label("Include outdated:")
                     imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                     changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.include_outdated)
