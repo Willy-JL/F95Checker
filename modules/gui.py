@@ -664,12 +664,16 @@ class MainGUI():
             self.require_sort = True
 
     def draw_game_installed_checkbox(self, game: Game, label="", *args, **kwargs):
-        changed, installed = imgui.checkbox(f"{label}###{game.id}_installed", game.installed == game.version, *args, **kwargs)
+        if game.installed and game.installed == game.version:
+            checkbox = imgui.checkbox
+        else:
+            checkbox = imgui._checkbox
+        changed, _ = checkbox(f"{label}###{game.id}_installed", bool(game.installed), *args, **kwargs)
         if changed:
-            if installed:
-                game.installed = game.version
+            if game.installed == game.version:
+                game.installed = ""  # Latest installed -> Not installed
             else:
-                game.installed = ""
+                game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
             async_thread.run(db.update_game(game, "installed"))
             self.require_sort = True
 
@@ -1341,7 +1345,7 @@ class MainGUI():
                         case 11:  # Played
                             key = lambda id: not globals.games[id].played
                         case 12:  # Installed
-                            key = lambda id: globals.games[id].installed != globals.games[id].version
+                            key = lambda id: 2 if not globals.games[id].installed else 1 if globals.games[id].installed == globals.games[id].version else 0
                         case 13:  # Rating
                             key = lambda id: - globals.games[id].rating
                         case 14:  # Notes
@@ -1354,10 +1358,7 @@ class MainGUI():
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Installed.value:
-                        if flt.include_outdated:
-                            key = lambda id: flt.invert != (globals.games[id].installed != "")
-                        else:
-                            key = lambda id: flt.invert != (globals.games[id].installed == globals.games[id].version)
+                        key = lambda id: flt.invert != ((globals.games[id].installed != "") if flt.include_outdated else (globals.games[id].installed == globals.games[id].version))
                     case FilterMode.Played.value:
                         key = lambda id: flt.invert != (globals.games[id].played is True)
                     case FilterMode.Rating.value:
