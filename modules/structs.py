@@ -523,6 +523,16 @@ class Game:
     image_url            : str
     image                : imagehelper.ImageHelper = None
     _executable_valid    : bool = None
+    _init_done           : bool = False
+
+    def __post_init__(self):
+        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+        self._init_done = True
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name == "executable" and self._init_done:
+            self.validate_executable()
 
     @property
     def executable_valid(self):
@@ -530,14 +540,13 @@ class Game:
             self.validate_executable()
         return self._executable_valid
 
-    def __post_init__(self):
-        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
-
     def validate_executable(self):
         if self.executable:
             self._executable_valid = os.path.isfile(self.executable)
         else:
             self._executable_valid = False
+        if globals.gui:
+            globals.gui.require_sort = True
 
 
 @dataclasses.dataclass
