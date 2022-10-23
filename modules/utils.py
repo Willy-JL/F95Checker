@@ -54,10 +54,12 @@ def is_refreshing():
     return False
 
 
-def start_refresh_task(coro: typing.Coroutine):
+def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
     if is_refreshing():
         return
-    globals.gui.bg_mode_timer = None
+    if reset_bg_timers:
+        globals.gui.bg_mode_timer = None
+        globals.gui.bg_mode_notifs_timer = None
     globals.refresh_progress = 0
     globals.refresh_total = 1
     globals.gui.refresh_ratio_smooth = 0.0

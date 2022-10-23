@@ -416,6 +416,7 @@ class Settings:
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
     tray_refresh_interval       : int
+    tray_notifs_interval        : int
     update_keep_image           : bool
     vsync_ratio                 : int
     zoom_amount                 : int

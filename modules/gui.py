@@ -104,6 +104,7 @@ class MainGUI():
         self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
+        self.bg_mode_notifs_timer: float = None
 
         # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
@@ -390,6 +391,7 @@ class MainGUI():
 
     def show(self, *args, **kwargs):
         self.bg_mode_timer = None
+        self.bg_mode_notifs_timer = None
         glfw.hide_window(self.window)
         glfw.show_window(self.window)
         if utils.validate_geometry(*self.screen_pos, *self.prev_size):
@@ -523,7 +525,15 @@ class MainGUI():
                         self.bg_mode_timer = time.time() + globals.settings.tray_refresh_interval * 60
                         self.tray.update_status()
                     elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
-                        utils.start_refresh_task(api.refresh())
+                        globals.gui.bg_mode_timer = None
+                        utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
+                    elif globals.settings.check_notifs:
+                        if not self.bg_mode_notifs_timer and not utils.is_refreshing():
+                            self.bg_mode_notifs_timer = time.time() + globals.settings.tray_notifs_interval * 60
+                            self.tray.update_status()
+                        elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
+                            globals.gui.bg_mode_notifs_timer = None
+                            utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
                 if self.tray.menu_open:
                     time.sleep(1 / 60)
                 else:
@@ -2473,13 +2483,29 @@ class MainGUI():
 
             draw_settings_label(
                 "BG interval:",
-                "When F95Checker is minimized in background mode it automatically refreshes periodically. This controls how "
-                "often (in minutes) this happens."
+                "When F95Checker is minimized in background mode it automatically refreshes your games periodically. This "
+                "controls how often (in minutes) this happens."
             )
-            changed, value = imgui.drag_int("###tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=15, max_value=720, format="%d min")
-            set.tray_refresh_interval = min(max(value, 15), 720)
+            changed, value = imgui.drag_int("###tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=30, max_value=1440, format="%d min")
+            set.tray_refresh_interval = min(max(value, 30), 1440)
             if changed:
                 async_thread.run(db.update_settings("tray_refresh_interval"))
+
+            if not set.check_notifs:
+                utils.push_disabled()
+
+            draw_settings_label(
+                "BG notifs intv:",
+                "When F95Checker is minimized in background mode it automatically checks your notifications periodically. This "
+                "controls how often (in minutes) this happens."
+            )
+            changed, value = imgui.drag_int("###tray_notifs_interval", set.tray_notifs_interval, change_speed=4.0, min_value=15, max_value=1440, format="%d min")
+            set.tray_notifs_interval = min(max(value, 15), 1440)
+            if changed:
+                async_thread.run(db.update_settings("tray_notifs_interval"))
+
+            if not set.check_notifs:
+                utils.pop_disabled()
 
             draw_settings_label(f"Last refresh: {set.last_successful_refresh.display or 'Never'}")
             imgui.text("")
@@ -2594,6 +2620,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             self.main_gui.bg_mode_paused = not self.main_gui.bg_mode_paused
             if self.main_gui.bg_mode_paused:
                 self.main_gui.bg_mode_timer = None
+                self.main_gui.bg_mode_notifs_timer = None
             self.update_status()
         self.toggle_pause = QtGui.QAction("Pause Auto Refresh")
         self.toggle_pause.triggered.connect(update_pause)
@@ -2640,8 +2667,8 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         if self.main_gui.minimized:
             if self.main_gui.bg_mode_paused:
                 next_refresh = "Paused"
-            elif self.main_gui.bg_mode_timer:
-                next_refresh = dt.datetime.fromtimestamp(self.main_gui.bg_mode_timer).strftime("%H:%M")
+            elif self.main_gui.bg_mode_timer or self.main_gui.bg_mode_notifs_timer:
+                next_refresh = dt.datetime.fromtimestamp(min(self.main_gui.bg_mode_timer or globals.settings.tray_refresh_interval, self.main_gui.bg_mode_notifs_timer or globals.settings.tray_notifs_interval)).strftime("%H:%M")
             elif utils.is_refreshing():
                 next_refresh = "Now"
             else:

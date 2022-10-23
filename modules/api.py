@@ -779,7 +779,7 @@ async def check_updates():
         globals.gui.tray.push_msg(title="F95Checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
 
-async def refresh(full=False):
+async def refresh(full=False, notifs=True):
     if not await assert_login():
         return
 
@@ -809,7 +809,7 @@ async def refresh(full=False):
     game_refresh_task.add_done_callback(reset_counts)
     await game_refresh_task
 
-    if globals.settings.check_notifs:
+    if notifs and globals.settings.check_notifs:
         await check_notifs()
 
     globals.settings.last_successful_refresh.update(time.time())
