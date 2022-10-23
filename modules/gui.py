@@ -636,6 +636,8 @@ class MainGUI():
     def draw_game_status_widget(self, game: Game, *args, **kwargs):
         if game.status is Status.Unchecked:
             imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50, *args, **kwargs)
+        elif game.status is Status.Normal:
+            imgui.text_colored(icons.lightning_bolt_circle, *imgui.style.colors[imgui.COLOR_TEXT][:-1], *args, **kwargs)
         elif game.status is Status.Completed:
             imgui.text_colored(icons.checkbox_marked_circle, 0.00, 0.85, 0.00, *args, **kwargs)
         elif game.status is Status.OnHold:
@@ -1020,6 +1022,18 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Copy Link")
             imgui.same_line()
+            if imgui.button(f"{icons.pound} ID"):
+                glfw.set_clipboard_string(self.window, str(game.id))
+            if imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+                imgui.text_unformatted(
+                    f"Thread ID: {game.id}\n"
+                    f"Click to copy!"
+                )
+                imgui.pop_text_wrap_pos()
+                imgui.end_tooltip()
+            imgui.same_line()
             self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
             _10 = self.scaled(10)
             imgui.same_line(spacing=_10)
@@ -1027,29 +1041,28 @@ class MainGUI():
             imgui.same_line(spacing=_10)
             self.draw_game_remove_button(game, label=f"{icons.trash_can_outline} Remove")
 
-            imgui.text_disabled("Thread/Game ID:")
+            imgui.text_disabled("Version:")
             imgui.same_line()
-            imgui.text(str(game.id))
+            if game.installed and game.installed != game.version:
+                self.draw_game_update_icon(game)
+                imgui.same_line()
+            offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
+            utils.wrap_text(self.get_game_version_text(game), width=offset + imgui.get_content_region_available_width(), offset=offset)
+
+            imgui.text_disabled("Developer:")
+            imgui.same_line()
+            offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
+            utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             imgui.text_disabled("Personal Rating:")
             imgui.same_line()
             self.draw_game_rating_widget(game)
-
-            imgui.text_disabled("Version:")
-            imgui.same_line()
-            offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
-            utils.wrap_text(self.get_game_version_text(game), width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             imgui.text_disabled("Status:")
             imgui.same_line()
             imgui.text(game.status.name)
             imgui.same_line()
             self.draw_game_status_widget(game)
-
-            imgui.text_disabled("Developer:")
-            imgui.same_line()
-            offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
-            utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             imgui.text_disabled("Type:")
             imgui.same_line()
@@ -1513,7 +1526,7 @@ class MainGUI():
                 if version_enabled:
                     imgui.same_line()
                     imgui.text_disabled(self.get_game_version_text(game))
-                if status_enabled:
+                if status_enabled and game.status is not Status.Normal:
                     imgui.same_line()
                     self.draw_game_status_widget(game)
                 # Developer
@@ -1768,16 +1781,16 @@ class MainGUI():
                         imgui.dummy(0, frame_height)
                 if data_rows:
                     if imgui.is_rect_visible(width, data_height):
-                        # Type
-                        if type:
-                            imgui.text_disabled("Type:")
-                            imgui.same_line()
-                            self.draw_game_type_widget(game)
                         # Developer
                         if developer:
                             imgui.text_disabled("Developer:")
                             imgui.same_line()
                             utils.wrap_text(game.developer or "Unknown", width=wrap_width, offset=developer_width)
+                        # Type
+                        if type:
+                            imgui.text_disabled("Type:")
+                            imgui.same_line()
+                            self.draw_game_type_widget(game)
                         # Last Updated
                         if last_updated:
                             imgui.text_disabled("Last Updated:")
