@@ -286,10 +286,10 @@ async def check(game: Game, full=False, login=False):
             breaking_changes = int(br) > int(ch)
             break  # If field is bigger then its breaking
         return breaking_changes
-    breaking_version_parsing = last_refresh_before("9.0")
-    breaking_keep_old_image = last_refresh_before("9.0")
-    breaking_parsing_changes = last_refresh_before("9.4")
-    breaking_skip_update_popup = breaking_version_parsing
+    breaking_version_parsing = last_refresh_before("9.0")  # Keep installed and played checkboxes from pre 9.0
+    breaking_keep_old_image = last_refresh_before("9.0")  # Keep images from pre 9.0
+    breaking_parsing_changes = last_refresh_before("9.4.1")  # Improved developer parsing (3e5c0e35cde41a210bde1ee8ac9098ead23efa34)
+    breaking_skip_update_popup = breaking_version_parsing  # Hide update notification for breaking backend changes
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_parsing_changes
     if not full:
         async with request("HEAD", game.url) as req:
