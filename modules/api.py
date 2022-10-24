@@ -95,13 +95,16 @@ async def fetch(method: str, url: str, **kwargs):
     return raw, req
 
 
-def raise_f95zone_error(raw: bytes):
+def raise_f95zone_error(raw: bytes, return_login=False):
     if b"<title>Log in | F95zone</title>" in raw:
+        if return_login:
+            return False
         raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
     if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in raw:
         raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
     # if b"<title>DDOS-GUARD</title>" in data:
     #     raise Exception("Captcha needed!")
+    return True
 
 
 async def is_logged_in():
@@ -114,13 +117,9 @@ async def is_logged_in():
         globals.token = str(raw[start:end], encoding="utf-8")
         if not 200 <= req.status < 300:
             raw += await req.content.read()
-            try:
-                raise_f95zone_error(raw)
-            except msgbox.Exc as exc:
-                if exc.title == "Login expired" and not globals.gui.minimized:
-                    globals.popup_stack.remove(exc.popup)
-                    return False
-                raise
+            if not raise_f95zone_error(raw, return_login=True):
+                return False
+            # Check login page was not in 200 range, but error is not a login issue
             async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
                 await f.write(raw)
             raise msgbox.Exc("Login assertion failure", f"Something went wrong checking the validity of your login session.\n\nF95Zone replied with a status code of {req.status} at this URL:\n{str(req.real_url)}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}login_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
