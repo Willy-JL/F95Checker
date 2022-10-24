@@ -1,14 +1,23 @@
-git+https://github.com/mcfletch/pyopengl.git@227f9c66976d9f5dadf62b9a97e6beaec84831ca#subdirectory=accelerate
-git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0
-pywin32 ; sys_platform == "win32"
-uvloop ; sys_platform != "win32"
+# OpenGL + glfw
+git+https://github.com/mcfletch/pyopengl.git@227f9c66976d9f5dadf62b9a97e6beaec84831ca#subdirectory=accelerate  # Accelerate release is a version behind
 PyOpenGL==3.1.6
+glfw
+
+# Interface stuff
+git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0  # Pending 2.0.0 release
 PyQt6-WebEngine
-beautifulsoup4
+PyQt6
+
+# Async goodness
 aiosqlite
 aiofiles
 aiohttp
-Pillow
-PyQt6
-glfw
+
+# BeautifulSoup
+beautifulsoup4
 lxml
+
+# Misc
+pywin32 ; sys_platform == "win32"
+uvloop ; sys_platform != "win32"
+Pillow
