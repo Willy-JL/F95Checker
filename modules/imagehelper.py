@@ -3,7 +3,6 @@ from PIL import Image, ImageSequence, UnidentifiedImageError
 import OpenGL.GL as gl
 import pathlib
 import imgui
-import numpy
 
 from modules import sync_thread
 
@@ -24,7 +23,7 @@ class ImageHelper:
         self.current_frame = -1
         self.frame_elapsed = 0.0
         self.data: bytes | list[bytes] = None
-        self._texture_id: numpy.uint32 = None
+        self._texture_id: int = None
         self.frame_durations: list[float] = None
         self.path = pathlib.Path(path)
         self.resolved_path: pathlib.Path = None

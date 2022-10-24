@@ -10,6 +10,5 @@ aiofiles
 aiohttp
 Pillow
 PyQt6
-numpy
 glfw
 lxml
