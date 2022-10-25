@@ -6,6 +6,8 @@ import imgui
 
 from modules import sync_thread
 
+redraw = False
+
 
 class ImageHelper:
     def __init__(self, path: str | pathlib.Path, glob=""):
@@ -139,6 +141,9 @@ class ImageHelper:
         if self.missing:
             return False
         if imgui.is_rect_visible(width, height):
+            if self.animated or self.loading:
+                global redraw
+                redraw = True
             if "rounding" in kwargs:
                 flags = kwargs.pop("flags", None)
                 if flags is None:
