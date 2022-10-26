@@ -408,14 +408,20 @@ class MainGUI():
         prev_win_hovered = None
         prev_mouse_pos = None
         scroll_energy = 0.0
+        any_hovered = False
         win_hovered = None
         prev_cursor = -1
-        draw_next = 10.0
+        draw_next = 5.0
+        size = (0, 0)
+        cursor = -1
         # While window is open
         while not glfw.window_should_close(self.window):
             # Tick events and inputs
             prev_mouse_pos = imgui.io.mouse_pos
             prev_win_hovered = win_hovered
+            prev_any_hovered = any_hovered
+            self.prev_size = size
+            prev_cursor = cursor
             self.qt_app.processEvents()
             self.tray.tick_msgs()
             if self.repeat_chars:
@@ -427,6 +433,9 @@ class MainGUI():
             self.impl.process_inputs()
             # Window state handling
             size = imgui.io.display_size
+            mouse_pos = imgui.io.mouse_pos
+            cursor = imgui.get_mouse_cursor()
+            any_hovered = imgui.is_any_item_hovered()
             win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
             if not self.focused and win_hovered:
                 # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
@@ -451,7 +460,7 @@ class MainGUI():
                 draw = draw or imagehelper.redraw
                 draw = draw or utils.is_refreshing()
                 draw = draw or size != self.prev_size
-                draw = draw or (prev_mouse_pos != imgui.io.mouse_pos and (prev_win_hovered or win_hovered))
+                draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                 draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                 if draw:
                     draw_next = max(draw_next, 0.5)  # Draw for at least next half second
@@ -459,8 +468,6 @@ class MainGUI():
                     draw_next -= imgui.io.delta_time
 
                     # Reactive mouse cursors
-                    cursor = imgui.get_mouse_cursor()
-                    any_hovered = imgui.is_any_item_hovered()
                     if cursor != prev_cursor or any_hovered != prev_any_hovered:
                         shape = glfw.ARROW_CURSOR
                         if cursor == imgui.MOUSE_CURSOR_TEXT_INPUT:
@@ -468,8 +475,6 @@ class MainGUI():
                         elif any_hovered:
                             shape = glfw.HAND_CURSOR
                         glfw.set_cursor(self.window, glfw.create_standard_cursor(shape))
-                        prev_cursor = cursor
-                        prev_any_hovered = any_hovered
 
                     # Updated games popup
                     if not utils.is_refreshing() and globals.updated_games:
