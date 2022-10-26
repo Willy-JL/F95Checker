@@ -426,6 +426,7 @@ class MainGUI():
             glfw.poll_events()
             self.impl.process_inputs()
             # Window state handling
+            size = imgui.io.display_size
             win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
             if not self.focused and win_hovered:
                 # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
@@ -449,6 +450,7 @@ class MainGUI():
                 draw = draw or self.require_sort
                 draw = draw or imagehelper.redraw
                 draw = draw or utils.is_refreshing()
+                draw = draw or size != self.prev_size
                 draw = draw or (prev_mouse_pos != imgui.io.mouse_pos and (prev_win_hovered or win_hovered))
                 draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                 if draw:
@@ -481,9 +483,9 @@ class MainGUI():
                     imgui.new_frame()
                     imagehelper.redraw = False
 
-                    # Imgui window is top left of display window, and ahs same size
+                    # Imgui window is top left of display window, and has same size
                     imgui.set_next_window_position(0, 0, imgui.ONCE)
-                    if (size := imgui.io.display_size) != self.prev_size and not self.iconized:
+                    if size != self.prev_size and not self.iconized:
                         imgui.set_next_window_size(*size, imgui.ALWAYS)
 
                     # Create main window
