@@ -19,6 +19,8 @@ jobs:
           - "macos-12"
         python:
           - "3.10.8"
+        cx-logging:
+          - "3512a9f7b7f66b1d8c0c94dc1f7aab99a8eb5e9c"
         cx-freeze:
           - "6.13.0"
     name: "${{ matrix.os }}"
@@ -34,18 +36,19 @@ jobs:
           git config --global core.eol lf
 
       - name: "Setup Python"
-        uses: "actions/setup-python@v2"
+        uses: "actions/setup-python@v4"
         with:
           python-version: "${{ matrix.python }}"
 
       - name: "Setup cx_Freeze"
         run: |
+          pip install -U 'git+https://github.com/marcelotduarte/cx_Logging.git@${{ matrix.cx-logging }}'
           pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
       # === BUILD ===
 
       - name: "Clone repo"
-        uses: "actions/checkout@v2"
+        uses: "actions/checkout@v3"
         with:
           path: "."
 
@@ -109,7 +112,7 @@ jobs:
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
-        uses: "actions/upload-artifact@v2"
+        uses: "actions/upload-artifact@v3"
         with:
           name: "${{ runner.os }}"
           path: "./${{ github.event.repository.name }}-${{ runner.os }}.zip"
@@ -138,7 +141,7 @@ jobs:
       # === PACKAGE ===
 
       - name: "Clone repo"
-        uses: "actions/checkout@v2"
+        uses: "actions/checkout@v3"
         with:
           path: "."
 
@@ -173,7 +176,7 @@ jobs:
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
-        uses: "actions/upload-artifact@v2"
+        uses: "actions/upload-artifact@v3"
         with:
           name: "Source"
           path: "./${{ github.event.repository.name }}-Source.zip"
@@ -201,7 +204,7 @@ jobs:
           git config --global core.eol lf
 
       - name: "Clone repo"
-        uses: "actions/checkout@v2"
+        uses: "actions/checkout@v3"
         with:
           path: "."
 
