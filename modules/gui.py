@@ -452,7 +452,7 @@ class MainGUI():
                 draw = draw or (prev_mouse_pos != imgui.io.mouse_pos and (prev_win_hovered or win_hovered))
                 draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                 if draw:
-                    draw_next = 0.5  # Draw for next half second
+                    draw_next = max(draw_next, 0.5)  # Draw for at least next half second
                 if draw_next > 0.0:
                     draw_next -= imgui.io.delta_time
 
