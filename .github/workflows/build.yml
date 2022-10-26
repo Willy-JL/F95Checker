@@ -33,40 +33,32 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: "Setup python"
+      - name: "Setup Python"
         uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python }}"
 
-      - name: "Clone cx_Freeze source"
-        uses: "actions/checkout@v2"
-        with:
-          repository: "marcelotduarte/cx_Freeze"
-          ref: "${{ matrix.cx-freeze }}"
-          path: "./cx_Freeze/"
-
-      - name: "Build cx_Freeze bootloader"
+      - name: "Setup cx_Freeze"
         run: |
-          cd ./cx_Freeze/
-          python -m pip install ./
+          pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
+          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
 
       # === BUILD ===
 
       - name: "Clone repo"
         uses: "actions/checkout@v2"
         with:
-          path: "./src/"
+          path: "."
 
       - name: "Install requirements"
         run: |
-          cd ./src/
           python -m pip install -U 'numpy' 'cython >= 3.0a11'
           python -m pip install -U -r ./requirements.txt
 
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          cd ./src/
           sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
           rm ./modules/globals.py
           mv ./modules/globals.py.new ./modules/globals.py
@@ -74,7 +66,6 @@ jobs:
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          cd ./src/
           sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
           rm ./modules/globals.py
           mv ./modules/globals.py.new ./modules/globals.py
@@ -82,14 +73,12 @@ jobs:
       - name: "Build"
         if: "runner.os != 'macOS'"
         run: |
-          cd ./src/
           python ./setup.py build
-          mv ./build/*/ ./dist/
+          mv ./build/exe.*/ ./dist/
 
       - name: "Build macOS"
         if: "runner.os == 'macOS'"
         run: |
-          cd ./src/
           python ./setup.py bdist_mac
           mkdir ./dist/
           mv ./build/*.app/ ./dist/
@@ -97,7 +86,7 @@ jobs:
       - name: "Resolve symlinks"
         if: "runner.os != 'Windows'"
         run: |
-          cd ./src/dist/
+          cd ./dist/
           find ./ -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
 
       - name: "Import macOS codesign certificate"
@@ -110,7 +99,7 @@ jobs:
       - name: "Codesign macOS"
         if: "runner.os == 'macOS'"
         run: |
-          cd ./src/dist/
+          cd ./dist/
           find ./ -type f -empty -delete
           codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep ./*.app
 
@@ -118,7 +107,7 @@ jobs:
 
       - name: "Zip artifact"
         run: |
-          7z a -r ./${{ github.event.repository.name }}-${{ runner.os }}.zip ./src/dist/*
+          7z a -r ./${{ github.event.repository.name }}-${{ runner.os }}.zip ./dist/*
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
@@ -153,12 +142,11 @@ jobs:
       - name: "Clone repo"
         uses: "actions/checkout@v2"
         with:
-          path: "./src"
+          path: "."
 
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          cd ./src/
           sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
           rm ./modules/globals.py
           mv ./modules/globals.py.new ./modules/globals.py
@@ -166,14 +154,12 @@ jobs:
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          cd ./src/
           sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
           rm ./modules/globals.py
           mv ./modules/globals.py.new ./modules/globals.py
 
       - name: "Package"
         run: |
-          cd    ./src/
           mkdir ./dist/
           cp -r ./modules/         ./dist/
           cp -r ./resources/       ./dist/
@@ -185,7 +171,7 @@ jobs:
 
       - name: "Zip artifact"
         run: |
-          7z a -r ./${{ github.event.repository.name }}-Source.zip ./src/dist/*
+          7z a -r ./${{ github.event.repository.name }}-Source.zip ./dist/*
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
@@ -219,13 +205,12 @@ jobs:
       - name: "Clone repo"
         uses: "actions/checkout@v2"
         with:
-          path: "./src"
+          path: "."
 
       - name: "Update release"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
-          cd ./src/
           python ./.github/workflow_data/release.py
 
       - name: "Delete skipped workflow runs"
