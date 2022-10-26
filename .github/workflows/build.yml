@@ -42,8 +42,11 @@ jobs:
 
       - name: "Setup cx_Freeze"
         run: |
-          pip install -U 'git+https://github.com/marcelotduarte/cx_Logging.git@${{ matrix.cx-logging }}'
-          pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
+          pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
+          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
+        # pip install -U 'git+https://github.com/marcelotduarte/cx_Logging.git@${{ matrix.cx-logging }}'
+        # pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
       # === BUILD ===
 
