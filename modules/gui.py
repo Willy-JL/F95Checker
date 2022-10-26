@@ -410,7 +410,7 @@ class MainGUI():
         scroll_energy = 0.0
         win_hovered = None
         prev_cursor = -1
-        draw_next = 0
+        draw_next = 10.0
         # While window is open
         while not glfw.window_should_close(self.window):
             # Tick events and inputs
@@ -453,7 +453,7 @@ class MainGUI():
                 draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                 if draw:
                     draw_next = 0.5  # Draw for next half second
-                if draw_next > 0:
+                if draw_next > 0.0:
                     draw_next -= imgui.io.delta_time
 
                     # Reactive mouse cursors

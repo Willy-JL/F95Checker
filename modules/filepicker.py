@@ -92,7 +92,7 @@ class FilePicker:
         style = imgui.get_style()
         # Auto refresh
         self.elapsed += io.delta_time
-        if self.elapsed > 2 or self.update_filter:
+        if self.elapsed > 2.0 or self.update_filter:
             self.elapsed = 0.0
             self.refresh()
         # Setup popup
