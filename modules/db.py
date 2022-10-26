@@ -244,7 +244,7 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
         value = int(value)
     elif isinstance(value, list):
         value = list(value)
-        value = [item.value if hasattr(item, "value") else item for item in value]
+        value = [getattr(item, "value", item) for item in value]
         value = json.dumps(value)
     elif isinstance(value, tuple) and 3 <= len(value) <= 4:
         value = utils.rgba_0_1_to_hex(value)

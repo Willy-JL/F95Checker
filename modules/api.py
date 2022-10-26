@@ -206,7 +206,7 @@ async def import_browser_bookmarks(file: str | pathlib.Path):
         raw = await f.read()
     html = bs4.BeautifulSoup(raw, "lxml")
     threads = []
-    for bookmark in html.find_all(lambda elem: hasattr(elem, "attrs") and "href" in elem.attrs):
+    for bookmark in html.find_all(lambda elem: "href" in getattr(elem, "attrs", "")):
         threads += utils.extract_thread_matches(bookmark.get("href"))
     if threads:
         await callbacks.add_games(*threads)
@@ -609,7 +609,7 @@ async def check_notifs(login=False):
         f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:
-        if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("Notifications###popup_"):
+        if getattr(popup, "func", None) is msgbox.msgbox and popup.args[0].startswith("Notifications###popup_"):
             globals.popup_stack.remove(popup)
     utils.push_popup(msgbox.msgbox, "Notifications", msg + f"\n\nDo you want to view {'them' if (alerts + inbox) > 1 else 'it'}?", MsgBox.info, buttons)
     if globals.gui.minimized or not globals.gui.focused:
@@ -767,7 +767,7 @@ async def check_updates():
         f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:
-        if hasattr(popup, "func") and popup.func is msgbox.msgbox and popup.args[0].startswith("F95Checker update###popup_"):
+        if getattr(popup, "func", None) is msgbox.msgbox and popup.args[0].startswith("F95Checker update###popup_"):
             globals.popup_stack.remove(popup)
     if globals.frozen and globals.os is Os.MacOS:
         path = globals.self_path.parent.parent

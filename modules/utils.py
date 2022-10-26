@@ -101,9 +101,9 @@ class daemon:
 
     @staticmethod
     def kill(proc):
-        if hasattr(proc, "returncode") and proc.returncode is None:
+        if getattr(proc, "returncode", False) is None:
             proc.kill()
-        elif hasattr(proc, "poll") and proc.poll() is None:
+        elif getattr(proc, "poll", lambda: False)() is None:
             proc.kill()
 
     def __enter__(self):
