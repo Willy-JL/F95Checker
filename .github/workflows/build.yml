@@ -14,13 +14,13 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - "windows-latest"
-          - "ubuntu-latest"
-          - "macos-latest"
+          - "windows-2022"
+          - "ubuntu-22.04"
+          - "macos-12"
         python:
-          - "3.10.x"
+          - "3.11.0"
         cx-freeze:
-          - "v6.11.1"
+          - "6.13.0"
     name: "${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
