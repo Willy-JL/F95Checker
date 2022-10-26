@@ -18,7 +18,7 @@ jobs:
           - "ubuntu-22.04"
           - "macos-12"
         python:
-          - "3.11.0"
+          - "3.10.8"
         cx-freeze:
           - "6.13.0"
     name: "${{ matrix.os }}"
@@ -40,9 +40,7 @@ jobs:
 
       - name: "Setup cx_Freeze"
         run: |
-          pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
-          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
-          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
+          pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
       # === BUILD ===
 
