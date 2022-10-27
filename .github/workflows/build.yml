@@ -81,6 +81,7 @@ jobs:
       - name: "Build macOS"
         if: "runner.os == 'macOS'"
         run: |
+          brew install libiodbc
           python ./setup.py bdist_mac
           mkdir ./dist/
           mv ./build/*.app/ ./dist/
