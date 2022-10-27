@@ -38,9 +38,10 @@ jobs:
         with:
           python-version: "${{ matrix.python }}"
 
-      - name: Install cx_Logging
-        if: runner.os == 'Windows'
-        run: python -m pip install -U --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+      - name: "Install cx_Logging Windows"
+        if: "runner.os == 'Windows'"
+        run: |
+          python -m pip install -U --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
 
       - name: "Setup cx_Freeze"
         run: |
