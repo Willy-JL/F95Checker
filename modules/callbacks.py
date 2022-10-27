@@ -131,6 +131,18 @@ def launch_game_exe(game: Game):
 
 
 def open_game_folder(game: Game):
+    if not game.executable:
+        def select_callback(selected):
+            if selected:
+                game.executable = selected
+                async_thread.run(db.update_game(game, "executable"))
+                open_game_folder(game)
+        buttons = {
+            f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+            f"{icons.cancel} No": None
+        }
+        utils.push_popup(msgbox.msgbox, "Exe not selected", "You did not select an executable for this game, so\nopening its folder is not possible.\n\nDo you want to select it now?", MsgBox.warn, buttons)
+        return
     dir = pathlib.Path(game.executable).absolute().parent
     if not dir.is_dir():
         def reset_callback():
