@@ -46,6 +46,22 @@ jobs:
         run: |
           python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
+      - name: Setup GTK Windows
+        if: runner.os == 'Windows'
+        shell: "msys2bash"
+        run: |
+          pacman -S mingw-w64-x86_64-gtk3
+
+      - name: Setup GTK Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt install libgirepository1.0-dev
+
+      - name: Setup GTK macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install gtk+3
+
       # === BUILD ===
 
       - name: "Clone repo"
