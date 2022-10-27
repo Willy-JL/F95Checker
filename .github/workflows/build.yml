@@ -48,7 +48,7 @@ jobs:
 
       - name: Setup GTK Windows
         if: runner.os == 'Windows'
-        shell: "msys2bash"
+        shell: "msys2bash.cmd"
         run: |
           pacman -S mingw-w64-x86_64-gtk3
 
@@ -60,7 +60,8 @@ jobs:
       - name: Setup GTK macOS
         if: runner.os == 'macOS'
         run: |
-          brew install gtk+3
+          brew install gobject-introspection
+        # brew install gtk+3
 
       # === BUILD ===
 

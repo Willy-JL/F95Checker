@@ -13,7 +13,7 @@ def bundle_libs(*libs):
             bin_includes.append(name)
 
 if sys.platform.startswith("linux"):
-    bundle_libs("ffi", "ssl", "crypto")
+    bundle_libs("ffi", "gtk-3", "webkit2gtk-4", "glib-2", "gobject-2", "ssl", "crypto")
 elif sys.platform.startswith("darwin"):
     bundle_libs("intl")
 
