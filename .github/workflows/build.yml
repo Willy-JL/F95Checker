@@ -47,13 +47,14 @@ jobs:
           python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
       - name: "Setup MSYS2 Windows"
+        if: "runner.os == 'Windows'"
         uses: "msys2/setup-msys2@v2"
 
       - name: Setup GTK Windows
         if: "runner.os == 'Windows'"
         shell: "msys2 {0}"
         run: |
-          pacman -S mingw-w64-x86_64-gtk3
+          pacman --noconfirm -S mingw-w64-x86_64-gtk3
 
       - name: "Setup GTK Linux"
         if: "runner.os == 'Linux'"
