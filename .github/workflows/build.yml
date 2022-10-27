@@ -16,7 +16,7 @@ jobs:
         os:
           - "windows-2022"
           - "ubuntu-22.04"
-          - "macos-12"
+          - "macos-11"
         python:
           - "3.10.8"
         cx-freeze:
@@ -81,7 +81,6 @@ jobs:
       - name: "Build macOS"
         if: "runner.os == 'macOS'"
         run: |
-          brew install libiodbc
           python ./setup.py bdist_mac
           mkdir ./dist/
           mv ./build/*.app/ ./dist/
