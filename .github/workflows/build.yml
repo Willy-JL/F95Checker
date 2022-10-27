@@ -46,19 +46,22 @@ jobs:
         run: |
           python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
+      - name: "Setup MSYS2 Windows"
+        uses: "msys2/setup-msys2@v2"
+
       - name: Setup GTK Windows
-        if: runner.os == 'Windows'
-        shell: "msys2"
+        if: "runner.os == 'Windows'"
+        shell: "msys2 {0}"
         run: |
           pacman -S mingw-w64-x86_64-gtk3
 
-      - name: Setup GTK Linux
-        if: runner.os == 'Linux'
+      - name: "Setup GTK Linux"
+        if: "runner.os == 'Linux'"
         run: |
           sudo apt install libgirepository1.0-dev libwebkit2gtk-4.1-0
 
-      - name: Setup GTK macOS
-        if: runner.os == 'macOS'
+      - name: "Setup GTK macOS"
+        if: "runner.os == 'macOS'"
         run: |
           brew install gobject-introspection
         # brew install gtk+3
