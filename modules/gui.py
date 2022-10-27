@@ -18,8 +18,16 @@ import glfw
 import sys
 import gi
 
-gi.require_version("Gtk", ctypes.util.find_library("gtk-3").rsplit("-", 1)[1].rsplit(".so", 1)[0])
-gi.require_version("WebKit2", ctypes.util.find_library("webkit2gtk-4").rsplit("-", 1)[1].rsplit(".so", 1)[0])
+def get_gtk_version(name):
+    lib = ctypes.util.find_library(name)
+    if not lib:
+        raise ModuleNotFoundError(f"A required library file could not be found for {repr(name)}")
+    ver = lib.rsplit("-", 1)[1].rsplit(".so", 1)[0].rsplit(".dylib", 1)[0].rsplit(".dll", 1)[0]
+    if ver.count(".") < 1:
+        ver += ".0"
+    return ver
+gi.require_version("Gtk", get_gtk_version("gtk-3"))
+gi.require_version("WebKit2", get_gtk_version("webkit2gtk-4"))
 from gi.repository import Gtk, WebKit2
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
