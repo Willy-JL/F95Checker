@@ -5,6 +5,7 @@ import OpenGL.GL as gl
 import datetime as dt
 from PIL import Image
 import configparser
+import ctypes.util
 import threading
 import platform
 import asyncio
@@ -15,6 +16,11 @@ import imgui
 import time
 import glfw
 import sys
+import gi
+
+gi.require_version("Gtk", ctypes.util.find_library("gtk-3").rsplit("-", 1)[1].rsplit(".so", 1)[0])
+gi.require_version("WebKit2", ctypes.util.find_library("webkit2gtk-4").rsplit("-", 1)[1].rsplit(".so", 1)[0])
+from gi.repository import Gtk, WebKit2
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
 from modules import globals, api, async_thread, callbacks, db, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils
@@ -99,6 +105,7 @@ class MainGUI():
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
         self.type_label_width: float = None
+        self.show_login_window: bool = False
         self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
@@ -554,6 +561,22 @@ class MainGUI():
                     # Close main window (technically popups are inside the window, and inside one another - this gives proper stacking order)
                     imgui.end()
 
+                    # Warn user that main window is unresponsive when login window is open
+                    if self.show_login_window:
+                        fg_draw_list = imgui.get_foreground_draw_list()
+                        fg_draw_list.add_rect_filled(0, 0, *size, imgui.get_color_u32_rgba(0, 0, 0, 0.6))
+                        imgui.push_font(self.big_font)
+                        text1 = "Login window is active,"
+                        text2 = "main window is unresponsive."
+                        size1 = imgui.calc_text_size(text1)
+                        size2 = imgui.calc_text_size(text2)
+                        fg_draw_list.add_text((size[0] - size1.x) / 2, (size[1] - size1.y) / 2 - size1.y / 2, imgui.get_color_u32_rgba(1, 1, 1, 1), text1)
+                        fg_draw_list.add_text((size[0] - size2.x) / 2, (size[1] - size2.y) / 2 + size2.y / 2, imgui.get_color_u32_rgba(1, 1, 1, 1), text2)
+                        imgui.pop_font()
+                        start_login_window = True
+                    else:
+                        start_login_window = False
+
                     # Render interface
                     imgui.render()
                     self.impl.render(imgui.get_draw_data())
@@ -589,6 +612,17 @@ class MainGUI():
                     time.sleep(1 / 60)
                 else:
                     time.sleep(1 / 3)
+            # Spawn login window (blocks main loop, main interface halts)
+            if self.show_login_window and start_login_window:
+                try:
+                    login_window = LoginWindow(self)
+                    new_cookies = login_window.cookies
+                    Gtk.main()
+                    async_thread.wait(db.update_cookies(new_cookies))
+                except Exception:
+                    utils.push_popup(msgbox.msgbox, "Login window failure", f"Something went wrong with the login browser window:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+                self.show_login_window = False
+        # Main loop over, cleanup and close
         imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
         ini = imgui.save_ini_settings_to_memory()
         try:
@@ -2656,6 +2690,33 @@ class MainGUI():
             imgui.end_table()
 
         imgui.end_child()
+
+
+class LoginWindow(Gtk.Window):
+    def __init__(self, main_gui: MainGUI):
+        self.main_gui = main_gui
+        super().__init__(title="F95Checker: Login to F95Zone")
+        size = (500, 720)
+        self.connect("destroy", Gtk.main_quit)
+        self.webview = WebKit2.WebView()
+        self.add(self.webview)
+        self.resize(*size)
+        self.move(
+            self.main_gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2,
+            self.main_gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2
+        )
+        self.set_keep_above(True)
+        self.cookies = {}
+        self.webview.get_context().get_cookie_manager().connect("changed", self.on_cookies_changed)
+        self.show_all()
+        self.webview.load_uri(globals.login_page)
+
+    def on_cookies_changed(self, cookie_manager):
+        def cookies_callback(cookie_manager, cookie_task):
+            self.cookies.update({cookie.get_name(): cookie.get_value() for cookie in cookie_manager.get_cookies_finish(cookie_task)})
+            if "xf_user" in self.cookies:
+                self.destroy()
+        cookie_manager.get_cookies(self.webview.get_uri(), None, cookies_callback)
 
 
 class TrayIcon(QtWidgets.QSystemTrayIcon):

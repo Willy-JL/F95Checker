@@ -45,7 +45,8 @@ cx_Freeze.setup(
         "build_exe": {
             "optimize": 1,
             "packages": [
-                "OpenGL"
+                "OpenGL",
+                "gi"
             ],
             "bin_includes": bin_includes,
             "include_files": [
@@ -55,6 +56,7 @@ cx_Freeze.setup(
             "zip_include_packages": "*",
             "zip_exclude_packages": [
                 "OpenGL_accelerate",
+                "PyGObject",
                 "PyQt6",
                 "glfw"
             ],
