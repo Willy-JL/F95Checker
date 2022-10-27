@@ -48,14 +48,14 @@ jobs:
 
       - name: Setup GTK Windows
         if: runner.os == 'Windows'
-        shell: "msys2bash.cmd"
+        shell: "msys2"
         run: |
           pacman -S mingw-w64-x86_64-gtk3
 
       - name: Setup GTK Linux
         if: runner.os == 'Linux'
         run: |
-          sudo apt install libgirepository1.0-dev
+          sudo apt install libgirepository1.0-dev libwebkit2gtk-4.1-0
 
       - name: Setup GTK macOS
         if: runner.os == 'macOS'
