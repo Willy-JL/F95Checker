@@ -554,10 +554,6 @@ class MainGUI():
                     # Close main window (technically popups are inside the window, and inside one another - this gives proper stacking order)
                     imgui.end()
 
-                    # Save previous window size
-                    if (size := imgui.io.display_size) != self.prev_size:
-                        self.prev_size = size
-
                     # Render interface
                     imgui.render()
                     self.impl.render(imgui.get_draw_data())
