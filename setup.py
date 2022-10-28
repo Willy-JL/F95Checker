@@ -65,7 +65,6 @@ cx_Freeze.setup(
                 "PyQt6",
                 "glfw"
             ],
-            "silent_level": 1,
             "include_msvcr": True
         },
         "bdist_mac": {
