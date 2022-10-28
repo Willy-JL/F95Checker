@@ -18,6 +18,6 @@ beautifulsoup4
 lxml
 
 # Misc
-pywin32 ; sys_platform == "win32"
+# pywin32 ; sys_platform == "win32"  # Installed with msys2
 uvloop ; sys_platform != "win32"
 Pillow
