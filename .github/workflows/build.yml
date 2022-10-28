@@ -13,60 +13,81 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - "windows-2022"
-          - "ubuntu-22.04"
-          - "macos-11"
+        sys:
+          - { os: "windows-2022", shell: "mingw64" }
+          - { os: "ubuntu-22.04", shell: "bash"    }
+          - { os: "macos-11",     shell: "bash"    }
         python:
           - "3.10.8"
         cx-freeze:
           - "6.13.0"
-    name: "${{ matrix.os }}"
-    runs-on: "${{ matrix.os }}"
+    defaults:
+      run:
+        shell: "${{ matrix.sys.shell }}"
+    name: "${{ matrix.sys.os }}"
+    runs-on: "${{ matrix.sys.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
     steps:
 
       # === SETUP ===
+
+      - name: "Setup MSYS2 (Windows)"
+        if: "runner.os == 'Windows'"
+        uses: "msys2/setup-msys2@v2"
 
       - name: "Set git to use lf"
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: "Setup Python"
+      - name: "Setup MinGW (Windows)"
+        if: "runner.os == 'Windows'"
+        run: |
+          pacman --noconfirm -Suy
+
+      - name: "Setup Python (Linux, macOS)"
+        if: "runner.os != 'Windows'"
         uses: "actions/setup-python@v4"
         with:
           python-version: "${{ matrix.python }}"
 
-      - name: "Install cx_Logging Windows"
+      - name: "Setup GTK (Windows)"
         if: "runner.os == 'Windows'"
         run: |
-          python -m pip install -U --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+          pacman --noconfirm -S \
+            git \
+            base-devel \
+            mingw-w64-x86_64-gtk3 \
+            mingw-w64-x86_64-libffi \
+            mingw-w64-x86_64-python3 \
+            mingw-w64-x86_64-toolchain \
+            mingw-w64-x86_64-python3-pip \
+            mingw-w64-x86_64-python3-cairo \
+            mingw-w64-x86_64-python3-gobject \
+            mingw-w64-x86_64-gobject-introspection
 
-      - name: "Setup cx_Freeze"
-        run: |
-          python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
-
-      - name: "Setup MSYS2 Windows"
-        if: "runner.os == 'Windows'"
-        uses: "msys2/setup-msys2@v2"
-
-      - name: Setup GTK Windows
-        if: "runner.os == 'Windows'"
-        shell: "msys2 {0}"
-        run: |
-          pacman --noconfirm -S mingw-w64-x86_64-gtk3
-
-      - name: "Setup GTK Linux"
+      - name: "Setup GTK (Linux)"
         if: "runner.os == 'Linux'"
         run: |
           sudo apt install libgirepository1.0-dev libwebkit2gtk-4.1-0
 
-      - name: "Setup GTK macOS"
+      - name: "Setup GTK (macOS)"
         if: "runner.os == 'macOS'"
         run: |
           brew install gobject-introspection
         # brew install gtk+3
+
+      - name: "Setup cx_Freeze (Windows)"
+        if: "runner.os == 'Windows'"
+        run: |
+          pacman --noconfirm -S \
+            mingw-w64-x86_64-python-numpy \
+            mingw-w64-x86_64-python-cx-freeze
+
+      - name: "Setup cx_Freeze (Linux, macOS)"
+        if: "runner.os != 'Windows'"
+        run: |
+          python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
       # === BUILD ===
 
@@ -76,6 +97,8 @@ jobs:
           path: "."
 
       - name: "Install requirements"
+        env:
+          SETUPTOOLS_USE_DISTUTILS: "stdlib"
         run: |
           python -m pip install -U 'numpy'
           python -m pip install -U -r ./requirements.txt
@@ -94,33 +117,33 @@ jobs:
           rm ./modules/globals.py
           mv ./modules/globals.py.new ./modules/globals.py
 
-      - name: "Build"
+      - name: "Build (Windows, Linux)"
         if: "runner.os != 'macOS'"
         run: |
           python ./setup.py build
           mv ./build/exe.*/ ./dist/
 
-      - name: "Build macOS"
+      - name: "Build (macOS)"
         if: "runner.os == 'macOS'"
         run: |
           python ./setup.py bdist_mac
           mkdir ./dist/
           mv ./build/*.app/ ./dist/
 
-      - name: "Resolve symlinks"
+      - name: "Resolve symlinks (Linux, macOS)"
         if: "runner.os != 'Windows'"
         run: |
           cd ./dist/
           find ./ -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
 
-      - name: "Import macOS codesign certificate"
+      - name: "Import codesign certificate (macOS)"
         if: "runner.os == 'macOS'"
         uses: "apple-actions/import-codesign-certs@v1"
         with:
           p12-file-base64: "${{ secrets.CODESIGN_P12_BASE64 }}"
           p12-password: "${{ secrets.CODESIGN_P12_PASSWORD }}"
 
-      - name: "Codesign macOS"
+      - name: "Codesign (macOS)"
         if: "runner.os == 'macOS'"
         run: |
           cd ./dist/
