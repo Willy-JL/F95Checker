@@ -45,9 +45,10 @@ jobs:
           install: >-
             git
             base-devel
-            mingw-w64-x86_64-python3
+            mingw-w64-x86_64-python
             mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-python3-pip
+            mingw-w64-x86_64-python-pip
+            mingw-w64-x86_64-python-wheel
 
       - name: "Setup Python (Linux, macOS)"
         if: "runner.os != 'Windows'"
@@ -61,8 +62,8 @@ jobs:
           pacman --noconfirm -S --needed --overwrite "*" \
             mingw-w64-x86_64-gtk3 \
             mingw-w64-x86_64-libffi \
-            mingw-w64-x86_64-python3-cairo \
-            mingw-w64-x86_64-python3-gobject \
+            mingw-w64-x86_64-python-cairo \
+            mingw-w64-x86_64-python-gobject \
             mingw-w64-x86_64-gobject-introspection
 
       - name: "Setup GTK (Linux)"
@@ -98,14 +99,14 @@ jobs:
         if: "runner.os == 'Windows'"
         run: |
           pacman --noconfirm -S --needed --overwrite "*" \
+            mingw-w64-x86_64-python-lxml \
             mingw-w64-x86_64-python-numpy \
             mingw-w64-x86_64-python-pyqt6 \
             mingw-w64-x86_64-python-pywin32
 
       - name: "Install requirements"
-        env:
-          SETUPTOOLS_USE_DISTUTILS: "stdlib"
         run: |
+          export SETUPTOOLS_USE_DISTUTILS=stdlib
           python -m pip install -U 'numpy'
           python -m pip install -U -r ./requirements.txt
 
