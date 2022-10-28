@@ -6,16 +6,20 @@ import re
 
 
 bin_includes = []
+bin_excludes = []
 
-def bundle_libs(*libs):
-    for lib in libs:
-        if name := find_library(lib):
-            bin_includes.append(name)
+def find_libs(*names):
+    libs = []
+    for name in names:
+        if lib := find_library(name):
+            libs.append(lib)
+    return libs
 
 if sys.platform.startswith("linux"):
-    bundle_libs("ffi", "ssl", "crypto")
+    bin_includes += find_libs("ffi", "ssl", "crypto")
 elif sys.platform.startswith("darwin"):
-    bundle_libs("intl")
+    bin_includes += find_libs("intl")
+    bin_excludes += ["iodbc"]
 
 path = pathlib.Path(__file__).absolute().parent
 
