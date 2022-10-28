@@ -60,6 +60,7 @@ jobs:
             mingw-w64-x86_64-python3 \
             mingw-w64-x86_64-toolchain \
             mingw-w64-x86_64-python3-pip \
+            mingw-w64-x86_64-python-pyqt6 \
             mingw-w64-x86_64-python3-cairo \
             mingw-w64-x86_64-python3-gobject \
             mingw-w64-x86_64-gobject-introspection
