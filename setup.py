@@ -53,6 +53,7 @@ cx_Freeze.setup(
                 "gi"
             ],
             "bin_includes": bin_includes,
+            "bin_excludes": bin_excludes,
             "include_files": [
                 path / "resources",
                 path / "LICENSE"
