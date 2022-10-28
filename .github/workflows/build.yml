@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         sys:
-          - { os: "windows-2022", shell: "mingw64" }
-          - { os: "ubuntu-22.04", shell: "bash"    }
-          - { os: "macos-11",     shell: "bash"    }
+          - { os: "windows-2022", shell: "msys2 {0}" }
+          - { os: "ubuntu-22.04", shell: "bash"      }
+          - { os: "macos-11",     shell: "bash"      }
         python:
           - "3.10.8"
         cx-freeze:
@@ -31,19 +31,17 @@ jobs:
 
       # === SETUP ===
 
-      - name: "Setup MSYS2 (Windows)"
-        if: "runner.os == 'Windows'"
-        uses: "msys2/setup-msys2@v2"
-
       - name: "Set git to use lf"
+        shell: "bash"
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: "Setup MinGW (Windows)"
+      - name: "Setup MSYS2 (Windows)"
         if: "runner.os == 'Windows'"
-        run: |
-          pacman --noconfirm -Suy
+        uses: "msys2/setup-msys2@v2"
+        with:
+          update: true
 
       - name: "Setup Python (Linux, macOS)"
         if: "runner.os != 'Windows'"
@@ -54,7 +52,7 @@ jobs:
       - name: "Setup GTK (Windows)"
         if: "runner.os == 'Windows'"
         run: |
-          pacman --noconfirm -S \
+          pacman --noconfirm -S --overwrite "*" \
             git \
             base-devel \
             mingw-w64-x86_64-gtk3 \
@@ -80,7 +78,7 @@ jobs:
       - name: "Setup cx_Freeze (Windows)"
         if: "runner.os == 'Windows'"
         run: |
-          pacman --noconfirm -S \
+          pacman --noconfirm -S --overwrite "*" \
             mingw-w64-x86_64-python-numpy \
             mingw-w64-x86_64-python-cx-freeze
 
