@@ -563,7 +563,9 @@ class MainGUI():
                         self.refresh_styles()
                         async_thread.run(db.update_settings("interface_scaling"))
                 # Wait idle time
-                glfw.swap_buffers(self.window)
+                    glfw.swap_buffers(self.window)
+                else:
+                    time.sleep(1 / 15)
             else:
                 # Tray bg mode and not paused
                 if self.minimized and not self.bg_mode_paused:
