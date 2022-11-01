@@ -584,7 +584,7 @@ class MainGUI():
                         self.tray.update_status()
                     elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
                         # Run scheduled refresh
-                        globals.gui.bg_mode_timer = None
+                        self.bg_mode_timer = None
                         utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
                     elif globals.settings.check_notifs:
                         if not self.bg_mode_notifs_timer and not utils.is_refreshing():
@@ -593,7 +593,7 @@ class MainGUI():
                             self.tray.update_status()
                         elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
                             # Run scheduled notif check
-                            globals.gui.bg_mode_notifs_timer = None
+                            self.bg_mode_notifs_timer = None
                             utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
                 # Wait idle time
                 if self.tray.menu_open:
@@ -1518,7 +1518,7 @@ class MainGUI():
             imgui.table_setup_column(f"{icons.update} Last Updated", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
             imgui.table_setup_column(f"{icons.motion_play_outline} Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
             imgui.table_setup_column(f"{icons.book_clock} Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
-            imgui.table_setup_column(f"{icons.flag_checkered} Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
+            imgui.table_setup_column(f"{icons.flag_checkered} Played", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
             imgui.table_setup_column(f"{icons.cloud_download} Installed", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
             imgui.table_setup_column(f"{icons.star_outline} Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
             imgui.table_setup_column(f"{icons.draw_pen} Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
@@ -1531,7 +1531,7 @@ class MainGUI():
             column_i = 3
             play_button  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             type         = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            name = column_i = column_i + 1  # Name is always enabled
+            name         = column_i = column_i + 1  # Name is always enabled
             developer    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             last_updated = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             last_played  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
@@ -1543,6 +1543,11 @@ class MainGUI():
             open_thread  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             copy_link    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
             open_folder  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
+
+            # Sorting
+            sort_specs = imgui.table_get_sort_specs()
+            self.sort_games(sort_specs, manual_sort)
+            not_filtering = len(self.filters) == 0 and not self.add_box_text
 
             # Headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
@@ -1561,11 +1566,6 @@ class MainGUI():
                 elif i == 12:  # Installed
                     column_name = icons.cloud_download
                 imgui.table_header(column_name)
-
-            # Sorting
-            sort_specs = imgui.table_get_sort_specs()
-            self.sort_games(sort_specs, manual_sort)
-            not_filtering = len(self.filters) == 0 and not self.add_box_text
 
             # Loop rows
             frame_height = imgui.get_frame_height()
@@ -1671,29 +1671,59 @@ class MainGUI():
             flags=self.game_list_table_flags,
             outer_size_height=1
         ):
-            # Sorting
-            sort_specs = imgui.table_get_sort_specs()
+            # Setup
+            imgui.table_setup_column("", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
+            imgui.table_setup_column("", self.ghost_columns_flags)  # 1
+            imgui.table_setup_column("", self.ghost_columns_flags)  # 2
+            imgui.table_setup_column("", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
+            self.ghost_columns_enabled_count = 1
             manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            self.sort_games(sort_specs, manual_sort)
-            not_filtering = len(self.filters) == 0 and not self.add_box_text
-            # Enabled attributes
             version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
             status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            self.ghost_columns_enabled_count += version_enabled
+            self.ghost_columns_enabled_count += status_enabled
+            self.ghost_columns_enabled_count += manual_sort
+            can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
+            # Regular columns
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
+            imgui.table_setup_column("",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 16
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 17
+            imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
+
+            # Enabled columns
             column_i = 3
-            play_button     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            type            = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            column_i += 1  # Name
-            developer       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            last_updated    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            last_played     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            added_on        = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            played          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            installed       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            rating          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            notes           = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            open_thread     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            copy_link       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            open_folder     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            play_button  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            type         = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            column_i    += 1  # Name is always enabled
+            developer    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            last_updated = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            last_played  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            added_on     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            played       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            installed    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            rating       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            notes        = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            open_thread  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            copy_link    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+            open_folder  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
+
+            # Sorting
+            sort_specs = imgui.table_get_sort_specs()
+            self.sort_games(sort_specs, manual_sort)
+            not_filtering = len(self.filters) == 0 and not self.add_box_text
+
+            # Grid only stuff
             button_row = play_button or open_thread or copy_link or open_folder or played or installed
             data_rows = type + developer + last_updated + last_played + added_on + rating + notes
             imgui.end_table()
