@@ -407,10 +407,13 @@ class MainGUI():
         prev_any_hovered = None
         prev_win_hovered = None
         prev_mouse_pos = None
+        prev_minimized = None
+        prev_iconized = None
         scroll_energy = 0.0
+        prev_focused = None
         any_hovered = False
         win_hovered = None
-        prev_cursor = -1
+        prev_cursor = None
         draw_next = 5.0
         size = (0, 0)
         cursor = -1
@@ -418,8 +421,11 @@ class MainGUI():
         while not glfw.window_should_close(self.window):
             # Tick events and inputs
             prev_mouse_pos = imgui.io.mouse_pos
+            prev_minimized = self.minimized
             prev_win_hovered = win_hovered
             prev_any_hovered = any_hovered
+            prev_iconized = self.iconized
+            prev_focused = self.focused
             self.prev_size = size
             prev_cursor = cursor
             self.qt_app.processEvents()
@@ -460,6 +466,9 @@ class MainGUI():
                 draw = draw or imagehelper.redraw
                 draw = draw or utils.is_refreshing()
                 draw = draw or size != self.prev_size
+                draw = draw or prev_focused != self.focused
+                draw = draw or prev_iconized != self.iconized
+                draw = draw or prev_minimized != self.minimized
                 draw = draw or (self.focused and imgui.is_any_item_active())
                 draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                 draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
