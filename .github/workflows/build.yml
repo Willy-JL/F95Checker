@@ -92,19 +92,19 @@ jobs:
           cd ./dist/
           find ./ -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
 
-      # - name: "Import macOS codesign certificate"
-      #   if: "runner.os == 'macOS'"
-      #   uses: "apple-actions/import-codesign-certs@v1"
-      #   with:
-      #     p12-file-base64: "${{ secrets.CODESIGN_P12_BASE64 }}"
-      #     p12-password: "${{ secrets.CODESIGN_P12_PASSWORD }}"
+      - name: "Import macOS codesign certificate"
+        if: "runner.os == 'macOS'"
+        uses: "apple-actions/import-codesign-certs@v1"
+        with:
+          p12-file-base64: "${{ secrets.CODESIGN_P12_BASE64 }}"
+          p12-password: "${{ secrets.CODESIGN_P12_PASSWORD }}"
 
-      # - name: "Codesign macOS"
-      #   if: "runner.os == 'macOS'"
-      #   run: |
-      #     cd ./dist/
-      #     find ./ -type f -empty -delete
-      #     codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep ./*.app
+      - name: "Codesign macOS"
+        if: "runner.os == 'macOS'"
+        run: |
+          cd ./dist/
+          find ./ -type f -empty -delete
+          codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep ./*.app
 
       # === ARTIFACT ===
 
