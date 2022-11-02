@@ -113,6 +113,7 @@ class MainGUI():
         imgui.io = imgui.get_io()
         imgui.io.ini_file_name = str(globals.data_path / "imgui.ini")
         imgui.io.config_drag_click_to_input_text = True
+        imgui.io.config_cursor_blink = False
         size = tuple()
         pos = tuple()
         try:
@@ -469,7 +470,6 @@ class MainGUI():
                 draw = draw or prev_focused != self.focused
                 draw = draw or prev_iconized != self.iconized
                 draw = draw or prev_minimized != self.minimized
-                draw = draw or (self.focused and imgui.is_any_item_active())
                 draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                 draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                 if draw:
