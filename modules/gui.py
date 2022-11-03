@@ -6,7 +6,6 @@ import datetime as dt
 from PIL import Image
 import configparser
 import dataclasses
-import ctypes.util
 import threading
 import platform
 import asyncio
@@ -17,22 +16,9 @@ import imgui
 import time
 import glfw
 import sys
-import gi
-
-def get_gtk_version(name):
-    lib = ctypes.util.find_library(name)
-    if not lib:
-        raise ModuleNotFoundError(f"A required library file could not be found for {repr(name)}")
-    ver = lib.rsplit("-", 1)[1].rsplit(".so", 1)[0].rsplit(".dylib", 1)[0].rsplit(".dll", 1)[0]
-    if ver.count(".") < 1:
-        ver += ".0"
-    return ver
-gi.require_version("Gtk", get_gtk_version("gtk-3"))
-gi.require_version("WebKit2", get_gtk_version("webkit2gtk-4"))
-from gi.repository import Gtk, WebKit2
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
-from modules import globals, api, async_thread, callbacks, db, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils
+from modules import globals, api, async_thread, callbacks, db, filepicker, icons, imagehelper, login, msgbox, ratingwidget, rpc_thread, utils
 
 imgui.io = None
 imgui.style = None
@@ -779,9 +765,7 @@ class MainGUI():
             # Spawn login window (blocks main loop, main interface halts)
             if self.show_login_window and start_login_window:
                 try:
-                    login_window = LoginWindow(self)
-                    new_cookies = login_window.cookies
-                    Gtk.main()
+                    new_cookies = login.run()
                     async_thread.wait(db.update_cookies(new_cookies))
                 except Exception:
                     utils.push_popup(msgbox.msgbox, "Login window failure", f"Something went wrong with the login browser window:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
@@ -2779,33 +2763,6 @@ class MainGUI():
             imgui.end_table()
 
         imgui.end_child()
-
-
-class LoginWindow(Gtk.Window):
-    def __init__(self, main_gui: MainGUI):
-        self.main_gui = main_gui
-        super().__init__(title="F95Checker: Login to F95Zone")
-        size = (500, 720)
-        self.connect("destroy", Gtk.main_quit)
-        self.webview = WebKit2.WebView()
-        self.add(self.webview)
-        self.resize(*size)
-        self.move(
-            self.main_gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2,
-            self.main_gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2
-        )
-        self.set_keep_above(True)
-        self.cookies = {}
-        self.webview.get_context().get_cookie_manager().connect("changed", self.on_cookies_changed)
-        self.show_all()
-        self.webview.load_uri(globals.login_page)
-
-    def on_cookies_changed(self, cookie_manager):
-        def cookies_callback(cookie_manager, cookie_task):
-            self.cookies.update({cookie.get_name(): cookie.get_value() for cookie in cookie_manager.get_cookies_finish(cookie_task)})
-            if "xf_user" in self.cookies:
-                self.destroy()
-        cookie_manager.get_cookies(self.webview.get_uri(), None, cookies_callback)
 
 
 class TrayIcon(QtWidgets.QSystemTrayIcon):
