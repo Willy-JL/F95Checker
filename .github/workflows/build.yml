@@ -47,8 +47,7 @@ jobs:
       - name: "Setup GTK (macOS)"
         if: "runner.os == 'macOS'"
         run: |
-          brew install gobject-introspection
-        # brew install gtk+3
+          brew install gobject-introspection gtk+3 webkitgtk
 
       - name: "Setup cx_Logging (Windows)"
         if: "runner.os == 'Windows'"
