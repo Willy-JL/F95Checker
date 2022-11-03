@@ -5,8 +5,9 @@ glfw
 
 # Interface stuff
 git+https://github.com/pyimgui/pyimgui.git@dev/version-2.0  # Pending 2.0.0 release
-PyGObject ; sys_platform != "win32"  # Installed with msys2
-PyQt6 ; sys_platform != "win32"  # Installed with msys2
+PyQt6-WebEngine ; sys_platform == "win32"
+PyGObject ; sys_platform != "win32"
+PyQt6
 
 # Async goodness
 aiosqlite
@@ -15,9 +16,9 @@ aiohttp
 
 # BeautifulSoup
 beautifulsoup4
-lxml ; sys_platform != "win32"  # Installed with msys2
+lxml
 
 # Misc
-# pywin32 ; sys_platform == "win32"  # Installed with msys2
+pywin32 ; sys_platform == "win32"
 uvloop ; sys_platform != "win32"
 Pillow
