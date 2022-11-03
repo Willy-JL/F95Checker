@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import tempfile
-import pathlib
 import sys
 
 
@@ -9,18 +7,18 @@ def main():
     from modules import globals
 
     from modules.structs import Os
-    if globals.os is Os.Windows:
-        # Hide conhost if frozen or release
-        if (globals.frozen or globals.is_release) and "nohide" not in sys.argv:
-            import ctypes
-            ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
-    else:
-        # Install uvloop on MacOS and Linux
-        try:
+    try:  # Non essential, ignore errors
+        if globals.os is Os.Windows:
+            # Hide conhost if frozen or release
+            if (globals.frozen or globals.is_release) and "nohide" not in sys.argv:
+                import ctypes
+                ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
+        else:
+            # Install uvloop on MacOS and Linux
             import uvloop
             uvloop.install()
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     from modules import singleton
     try:
@@ -34,7 +32,7 @@ def main():
             pass
         sys.exit(0)
 
-    if globals.frozen:
+    if globals.frozen or globals.is_release:
         from modules import logger
         logger.install(path=globals.self_path / "log.txt", lowlevel=True)
 
@@ -42,13 +40,8 @@ def main():
     async_thread.setup()
     sync_thread.setup()
 
-    from modules import db
-    async_thread.wait(db.connect())
-    async_thread.wait(db.load())
-    db_save_loop = async_thread.run(db.save_loop())
-
-    from modules import api
-    with api.setup():
+    from modules import db, api
+    with db.setup(), api.setup():
 
         from modules import gui
         globals.gui = gui.MainGUI()
@@ -58,16 +51,6 @@ def main():
             rpc_thread.start()
 
         globals.gui.main_loop()
-
-    db_save_loop.cancel()
-    async_thread.wait(db.close())
-    async_thread.wait(api.shutdown())
-
-    for file in pathlib.Path(tempfile.gettempdir()).glob("F95Checker-Temp-*"):
-        try:
-            file.unlink()
-        except Exception:
-            pass
 
 
 if __name__ == "__main__":

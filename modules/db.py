@@ -1,4 +1,5 @@
 import configparser
+import contextlib
 import aiosqlite
 import sqlite3
 import asyncio
@@ -10,9 +11,21 @@ import time
 import re
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
-from modules import globals, imagehelper, msgbox, utils
+from modules import globals, async_thread, msgbox, utils
 
 connection: aiosqlite.Connection = None
+
+
+@contextlib.contextmanager
+def setup():
+    async_thread.wait(connect())
+    async_thread.wait(load())
+    loop = async_thread.run(save_loop())
+    try:
+        yield
+    finally:
+        loop.cancel()
+        async_thread.wait(close())
 
 
 async def create_table(table_name: str, columns: dict[str, str]):

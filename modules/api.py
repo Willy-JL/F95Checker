@@ -54,10 +54,7 @@ def setup():
         yield
     finally:
         async_thread.wait(session.close())
-
-
-async def shutdown():
-    await session.close()
+        cleanup_webpages()
 
 
 def request(method: str, url: str, **kwargs):
@@ -160,6 +157,14 @@ async def download_webpage(url: str):
     with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-Temp-", suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return f.name
+
+
+def cleanup_webpages():
+    for item in pathlib.Path(tempfile.gettempdir()).glob("F95Checker-Temp-*"):
+        try:
+            item.unlink()
+        except Exception:
+            pass
 
 
 async def quick_search(query: str):
