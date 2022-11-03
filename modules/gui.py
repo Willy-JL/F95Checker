@@ -5,6 +5,7 @@ import OpenGL.GL as gl
 import datetime as dt
 from PIL import Image
 import configparser
+import dataclasses
 import ctypes.util
 import threading
 import platform
@@ -37,11 +38,161 @@ imgui.io = None
 imgui.style = None
 
 
+class Columns:
+
+    @dataclasses.dataclass
+    class Column:
+        cols: object
+        name: str
+        flags: int = 0
+        ghost: bool = False
+        default: bool = False
+        hideable: bool = True
+        sortable: bool = False
+        resizable: bool = True
+        enabled: bool = None
+        no_header: str = False
+        short_header: str = False
+
+        def __post_init__(self):
+            # Header
+            if self.ghost or self.no_header:
+                self.header = "###" + self.name[2:]
+            elif self.short_header:
+                self.header = self.name[:1]
+            else:
+                self.header = self.name[2:]
+            # Flags
+            if self.ghost:
+                self.flags |= (
+                    imgui.TABLE_COLUMN_NO_SORT |
+                    imgui.TABLE_COLUMN_NO_RESIZE |
+                    imgui.TABLE_COLUMN_NO_REORDER |
+                    imgui.TABLE_COLUMN_NO_HEADER_WIDTH
+                )
+            if not self.default:
+                self.flags |= imgui.TABLE_COLUMN_DEFAULT_HIDE
+            if not self.hideable:
+                self.flags |= imgui.TABLE_COLUMN_NO_HIDE
+            if not self.sortable:
+                self.flags |= imgui.TABLE_COLUMN_NO_SORT
+            if not self.resizable:
+                self.flags |= imgui.TABLE_COLUMN_NO_RESIZE
+            # Add to outer class
+            self.cols.items.append(self)
+            self.cols.count = len(self.cols.items)
+            self.index = self.cols.count - 1
+
+    def __init__(self):
+        self.items = []
+        self.count = 0
+        # Ghosts (more info in MainGUI.draw_games_list())
+        self.manual_sort = self.Column(
+            self, f"{icons.cursor_move} Manual Sort",
+            ghost=True,
+        )
+        self.version = self.Column(
+            self, f"{icons.counter} Version",
+            ghost=True,
+            default=True,
+        )
+        self.status = self.Column(
+            self, f"{icons.checkbox_marked_circle} Status",
+            ghost=True,
+            default=True,
+        )
+        self.separator = self.Column(
+            self, "",
+            ghost=True,
+            default=True,
+            hideable=False,
+        )
+        # Regulars
+        self.play_button = self.Column(
+            self, f"{icons.play} Play Button",
+            default=True,
+            resizable=False,
+            no_header=True,
+        )
+        self.type = self.Column(
+            self, f"{icons.book_information_variant} Type",
+            default=True,
+            sortable=True,
+            resizable=False,
+        )
+        self.name = self.Column(
+            self, f"{icons.information_variant} Name",
+            imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT,
+            default=True,
+            sortable=True,
+            hideable=False,
+        )
+        self.developer = self.Column(
+            self, f"{icons.account_outline} Developer",
+        )
+        self.last_updated = self.Column(
+            self, f"{icons.update} Last Updated",
+            default=True,
+            sortable=True,
+            resizable=False,
+        )
+        self.last_played = self.Column(
+            self, f"{icons.motion_play_outline} Last Played",
+            sortable=True,
+            resizable=False,
+        )
+        self.added_on = self.Column(
+            self, f"{icons.book_clock} Added On",
+            sortable=True,
+            resizable=False,
+        )
+        self.played = self.Column(
+            self, f"{icons.flag_checkered} Played",
+            default=True,
+            sortable=True,
+            resizable=False,
+            short_header=True,
+        )
+        self.installed = self.Column(
+            self, f"{icons.cloud_download} Installed",
+            default=True,
+            sortable=True,
+            resizable=False,
+            short_header=True,
+        )
+        self.rating = self.Column(
+            self, f"{icons.star_outline} Rating",
+            sortable=True,
+            resizable=False,
+        )
+        self.notes = self.Column(
+            self, f"{icons.draw_pen} Notes",
+            sortable=True,
+        )
+        self.open_thread = self.Column(
+            self, f"{icons.open_in_new} Open Thread",
+            default=True,
+            resizable=False,
+            no_header=True,
+        )
+        self.copy_link = self.Column(
+            self, f"{icons.content_copy} Copy Link",
+            resizable=False,
+            no_header=True,
+        )
+        self.open_folder = self.Column(
+            self, f"{icons.folder_open_outline} Open Folder",
+            resizable=False,
+            no_header=True,
+        )
+
+cols = Columns()
+
+
 class MainGUI():
     def __init__(self):
         # Constants
         self.sidebar_size = 230
-        self.game_list_column_count = 18
         self.window_flags: int = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
@@ -61,12 +212,6 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_FIT |
             imgui.TABLE_NO_HOST_EXTEND_Y |
             imgui.TABLE_NO_BORDERS_IN_BODY_UTIL_RESIZE
-        )
-        self.ghost_columns_flags: int = (
-            imgui.TABLE_COLUMN_NO_SORT |
-            imgui.TABLE_COLUMN_NO_RESIZE |
-            imgui.TABLE_COLUMN_NO_REORDER |
-            imgui.TABLE_COLUMN_NO_HEADER_WIDTH
         )
         self.game_grid_table_flags: int = (
             imgui.TABLE_SCROLL_Y |
@@ -128,6 +273,7 @@ class MainGUI():
         imgui.io = imgui.get_io()
         imgui.io.ini_file_name = str(globals.data_path / "imgui.ini")
         imgui.io.config_drag_click_to_input_text = True
+        imgui.io.config_cursor_blink = False
         size = tuple()
         pos = tuple()
         try:
@@ -484,7 +630,6 @@ class MainGUI():
                 draw = draw or prev_focused != self.focused
                 draw = draw or prev_iconized != self.iconized
                 draw = draw or prev_minimized != self.minimized
-                draw = draw or (self.focused and imgui.is_any_item_active())
                 draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                 draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                 if draw:
@@ -615,7 +760,7 @@ class MainGUI():
                         self.tray.update_status()
                     elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
                         # Run scheduled refresh
-                        globals.gui.bg_mode_timer = None
+                        self.bg_mode_timer = None
                         utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
                     elif globals.settings.check_notifs:
                         if not self.bg_mode_notifs_timer and not utils.is_refreshing():
@@ -624,7 +769,7 @@ class MainGUI():
                             self.tray.update_status()
                         elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
                             # Run scheduled notif check
-                            globals.gui.bg_mode_notifs_timer = None
+                            self.bg_mode_notifs_timer = None
                             utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
                 # Wait idle time
                 if self.tray.menu_open:
@@ -1408,7 +1553,8 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
-    def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs, manual_sort: int | bool):
+    def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs):
+        manual_sort = cols.manual_sort.enabled
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
             self.require_sort = True
@@ -1496,7 +1642,9 @@ class MainGUI():
             sort_specs.specs_dirty = False
             self.require_sort = False
 
-    def handle_game_hitbox_events(self, game: Game, game_i: int, manual_sort: bool, not_filtering: bool):
+    def handle_game_hitbox_events(self, game: Game, game_i: int):
+        manual_sort = cols.manual_sort.enabled
+        not_filtering = len(self.filters) == 0 and not self.add_box_text
         if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
             # Hover = image on refresh button
             self.hovered_game = game
@@ -1528,86 +1676,38 @@ class MainGUI():
             imgui.end_popup()
 
     def draw_games_list(self):
+        # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
+        # by starting the table render before the content region.
         ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         if imgui.begin_table(
             "###game_list",
-            column=self.game_list_column_count,
+            column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
-            # Setup
-            # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
-            # by starting the table render before the content region.
-            imgui.table_setup_column(f"{icons.cursor_move} Manual Sort", self.ghost_columns_flags | imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 0
-            imgui.table_setup_column(f"{icons.counter} Version", self.ghost_columns_flags)  # 1
-            imgui.table_setup_column(f"{icons.checkbox_marked_circle} Status", self.ghost_columns_flags)  # 2
-            imgui.table_setup_column("###separator", self.ghost_columns_flags | imgui.TABLE_COLUMN_NO_HIDE)  # 3
-            self.ghost_columns_enabled_count = 1
-            manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            self.ghost_columns_enabled_count += version_enabled
-            self.ghost_columns_enabled_count += status_enabled
-            self.ghost_columns_enabled_count += manual_sort
-            can_sort = imgui.TABLE_COLUMN_NO_SORT * manual_sort
-            # Regular columns
-            imgui.table_setup_column(f"{icons.play} Play Button", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 4
-            imgui.table_setup_column(f"{icons.book_information_variant} Type", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 5
-            imgui.table_setup_column(f"{icons.information_variant} Name", imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT | imgui.TABLE_COLUMN_NO_HIDE | can_sort)  # 6
-            imgui.table_setup_column(f"{icons.account_outline} Developer", imgui.TABLE_COLUMN_DEFAULT_HIDE | can_sort)  # 7
-            imgui.table_setup_column(f"{icons.update} Last Updated", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 8
-            imgui.table_setup_column(f"{icons.motion_play_outline} Last Played", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 9
-            imgui.table_setup_column(f"{icons.book_clock} Added On", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 10
-            imgui.table_setup_column(f"{icons.flag_checkered} Played",  imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 11
-            imgui.table_setup_column(f"{icons.cloud_download} Installed", imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 12
-            imgui.table_setup_column(f"{icons.star_outline} Rating", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_RESIZE | can_sort)  # 13
-            imgui.table_setup_column(f"{icons.draw_pen} Notes", imgui.TABLE_COLUMN_DEFAULT_HIDE)  # 14
-            imgui.table_setup_column(f"{icons.open_in_new} Open Thread", imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 15
-            imgui.table_setup_column(f"{icons.content_copy} Copy Link", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 16
-            imgui.table_setup_column(f"{icons.folder_open_outline} Open Folder", imgui.TABLE_COLUMN_DEFAULT_HIDE | imgui.TABLE_COLUMN_NO_SORT | imgui.TABLE_COLUMN_NO_RESIZE)  # 17
+            # Setup columns
+            self.ghost_columns_enabled_count = 0
+            can_sort = 0
+            for column in cols.items:
+                imgui.table_setup_column(column.name, column.flags | (can_sort if column.sortable else 0))
+                # Enabled columns
+                column.enabled = bool(imgui.table_get_column_flags(column.index) & imgui.TABLE_COLUMN_IS_ENABLED)
+                # Ghosts count
+                if column.ghost and column.enabled:
+                    self.ghost_columns_enabled_count += 1
+                # Set sorting condition
+                if column is cols.manual_sort:
+                    can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
+            self.sort_games(imgui.table_get_sort_specs())
 
-            # Enabled columns
-            column_i = 3
-            play_button  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            type         = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            name = column_i = column_i + 1  # Name is always enabled
-            developer    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            last_updated = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            last_played  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            added_on     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            played       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            installed    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            rating       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            notes        = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            open_thread  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            copy_link    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-            open_folder  = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and column_i
-
-            # Headers
+            # Column headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
-            for i in range(self.game_list_column_count):
-                imgui.table_set_column_index(i)
-                column_name = imgui.table_get_column_name(i)[2:]
-                if i in (0, 1, 2, 4, 15, 16, 17):  # Hide name for small and ghost columns
-                    column_name = "###" + column_name
-                elif i == 6:  # Name
-                    if version_enabled:
-                        column_name += "   -   Version"
-                    if status_enabled:
-                        column_name += "   -   Status"
-                elif i == 11:  # Played
-                    column_name = icons.flag_checkered
-                elif i == 12:  # Installed
-                    column_name = icons.cloud_download
-                imgui.table_header(column_name)
-
-            # Sorting
-            sort_specs = imgui.table_get_sort_specs()
-            self.sort_games(sort_specs, manual_sort)
-            not_filtering = len(self.filters) == 0 and not self.add_box_text
+            for column in cols.items:
+                imgui.table_set_column_index(column.index)
+                imgui.table_header(column.header)
 
             # Loop rows
             frame_height = imgui.get_frame_height()
@@ -1615,92 +1715,71 @@ class MainGUI():
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
                 imgui.table_next_row()
-                # Base row height
-                imgui.table_set_column_index(3)
+                imgui.table_set_column_index(cols.separator.index)
+                # Skip if outside view
                 if not imgui.is_rect_visible(imgui.io.display_size.x, frame_height):
-                    # Skip if outside view
                     imgui.dummy(0, frame_height)
                     continue
-                imgui.button(f"###{game.id}_id", width=imgui.FLOAT_MIN)  # Button because it aligns the following text calls to center vertically
-                # Play Button
-                if play_button:
-                    imgui.table_set_column_index(play_button)
-                    self.draw_game_play_button(game, label=icons.play)
-                # Type
-                if type:
-                    imgui.table_set_column_index(type)
-                    self.draw_game_type_widget(game, align=True)
-                # Name
-                imgui.table_set_column_index(name)
-                if globals.settings.show_remove_btn:
-                    self.draw_game_remove_button(game, label=icons.trash_can_outline)
-                    imgui.same_line()
-                if game.installed and game.installed != game.version:
-                    self.draw_game_update_icon(game)
-                    imgui.same_line()
-                self.draw_game_name_text(game)
-                if game.notes:
-                    imgui.same_line()
-                    imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-                if version_enabled:
-                    imgui.same_line()
-                    imgui.text_disabled(self.get_game_version_text(game))
-                if status_enabled and game.status is not Status.Normal:
-                    imgui.same_line()
-                    self.draw_game_status_widget(game)
-                # Developer
-                if developer:
-                    imgui.table_set_column_index(developer)
-                    imgui.text(game.developer or "Unknown")
-                # Last Updated
-                if last_updated:
-                    imgui.table_set_column_index(last_updated)
-                    imgui.text(game.last_updated.display or "Unknown")
-                # Last Played
-                if last_played:
-                    imgui.table_set_column_index(last_played)
-                    imgui.text(game.last_played.display or "Never")
-                # Added On
-                if added_on:
-                    imgui.table_set_column_index(added_on)
-                    imgui.text(game.added_on.display)
-                # Played
-                if played:
-                    imgui.table_set_column_index(played)
-                    self.draw_game_played_checkbox(game)
-                # Installed
-                if installed:
-                    imgui.table_set_column_index(installed)
-                    self.draw_game_installed_checkbox(game)
-                # Rating
-                if rating:
-                    imgui.table_set_column_index(rating)
-                    self.draw_game_rating_widget(game)
-                # Notes
-                if notes:
-                    imgui.table_set_column_index(notes)
-                    if notes_width is None:
-                        notes_width = imgui.get_content_region_available_width() - 2 * imgui.style.item_spacing.x
-                    self.draw_game_notes_widget(game, multiline=False, width=notes_width)
-                # Open Thread
-                if open_thread:
-                    imgui.table_set_column_index(open_thread)
-                    self.draw_game_open_thread_button(game, label=icons.open_in_new)
-                # Copy Link
-                if copy_link:
-                    imgui.table_set_column_index(copy_link)
-                    self.draw_game_copy_link_button(game, label=icons.content_copy)
-                # Open Folder
-                if open_folder:
-                    imgui.table_set_column_index(open_folder)
-                    self.draw_game_open_folder_button(game, label=icons.folder_open_outline)
+                # Base row height with a buttom to align the following text calls to center vertically
+                imgui.button(f"###{game.id}_id", width=imgui.FLOAT_MIN)
+                # Loop columns
+                for column in cols.items:
+                    if not column.enabled or column.ghost:
+                        continue
+                    imgui.table_set_column_index(column.index)
+                    match column.index:
+                        case cols.play_button.index:
+                            self.draw_game_play_button(game, label=icons.play)
+                        case cols.type.index:
+                            self.draw_game_type_widget(game, align=True)
+                        case cols.name.index:
+                            if globals.settings.show_remove_btn:
+                                self.draw_game_remove_button(game, label=icons.trash_can_outline)
+                                imgui.same_line()
+                            if game.installed and game.installed != game.version:
+                                self.draw_game_update_icon(game)
+                                imgui.same_line()
+                            self.draw_game_name_text(game)
+                            if game.notes:
+                                imgui.same_line()
+                                imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+                            if cols.version.enabled:
+                                imgui.same_line()
+                                imgui.text_disabled(self.get_game_version_text(game))
+                            if cols.status.enabled and game.status is not Status.Normal:
+                                imgui.same_line()
+                                self.draw_game_status_widget(game)
+                        case cols.developer.index:
+                            imgui.text(game.developer or "Unknown")
+                        case cols.last_updated.index:
+                            imgui.text(game.last_updated.display or "Unknown")
+                        case cols.last_played.index:
+                            imgui.text(game.last_played.display or "Never")
+                        case cols.added_on.index:
+                            imgui.text(game.added_on.display)
+                        case cols.played.index:
+                            self.draw_game_played_checkbox(game)
+                        case cols.installed.index:
+                            self.draw_game_installed_checkbox(game)
+                        case cols.rating.index:
+                            self.draw_game_rating_widget(game)
+                        case cols.notes.index:
+                            if notes_width is None:
+                                notes_width = imgui.get_content_region_available_width() - 2 * imgui.style.item_spacing.x
+                            self.draw_game_notes_widget(game, multiline=False, width=notes_width)
+                        case cols.open_thread.index:
+                            self.draw_game_open_thread_button(game, label=icons.open_in_new)
+                        case cols.copy_link.index:
+                            self.draw_game_copy_link_button(game, label=icons.content_copy)
+                        case cols.open_folder.index:
+                            self.draw_game_open_folder_button(game, label=icons.folder_open_outline)
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
                 imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha *  0.25)
                 imgui.selectable(f"###{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
                 imgui.pop_style_var()
-                self.handle_game_hitbox_events(game, game_i, manual_sort, not_filtering)
+                self.handle_game_hitbox_events(game, game_i)
 
             imgui.end_table()
 
@@ -1709,35 +1788,26 @@ class MainGUI():
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
             "###game_list",
-            column=self.game_list_column_count,
+            column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=1
         ):
-            # Sorting
-            sort_specs = imgui.table_get_sort_specs()
-            manual_sort     = imgui.table_get_column_flags(0) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            self.sort_games(sort_specs, manual_sort)
-            not_filtering = len(self.filters) == 0 and not self.add_box_text
-            # Enabled attributes
-            version_enabled = imgui.table_get_column_flags(1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            status_enabled  = imgui.table_get_column_flags(2) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            column_i = 3
-            play_button     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            type            = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            column_i += 1  # Name
-            developer       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            last_updated    = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            last_played     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            added_on        = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            played          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            installed       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            rating          = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            notes           = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            open_thread     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            copy_link       = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            open_folder     = imgui.table_get_column_flags(column_i := column_i + 1) & imgui.TABLE_COLUMN_IS_ENABLED and 1
-            button_row = play_button or open_thread or copy_link or open_folder or played or installed
-            data_rows = type + developer + last_updated + last_played + added_on + rating + notes
+            # Setup columns
+            can_sort = 0
+            for column in cols.items:
+                imgui.table_setup_column("", column.flags | (can_sort if column.sortable else 0))
+                # Enabled columns
+                column.enabled = bool(imgui.table_get_column_flags(column.index) & imgui.TABLE_COLUMN_IS_ENABLED)
+                # Set sorting condition
+                if column is cols.manual_sort:
+                    can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
+            self.sort_games(imgui.table_get_sort_specs())
+
+            # Grid only stuff
+            checkboxes = cols.played.enabled + cols.installed.enabled
+            buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
+            actions = checkboxes + buttons
+            data_rows = cols.type.enabled + cols.developer.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
@@ -1748,11 +1818,11 @@ class MainGUI():
         min_width = (
             indent * 2 +  # Side padding * 2 sides
             max((
-                imgui.style.item_spacing.x * 2 * (play_button + open_folder + open_thread + copy_link + played + installed - 1) +  # Spacing * 2 * (6 items - 1 (between items))
-                imgui.style.frame_padding.x * 2 * (play_button + open_folder + open_thread + copy_link) +  # Button padding * 2 sides * 4 buttons
-                imgui.style.item_inner_spacing.x * (played + installed) +  # Checkbox to label spacing * 2 checkboxes
-                imgui.get_frame_height() * (played + installed) +  # (Checkbox height = width) * 2 checkboxes
-                imgui.calc_text_size(f"{icons.play} Play" * play_button + f"{icons.folder_open_outline} Folder" * open_folder + f"{icons.open_in_new} Thread" * open_thread + f"{icons.content_copy} Link" * copy_link + icons.flag_checkered * played + icons.cloud_download * installed).x  # Text
+                imgui.style.item_spacing.x * 2 * (actions - 1) +  # Spacing * 2 * (6 action items - 1 (between items))
+                imgui.style.frame_padding.x * 2 * buttons +  # Button padding * 2 sides * 4 buttons
+                imgui.style.item_inner_spacing.x * checkboxes +  # Checkbox to label spacing * 2 checkboxes
+                imgui.get_frame_height() * checkboxes +  # (Checkbox height = width) * 2 checkboxes
+                imgui.calc_text_size(f"{icons.play} Play" * cols.play_button.enabled + f"{icons.folder_open_outline} Folder" * cols.open_folder.enabled + f"{icons.open_in_new} Thread" * cols.open_thread.enabled + f"{icons.content_copy} Link" * cols.copy_link.enabled + icons.flag_checkered * cols.played.enabled + icons.cloud_download * cols.installed.enabled).x  # Text
             ),
             (
                 imgui.style.item_spacing.x * 2 +  # Between text * 2
@@ -1849,48 +1919,48 @@ class MainGUI():
                     if imgui.get_content_region_available_width() < notes_badge_width:
                         imgui.dummy(0, 0)
                     imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-                if version_enabled:
+                if cols.version.enabled:
                     imgui.text_disabled(self.get_game_version_text(game))
-                if status_enabled and game.status is not Status.Normal:
+                if cols.status.enabled and game.status is not Status.Normal:
                     imgui.same_line()
                     if imgui.get_content_region_available_width() < status_badge_width:
                         imgui.dummy(0, 0)
                     self.draw_game_status_widget(game)
-                if button_row:
+                if actions:
                     if imgui.is_rect_visible(width, frame_height):
                         # Play Button
                         did_newline = False
-                        if play_button:
+                        if cols.play_button.enabled:
                             if did_newline:
                                 imgui.same_line()
                             self.draw_game_play_button(game, label=f"{icons.play} Play")
                             did_newline = True
                         # Open Folder
-                        if open_folder:
+                        if cols.open_folder.enabled:
                             if did_newline:
                                 imgui.same_line()
                             self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Folder")
                             did_newline = True
                         # Open Thread
-                        if open_thread:
+                        if cols.open_thread.enabled:
                             if did_newline:
                                 imgui.same_line()
                             self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Thread")
                             did_newline = True
                         # Copy Link
-                        if copy_link:
+                        if cols.copy_link.enabled:
                             if did_newline:
                                 imgui.same_line()
                             self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Link")
                             did_newline = True
                         # Played
-                        if played:
+                        if cols.played.enabled:
                             if did_newline:
                                 imgui.same_line()
                             self.draw_game_played_checkbox(game, label=icons.flag_checkered)
                             did_newline = True
                         # Installed
-                        if installed:
+                        if cols.installed.enabled:
                             if did_newline:
                                 imgui.same_line()
                             self.draw_game_installed_checkbox(game, label=icons.cloud_download)
@@ -1901,37 +1971,37 @@ class MainGUI():
                 if data_rows:
                     if imgui.is_rect_visible(width, data_height):
                         # Developer
-                        if developer:
+                        if cols.developer.enabled:
                             imgui.text_disabled("Developer:")
                             imgui.same_line()
                             utils.wrap_text(game.developer or "Unknown", width=wrap_width, offset=developer_width)
                         # Type
-                        if type:
+                        if cols.type.enabled:
                             imgui.text_disabled("Type:")
                             imgui.same_line()
                             self.draw_game_type_widget(game)
                         # Last Updated
-                        if last_updated:
+                        if cols.last_updated.enabled:
                             imgui.text_disabled("Last Updated:")
                             imgui.same_line()
                             imgui.text(game.last_updated.display or "Unknown")
                         # Last Played
-                        if last_played:
+                        if cols.last_played.enabled:
                             imgui.text_disabled("Last Played:")
                             imgui.same_line()
                             imgui.text(game.last_played.display or "Never")
                         # Added On
-                        if added_on:
+                        if cols.added_on.enabled:
                             imgui.text_disabled("Added On:")
                             imgui.same_line()
                             imgui.text(game.added_on.display)
                         # Rating
-                        if rating:
+                        if cols.rating.enabled:
                             imgui.text_disabled("Rating:")
                             imgui.same_line()
                             self.draw_game_rating_widget(game)
                         # Notes
-                        if notes:
+                        if cols.notes.enabled:
                             if not notes_width:
                                 notes_width = width - 2 * (imgui.get_cursor_pos_x() - pos.x)
                             self.draw_game_notes_widget(game, multiline=False, width=notes_width)
@@ -1949,7 +2019,7 @@ class MainGUI():
                 if imgui.is_rect_visible(width, cell_height):
                     # Skip if outside view
                     imgui.invisible_button(f"###{game.id}_grid_hitbox", width, cell_height)
-                    self.handle_game_hitbox_events(game, game_i, manual_sort, not_filtering)
+                    self.handle_game_hitbox_events(game, game_i)
                     pos = imgui.get_item_rect_min()
                     pos2 = imgui.get_item_rect_max()
                     draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
