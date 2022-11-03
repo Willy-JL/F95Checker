@@ -48,7 +48,7 @@ def is_class(name: str):
 @contextlib.contextmanager
 def setup():
     global session
-    session = aiohttp.ClientSession(loop=async_thread.loop)
+    session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
     session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{'.'.join(str(num) for num in sys.version_info[:3])} aiohttp/{aiohttp.__version__}"
     try:
         yield
