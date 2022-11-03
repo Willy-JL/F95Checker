@@ -14,7 +14,94 @@ def did_login(cookies):
 
 
 def run_windows():
-    return {}
+    from PyQt6 import QtCore, QtGui, QtWidgets
+    import os
+
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox --disable-gpu --enable-logging --log-level=0"
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
+    from PyQt6 import QtWebEngineCore, QtWebEngineWidgets
+    app = QtWidgets.QApplication([])
+
+    window = QtWidgets.QWidget()
+    window.setWindowTitle(title)
+    # TODO: window icon
+    # TODO: always on top flag
+    window.resize(*size)
+    # TODO: move to middle of main window
+    window.setLayout(QtWidgets.QGridLayout())
+    window.layout().setContentsMargins(0, 0, 0, 0)
+    window.layout().setSpacing(0)
+    window.setStyleSheet("""
+        QProgressBar {
+            background: #0A0A0A;
+            border-radius: 0px;
+        }
+        QProgressBar::chunk {
+            background: #D4202E;
+            border-radius: 0px;
+        }
+        QLabel {
+            color: #FFFFFF;
+            font-size: 8pt;
+        }
+    """)  # TODO: use accent color
+
+    progress = QtWidgets.QProgressBar(window)
+    progress.setTextVisible(False)
+    progress.setFixedHeight(10)
+    progress.setMaximum(100)
+    label = QtWidgets.QLabel(text="Click to reload")
+
+    webview = QtWebEngineWidgets.QWebEngineView(window)
+    profile = QtWebEngineCore.QWebEngineProfile(webview)
+    webpage = QtWebEngineCore.QWebEnginePage(profile, webview)
+    webview.setPage(webpage)
+    cookie_store = profile.cookieStore()
+    cookie_store.deleteAllCookies()
+    cookie_store.deleteSessionCookies()
+    cookies = {}
+    login = [False]
+    def on_cookie_add(cookie):
+        name = cookie.name().data().decode('utf-8')
+        value = cookie.value().data().decode('utf-8')
+        cookies[name] = value
+        if did_login(cookies):
+            login[0] = True
+            window.close()
+    cookie_store.cookieAdded.connect(on_cookie_add)
+    webview.setUrl(QtCore.QUrl(start_page))
+
+    loading = [False]
+    def load_started(*_):
+        loading[0] = True
+        progress.setValue(1)
+        progress.repaint()
+    def load_progress(value):
+        progress.setValue(max(1, value))
+        progress.repaint()
+    def load_finished(*_):
+        loading[0] = False
+        progress.setValue(0)
+        progress.repaint()
+    webview.loadStarted.connect(load_started)
+    webview.loadProgress.connect(load_progress)
+    webview.loadFinished.connect(load_finished)
+    def reload(*_):
+        if loading[0]:
+            webview.stop()
+            load_finished()
+        else:
+            webview.reload()
+            load_started()
+    progress.mousePressEvent = reload
+    label.mousePressEvent = reload
+
+    window.layout().addWidget(progress, 0, 0)
+    window.layout().addWidget(label, 0, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+    window.layout().addWidget(webview, 1, 0)
+    window.show()
+    app.exec()  # TODO: fix crash
+    return cookies
 
 
 def run_unix():
@@ -35,6 +122,7 @@ def run_unix():
     from gi.repository import Gtk, WebKit2
 
     window = Gtk.Window(title=title)
+    # TODO: window icon
     window.connect("destroy", Gtk.main_quit)
     window.set_keep_above(stay_on_top)
     window.resize(*size)
@@ -42,6 +130,8 @@ def run_unix():
         globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2,
         globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2
     )
+
+    # TODO: add progressbar
 
     webview = WebKit2.WebView()
     cookies = {}
