@@ -62,11 +62,15 @@ async def _launch(path: str | pathlib.Path):
         mode = exe.stat().st_mode
         executable = not (mode & stat.S_IEXEC < stat.S_IEXEC)
         if not executable:
+            mark_exe = False
+            if exe.suffix in (".exe", ".msi"):  # Probably windows executable
+                mark_exe = True
             with exe.open("rb") as f:
-                if f.read(2) == b"#!":
-                    # Make executable if shebang is present
-                    exe.chmod(mode | stat.S_IEXEC)
-                    executable = True
+                if f.read(2) == b"#!":  # Shebang is present, probably a script
+                    mark_exe = True
+            if mark_exe:
+                exe.chmod(mode | stat.S_IEXEC)
+                executable = True
         if (exe.parent / "renpy").is_dir():
             # Make all needed renpy libs executable
             for file in (exe.parent / "lib").glob("**/*"):
