@@ -243,7 +243,9 @@ class MainGUI():
         self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
+        self.switched_display_mode = False
         self.type_label_width: float = None
+        self.first_visible_game: Game = None
         self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
@@ -1668,16 +1670,25 @@ class MainGUI():
                 imgui.table_header(column.header)
 
             # Loop rows
+            scroll_to = None
+            if self.switched_display_mode:
+                scroll_to = self.first_visible_game
+                self.switched_display_mode = False
+            self.first_visible_game = None
             frame_height = imgui.get_frame_height()
             notes_width = None
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
                 imgui.table_next_row()
                 imgui.table_set_column_index(cols.separator.index)
+                if scroll_to == game:
+                    imgui.set_scroll_y(imgui.get_cursor_pos_y() - frame_height)
                 # Skip if outside view
                 if not imgui.is_rect_visible(imgui.io.display_size.x, frame_height):
                     imgui.dummy(0, frame_height)
                     continue
+                if self.first_visible_game is None:
+                    self.first_visible_game = game
                 # Base row height with a buttom to align the following text calls to center vertically
                 imgui.button(f"###{game.id}_id", width=imgui.FLOAT_MIN)
                 # Loop columns
@@ -1814,6 +1825,11 @@ class MainGUI():
             data_height = data_rows * imgui.get_text_line_height_with_spacing()
 
             # Loop cells
+            scroll_to = None
+            if self.switched_display_mode:
+                scroll_to = self.first_visible_game
+                self.switched_display_mode = False
+            self.first_visible_game = None
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
                 draw_list.channels_split(2)
@@ -1827,6 +1843,8 @@ class MainGUI():
                     wrap_width = width - 2 * indent
 
                 # Cell
+                if scroll_to == game:
+                    imgui.set_scroll_y(imgui.get_cursor_pos_y() - padding)
                 pos = imgui.get_cursor_pos()
                 imgui.begin_group()
                 # Image
@@ -1976,6 +1994,8 @@ class MainGUI():
                 cell_height = imgui.get_item_rect_size().y
                 if imgui.is_rect_visible(width, cell_height):
                     # Skip if outside view
+                    if self.first_visible_game is None:
+                        self.first_visible_game = game
                     imgui.invisible_button(f"###{game.id}_grid_hitbox", width, cell_height)
                     self.handle_game_hitbox_events(game, game_i)
                     pos = imgui.get_item_rect_min()
@@ -1993,6 +2013,7 @@ class MainGUI():
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button(icons.view_agenda_outline):
             new_display_mode = DisplayMode.list
+            self.switched_display_mode = True
         if globals.settings.display_mode is DisplayMode.list:
             imgui.pop_style_color()
 
@@ -2002,6 +2023,7 @@ class MainGUI():
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button(icons.view_grid_outline):
             new_display_mode = DisplayMode.grid
+            self.switched_display_mode = True
         if globals.settings.display_mode is DisplayMode.grid:
             imgui.pop_style_color()
 
