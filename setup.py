@@ -19,7 +19,6 @@ if sys.platform.startswith("linux"):
     bin_includes += find_libs("ffi", "ssl", "crypto")
 elif sys.platform.startswith("darwin"):
     bin_includes += find_libs("intl")
-    bin_excludes += ["libiodbc.2.dylib", "libpq.5.dylib"]
 
 path = pathlib.Path(__file__).absolute().parent
 
