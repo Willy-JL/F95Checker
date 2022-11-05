@@ -20,7 +20,7 @@ jobs:
         python:
           - "3.10.8"
         cx-freeze:
-          - "6.13.1"
+          - "6.12.0"
     name: "${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
