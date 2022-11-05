@@ -67,7 +67,10 @@ def run_windows():
         cookies[name] = value
         if did_login(cookies):
             login[0] = True
-            window.close()
+            try:
+                window.close()
+            except RuntimeError:
+                pass
     cookie_store.cookieAdded.connect(on_cookie_add)
     webview.setUrl(QtCore.QUrl(start_page))
 
@@ -96,11 +99,14 @@ def run_windows():
     progress.mousePressEvent = reload
     label.mousePressEvent = reload
 
-    window.layout().addWidget(progress, 0, 0)
     window.layout().addWidget(label, 0, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
+    window.layout().addWidget(progress, 0, 0)
     window.layout().addWidget(webview, 1, 0)
+    window.destroyed.connect(lambda *_: app.exit())
     window.show()
     app.exec()  # TODO: fix crash
+    del webpage
+    del profile
     return cookies
 
 
@@ -123,7 +129,6 @@ def run_unix():
 
     window = Gtk.Window(title=title)
     # TODO: window icon
-    window.connect("destroy", Gtk.main_quit)
     window.set_keep_above(stay_on_top)
     window.resize(*size)
     window.move(
@@ -144,6 +149,7 @@ def run_unix():
     webview.get_context().get_cookie_manager().connect("changed", on_cookies_changed)
     webview.load_uri(start_page)
 
+    window.connect("destroy", Gtk.main_quit)
     window.add(webview)
     window.show_all()
     Gtk.main()
