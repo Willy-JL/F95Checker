@@ -44,8 +44,8 @@ elif sys.platform.startswith("darwin"):
     bin_includes += find_libs("intl")
 
 if not sys.platform.startswith("win"):
-    bin_includes += find_libs("gtk-3", "webkit2gtk-4", "glib-2", "gobject-2")
     packages += ["gi"]
+    bin_includes += find_libs("gtk-3", "webkit2gtk-4", "glib-2", "gobject-2")
     zip_exclude_packages += ["PyGObject"]
 
 
