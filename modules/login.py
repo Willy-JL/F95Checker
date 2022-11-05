@@ -13,7 +13,7 @@ def did_login(cookies):
     return "xf_user" in cookies
 
 
-def run_windows():
+def run_qt():
     from PyQt6 import QtCore, QtGui, QtWidgets
     import os
 
@@ -60,13 +60,11 @@ def run_windows():
     cookie_store.deleteAllCookies()
     cookie_store.deleteSessionCookies()
     cookies = {}
-    login = [False]
     def on_cookie_add(cookie):
         name = cookie.name().data().decode('utf-8')
         value = cookie.value().data().decode('utf-8')
         cookies[name] = value
         if did_login(cookies):
-            login[0] = True
             try:
                 window.close()
             except RuntimeError:
@@ -110,7 +108,7 @@ def run_windows():
     return cookies
 
 
-def run_unix():
+def run_gtk():
     import ctypes.util
     import gi
 
@@ -158,7 +156,7 @@ def run_unix():
 
 def run():
     if globals.os is Os.Windows:
-        run = run_windows
+        run = run_qt
     else:
-        run = run_unix
+        run = run_gtk
     return run()
