@@ -234,6 +234,7 @@ class MainGUI():
         self.screen_pos = (0, 0)
         self.require_sort = True
         self.repeat_chars = False
+        self.scroll_percent = 0.0
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
@@ -243,6 +244,7 @@ class MainGUI():
         self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
+        self.switched_display_mode = False
         self.type_label_width: float = None
         self.show_login_window: bool = False
         self.sort_specs: list[SortSpec] = []
@@ -1659,6 +1661,14 @@ class MainGUI():
             self.draw_game_context_menu(game)
             imgui.end_popup()
 
+    def sync_scroll(self):
+        if (scroll_max_y := imgui.get_scroll_max_y()) > 1.0:
+            if self.switched_display_mode:
+                imgui.set_scroll_y(self.scroll_percent * scroll_max_y)
+                self.switched_display_mode = False
+            else:
+                self.scroll_percent = imgui.get_scroll_y() / scroll_max_y
+
     def draw_games_list(self):
         # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
         # by starting the table render before the content region.
@@ -1694,6 +1704,7 @@ class MainGUI():
                 imgui.table_header(column.header)
 
             # Loop rows
+            self.sync_scroll()
             frame_height = imgui.get_frame_height()
             notes_width = None
             for game_i, id in enumerate(self.sorted_games_ids):
@@ -1840,6 +1851,7 @@ class MainGUI():
             data_height = data_rows * imgui.get_text_line_height_with_spacing()
 
             # Loop cells
+            self.sync_scroll()
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
                 draw_list.channels_split(2)
@@ -2019,6 +2031,7 @@ class MainGUI():
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button(icons.view_agenda_outline):
             new_display_mode = DisplayMode.list
+            self.switched_display_mode = True
         if globals.settings.display_mode is DisplayMode.list:
             imgui.pop_style_color()
 
@@ -2028,6 +2041,7 @@ class MainGUI():
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
         if imgui.button(icons.view_grid_outline):
             new_display_mode = DisplayMode.grid
+            self.switched_display_mode = True
         if globals.settings.display_mode is DisplayMode.grid:
             imgui.pop_style_color()
 

@@ -142,8 +142,9 @@ def impl_glfw_init(width: int, height: int, window_name: str):
 def validate_geometry(x, y, width, height):
     window_pos = (x, y)
     window_size = (width, height)
-    valid = False
+    valid = True
     for monitor in glfw.get_monitors():
+        valid = False
         monitor_area = glfw.get_monitor_workarea(monitor)
         monitor_pos = (monitor_area[0], monitor_area[1])
         monitor_size = (monitor_area[2], monitor_area[3])

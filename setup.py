@@ -42,7 +42,6 @@ if sys.platform.startswith("linux"):
     bin_includes += find_libs("ffi", "ssl", "crypto")
 elif sys.platform.startswith("darwin"):
     bin_includes += find_libs("intl")
-    bin_excludes += ["libiodbc.2.dylib", "libpq.5.dylib"]
 
 if not sys.platform.startswith("win"):
     bin_includes += find_libs("gtk-3", "webkit2gtk-4", "glib-2", "gobject-2")
