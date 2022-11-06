@@ -60,8 +60,9 @@ jobs:
       - name: "Install requirements"
         run: |
           python -m pip install -U 'numpy' 'cython>=3.0a11'
-          pip install --extra-index-url https://www.lfd.uci.edu/~gohlke/pythonlibs/ lxml
+          python -m pip install 'https://download.lfd.uci.edu/pythonlibs/archived/lxml-4.9.0-cp311-cp311-win_amd64.whl' || true
           python -m pip install -U -r ./requirements.txt
+        # lxml does not yet have official binaries for python 3.11 on windows
 
       - name: "Mark as release"
         if: "github.event_name == 'release'"
