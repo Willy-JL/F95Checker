@@ -55,7 +55,9 @@ jobs:
       - name: "Setup GTK (macOS)"
         if: "runner.os == 'macOS'"
         run: |
-          sudo port install gobject-introspection gtk3 webkit2-gtk
+          sudo port install gobject-introspection -universal
+          sudo port install gtk3 -universal -x11 +quartz
+          sudo port install webkit2-gtk -debug -minibrowser -x11 +quartz
 
       - name: "Setup cx_Freeze (Windows)"
         if: "runner.os == 'Windows'"
