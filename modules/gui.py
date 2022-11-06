@@ -323,7 +323,7 @@ class MainGUI():
                 return
             tb = utils.get_traceback(type(exc), exc, exc.__traceback__)
             if isinstance(exc, asyncio.TimeoutError) or isinstance(exc, aiohttp.ClientError):
-                utils.push_popup(msgbox.msgbox, "Connection error", f"A connection request to F95Zone has failed:\n{type(exc).__name__}: {str(exc) or 'No further details'}\n\nPossible causes include:\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - F95Zone is blocked in your country, network, antivirus or firewall", MsgBox.warn, more=tb)
+                utils.push_popup(msgbox.msgbox, "Connection error", f"A connection request to F95Zone has failed:\n{type(exc).__name__}: {str(exc) or 'No further details'}\n\nPossible causes include:\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n - Your retries value is too low, try increasing it in settings (last resort!)", MsgBox.warn, more=tb)
                 return
             utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
         async_thread.done_callback = asyncexcepthook
@@ -2666,6 +2666,28 @@ class MainGUI():
             set.request_timeout = min(max(value, 1), 120)
             if changed:
                 async_thread.run(db.update_settings("request_timeout"))
+
+            draw_settings_label(
+                "Retries:",
+                "While refreshing, a lot of connections are made to F95Zone very quickly, so some might fail. This setting "
+                "determines how many times a failed connection will be reattempted before failing completely. However these "
+                "connection errors are often caused by misconfigured workers and timeout values, so try to tinker with those "
+                "instead of the retries value. This setting should only be used if you know your connection is very unreliable. "
+                "Otherwise 2 max retries are usually fine for stable connections."
+            )
+            changed, value = imgui.drag_int("###max_retries", set.max_retries, change_speed=0.05, min_value=0, max_value=10)
+            set.max_retries = min(max(value, 0), 10)
+            if changed:
+                async_thread.run(db.update_settings("max_retries"))
+
+            draw_settings_label(
+                "No semaphore timeout:",
+                "If you are having connection issues specifically with 'WinError 121' and 'The semaphore timeout period has expired' "
+                "then try to enable this option, it will suppress these errors and retry all connections as if they never happened. "
+                "However this type of error is usually caused by hardware or driver issues, or some bad Windows updates. It is recommended "
+                "you first try to repair your system with sfc and DISM (Google them) and update your drivers. Use this option as a last resort."
+            )
+            draw_settings_checkbox("ignore_semaphore_timeouts")
 
             draw_settings_label(
                 "BG interval:",

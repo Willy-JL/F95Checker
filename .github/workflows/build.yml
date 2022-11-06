@@ -18,9 +18,9 @@ jobs:
           - "ubuntu-22.04"
           - "macos-12"
         python:
-          - "3.10.8"
+          - "3.11.0"
         cx-freeze:
-          - "v6.11.1"
+          - "v6.11.1"  # Later versions have bugs on macOS - also Windows ignores this since it needs newer versions for Python 3.11+
     name: "${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
@@ -49,12 +49,15 @@ jobs:
         run: |
           brew install gobject-introspection gtk+3 webkitgtk
 
-      - name: "Setup cx_Logging (Windows)"
+      - name: "Setup cx_Freeze (Windows)"
         if: "runner.os == 'Windows'"
         run: |
-          python -m pip install -U --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+          python -m pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
+          python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+          python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
 
-      - name: "Setup cx_Freeze"
+      - name: "Setup cx_Freeze (Linux, macOS)"
+        if: "runner.os != 'Windows'"
         run: |
           python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
@@ -67,8 +70,10 @@ jobs:
 
       - name: "Install requirements"
         run: |
-          python -m pip install -U 'numpy'
+          python -m pip install -U 'numpy' 'cython>=3.0a11'
+          python -m pip install 'https://download.lfd.uci.edu/pythonlibs/archived/lxml-4.9.0-cp311-cp311-win_amd64.whl' || true
           python -m pip install -U -r ./requirements.txt
+        # lxml does not yet have official binaries for python 3.11 on windows
 
       - name: "Mark as release"
         if: "github.event_name == 'release'"
