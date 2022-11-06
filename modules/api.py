@@ -64,7 +64,7 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
-    retries = 3
+    retries = globals.settings.max_retries + 1
     while retries:
         try:
             async with session.request(

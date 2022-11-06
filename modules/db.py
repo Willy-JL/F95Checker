@@ -105,6 +105,7 @@ async def connect():
         "interface_scaling":           f'REAL    DEFAULT 1.0',
         "last_successful_refresh":     f'INTEGER DEFAULT 0',
         "manual_sort_list":            f'TEXT    DEFAULT "[]"',
+        "max_retries":                 f'INTEGER DEFAULT 2',
         "minimize_on_close":           f'INTEGER DEFAULT {int(False)}',
         "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
         "refresh_workers":             f'INTEGER DEFAULT 20',
