@@ -4,6 +4,7 @@ from PIL import Image
 import configparser
 import contextlib
 import subprocess
+import functools
 import tempfile
 import aiofiles
 import aiohttp
@@ -24,6 +25,7 @@ import re
 
 from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status, Tag, Type
 from modules import globals, async_thread, callbacks, db, icons, msgbox, utils
+bs4_parse = functools.partial(bs4.BeautifulSoup, features="lxml")
 
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
@@ -149,7 +151,7 @@ async def download_webpage(url: str):
     if not await assert_login():
         return
     res = await fetch("GET", url)
-    html = bs4.BeautifulSoup(res, "lxml")
+    html = bs4_parse(res)
     for elem in html.find_all():
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
@@ -171,7 +173,7 @@ async def quick_search(query: str):
     if not await assert_login():
         return
     res = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token})
-    html = bs4.BeautifulSoup(res, "lxml")
+    html = bs4_parse(res)
     results = []
     for row in html.find(is_class("quicksearch-wrapper-wide")).find_all(is_class("dataList-row")):
         title = list(row.find_all(is_class("dataList-cell")))[1]
@@ -209,7 +211,7 @@ async def import_url_shortcut(file: str | pathlib.Path):
 async def import_browser_bookmarks(file: str | pathlib.Path):
     async with aiofiles.open(file, "rb") as f:
         raw = await f.read()
-    html = bs4.BeautifulSoup(raw, "lxml")
+    html = bs4_parse(raw)
     threads = []
     for bookmark in html.find_all(lambda elem: "href" in getattr(elem, "attrs", "")):
         threads += utils.extract_thread_matches(bookmark.get("href"))
@@ -231,7 +233,7 @@ async def import_f95_bookmarks():
         globals.refresh_progress += 1
         res = await fetch("GET", globals.bookmarks_page, params={"difference": diff})
         raise_f95zone_error(res)
-        html = bs4.BeautifulSoup(res, "lxml")
+        html = bs4_parse(res)
         bookmarks = html.find(is_class("p-body-pageContent")).find(is_class("listPlain"))
         if not bookmarks:
             break
@@ -256,7 +258,7 @@ async def import_f95_watched_threads():
         globals.refresh_progress += 1
         res = await fetch("GET", globals.watched_page, params={"unread": 0, "page": page})
         raise_f95zone_error(res)
-        html = bs4.BeautifulSoup(res, "lxml")
+        html = bs4_parse(res)
         watched = html.find(is_class("p-body-pageContent")).find(is_class("structItemContainer"))
         if not watched:
             break
@@ -358,7 +360,7 @@ async def check(game: Game, full=False, login=False):
                     msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
                 raise msgbox.Exc(title, msg + f"\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
             url = utils.clean_thread_url(str(req.real_url))
-        html = bs4.BeautifulSoup(res, "lxml")
+        html = bs4_parse(res)
 
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
