@@ -44,6 +44,7 @@ jobs:
           python -m pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
           python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
           python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
+          vcpkg install libxml2
 
       - name: "Setup cx_Freeze (Linux, macOS)"
         if: "runner.os != 'Windows'"
@@ -87,7 +88,7 @@ jobs:
         run: |
           python ./setup.py bdist_mac
           mkdir ./dist/
-          mv ./build/*.app/ ./dist/macOS
+          mv ./build/*.app/ ./dist/
 
       - name: "Resolve symlinks (Linux, macOS)"
         if: "runner.os != 'Windows'"
