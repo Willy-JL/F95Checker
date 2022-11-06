@@ -53,13 +53,8 @@ def run_qt():
     progress.setMaximum(100)
     label = QtWidgets.QLabel(text="Click to reload")
 
-    webview = QtWebEngineWidgets.QWebEngineView(window)
-    profile = QtWebEngineCore.QWebEngineProfile(webview)
-    webpage = QtWebEngineCore.QWebEnginePage(profile, webview)
-    webview.setPage(webpage)
-    cookie_store = profile.cookieStore()
-    cookie_store.deleteAllCookies()
-    cookie_store.deleteSessionCookies()
+    profile = QtWebEngineCore.QWebEngineProfile(window)
+    webview = QtWebEngineWidgets.QWebEngineView(profile, window)
     cookies = {}
     def on_cookie_add(cookie):
         name = cookie.name().data().decode('utf-8')
@@ -70,7 +65,7 @@ def run_qt():
                 window.close()
             except RuntimeError:
                 pass
-    cookie_store.cookieAdded.connect(on_cookie_add)
+    profile.cookieStore().cookieAdded.connect(on_cookie_add)
     webview.setUrl(QtCore.QUrl(start_page))
 
     loading = [False]
@@ -142,7 +137,8 @@ def run_gtk():
 
     # TODO: add progressbar
 
-    webview = WebKit2.WebView(is_ephemeral=True)
+    context = WebKit2.WebContext.new_ephemeral()
+    webview = WebKit2.WebView(web_context=context)
     cookies = {}
     def on_cookies_changed(cookie_manager):
         def cookies_callback(cookie_manager, cookie_task):
@@ -150,7 +146,7 @@ def run_gtk():
             if did_login(cookies):
                 window.destroy()
         cookie_manager.get_cookies(webview.get_uri(), None, cookies_callback)
-    webview.get_context().get_cookie_manager().connect("changed", on_cookies_changed)
+    context.get_cookie_manager().connect("changed", on_cookies_changed)
     webview.load_uri(start_page)
 
     window.connect("destroy", Gtk.main_quit)
