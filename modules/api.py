@@ -87,8 +87,10 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                 yield res, req
             break
         except aiohttp.ClientError as exc:
-            if not (isinstance(exc, OSError) and exc.errno == 121):  # Ignore semaphore timeouts
-                retries -= 1
+            # if not (isinstance(exc, OSError) and exc.errno == 121):
+            #     # Ignore semaphore timeouts
+            #     continue
+            retries -= 1
             if not retries:
                 raise
 
