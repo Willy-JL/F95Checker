@@ -57,47 +57,50 @@ def setup():
         cleanup_webpages()
 
 
-def request(method: str, url: str, **kwargs):
+@contextlib.asynccontextmanager
+async def request(method: str, url: str, read=True, until: list[bytes] = None, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
-    return session.request(
-        method,
-        url,
-        cookies=globals.cookies,
-        timeout=timeout,
-        allow_redirects=True,
-        max_redirects=None,
-        ssl=False,
-        **kwargs
-    )
+    retries = 3
+    while retries:
+        try:
+            async with session.request(
+                method,
+                url,
+                cookies=globals.cookies,
+                timeout=timeout,
+                allow_redirects=True,
+                max_redirects=None,
+                ssl=False,
+                **kwargs
+            ) as req:
+                res = b""
+                if read:
+                    if until:
+                        for marker in until:
+                            res += await req.content.readuntil(marker)
+                    else:
+                        res += await req.read()
+                yield res, req
+            break
+        except aiohttp.ClientError as exc:
+            retries -= 1
+            if not retries:
+                raise
 
 
 async def fetch(method: str, url: str, **kwargs):
-    raw = None
-    exc = None
-    failed = False
-    for _ in range(3):
-        try:
-            async with request(method, url, **kwargs) as req:
-                raw = await req.read()
-            failed = False
-            break
-        except aiohttp.ClientError as e:
-            failed = True
-            exc = e
-            continue
-    if failed:
-        raise exc
-    return raw, req
+    async with request(method, url, **kwargs) as (res, _):
+        return res
 
 
-def raise_f95zone_error(raw: bytes, return_login=False):
-    if b"<title>Log in | F95zone</title>" in raw:
+def raise_f95zone_error(res: bytes, return_login=False):
+    if b"<title>Log in | F95zone</title>" in res:
         if return_login:
             return False
         raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
-    if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in raw:
+    if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
         raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
     # if b"<title>DDOS-GUARD</title>" in data:
     #     raise Exception("Captcha needed!")
@@ -105,20 +108,17 @@ def raise_f95zone_error(raw: bytes, return_login=False):
 
 
 async def is_logged_in():
-    async with request("GET", globals.check_login_page) as req:
-        raw = b""
-        raw += await req.content.readuntil(b"_xfToken")
-        raw += await req.content.readuntil(b">")
-        start = raw.rfind(b'value="') + len(b'value="')
-        end = raw.find(b'"', start)
-        globals.token = str(raw[start:end], encoding="utf-8")
+    async with request("GET", globals.check_login_page, until=[b"_xfToken", b">"]) as (res, req):
+        start = res.rfind(b'value="') + len(b'value="')
+        end = res.find(b'"', start)
+        globals.token = str(res[start:end], encoding="utf-8")
         if not 200 <= req.status < 300:
-            raw += await req.content.read()
-            if not raise_f95zone_error(raw, return_login=True):
+            res += await req.content.read()
+            if not raise_f95zone_error(res, return_login=True):
                 return False
             # Check login page was not in 200 range, but error is not a login issue
             async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
-                await f.write(raw)
+                await f.write(res)
             raise msgbox.Exc("Login assertion failure", f"Something went wrong checking the validity of your login session.\n\nF95Zone replied with a status code of {req.status} at this URL:\n{str(req.real_url)}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}login_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
         return True
 
@@ -148,8 +148,8 @@ async def assert_login():
 async def download_webpage(url: str):
     if not await assert_login():
         return
-    raw, req = await fetch("GET", url)
-    html = bs4.BeautifulSoup(raw, "lxml")
+    res = await fetch("GET", url)
+    html = bs4.BeautifulSoup(res, "lxml")
     for elem in html.find_all():
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
@@ -170,8 +170,8 @@ def cleanup_webpages():
 async def quick_search(query: str):
     if not await assert_login():
         return
-    raw, req = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token})
-    html = bs4.BeautifulSoup(raw, "lxml")
+    res = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token})
+    html = bs4.BeautifulSoup(res, "lxml")
     results = []
     for row in html.find(is_class("quicksearch-wrapper-wide")).find_all(is_class("dataList-row")):
         title = list(row.find_all(is_class("dataList-cell")))[1]
@@ -229,9 +229,9 @@ async def import_f95_bookmarks():
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        raw, req = await fetch("GET", globals.bookmarks_page, params={"difference": diff})
-        raise_f95zone_error(raw)
-        html = bs4.BeautifulSoup(raw, "lxml")
+        res = await fetch("GET", globals.bookmarks_page, params={"difference": diff})
+        raise_f95zone_error(res)
+        html = bs4.BeautifulSoup(res, "lxml")
         bookmarks = html.find(is_class("p-body-pageContent")).find(is_class("listPlain"))
         if not bookmarks:
             break
@@ -254,9 +254,9 @@ async def import_f95_watched_threads():
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        raw, req = await fetch("GET", globals.watched_page, params={"unread": 0, "page": page})
-        raise_f95zone_error(raw)
-        html = bs4.BeautifulSoup(raw, "lxml")
+        res = await fetch("GET", globals.watched_page, params={"unread": 0, "page": page})
+        raise_f95zone_error(res)
+        html = bs4.BeautifulSoup(res, "lxml")
         watched = html.find(is_class("p-body-pageContent")).find(is_class("structItemContainer"))
         if not watched:
             break
@@ -296,7 +296,7 @@ async def check(game: Game, full=False, login=False):
     breaking_skip_update_popup = breaking_version_parsing  # Hide update notification for breaking backend changes
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_parsing_changes
     if not full:
-        async with request("HEAD", game.url) as req:
+        async with request("HEAD", game.url, read=False) as (_, req):
             if (redirect := str(req.real_url)) != game.url:
                 if str(game.id) in redirect and redirect.startswith(globals.threads_page):
                     full = True
@@ -343,27 +343,28 @@ async def check(game: Game, full=False, login=False):
                 value = value.replace("\n\n\n", "\n\n")
             return value
 
-        raw, req = await fetch("GET", game.url, timeout=globals.settings.request_timeout * 2)
-        raise_f95zone_error(raw)
-        if req.status == 404 or req.status == 403:
-            buttons = {
-                f"{icons.check} Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
-                f"{icons.cancel} No": None
-            }
-            if req.status == 404:
-                title = "Thread not found"
-                msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
-            elif req.status == 403:
-                title = "No permission"
-                msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
-            raise msgbox.Exc(title, msg + f"\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
-        html = bs4.BeautifulSoup(raw, "lxml")
+        async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
+            raise_f95zone_error(res)
+            if req.status == 404 or req.status == 403:
+                buttons = {
+                    f"{icons.check} Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                    f"{icons.cancel} No": None
+                }
+                if req.status == 404:
+                    title = "Thread not found"
+                    msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
+                elif req.status == 403:
+                    title = "No permission"
+                    msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
+                raise msgbox.Exc(title, msg + f"\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
+            url = utils.clean_thread_url(str(req.real_url))
+        html = bs4.BeautifulSoup(res, "lxml")
 
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
             async with aiofiles.open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
-                await f.write(raw)
+                await f.write(res)
             raise msgbox.Exc("Thread parsing error", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:
@@ -458,8 +459,6 @@ async def check(game: Game, full=False, login=False):
         else:
             status = Status.Normal
 
-        url = utils.clean_thread_url(str(req.real_url))
-
         last_updated = 0
         text = get_game_attr("thread updated", "updated").replace("/", "-")
         try:
@@ -508,7 +507,7 @@ async def check(game: Game, full=False, login=False):
         if fetch_image and image_url and image_url != "-":
             async with images:
                 try:
-                    raw, req = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
+                    res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
@@ -529,7 +528,7 @@ async def check(game: Game, full=False, login=False):
                     else:
                         raise  # Foreign host might not actually be dead
                 try:
-                    ext = "." + str(Image.open(io.BytesIO(raw)).format or "img").lower()
+                    ext = "." + str(Image.open(io.BytesIO(res)).format or "img").lower()
                 except Exception:
                     ext = ".img"
                 async def replace_image():
@@ -540,7 +539,7 @@ async def check(game: Game, full=False, login=False):
                             pass
                     if image_url != "-":
                         async with aiofiles.open(globals.images_path / f"{game.id}{ext}", "wb") as f:
-                            await f.write(raw)
+                            await f.write(res)
                     game.image.loaded = False
                     game.image.resolve()
                 await asyncio.shield(replace_image())
@@ -588,13 +587,13 @@ async def check_notifs(login=False):
         globals.refresh_progress = 1
 
     try:
-        raw, req = await fetch("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"})
-        res = json.loads(raw)
+        res = await fetch("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"})
+        res = json.loads(res)
         alerts = int(res["visitor"]["alerts_unread"])
         inbox  = int(res["visitor"]["conversations_unread"])
     except Exception:
         async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
-            await f.write(raw)
+            await f.write(res)
         raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     if alerts != 0 and inbox != 0:
         msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})."
@@ -625,8 +624,8 @@ async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
     try:
-        raw, req = await fetch("GET", globals.update_endpoint, headers={"Accept": "application/vnd.github+json"})
-        res = json.loads(raw)
+        res = await fetch("GET", globals.update_endpoint, headers={"Accept": "application/vnd.github+json"})
+        res = json.loads(res)
         globals.last_update_check = time.time()
         if "tag_name" not in res:
             utils.push_popup(msgbox.msgbox, "Update check error", "Failed to fetch latest F95Checker release information.\nThis might be a temporary issue.", MsgBox.warn)
@@ -663,7 +662,7 @@ async def check_updates():
             return
     except Exception:
         async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
-            await f.write(raw)
+            await f.write(res)
         raise msgbox.Exc("Update check error", f"Something went wrong checking for F95Checker updates:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}update_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     async def update_callback():
         progress = 0.0
@@ -693,7 +692,7 @@ async def check_updates():
         }
         utils.push_popup(utils.popup, "Updating F95Checker", popup_content, buttons=buttons, closable=False, outside=False)
         asset_data = io.BytesIO()
-        async with request("GET", asset_url, timeout=3600) as req:
+        async with request("GET", asset_url, timeout=3600, read=False) as (_, req):
             async for chunk in req.content.iter_any():
                 if cancel[0]:
                     return
