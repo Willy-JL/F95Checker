@@ -40,7 +40,10 @@ jobs:
 
       - name: "Setup MacPorts (macOS)"
         if: "runner.os == 'macOS'"
-        uses: "keepitsimpletech/actions/setup-macports@setup-macports/releases/v1"
+        run: |
+          macports="$(mktemp)"
+          wget https://github.com/macports/macports-base/releases/download/v2.8.0/MacPorts-2.8.0-12-Monterey.pkg -O "$macports"
+          sudo installer -pkg "$macports" -target /
 
       - name: "Setup GTK (Linux)"
         if: "runner.os == 'Linux'"
