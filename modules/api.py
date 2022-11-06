@@ -29,8 +29,10 @@ bs4_parse = functools.partial(bs4.BeautifulSoup, features="lxml")
 
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
+webpage_prefix = "F95Checker-Temp-"
 images = ContextLimiter()
 fulls = CounterContext()
+xf_token = ""
 
 
 def is_text(text: str):
@@ -112,10 +114,11 @@ def raise_f95zone_error(res: bytes, return_login=False):
 
 
 async def is_logged_in():
+    global xf_token
     async with request("GET", globals.check_login_page, until=[b"_xfToken", b">"]) as (res, req):
         start = res.rfind(b'value="') + len(b'value="')
         end = res.find(b'"', start)
-        globals.token = str(res[start:end], encoding="utf-8")
+        xf_token = str(res[start:end], encoding="utf-8")
         if not 200 <= req.status < 300:
             res += await req.content.read()
             if not raise_f95zone_error(res, return_login=True):
@@ -158,13 +161,13 @@ async def download_webpage(url: str):
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
                 elem.attrs[key] = globals.domain + value
-    with tempfile.NamedTemporaryFile("wb", prefix="F95Checker-Temp-", suffix=".html", delete=False) as f:
+    with tempfile.NamedTemporaryFile("wb", prefix=webpage_prefix, suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return f.name
 
 
 def cleanup_webpages():
-    for item in pathlib.Path(tempfile.gettempdir()).glob("F95Checker-Temp-*"):
+    for item in pathlib.Path(tempfile.gettempdir()).glob(f"{webpage_prefix}*"):
         try:
             item.unlink()
         except Exception:
@@ -174,7 +177,7 @@ def cleanup_webpages():
 async def quick_search(query: str):
     if not await assert_login():
         return
-    res = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": globals.token})
+    res = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
     html = bs4_parse(res)
     results = []
     for row in html.find(is_class("quicksearch-wrapper-wide")).find_all(is_class("dataList-row")):
@@ -591,7 +594,7 @@ async def check_notifs(login=False):
         globals.refresh_progress = 1
 
     try:
-        res = await fetch("GET", globals.notif_endpoint, params={"_xfToken": globals.token, "_xfResponseType": "json"})
+        res = await fetch("GET", globals.notif_endpoint, params={"_xfToken": xf_token, "_xfResponseType": "json"})
         res = json.loads(res)
         alerts = int(res["visitor"]["alerts_unread"])
         inbox  = int(res["visitor"]["conversations_unread"])
