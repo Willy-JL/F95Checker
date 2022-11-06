@@ -102,6 +102,7 @@ async def connect():
         "fit_images":                  f'INTEGER DEFAULT {int(False)}',
         "grid_columns":                f'INTEGER DEFAULT 3',
         "grid_image_ratio":            f'REAL    DEFAULT 3.0',
+        "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
         "interface_scaling":           f'REAL    DEFAULT 1.0',
         "last_successful_refresh":     f'INTEGER DEFAULT 0',
         "manual_sort_list":            f'TEXT    DEFAULT "[]"',

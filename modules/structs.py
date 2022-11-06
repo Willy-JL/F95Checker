@@ -401,6 +401,7 @@ class Settings:
     fit_images                  : bool
     grid_columns                : int
     grid_image_ratio            : float
+    ignore_semaphore_timeouts   : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp
     manual_sort_list            : list

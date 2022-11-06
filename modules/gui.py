@@ -2655,6 +2655,15 @@ class MainGUI():
                 async_thread.run(db.update_settings("max_retries"))
 
             draw_settings_label(
+                "No semaphore timeout:",
+                "If you are having connection issues specifically with 'WinError 121' and 'The semaphore timeout period has expired' "
+                "then try to enable this option, it will suppress these errors and retry all connections as if they never happened. "
+                "However this type of error is usually caused by hardware or driver issues, or some bad Windows updates. It is recommended "
+                "you first try to repair your system with sfc and DISM (Google them) and update your drivers. Use this option as a last resort."
+            )
+            draw_settings_checkbox("ignore_semaphore_timeouts")
+
+            draw_settings_label(
                 "BG interval:",
                 "When F95Checker is minimized in background mode it automatically refreshes your games periodically. This "
                 "controls how often (in minutes) this happens."
