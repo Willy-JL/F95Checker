@@ -23,9 +23,12 @@ def run_qt():
     window = QtWidgets.QWidget()
     window.setWindowTitle(title)
     window.setWindowIcon(QtGui.QIcon(str(globals.gui.icon_path)))
-    # TODO: always on top flag
+    window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
     window.resize(*size)
-    # TODO: move to middle of main window
+    window.move(
+        int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+        int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
+    )
     window.setLayout(QtWidgets.QGridLayout())
     window.layout().setContentsMargins(0, 0, 0, 0)
     window.layout().setSpacing(0)
