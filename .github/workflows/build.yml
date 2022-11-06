@@ -38,6 +38,10 @@ jobs:
         with:
           python-version: "${{ matrix.python }}"
 
+      - name: "Setup MacPorts (macOS)"
+        if: "runner.os == 'macOS'"
+        uses: "keepitsimpletech/actions/setup-macports@setup-macports/releases/v1"
+
       - name: "Setup GTK (Linux)"
         if: "runner.os == 'Linux'"
         run: |
@@ -46,7 +50,7 @@ jobs:
       - name: "Setup GTK (macOS)"
         if: "runner.os == 'macOS'"
         run: |
-          brew install gobject-introspection gtk+3 webkitgtk
+          sudo port install gobject-introspection gtk3 webkit2-gtk
 
       - name: "Setup cx_Freeze (Windows)"
         if: "runner.os == 'Windows'"
