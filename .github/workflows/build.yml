@@ -20,7 +20,7 @@ jobs:
         python:
           - "3.11.0"
         cx-freeze:
-          - "v6.11.1"
+          - "v6.11.1"  # Later versions have bugs on macOS - also Windows ignores this since it needs newer versions for Python 3.11+
     name: "${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
@@ -38,12 +38,13 @@ jobs:
         with:
           python-version: "${{ matrix.python }}"
 
-      - name: "Install cx_Logging Windows"
+      - name: "Setup cx_Freeze (Windows)"
         if: "runner.os == 'Windows'"
         run: |
-          python -m pip install -U --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+          python -m pip install -U --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging cx_Freeze
 
-      - name: "Setup cx_Freeze"
+      - name: "Setup cx_Freeze (Linux, macOS)"
+        if: "runner.os != 'Windows'"
         run: |
           python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
 
@@ -73,33 +74,33 @@ jobs:
           rm ./modules/globals.py
           mv ./modules/globals.py.new ./modules/globals.py
 
-      - name: "Build"
+      - name: "Build (Windows, Linux)"
         if: "runner.os != 'macOS'"
         run: |
           python ./setup.py build
           mv ./build/exe.*/ ./dist/
 
-      - name: "Build macOS"
+      - name: "Build (macOS)"
         if: "runner.os == 'macOS'"
         run: |
           python ./setup.py bdist_mac
           mkdir ./dist/
-          mv ./build/*.app/ ./dist/
+          mv ./build/*.app/ ./dist/macOS
 
-      - name: "Resolve symlinks"
+      - name: "Resolve symlinks (Linux, macOS)"
         if: "runner.os != 'Windows'"
         run: |
           cd ./dist/
           find ./ -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
 
-      - name: "Import macOS codesign certificate"
+      - name: "Import codesign certificate (macOS)"
         if: "runner.os == 'macOS'"
         uses: "apple-actions/import-codesign-certs@v1"
         with:
           p12-file-base64: "${{ secrets.CODESIGN_P12_BASE64 }}"
           p12-password: "${{ secrets.CODESIGN_P12_PASSWORD }}"
 
-      - name: "Codesign macOS"
+      - name: "Codesign (macOS)"
         if: "runner.os == 'macOS'"
         run: |
           cd ./dist/
