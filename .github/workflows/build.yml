@@ -29,7 +29,6 @@ jobs:
       # === SETUP ===
 
       - name: "Set git to use lf"
-        shell: "bash"
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
