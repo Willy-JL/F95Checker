@@ -4,9 +4,8 @@ import pathlib
 import sys
 import re
 
+path = pathlib.Path(__file__).absolute().parent
 
-bin_includes = []
-bin_excludes = []
 
 def find_libs(*names):
     libs = []
@@ -15,12 +14,6 @@ def find_libs(*names):
             libs.append(lib)
     return libs
 
-if sys.platform.startswith("linux"):
-    bin_includes += find_libs("ffi", "ssl", "crypto")
-elif sys.platform.startswith("darwin"):
-    bin_includes += find_libs("intl")
-
-path = pathlib.Path(__file__).absolute().parent
 
 icon = str(path / "resources/icons/icon")
 if sys.platform.startswith("win"):
@@ -30,13 +23,30 @@ elif sys.platform.startswith("darwin"):
 else:
     icon += ".png"
 
+
 with open(path / "modules/globals.py", "rb") as f:
     version = str(re.search(rb'version = "(\S+)"', f.read()).group(1), encoding="utf-8")
+
+
+packages = ["OpenGL"]
+bin_includes = []
+bin_excludes = []
+zip_include_packages = "*"
+zip_exclude_packages = [
+    "OpenGL_accelerate",
+    "PyQt6",
+    "glfw"
+]
+
+if sys.platform.startswith("linux"):
+    bin_includes += find_libs("ffi", "ssl", "crypto")
+elif sys.platform.startswith("darwin"):
+    bin_includes += find_libs("intl")
+
 
 cx_Freeze.setup(
     name="F95Checker",
     version=version,
-    description="An update checker tool for (NSFW) games on the F95Zone platform",
     executables=[
         cx_Freeze.Executable(
             script=path / "main.py",
@@ -47,21 +57,15 @@ cx_Freeze.setup(
     options={
         "build_exe": {
             "optimize": 1,
-            "packages": [
-                "OpenGL"
-            ],
+            "packages": packages,
             "bin_includes": bin_includes,
             "bin_excludes": bin_excludes,
             "include_files": [
                 path / "resources",
                 path / "LICENSE"
             ],
-            "zip_include_packages": "*",
-            "zip_exclude_packages": [
-                "OpenGL_accelerate",
-                "PyQt6",
-                "glfw"
-            ],
+            "zip_include_packages": zip_include_packages,
+            "zip_exclude_packages": zip_exclude_packages,
             "include_msvcr": True
         },
         "bdist_mac": {
