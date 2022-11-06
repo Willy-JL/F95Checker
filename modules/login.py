@@ -1,7 +1,7 @@
 import imgui
 
 from modules.structs import Os
-from modules import globals
+from modules import globals, utils
 
 title = "F95Checker: Login to F95Zone"
 size = (500, 720)
