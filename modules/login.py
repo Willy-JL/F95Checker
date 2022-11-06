@@ -29,20 +29,20 @@ def run_qt():
     window.setLayout(QtWidgets.QGridLayout())
     window.layout().setContentsMargins(0, 0, 0, 0)
     window.layout().setSpacing(0)
-    window.setStyleSheet("""
-        QProgressBar {
-            background: #0A0A0A;
+    window.setStyleSheet(f"""
+        QProgressBar {{
+            background: {utils.rgba_0_1_to_hex(globals.settings.style_bg)[:-2]};
             border-radius: 0px;
-        }
-        QProgressBar::chunk {
-            background: #D4202E;
+        }}
+        QProgressBar::chunk {{
+            background: {utils.rgba_0_1_to_hex(globals.settings.style_accent)[:-2]};
             border-radius: 0px;
-        }
-        QLabel {
-            color: #FFFFFF;
+        }}
+        QLabel {{
+            color: {utils.rgba_0_1_to_hex(globals.settings.style_text)[:-2]};
             font-size: 8pt;
-        }
-    """)  # TODO: use accent color
+        }}
+    """)
 
     progress = QtWidgets.QProgressBar(window)
     progress.setTextVisible(False)
