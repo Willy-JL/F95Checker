@@ -22,7 +22,7 @@ def run_qt():
 
     window = QtWidgets.QWidget()
     window.setWindowTitle(title)
-    # TODO: window icon
+    window.setWindowIcon(QtGui.QIcon(str(globals.gui.icon_path)))
     # TODO: always on top flag
     window.resize(*size)
     # TODO: move to middle of main window
@@ -129,7 +129,7 @@ def run_gtk():
     from gi.repository import Gtk, WebKit2
 
     window = Gtk.Window(title=title)
-    # TODO: window icon
+    window.set_icon_from_file(str(globals.gui.icon_path))
     window.set_keep_above(stay_on_top)
     window.resize(*size)
     window.move(

@@ -296,9 +296,9 @@ class MainGUI():
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_tray:
             self.minimize()
-        icon_path = globals.self_path / "resources/icons/icon.png"
-        self.icon_texture = imagehelper.ImageHelper(icon_path)
-        glfw.set_window_icon(self.window, 1, Image.open(icon_path))
+        self.icon_path = globals.self_path / "resources/icons/icon.png"
+        self.icon_texture = imagehelper.ImageHelper(self.icon_path)
+        glfw.set_window_icon(self.window, 1, Image.open(self.icon_path))
         self.impl = GlfwRenderer(self.window)
         glfw.set_char_callback(self.window, self.char_callback)
         glfw.set_window_close_callback(self.window, self.close_callback)
