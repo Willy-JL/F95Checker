@@ -14,13 +14,11 @@ def did_login(cookies):
 
 
 def run_qt():
-    from PyQt6 import QtCore, QtGui, QtWidgets
+    import glfw
     import os
 
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox --disable-gpu --enable-logging --log-level=0"
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
-    from PyQt6 import QtWebEngineCore, QtWebEngineWidgets
-    app = QtWidgets.QApplication([])
+    from PyQt6 import QtCore, QtGui, QtWidgets, QtWebEngineCore, QtWebEngineWidgets
 
     window = QtWidgets.QWidget()
     window.setWindowTitle(title)
@@ -100,11 +98,16 @@ def run_qt():
     window.layout().addWidget(label, 0, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
     window.layout().addWidget(progress, 0, 0)
     window.layout().addWidget(webview, 1, 0)
-    window.destroyed.connect(lambda *_: app.exit())
+    alive = [True]
+    _closeEvent = window.closeEvent
+    def closeEvent(*args, **kwargs):
+        alive[0] = False
+        return _closeEvent(*args, **kwargs)
+    window.closeEvent = closeEvent
     window.show()
-    app.exec()  # TODO: fix crash
-    del webpage
-    del profile
+    while alive[0]:
+        globals.gui.qt_app.processEvents(QtCore.QEventLoop.ProcessEventsFlag.WaitForMoreEvents)
+    glfw.make_context_current(globals.gui.window)
     return cookies
 
 
@@ -137,6 +140,7 @@ def run_gtk():
     # TODO: add progressbar
 
     webview = WebKit2.WebView()
+    # TODO: use blank profile session
     cookies = {}
     def on_cookies_changed(cookie_manager):
         def cookies_callback(cookie_manager, cookie_task):

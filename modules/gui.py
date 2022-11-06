@@ -253,6 +253,7 @@ class MainGUI():
         self.bg_mode_notifs_timer: float = None
 
         # Setup Qt objects
+        QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
 
