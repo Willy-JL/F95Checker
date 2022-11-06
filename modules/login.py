@@ -139,8 +139,7 @@ def run_gtk():
 
     # TODO: add progressbar
 
-    webview = WebKit2.WebView()
-    # TODO: use blank profile session
+    webview = WebKit2.WebView(is_ephemeral=True)
     cookies = {}
     def on_cookies_changed(cookie_manager):
         def cookies_callback(cookie_manager, cookie_task):
