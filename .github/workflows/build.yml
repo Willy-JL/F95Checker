@@ -41,9 +41,9 @@ jobs:
       - name: "Setup cx_Freeze (Windows)"
         if: "runner.os == 'Windows'"
         run: |
-          pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
-          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
-          pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
+          python -m pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
+          python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
+          python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
 
       - name: "Setup cx_Freeze (Linux, macOS)"
         if: "runner.os != 'Windows'"
