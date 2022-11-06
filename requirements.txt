@@ -15,7 +15,7 @@ aiohttp
 
 # BeautifulSoup
 beautifulsoup4
-lxml ; sys_platform == "win32"  # lxml does not yet have official binaries for python 3.11 on windows
+lxml ; sys_platform != "win32"  # lxml does not yet have official binaries for python 3.11 on windows
 
 # Misc
 pywin32 ; sys_platform == "win32"
