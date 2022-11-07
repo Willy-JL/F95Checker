@@ -44,8 +44,7 @@ jobs:
           wget https://github.com/macports/macports-base/releases/download/v2.8.0/MacPorts-2.8.0-12-Monterey.pkg
           sudo installer -pkg ./MacPorts-2.8.0-12-Monterey.pkg -target /
           rm ./MacPorts-2.8.0-12-Monterey.pkg
-          echo "/opt/local/sbin" >> $GITHUB_PATH
-          echo "/opt/local/bin" >> $GITHUB_PATH
+          echo "/opt/local/bin:/opt/local/sbin" >> $GITHUB_PATH
 
       - name: "Setup GTK (Linux)"
         if: "runner.os == 'Linux'"
