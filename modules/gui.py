@@ -1300,6 +1300,13 @@ class MainGUI():
             imgui.text_disabled("Last Played:")
             imgui.same_line()
             imgui.text(game.last_played.display or "Never")
+            if imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.text_unformatted("Click to set as played right now!")
+                imgui.end_tooltip()
+            if imgui.is_item_clicked():
+                game.last_played.update(time.time())
+                async_thread.run(db.update_game(game, "last_played"))
 
             imgui.text_disabled("Added On:")
             imgui.same_line()
