@@ -596,14 +596,14 @@ async def check_notifs(login=False):
     try:
         res = await fetch("GET", globals.notif_endpoint, params={"_xfToken": xf_token, "_xfResponseType": "json"})
         res = json.loads(res)
-        alerts = int(res["visitor"]["alerts_unread"])
-        inbox  = int(res["visitor"]["conversations_unread"])
+        alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
+        inbox  = int(res["visitor"]["conversations_unread"].replace(",", "").replace(".", ""))
     except Exception:
         async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
             await f.write(res)
         raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
     if alerts != 0 and inbox != 0:
-        msg = f"You have {alerts + inbox} unread notifications ({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})."
+        msg = f"You have {alerts + inbox} unread notifications.\n({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})"
     elif alerts != 0 and inbox == 0:
         msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}."
     elif alerts == 0 and inbox != 0:
