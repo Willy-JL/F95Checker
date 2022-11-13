@@ -1251,12 +1251,10 @@ class MainGUI():
                 glfw.set_clipboard_string(self.window, str(game.id))
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
-                imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
                 imgui.text_unformatted(
                     f"Thread ID: {game.id}\n"
                     f"Click to copy!"
                 )
-                imgui.pop_text_wrap_pos()
                 imgui.end_tooltip()
             imgui.same_line()
             self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
