@@ -148,8 +148,8 @@ def _():
     if frozen:
         start_cmd = shlex.join([sys.executable])
     else:
-        import main
-        start_cmd = shlex.join([sys.executable, main.__file__])
+        from main import __file__ as main_path
+        start_cmd = shlex.join([sys.executable, main_path])
 
     if os is Os.Windows:
         import winreg

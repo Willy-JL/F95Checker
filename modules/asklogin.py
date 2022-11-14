@@ -19,8 +19,8 @@ class QCookieWebEngineView(QtWebEngineWidgets.QWebEngineView):
         if getattr(sys, "frozen", False):
             icon = pathlib.Path(sys.executable).parent / icon
         else:
-            import main
-            icon = pathlib.Path(main.__file__).parent / icon
+            from main import __file__ as main_path
+            icon = pathlib.Path(main_path).parent / icon
         self.setWindowIcon(QtGui.QIcon(str(icon)))
 
         self.cookies = {}
