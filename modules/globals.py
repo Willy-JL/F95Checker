@@ -6,23 +6,16 @@ import shlex
 import sys
 import re
 
-version = "9.4.1"
-is_release = False
-build_number = 0
-rpc_port = 57095
-version_name = f"{version}{'' if is_release else ' beta'}{'' if is_release or not build_number else ' ' + str(build_number)}"
-
+version = None
+is_release = None
+build_number = None
+version_name = None
+rpc_port = None
 frozen = None
 self_path = None
 def _():
-    global frozen, self_path
-    frozen = getattr(sys, "frozen", False)
-
-    if frozen:
-        self_path = pathlib.Path(sys.executable).parent
-    else:
-        import main
-        self_path = pathlib.Path(main.__file__).parent
+    global version, is_release, build_number, version_name, rpc_port, frozen, self_path
+    from main import version, is_release, build_number, version_name, rpc_port, frozen, self_path
 
     if frozen and sys.platform.startswith("linux"):
         library = self_path / f"lib/glfw/{_os.environ.get('XDG_SESSION_TYPE')}/libglfw.so"
@@ -155,8 +148,8 @@ def _():
     if frozen:
         start_cmd = shlex.join([sys.executable])
     else:
-        import main
-        start_cmd = shlex.join([sys.executable, main.__file__])
+        from main import __file__ as main_path
+        start_cmd = shlex.join([sys.executable, main_path])
 
     if os is Os.Windows:
         import winreg

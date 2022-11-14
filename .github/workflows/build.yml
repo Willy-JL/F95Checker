@@ -82,21 +82,23 @@ jobs:
           python -m pip install -U 'numpy' 'cython>=3.0a11'
           python -m pip install 'https://download.lfd.uci.edu/pythonlibs/archived/lxml-4.9.0-cp311-cp311-win_amd64.whl' || true
           python -m pip install -U -r ./requirements.txt
-        # lxml does not yet have official binaries for python 3.11 on windows
+        # numpy is installed before to avoid the numpy formathandler warning on startup with pyopengl-accelerate
+        # cython version restriction is to fix complciation of opengl-accelerate on python 3.11+
+        # lxml is installed from a direct wheel on windows because there are no official binaries for python 3.11+ yet
 
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/is_release = False/is_release = True/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Build (Windows, Linux)"
         if: "runner.os != 'macOS'"
@@ -135,7 +137,8 @@ jobs:
 
       - name: "Zip artifact"
         run: |
-          7z a -r ./${{ github.event.repository.name }}-${{ runner.os }}.zip ./dist/*
+          cd ./dist/
+          7z a ../${{ github.event.repository.name }}-${{ runner.os }}.zip .
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
@@ -175,16 +178,16 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/is_release = False/is_release = True/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Package"
         run: |
@@ -199,7 +202,8 @@ jobs:
 
       - name: "Zip artifact"
         run: |
-          7z a -r ./${{ github.event.repository.name }}-Source.zip ./dist/*
+          cd ./dist/
+          7z a ../${{ github.event.repository.name }}-Source.zip .
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"

@@ -805,14 +805,14 @@ class MainGUI():
             return True
         return False
 
-    def draw_game_more_info_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+    def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None, *args, **kwargs):
         id = f"{label}###{game.id}_more_info"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if clicked:
-            utils.push_popup(self.draw_game_info_popup, game)
+            utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
         return clicked
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, *args, **kwargs):
@@ -1008,7 +1008,7 @@ class MainGUI():
         return clicked
 
     def draw_game_context_menu(self, game: Game):
-        self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info", selectable=True)
+        self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
         self.draw_game_recheck_button(game, label=f"{icons.reload_alert} Full Recheck", selectable=True)
         imgui.separator()
         self.draw_game_play_button(game, label=f"{icons.play} Play", selectable=True)
@@ -1096,6 +1096,9 @@ class MainGUI():
             imgui.push_text_wrap_pos(full_width)
             imgui.indent(indent)
             for i, id in enumerate(sorted_ids):
+                if id not in globals.games:
+                    sorted_ids.remove(id)
+                    continue
                 old_game = updated_games[id]
                 game = globals.games[id]
                 if game.type in (Type.Collection, Type.Manga, Type.SiteRip, Type.Comics, Type.CG, Type.Pinup, Type.Video, Type.GIF):
@@ -1162,7 +1165,7 @@ class MainGUI():
                     self.draw_game_status_widget(game)
 
                 imgui.spacing()
-                self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info and Actions")
+                self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info and Actions", carousel_ids=sorted_ids)
 
                 imgui.end_group()
                 height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
@@ -1176,7 +1179,7 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup(f"{count} update{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False, popup_uuid=popup_uuid)
 
-    def draw_game_info_popup(self, game: Game, popup_uuid: str = ""):
+    def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         popup_pos = [None]
         popup_size = [None]
         zoom_popup = [False]
@@ -1278,12 +1281,10 @@ class MainGUI():
                 glfw.set_clipboard_string(self.window, str(game.id))
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
-                imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
                 imgui.text_unformatted(
                     f"Thread ID: {game.id}\n"
                     f"Click to copy!"
                 )
-                imgui.pop_text_wrap_pos()
                 imgui.end_tooltip()
             imgui.same_line()
             self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
@@ -1327,6 +1328,13 @@ class MainGUI():
             imgui.text_disabled("Last Played:")
             imgui.same_line()
             imgui.text(game.last_played.display or "Never")
+            if imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.text_unformatted("Click to set as played right now!")
+                imgui.end_tooltip()
+            if imgui.is_item_clicked():
+                game.last_played.update(time.time())
+                async_thread.run(db.update_game(game, "last_played"))
 
             imgui.text_disabled("Added On:")
             imgui.same_line()
@@ -1382,8 +1390,18 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             popup_pos[0] = imgui.get_window_position()
             popup_size[0] = imgui.get_window_size()
+        if game.id not in globals.games:
+            if carousel_ids:
+                idx = carousel_ids.index(game.id)
+                carousel_ids.pop(idx)
+                if carousel_ids:
+                    if idx == len(carousel_ids):
+                        idx = 0
+                    utils.push_popup(self.draw_game_info_popup, globals.games[carousel_ids[idx]], carousel_ids)
+            return 0, True
         return_args = utils.popup(game.name, popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
-        if not imgui.is_any_item_active() and len(globals.popup_stack) == 1 and game.id in self.sorted_games_ids:
+        # Has and is in carousel ids, is not the only one in them, is topmost popup and no item is active
+        if carousel_ids and len(carousel_ids) > 1 and game.id in carousel_ids and not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active():
             pos = popup_pos[0]
             size = popup_size[0]
             if size and pos:
@@ -1405,19 +1423,19 @@ class MainGUI():
                 clicked_right = mouse_clicked and x2 <= mouse_pos.x <= x2 + text_size.x and y_ok
                 imgui.pop_font()
                 change_id = None
-                idx = self.sorted_games_ids.index(game.id)
+                idx = carousel_ids.index(game.id)
                 if imgui.is_key_pressed(glfw.KEY_LEFT, repeat=True) or clicked_left:
                     idx -= 1
                     if idx == -1:
-                        idx = len(self.sorted_games_ids) - 1
-                    change_id = self.sorted_games_ids[idx]
+                        idx = len(carousel_ids) - 1
+                    change_id = carousel_ids[idx]
                 if imgui.is_key_pressed(glfw.KEY_RIGHT, repeat=True) or clicked_right:
                     idx += 1
-                    if idx == len(self.sorted_games_ids):
+                    if idx == len(carousel_ids):
                         idx = 0
-                    change_id = self.sorted_games_ids[idx]
+                    change_id = carousel_ids[idx]
                 if change_id is not None:
-                    utils.push_popup(self.draw_game_info_popup, globals.games[change_id])
+                    utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids)
                     return 1, True
         return return_args
 
@@ -1640,7 +1658,7 @@ class MainGUI():
             if self.game_hitbox_click and not imgui.is_mouse_down():
                 # Left click = open game info popup
                 self.game_hitbox_click = False
-                utils.push_popup(self.draw_game_info_popup, game)
+                utils.push_popup(self.draw_game_info_popup, game, self.sorted_games_ids.copy())
         # Left click drag = swap if in manual sort mode
         if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
             self.game_hitbox_click = False
