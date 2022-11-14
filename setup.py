@@ -15,6 +15,32 @@ def find_libs(*names):
     return libs
 
 
+name = "F95Checker"
+identifier = "io.github.willy-jl.f95checker"
+script = "main.py"
+base = None
+optimize = 1
+packages = ["OpenGL"]
+bin_includes = []
+bin_excludes = []
+include_files = [
+    "resources/",
+    "LICENSE"
+]
+zip_include_packages = "*"
+zip_exclude_packages = [
+    "OpenGL_accelerate",
+    "PyQt6",
+    "glfw"
+]
+
+
+if sys.platform.startswith("linux"):
+    bin_includes += find_libs("ffi", "ssl", "crypto")
+elif sys.platform.startswith("darwin"):
+    bin_includes += find_libs("intl")
+
+
 icon = str(path / "resources/icons/icon")
 if sys.platform.startswith("win"):
     icon += ".ico"
@@ -28,53 +54,35 @@ with open(path / "modules/globals.py", "rb") as f:
     version = str(re.search(rb'version = "(\S+)"', f.read()).group(1), encoding="utf-8")
 
 
-packages = ["OpenGL"]
-bin_includes = []
-bin_excludes = []
-zip_include_packages = "*"
-zip_exclude_packages = [
-    "OpenGL_accelerate",
-    "PyQt6",
-    "glfw"
-]
-
-if sys.platform.startswith("linux"):
-    bin_includes += find_libs("ffi", "ssl", "crypto")
-elif sys.platform.startswith("darwin"):
-    bin_includes += find_libs("intl")
-
-
 cx_Freeze.setup(
-    name="F95Checker",
+    name=name,
     version=version,
     executables=[
         cx_Freeze.Executable(
-            script=path / "main.py",
-            target_name="F95Checker",
+            script=path / script,
+            target_name=name,
+            base=base,
             icon=icon
         )
     ],
     options={
         "build_exe": {
-            "optimize": 1,
+            "optimize": optimize,
             "packages": packages,
             "bin_includes": bin_includes,
             "bin_excludes": bin_excludes,
-            "include_files": [
-                path / "resources",
-                path / "LICENSE"
-            ],
+            "include_files": [path / item for item in include_files],
             "zip_include_packages": zip_include_packages,
             "zip_exclude_packages": zip_exclude_packages,
             "include_msvcr": True
         },
         "bdist_mac": {
             "iconfile": icon,
-            "bundle_name": "F95Checker",
+            "bundle_name": name,
             "plist_items": [
-                ("CFBundleName", "F95Checker"),
-                ("CFBundleDisplayName", "F95Checker"),
-                ("CFBundleIdentifier", "io.github.willy-jl.f95checker"),
+                ("CFBundleName", name),
+                ("CFBundleDisplayName", name),
+                ("CFBundleIdentifier", identifier),
                 ("CFBundleVersion", version),
                 ("CFBundlePackageType", "APPL"),
                 ("CFBundleSignature", "????"),
