@@ -10,20 +10,17 @@ rpc_port = 57095
 
 frozen = getattr(sys, "frozen", False)
 self_path = pathlib.Path(sys.executable if frozen else __file__).parent
+debug = not (frozen or release)
+
 
 def main():
     # Must import globals first to fix load paths when frozen
     from modules import globals
 
     from modules.structs import Os
-    try:  # Non essential, ignore errors
-        if globals.os is Os.Windows:
-            # Hide conhost if frozen or release
-            if (globals.frozen or globals.release) and "nohide" not in sys.argv:
-                import ctypes
-                ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
-        else:
-            # Install uvloop on MacOS and Linux
+    try:
+        # Install uvloop on MacOS and Linux, non essential so ignore errors
+        if globals.os is not Os.Windows:
             import uvloop
             uvloop.install()
     except Exception:
@@ -67,15 +64,33 @@ if __name__ == "__main__":
         exec(sys.argv[sys.argv.index("-c") + 1])
     else:
         try:
-            if frozen or release:
-                if "main" in sys.argv:
-                    main()
-                elif lock_singleton():
+            if "main" in sys.argv:
+                main()
+            elif lock_singleton():
+                with open(self_path / "log.txt", "wb", buffering=0) as log:
+                    stream = None if debug else log  # Don't redirect in debug mode
                     import subprocess
                     import os
-                    with open(self_path / "log.txt", "wb") as log:
-                        sys.exit(subprocess.call([sys.executable, *sys.argv, "main"], cwd=os.getcwd(), stdout=log, stderr=subprocess.STDOUT))
-            elif lock_singleton():
-                main()
+                    ret = subprocess.call(
+                        [
+                            sys.executable,
+                            *sys.argv,
+                            "main"
+                        ],
+                        env={
+                            **os.environ,
+                            "PYTHONUNBUFFERED": "1"
+                        },
+                        cwd=os.getcwd(),
+                        stdout=stream,
+                        stderr=stream,
+                        bufsize=0
+                    )
+                    if debug:
+                        try:
+                            input(f"Exited with code {ret}, press [Enter] to quit... ")
+                        except Exception:
+                            pass
+                    sys.exit(ret)
         except KeyboardInterrupt:
             pass

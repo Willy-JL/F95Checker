@@ -13,9 +13,10 @@ version_name = None
 rpc_port = None
 frozen = None
 self_path = None
+debug = None
 def _():
-    global version, release, build_number, version_name, rpc_port, frozen, self_path
-    from main import version, release, build_number, version_name, rpc_port, frozen, self_path
+    global version, release, build_number, version_name, rpc_port, frozen, self_path, debug
+    from main import version, release, build_number, version_name, rpc_port, frozen, self_path, debug
 
     if frozen and sys.platform.startswith("linux"):
         library = self_path / f"lib/glfw/{_os.environ.get('XDG_SESSION_TYPE')}/libglfw.so"

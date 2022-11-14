@@ -18,6 +18,7 @@ def find_libs(*names):
 name = "F95Checker"
 identifier = "io.github.willy-jl.f95checker"
 script = "main.py"
+debug_script = "debug.py"
 base = None
 optimize = 1
 packages = ["OpenGL"]
@@ -58,6 +59,11 @@ with open(path / script, "rb") as f:
     version = str(re.search(rb'version = "(\S+)"', f.read()).group(1), encoding="utf-8")
 
 
+with open(path / debug_script, "wb") as d:
+    with open(path / script, "rb") as s:
+        d.write(re.sub(rb"debug = .*", rb"debug = True", s.read()))
+
+
 cx_Freeze.setup(
     name=name,
     version=version,
@@ -66,6 +72,12 @@ cx_Freeze.setup(
             script=path / script,
             target_name=name,
             base=base,
+            icon=icon
+        ),
+        cx_Freeze.Executable(
+            script=path / debug_script,
+            target_name=name + "-Debug",
+            base=None,
             icon=icon
         )
     ],

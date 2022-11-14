@@ -4,4 +4,5 @@ venv/
 __pycache__/
 build/
 dist/
+debug.py
 log.txt

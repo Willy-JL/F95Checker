@@ -254,7 +254,7 @@ class MainGUI():
         self.bg_mode_notifs_timer: float = None
 
         # Setup Qt objects
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox --disable-gpu --enable-logging --log-level=0"
+        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = f"--no-sandbox --disable-gpu {'--enable-logging --log-level=0' if globals.debug else '--disable-logging'}"
         QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
