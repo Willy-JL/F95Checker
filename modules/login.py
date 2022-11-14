@@ -1,4 +1,6 @@
+from PyQt6 import QtCore, QtGui, QtWidgets, QtWebEngineCore, QtWebEngineWidgets
 import imgui
+import glfw
 
 from modules import globals, utils
 
@@ -13,12 +15,6 @@ def did_login(cookies):
 
 
 def run():
-    import glfw
-    import os
-
-    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox --disable-gpu --enable-logging --log-level=0"
-    from PyQt6 import QtCore, QtGui, QtWidgets, QtWebEngineCore, QtWebEngineWidgets
-
     window = QtWidgets.QWidget()
     window.setWindowTitle(title)
     window.setWindowIcon(QtGui.QIcon(str(globals.gui.icon_path)))
