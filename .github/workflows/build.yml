@@ -38,26 +38,6 @@ jobs:
         with:
           python-version: "${{ matrix.python }}"
 
-      - name: "Setup MacPorts (macOS)"
-        if: "runner.os == 'macOS'"
-        run: |
-          wget https://github.com/macports/macports-base/releases/download/v2.8.0/MacPorts-2.8.0-12-Monterey.pkg
-          sudo installer -pkg ./MacPorts-2.8.0-12-Monterey.pkg -target /
-          rm ./MacPorts-2.8.0-12-Monterey.pkg
-          echo "/opt/local/bin:/opt/local/sbin" >> $GITHUB_PATH
-
-      - name: "Setup GTK (Linux)"
-        if: "runner.os == 'Linux'"
-        run: |
-          sudo apt install libgirepository1.0-dev libwebkit2gtk-4.1-0
-
-      - name: "Setup GTK (macOS)"
-        if: "runner.os == 'macOS'"
-        run: |
-          sudo port install gobject-introspection -universal
-          sudo port install gtk3 -universal -x11 +quartz
-          sudo port install webkit2-gtk -debug -minibrowser -x11 +quartz
-
       - name: "Setup cx_Freeze (Windows)"
         if: "runner.os == 'Windows'"
         run: |

@@ -1,6 +1,5 @@
 import imgui
 
-from modules.structs import Os
 from modules import globals, utils
 
 title = "F95Checker: Login to F95Zone"
@@ -13,7 +12,7 @@ def did_login(cookies):
     return "xf_user" in cookies
 
 
-def run_qt():
+def run():
     import glfw
     import os
 
@@ -107,58 +106,3 @@ def run_qt():
         globals.gui.qt_app.processEvents(QtCore.QEventLoop.ProcessEventsFlag.WaitForMoreEvents)
     glfw.make_context_current(globals.gui.window)
     return cookies
-
-
-def run_gtk():
-    import ctypes.util
-    import gi
-
-    def get_gtk_version(name):
-        lib = ctypes.util.find_library(name)
-        if not lib:
-            raise ModuleNotFoundError(f"A required library file could not be found for {repr(name)}")
-        ver = lib.rsplit("-", 1)[1].rsplit(".so", 1)[0].rsplit(".dylib", 1)[0].rsplit(".dll", 1)[0]
-        if ver.count(".") < 1:
-            ver += ".0"
-        return ver
-
-    gi.require_version("Gtk", get_gtk_version("gtk-3"))
-    gi.require_version("WebKit2", get_gtk_version("webkit2gtk-4"))
-    from gi.repository import Gtk, WebKit2
-
-    window = Gtk.Window(title=title)
-    window.set_icon_from_file(str(globals.gui.icon_path))
-    window.set_keep_above(stay_on_top)
-    window.resize(*size)
-    window.move(
-        globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2,
-        globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2
-    )
-
-    # TODO: add progressbar
-
-    context = WebKit2.WebContext.new_ephemeral()
-    webview = WebKit2.WebView(web_context=context)
-    cookies = {}
-    def on_cookies_changed(cookie_manager):
-        def cookies_callback(cookie_manager, cookie_task):
-            cookies.update({cookie.get_name(): cookie.get_value() for cookie in cookie_manager.get_cookies_finish(cookie_task)})
-            if did_login(cookies):
-                window.destroy()
-        cookie_manager.get_cookies(webview.get_uri(), None, cookies_callback)
-    context.get_cookie_manager().connect("changed", on_cookies_changed)
-    webview.load_uri(start_page)
-
-    window.connect("destroy", Gtk.main_quit)
-    window.add(webview)
-    window.show_all()
-    Gtk.main()
-    return cookies
-
-
-def run():
-    if globals.os is Os.Windows:
-        run = run_qt
-    else:
-        run = run_gtk
-    return run()
