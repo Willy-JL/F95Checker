@@ -1,6 +1,15 @@
 #!/usr/bin/env python
+import pathlib
 import sys
 
+version = "9.4.1"
+is_release = False
+build_number = 0
+version_name = f"{version}{'' if is_release else ' beta'}{'' if is_release or not build_number else ' ' + str(build_number)}"
+rpc_port = 57095
+
+frozen = getattr(sys, "frozen", False)
+self_path = pathlib.Path(sys.executable if frozen else __file__).parent
 
 def main():
     # Must import globals first to fix load paths when frozen

@@ -50,7 +50,7 @@ else:
     icon += ".png"
 
 
-with open(path / "modules/globals.py", "rb") as f:
+with open(path / script, "rb") as f:
     version = str(re.search(rb'version = "(\S+)"', f.read()).group(1), encoding="utf-8")
 
 

@@ -69,16 +69,16 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/is_release = False/is_release = True/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Build (Windows, Linux)"
         if: "runner.os != 'macOS'"
@@ -158,16 +158,16 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/is_release = False/is_release = True/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/is_release = False/is_release = True/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./modules/globals.py > ./modules/globals.py.new
-          rm ./modules/globals.py
-          mv ./modules/globals.py.new ./modules/globals.py
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./main.py > ./main.py.new
+          rm ./main.py
+          mv ./main.py.new ./main.py
 
       - name: "Package"
         run: |
