@@ -29,22 +29,6 @@ def main():
     except Exception:
         pass
 
-    from modules import singleton
-    try:
-        singleton.lock("F95Checker")
-    except RuntimeError:
-        import xmlrpc.client
-        try:
-            with xmlrpc.client.ServerProxy(f"http://localhost:{globals.rpc_port}/", allow_none=True) as proxy:
-                proxy.show_window()
-        except Exception:
-            pass
-        sys.exit(0)
-
-    if globals.frozen or globals.is_release:
-        from modules import logger
-        logger.install(path=globals.self_path / "log.txt", lowlevel=True)
-
     from modules import async_thread, sync_thread
     async_thread.setup()
     sync_thread.setup()
@@ -62,6 +46,21 @@ def main():
         globals.gui.main_loop()
 
 
+def lock_singleton():
+    from modules import singleton
+    try:
+        singleton.lock("F95Checker")
+        return True
+    except RuntimeError:
+        import xmlrpc.client
+        try:
+            with xmlrpc.client.ServerProxy(f"http://localhost:{rpc_port}/", allow_none=True) as proxy:
+                proxy.show_window()
+        except Exception:
+            pass
+        return False
+
+
 if __name__ == "__main__":
     if "-c" in sys.argv:
         # Mimic python's -c flag to evaluate code
@@ -71,6 +70,15 @@ if __name__ == "__main__":
         asklogin.asklogin(sys.argv[sys.argv.index("asklogin") + 1])
     else:
         try:
-            main()
+            if frozen or is_release:
+                if "main" in sys.argv:
+                    main()
+                elif lock_singleton():
+                    import subprocess
+                    import os
+                    with open(self_path / "log.txt", "wb") as log:
+                        sys.exit(subprocess.call([sys.executable, *sys.argv, "main"], cwd=os.getcwd(), stdout=log, stderr=subprocess.STDOUT))
+            elif lock_singleton():
+                main()
         except KeyboardInterrupt:
             pass

@@ -35,6 +35,10 @@ zip_exclude_packages = [
 ]
 
 
+if sys.platform.startswith("win"):
+    base = "Win32GUI"
+
+
 if sys.platform.startswith("linux"):
     bin_includes += find_libs("ffi", "ssl", "crypto")
 elif sys.platform.startswith("darwin"):
