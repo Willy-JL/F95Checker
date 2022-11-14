@@ -638,7 +638,7 @@ async def check_updates():
             latest += ["0" for _ in range(len(current) - len(latest))]
         elif len(latest) > len(current):
             current += ["0" for _ in range(len(latest) - len(current))]
-        update_available = not globals.is_release  # Allow updating from beta to full release
+        update_available = not globals.release  # Allow updating from beta to full release
         for cur, lat in zip(current, latest):
             if cur == lat:
                 continue  # Ignore this field if same on both versions

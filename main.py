@@ -3,9 +3,9 @@ import pathlib
 import sys
 
 version = "9.4.1"
-is_release = False
+release = False
 build_number = 0
-version_name = f"{version}{'' if is_release else ' beta'}{'' if is_release or not build_number else ' ' + str(build_number)}"
+version_name = f"{version}{'' if release else ' beta'}{'' if release or not build_number else ' ' + str(build_number)}"
 rpc_port = 57095
 
 frozen = getattr(sys, "frozen", False)
@@ -19,7 +19,7 @@ def main():
     try:  # Non essential, ignore errors
         if globals.os is Os.Windows:
             # Hide conhost if frozen or release
-            if (globals.frozen or globals.is_release) and "nohide" not in sys.argv:
+            if (globals.frozen or globals.release) and "nohide" not in sys.argv:
                 import ctypes
                 ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
         else:
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         exec(sys.argv[sys.argv.index("-c") + 1])
     else:
         try:
-            if frozen or is_release:
+            if frozen or release:
                 if "main" in sys.argv:
                     main()
                 elif lock_singleton():

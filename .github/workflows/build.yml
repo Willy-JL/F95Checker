@@ -69,7 +69,7 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/is_release = False/is_release = True/g" ./main.py > ./main.py.new
+          sed "s/release = False/release = True/g" ./main.py > ./main.py.new
           rm ./main.py
           mv ./main.py.new ./main.py
 
@@ -158,7 +158,7 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/is_release = False/is_release = True/g" ./main.py > ./main.py.new
+          sed "s/release = False/release = True/g" ./main.py > ./main.py.new
           rm ./main.py
           mv ./main.py.new ./main.py
 

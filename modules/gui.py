@@ -223,7 +223,7 @@ class MainGUI():
             imgui.WINDOW_NO_SAVED_SETTINGS |
             imgui.WINDOW_ALWAYS_AUTO_RESIZE
         )
-        self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.is_release else ' by WillyJL'}"
+        self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.release else ' by WillyJL'}"
 
         # Variables
         self.focused = True
