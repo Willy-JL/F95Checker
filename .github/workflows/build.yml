@@ -93,6 +93,12 @@ jobs:
           mkdir ./dist/
           mv ./build/*.app/ ./dist/
 
+      - name: "Resolve symlinks (Linux, macOS)"
+        if: "runner.os != 'Windows'"
+        run: |
+          cd ./dist/
+          find ./ -type l -exec echo Resolving {} \; -exec sed -i '' {} \;
+
       - name: "Import codesign certificate (macOS)"
         if: "runner.os == 'macOS'"
         uses: "apple-actions/import-codesign-certs@v1"
@@ -112,7 +118,7 @@ jobs:
       - name: "Zip artifact"
         run: |
           cd ./dist/
-          7z a -l ../${{ github.event.repository.name }}-${{ runner.os }}.zip .
+          7z a ../${{ github.event.repository.name }}-${{ runner.os }}.zip .
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
@@ -177,7 +183,7 @@ jobs:
       - name: "Zip artifact"
         run: |
           cd ./dist/
-          7z a -l ../${{ github.event.repository.name }}-${{ runner.os }}.zip .
+          7z a ../${{ github.event.repository.name }}-Source.zip .
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
