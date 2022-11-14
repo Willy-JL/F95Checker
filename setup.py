@@ -1,5 +1,4 @@
 from ctypes.util import find_library
-import cx_Freeze
 import pathlib
 import sys
 import re
@@ -64,46 +63,51 @@ with open(path / debug_script, "wb") as d:
         d.write(re.sub(rb"debug = .*", rb"debug = True", s.read()))
 
 
-cx_Freeze.setup(
-    name=name,
-    version=version,
-    executables=[
-        cx_Freeze.Executable(
-            script=path / script,
-            target_name=name,
-            base=base,
-            icon=icon
-        ),
-        cx_Freeze.Executable(
-            script=path / debug_script,
-            target_name=name + "-Debug",
-            base=None,
-            icon=icon
-        )
-    ],
-    options={
-        "build_exe": {
-            "optimize": optimize,
-            "packages": packages,
-            "bin_includes": bin_includes,
-            "bin_excludes": bin_excludes,
-            "include_files": [path / item for item in include_files],
-            "zip_include_packages": zip_include_packages,
-            "zip_exclude_packages": zip_exclude_packages,
-            "include_msvcr": True
+try:
+    import cx_Freeze
+    cx_Freeze.setup(
+        name=name,
+        version=version,
+        executables=[
+            cx_Freeze.Executable(
+                script=path / script,
+                target_name=name,
+                base=base,
+                icon=icon
+            ),
+            cx_Freeze.Executable(
+                script=path / debug_script,
+                target_name=name + "-Debug",
+                base=None,
+                icon=icon
+            )
+        ],
+        options={
+            "build_exe": {
+                "optimize": optimize,
+                "packages": packages,
+                "bin_includes": bin_includes,
+                "bin_excludes": bin_excludes,
+                "include_files": [path / item for item in include_files],
+                "zip_include_packages": zip_include_packages,
+                "zip_exclude_packages": zip_exclude_packages,
+                "include_msvcr": True
+            },
+            "bdist_mac": {
+                "iconfile": icon,
+                "bundle_name": name,
+                "plist_items": [
+                    ("CFBundleName", name),
+                    ("CFBundleDisplayName", name),
+                    ("CFBundleIdentifier", identifier),
+                    ("CFBundleVersion", version),
+                    ("CFBundlePackageType", "APPL"),
+                    ("CFBundleSignature", "????"),
+                ]
+            }
         },
-        "bdist_mac": {
-            "iconfile": icon,
-            "bundle_name": name,
-            "plist_items": [
-                ("CFBundleName", name),
-                ("CFBundleDisplayName", name),
-                ("CFBundleIdentifier", identifier),
-                ("CFBundleVersion", version),
-                ("CFBundlePackageType", "APPL"),
-                ("CFBundleSignature", "????"),
-            ]
-        }
-    },
-    py_modules=[]
-)
+        py_modules=[]
+    )
+except ModuleNotFoundError:
+    print('cx_Freeze is not installed!')
+    sys.exit(1)

@@ -171,11 +171,13 @@ jobs:
 
       - name: "Package"
         run: |
-          python ./setup.py build_py
-          mv ./build/lib/ ./dist/
+          python ./setup.py || true
+          mkdir ./dist/
           cp -r ./modules/         ./dist/
           cp -r ./resources/       ./dist/
           cp    ./LICENSE          ./dist/
+          cp    ./main.py          ./dist/
+          cp    ./main-debug.py    ./dist/
           cp    ./requirements.txt ./dist/
 
       # === ARTIFACT ===
