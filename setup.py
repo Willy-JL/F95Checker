@@ -18,7 +18,7 @@ def find_libs(*names):
 name = "F95Checker"
 identifier = "io.github.willy-jl.f95checker"
 script = "main.py"
-debug_script = "debug.py"
+debug_script = "main-debug.py"
 base = None
 optimize = 1
 packages = ["OpenGL"]
