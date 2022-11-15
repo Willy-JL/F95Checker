@@ -1,5 +1,5 @@
+import datetime as dt
 import dataclasses
-import datetime
 import asyncio
 import hashlib
 import enum
@@ -51,7 +51,7 @@ class Timestamp:
         if self.value == 0:
             self.display = ""
         else:
-            self.display = datetime.datetime.fromtimestamp(unix_time).strftime(self.format)
+            self.display = dt.datetime.fromtimestamp(unix_time).strftime(self.format)
 
 
 class Datestamp(Timestamp):
