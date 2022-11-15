@@ -6,8 +6,6 @@ import hashlib
 import enum
 import os
 
-from modules import globals
-
 
 class ContextLimiter:
     count = 0
@@ -532,6 +530,7 @@ class Game:
     _init_done           : bool = False
 
     def __post_init__(self):
+        from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executable()
         self._init_done = True
@@ -542,6 +541,7 @@ class Game:
             self.validate_executable()
 
     def validate_executable(self):
+        from modules import globals
         if self.executable:
             self.executable_valid = os.path.isfile(self.executable)
         else:
