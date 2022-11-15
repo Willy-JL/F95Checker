@@ -131,9 +131,30 @@ async def is_logged_in():
 
 
 async def login():
-    globals.gui.show_login_window = True
-    while globals.gui.show_login_window:
-        await asyncio.sleep(0.5)
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *shlex.split(globals.start_cmd), "login", json.dumps({
+                "debug": globals.debug,
+                "icon_path": str(globals.gui.icon_path),
+                "start_page": globals.login_page,
+                "parent_geometry": [
+                    globals.gui.screen_pos[0],
+                    globals.gui.screen_pos[1],
+                    imgui.io.display_size.x,
+                    imgui.io.display_size.y
+                ],
+                "col_bg": utils.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
+                "col_accent": utils.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
+                "col_text": utils.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
+            }),
+            stdout=subprocess.PIPE
+        )
+        with utils.daemon(proc):
+            data = await proc.communicate()
+        new_cookies = json.loads(data[0])
+        await asyncio.shield(db.update_cookies(new_cookies))
+    except Exception:
+        raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
 
 
 async def assert_login():

@@ -1,43 +1,60 @@
 from PyQt6 import QtCore, QtGui, QtWidgets, QtWebEngineCore, QtWebEngineWidgets
-import imgui
-import glfw
-
-from modules import globals, utils
+import json
+import sys
+import os
+import io
 
 title = "F95Checker: Login to F95Zone"
 size = (500, 720)
 stay_on_top = True
-start_page = globals.login_page
 
 
 def did_login(cookies):
     return "xf_user" in cookies
 
 
-def run():
+def run(*, debug: bool, icon_path: str, start_page: str, parent_geometry: list[int, int, int, int], col_bg: str, col_accent: str, col_text: str):
+    # Subprocess for login webview, Qt WebEngine didn't
+    # like running alongside another OpenGL application
+
+    # Linux had issues with blank login pages and broken contexts, these helped out
+    # and might also prevent further problems on other platforms
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = f"--no-sandbox --disable-gpu {'--enable-logging --log-level=0' if debug else '--disable-logging'}"
+    os.environ["QMLSCENE_DEVICE"] = "softwarecontext"
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
+
+    # Redirect stdout to stderr so output is not polluted
+    original_stdout_fd = sys.stdout.fileno()
+    saved_stdout_fd = os.dup(original_stdout_fd)
+    sys.stdout.close()
+    os.dup2(sys.stderr.fileno(), original_stdout_fd)
+    sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, 'wb'))
+
+    # Show login window
+    app = QtWidgets.QApplication(sys.argv)
     window = QtWidgets.QWidget()
     window.setWindowTitle(title)
-    window.setWindowIcon(QtGui.QIcon(str(globals.gui.icon_path)))
+    window.setWindowIcon(QtGui.QIcon(icon_path))
     window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
     window.resize(*size)
     window.move(
-        int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-        int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
+        int(parent_geometry[0] + (parent_geometry[2] / 2) - size[0] / 2),
+        int(parent_geometry[1] + (parent_geometry[3] / 2) - size[1] / 2)
     )
     window.setLayout(QtWidgets.QGridLayout())
     window.layout().setContentsMargins(0, 0, 0, 0)
     window.layout().setSpacing(0)
     window.setStyleSheet(f"""
         QProgressBar {{
-            background: {utils.rgba_0_1_to_hex(globals.settings.style_bg)[:-2]};
+            background: {col_bg};
             border-radius: 0px;
         }}
         QProgressBar::chunk {{
-            background: {utils.rgba_0_1_to_hex(globals.settings.style_accent)[:-2]};
+            background: {col_accent};
             border-radius: 0px;
         }}
         QLabel {{
-            color: {utils.rgba_0_1_to_hex(globals.settings.style_text)[:-2]};
+            color: {col_text};
             font-size: 8pt;
         }}
     """)
@@ -91,14 +108,11 @@ def run():
     window.layout().addWidget(label, 0, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
     window.layout().addWidget(progress, 0, 0)
     window.layout().addWidget(webview, 1, 0)
-    alive = [True]
-    _closeEvent = window.closeEvent
-    def closeEvent(*args, **kwargs):
-        alive[0] = False
-        return _closeEvent(*args, **kwargs)
-    window.closeEvent = closeEvent
     window.show()
-    while alive[0]:
-        globals.gui.qt_app.processEvents(QtCore.QEventLoop.ProcessEventsFlag.WaitForMoreEvents)
-    glfw.make_context_current(globals.gui.window)
-    return cookies
+    app.exec()
+
+    # Restore stdout and pass cookies
+    sys.stdout.close()
+    os.dup2(saved_stdout_fd, original_stdout_fd)
+    sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, 'wb'))
+    sys.stdout.write(json.dumps(cookies))

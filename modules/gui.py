@@ -247,15 +247,12 @@ class MainGUI():
         self.input_chars: list[int] = []
         self.switched_display_mode = False
         self.type_label_width: float = None
-        self.show_login_window: bool = False
         self.sort_specs: list[SortSpec] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
         self.bg_mode_notifs_timer: float = None
 
         # Setup Qt objects
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = f"--no-sandbox --disable-gpu {'--enable-logging --log-level=0' if globals.debug else '--disable-logging'}"
-        QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
 
@@ -580,8 +577,8 @@ class MainGUI():
             prev_focused = self.focused
             self.prev_size = size
             prev_cursor = cursor
-            self.qt_app.processEvents()
             self.tray.tick_msgs()
+            self.qt_app.processEvents()
             if self.repeat_chars:
                 for char in self.input_chars:
                     imgui.io.add_input_character(char)
@@ -714,22 +711,6 @@ class MainGUI():
                     # Close main window (technically popups are inside the window, and inside one another - this gives proper stacking order)
                     imgui.end()
 
-                    # Warn user that main window is unresponsive when login window is open
-                    if self.show_login_window:
-                        fg_draw_list = imgui.get_foreground_draw_list()
-                        fg_draw_list.add_rect_filled(0, 0, *size, imgui.get_color_u32_rgba(0, 0, 0, 0.6))
-                        imgui.push_font(self.big_font)
-                        text1 = "Login window is active,"
-                        text2 = "main window is unresponsive."
-                        size1 = imgui.calc_text_size(text1)
-                        size2 = imgui.calc_text_size(text2)
-                        fg_draw_list.add_text((size[0] - size1.x) / 2, (size[1] - size1.y) / 2 - size1.y / 2, imgui.get_color_u32_rgba(1, 1, 1, 1), text1)
-                        fg_draw_list.add_text((size[0] - size2.x) / 2, (size[1] - size2.y) / 2 + size2.y / 2, imgui.get_color_u32_rgba(1, 1, 1, 1), text2)
-                        imgui.pop_font()
-                        start_login_window = True
-                    else:
-                        start_login_window = False
-
                     # Render interface
                     imgui.render()
                     self.impl.render(imgui.get_draw_data())
@@ -767,14 +748,6 @@ class MainGUI():
                     time.sleep(1 / 60)
                 else:
                     time.sleep(1 / 3)
-            # Spawn login window (blocks main loop, main interface halts)
-            if self.show_login_window and start_login_window:
-                try:
-                    new_cookies = login.run()
-                    async_thread.wait(db.update_cookies(new_cookies))
-                except Exception:
-                    utils.push_popup(msgbox.msgbox, "Login window failure", f"Something went wrong with the login browser window:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
-                self.show_login_window = False
         # Main loop over, cleanup and close
         imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
         ini = imgui.save_ini_settings_to_memory()
