@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import contextlib
 import pathlib
 import sys
 
@@ -43,19 +44,26 @@ def main():
         globals.gui.main_loop()
 
 
+@contextlib.contextmanager
 def lock_singleton():
     from modules import singleton
     try:
         singleton.lock("F95Checker")
-        return True
+        locked = True
     except RuntimeError:
-        import xmlrpc.client
-        try:
-            with xmlrpc.client.ServerProxy(f"http://localhost:{rpc_port}/", allow_none=True) as proxy:
-                proxy.show_window()
-        except Exception:
-            pass
-        return False
+        locked = False
+    try:
+        yield locked
+    finally:
+        if locked:
+            singleton.release("F95Checker")
+        else:
+            try:
+                import xmlrpc.client
+                with xmlrpc.client.ServerProxy(f"http://localhost:{rpc_port}/", allow_none=True) as proxy:
+                    proxy.show_window()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
@@ -66,7 +74,10 @@ if __name__ == "__main__":
         try:
             if "main" in sys.argv:
                 main()
-            elif lock_singleton():
+                sys.exit(0)
+            with lock_singleton() as locked:
+                if not locked:
+                    sys.exit(0)
                 with open(self_path / "log.txt", "wb", buffering=0) as log:
                     stream = None if debug else log  # Don't redirect in debug mode
                     import subprocess
@@ -86,7 +97,7 @@ if __name__ == "__main__":
                         stderr=stream,
                         bufsize=0
                     )
-                    if debug:
+                    if debug and release:
                         try:
                             input(f"Exited with code {ret}, press [Enter] to quit... ")
                         except Exception:
