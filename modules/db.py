@@ -11,7 +11,7 @@ import time
 import re
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
-from modules import globals, async_thread, msgbox, utils
+from modules import globals, async_thread, colors, msgbox, utils
 
 connection: aiosqlite.Connection = None
 
@@ -201,7 +201,7 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
                 value = [content_type(x) for x in value]
         case "tuple":
             if isinstance(value, str) and getattr(data_type, "__args__", [None])[0] is float:
-                value = utils.hex_to_rgba_0_1(value)
+                value = colors.hex_to_rgba_0_1(value)
             else:
                 value = json.loads(value)
                 if hasattr(data_type, "__args__"):
@@ -262,7 +262,7 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
         value = [getattr(item, "value", item) for item in value]
         value = json.dumps(value)
     elif isinstance(value, tuple) and 3 <= len(value) <= 4:
-        value = utils.rgba_0_1_to_hex(value)
+        value = colors.rgba_0_1_to_hex(value)
     return value
 
 
@@ -409,17 +409,17 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
             keys.append("browser")
             match options.get("browser"):
                 case "chrome":
-                    value = utils.hash("Google Chrome")
+                    value = Browser.make_hash("Google Chrome")
                 case "firefox":
-                    value = utils.hash("Mozilla Firefox")
+                    value = Browser.make_hash("Mozilla Firefox")
                 case "brave":
-                    value = utils.hash("Brave")
+                    value = Browser.make_hash("Brave")
                 case "edge":
-                    value = utils.hash("Microsoft Edge")
+                    value = Browser.make_hash("Microsoft Edge")
                 case "opera":
-                    value = utils.hash("Opera Stable")
+                    value = Browser.make_hash("Opera Stable")
                 case "operagx":
-                    value = utils.hash("Opera GX Stable")
+                    value = Browser.make_hash("Opera GX Stable")
                 case _:
                     value = 0
             values.append(value)

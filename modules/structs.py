@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QSystemTrayIcon
 import dataclasses
 import datetime
 import asyncio
+import hashlib
 import enum
 import os
 
@@ -330,8 +331,6 @@ class Filter:
         self.id = id(self)
 
 
-from modules import imagehelper, utils
-
 @dataclasses.dataclass
 class Browser:
     name: str
@@ -343,9 +342,8 @@ class Browser:
     private_arg: list = None
 
     def __post_init__(self):
-        cls = type(self)
         if self.hash is None:
-            self.hash = utils.hash(self.name)
+            self.hash = self.make_hash(self.name)
         self.hashed_name = f"{self.name}###{self.hash}"
         self.unset = self.hash == 0
         self.is_custom = self.hash == -1
@@ -361,6 +359,10 @@ class Browser:
             if search in self.name:
                 self.private_arg.append(arg)
                 break
+
+    @classmethod
+    def make_hash(cls, name: str):
+        return int(hashlib.md5(name.encode()).hexdigest()[-12:], 16)
 
     @classmethod
     def add(cls, *args, **kwargs):
@@ -436,6 +438,8 @@ class Settings:
     zoom_size                   : int
 
 
+from modules import colors, imagehelper
+
 class Type(EnumNameHack, IntEnum):
     Unchecked     = 23
     Misc          = 1
@@ -468,36 +472,36 @@ class Type(EnumNameHack, IntEnum):
     WebGL         = 21
     Wolf_RPG      = 22
 
-Type.Unchecked .color = utils.hex_to_rgba_0_1("#393939")
-Type.Misc      .color = utils.hex_to_rgba_0_1("#B8B00C")
-Type.ADRIFT    .color = utils.hex_to_rgba_0_1("#2196F3")
-Type.CG        .color = utils.hex_to_rgba_0_1("#FFEB3B")
-Type.Cheat_Mod .color = utils.hex_to_rgba_0_1("#D32F2F")
-Type.Collection.color = utils.hex_to_rgba_0_1("#616161")
-Type.Comics    .color = utils.hex_to_rgba_0_1("#FF9800")
-Type.Flash     .color = utils.hex_to_rgba_0_1("#616161")
-Type.GIF       .color = utils.hex_to_rgba_0_1("#03A9F4")
-Type.HTML      .color = utils.hex_to_rgba_0_1("#689F38")
-Type.Java      .color = utils.hex_to_rgba_0_1("#52A6B0")
-Type.Manga     .color = utils.hex_to_rgba_0_1("#0FB2FC")
-Type.Mod       .color = utils.hex_to_rgba_0_1("#BA4545")
-Type.Others    .color = utils.hex_to_rgba_0_1("#8BC34A")
-Type.Pinup     .color = utils.hex_to_rgba_0_1("#2196F3")
-Type.QSP       .color = utils.hex_to_rgba_0_1("#D32F2F")
-Type.RAGS      .color = utils.hex_to_rgba_0_1("#FF9800")
-Type.READ_ME   .color = utils.hex_to_rgba_0_1("#DC143C")
-Type.RenPy     .color = utils.hex_to_rgba_0_1("#B069E8")
-Type.Request   .color = utils.hex_to_rgba_0_1("#D32F2F")
-Type.RPGM      .color = utils.hex_to_rgba_0_1("#2196F3")
-Type.SiteRip   .color = utils.hex_to_rgba_0_1("#8BC34A")
-Type.Tads      .color = utils.hex_to_rgba_0_1("#2196F3")
-Type.Tool      .color = utils.hex_to_rgba_0_1("#EC5555")
-Type.Tutorial  .color = utils.hex_to_rgba_0_1("#EC5555")
-Type.Unity     .color = utils.hex_to_rgba_0_1("#FE5901")
-Type.Unreal_Eng.color = utils.hex_to_rgba_0_1("#0D47A1")
-Type.Video     .color = utils.hex_to_rgba_0_1("#FF9800")
-Type.WebGL     .color = utils.hex_to_rgba_0_1("#FE5901")
-Type.Wolf_RPG  .color = utils.hex_to_rgba_0_1("#4CAF50")
+Type.Unchecked .color = colors.hex_to_rgba_0_1("#393939")
+Type.Misc      .color = colors.hex_to_rgba_0_1("#B8B00C")
+Type.ADRIFT    .color = colors.hex_to_rgba_0_1("#2196F3")
+Type.CG        .color = colors.hex_to_rgba_0_1("#FFEB3B")
+Type.Cheat_Mod .color = colors.hex_to_rgba_0_1("#D32F2F")
+Type.Collection.color = colors.hex_to_rgba_0_1("#616161")
+Type.Comics    .color = colors.hex_to_rgba_0_1("#FF9800")
+Type.Flash     .color = colors.hex_to_rgba_0_1("#616161")
+Type.GIF       .color = colors.hex_to_rgba_0_1("#03A9F4")
+Type.HTML      .color = colors.hex_to_rgba_0_1("#689F38")
+Type.Java      .color = colors.hex_to_rgba_0_1("#52A6B0")
+Type.Manga     .color = colors.hex_to_rgba_0_1("#0FB2FC")
+Type.Mod       .color = colors.hex_to_rgba_0_1("#BA4545")
+Type.Others    .color = colors.hex_to_rgba_0_1("#8BC34A")
+Type.Pinup     .color = colors.hex_to_rgba_0_1("#2196F3")
+Type.QSP       .color = colors.hex_to_rgba_0_1("#D32F2F")
+Type.RAGS      .color = colors.hex_to_rgba_0_1("#FF9800")
+Type.READ_ME   .color = colors.hex_to_rgba_0_1("#DC143C")
+Type.RenPy     .color = colors.hex_to_rgba_0_1("#B069E8")
+Type.Request   .color = colors.hex_to_rgba_0_1("#D32F2F")
+Type.RPGM      .color = colors.hex_to_rgba_0_1("#2196F3")
+Type.SiteRip   .color = colors.hex_to_rgba_0_1("#8BC34A")
+Type.Tads      .color = colors.hex_to_rgba_0_1("#2196F3")
+Type.Tool      .color = colors.hex_to_rgba_0_1("#EC5555")
+Type.Tutorial  .color = colors.hex_to_rgba_0_1("#EC5555")
+Type.Unity     .color = colors.hex_to_rgba_0_1("#FE5901")
+Type.Unreal_Eng.color = colors.hex_to_rgba_0_1("#0D47A1")
+Type.Video     .color = colors.hex_to_rgba_0_1("#FF9800")
+Type.WebGL     .color = colors.hex_to_rgba_0_1("#FE5901")
+Type.Wolf_RPG  .color = colors.hex_to_rgba_0_1("#4CAF50")
 
 
 @dataclasses.dataclass

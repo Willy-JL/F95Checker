@@ -24,7 +24,7 @@ import io
 import re
 
 from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status, Tag, Type
-from modules import globals, async_thread, callbacks, db, icons, msgbox, utils
+from modules import globals, async_thread, callbacks, colors, db, icons, msgbox, utils
 bs4_parse = functools.partial(bs4.BeautifulSoup, features="lxml")
 
 session: aiohttp.ClientSession = None
@@ -143,9 +143,9 @@ async def login():
                     imgui.io.display_size.x,
                     imgui.io.display_size.y
                 ],
-                "col_bg": utils.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
-                "col_accent": utils.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
-                "col_text": utils.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
+                "col_bg": colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
+                "col_accent": colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
+                "col_text": colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
             }),
             stdout=subprocess.PIPE
         )
