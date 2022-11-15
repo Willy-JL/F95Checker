@@ -1,10 +1,10 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
+import multiprocessing
 import datetime as dt
 from PIL import Image
 import configparser
 import contextlib
 import subprocess
-import functools
 import tempfile
 import aiofiles
 import aiohttp
@@ -18,14 +18,12 @@ import imgui
 import time
 import json
 import sys
-import bs4
 import os
 import io
 import re
 
-from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status, Tag, Type
-from modules import globals, async_thread, callbacks, colors, db, icons, msgbox, utils
-bs4_parse = functools.partial(bs4.BeautifulSoup, features="lxml")
+from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status
+from modules import globals, async_thread, callbacks, colors, db, icons, msgbox, parser, utils
 
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
@@ -34,20 +32,6 @@ images = ContextLimiter()
 fulls = CounterContext()
 xf_token = ""
 
-
-def is_text(text: str):
-    def _is_text(elem: bs4.element.Tag):
-        if not hasattr(elem, "text"):
-            return False
-        val = elem.text.lower().strip()
-        return val == text or val == text + ":"
-    return _is_text
-
-
-def is_class(name: str):
-    def _is_class(elem: bs4.element.Tag):
-        return name in elem.get_attribute_list("class")
-    return _is_class
 
 @contextlib.contextmanager
 def setup():
@@ -169,7 +153,7 @@ async def download_webpage(url: str):
     if not await assert_login():
         return
     res = await fetch("GET", url)
-    html = bs4_parse(res)
+    html = parser.html(res)
     for elem in html.find_all():
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
@@ -191,10 +175,10 @@ async def quick_search(query: str):
     if not await assert_login():
         return
     res = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
-    html = bs4_parse(res)
+    html = parser.html(res)
     results = []
-    for row in html.find(is_class("quicksearch-wrapper-wide")).find_all(is_class("dataList-row")):
-        title = list(row.find_all(is_class("dataList-cell")))[1]
+    for row in html.find(parser.is_class("quicksearch-wrapper-wide")).find_all(parser.is_class("dataList-row")):
+        title = list(row.find_all(parser.is_class("dataList-cell")))[1]
         url = title.find("a")
         if not url:
             continue
@@ -229,7 +213,7 @@ async def import_url_shortcut(file: str | pathlib.Path):
 async def import_browser_bookmarks(file: str | pathlib.Path):
     async with aiofiles.open(file, "rb") as f:
         raw = await f.read()
-    html = bs4_parse(raw)
+    html = parser.html(raw)
     threads = []
     for bookmark in html.find_all(lambda elem: "href" in getattr(elem, "attrs", "")):
         threads += utils.extract_thread_matches(bookmark.get("href"))
@@ -251,11 +235,11 @@ async def import_f95_bookmarks():
         globals.refresh_progress += 1
         res = await fetch("GET", globals.bookmarks_page, params={"difference": diff})
         raise_f95zone_error(res)
-        html = bs4_parse(res)
-        bookmarks = html.find(is_class("p-body-pageContent")).find(is_class("listPlain"))
+        html = parser.html(res)
+        bookmarks = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("listPlain"))
         if not bookmarks:
             break
-        for title in bookmarks.find_all(is_class("contentRow-title")):
+        for title in bookmarks.find_all(parser.is_class("contentRow-title")):
             diff += 1
             threads += utils.extract_thread_matches(title.find("a").get("href"))
     if threads:
@@ -276,12 +260,12 @@ async def import_f95_watched_threads():
         globals.refresh_progress += 1
         res = await fetch("GET", globals.watched_page, params={"unread": 0, "page": page})
         raise_f95zone_error(res)
-        html = bs4_parse(res)
-        watched = html.find(is_class("p-body-pageContent")).find(is_class("structItemContainer"))
+        html = parser.html(res)
+        watched = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("structItemContainer"))
         if not watched:
             break
         page += 1
-        for title in watched.find_all(is_class("structItem-title")):
+        for title in watched.find_all(parser.is_class("structItem-title")):
             threads += utils.extract_thread_matches(title.get("uix-data-href"))
     if threads:
         await callbacks.add_games(*threads)
@@ -327,42 +311,6 @@ async def check(game: Game, full=False, login=False):
 
     with fulls:
 
-        def game_has_prefixes(*names: list[str]):
-            for name in names:
-                if head.find("span", text=f"[{name}]"):
-                    return True
-            return False
-        def get_game_attr(*names: list[str]):
-            for name in names:
-                if match := re.search(r"^\s*" + name + r"\s*:?\s*\n\s*:?\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
-                    return match.group(1).strip()
-            return ""
-        def get_long_game_attr(*names: list[str]):
-            for name in names:
-                if elem := post.find(is_text(name)):
-                    break
-            if not elem:
-                return ""
-            value = ""
-            while True:
-                if is_class("bbWrapper")(elem) or elem.parent.name == "article":
-                    break
-                for sibling in elem.next_siblings:
-                    if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
-                        break
-                    stripped = sibling.text.strip()
-                    if stripped == ":" or stripped == "":
-                        continue
-                    value += sibling.text
-                else:
-                    elem = elem.parent
-                    continue
-                break
-            value = value.strip()
-            while "\n\n\n" in value:
-                value = value.replace("\n\n\n", "\n\n")
-            return value
-
         async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
             if req.status == 404 or req.status == 403:
@@ -378,121 +326,25 @@ async def check(game: Game, full=False, login=False):
                     msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
                 raise msgbox.Exc(title, msg + f"\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
             url = utils.clean_thread_url(str(req.real_url))
-        html = bs4_parse(res)
-
-        head = html.find(is_class("p-body-header"))
-        post = html.find(is_class("message-threadStarterPost"))
-        if head is None or post is None:
-            async with aiofiles.open(globals.self_path / f"{game.id}_broken.html", "wb") as f:
-                await f.write(res)
-            raise msgbox.Exc("Thread parsing error", f"Failed to parse necessary sections in thread response,\nthe html file has been saved to:\n{globals.self_path}{os.sep}{game.id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
-        for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
-            try:
-                next(spoiler.span.span.children).replace_with(html.new_string(""))
-            except Exception:
-                pass
-        plain = post.find("article").get_text(separator="\n", strip=False)
 
         old_name = game.name
-        name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
-
         old_version = game.version
-        version = get_game_attr("version")
-        if not version:
-            if match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
-                version = match.group(1).strip()
-        if not version:
-            version = "N/A"
-
-        developer = get_game_attr("developer/publisher", "developer & publisher", "developer / publisher", "developer\n/\npublisher", "original developer", "developers", "developer", "publisher", "artist", "animator", "producer", "modder", "remake by", "game by", "posted by").rstrip("(|-/").strip()
-
-        # Content Types
-        if game_has_prefixes("Cheat Mod"):
-            type = Type.Cheat_Mod
-        elif game_has_prefixes("Mod"):
-            type = Type.Mod
-        elif game_has_prefixes("Tool"):
-            type = Type.Tool
-        # Post Types
-        elif game_has_prefixes("READ ME"):
-            type = Type.READ_ME
-        elif game_has_prefixes("Request"):
-            type = Type.Request
-        elif game_has_prefixes("Tutorial"):
-            type = Type.Tutorial
-        # Media Types
-        elif game_has_prefixes("SiteRip"):
-            type = Type.SiteRip
-        elif game_has_prefixes("Collection"):
-            type = Type.Collection
-        elif game_has_prefixes("Manga"):
-            type = Type.Manga
-        elif game_has_prefixes("Comics"):
-            type = Type.Comics
-        elif game_has_prefixes("Video"):
-            type = Type.Video
-        elif game_has_prefixes("GIF"):
-            type = Type.GIF
-        elif game_has_prefixes("Pinup"):
-            type = Type.Pinup
-        elif game_has_prefixes("CG"):
-            type = Type.CG
-        # Game Engines
-        elif game_has_prefixes("ADRIFT"):
-            type = Type.ADRIFT
-        elif game_has_prefixes("Flash"):
-            type = Type.Flash
-        elif game_has_prefixes("HTML"):
-            type = Type.HTML
-        elif game_has_prefixes("Java"):
-            type = Type.Java
-        elif game_has_prefixes("Others"):
-            type = Type.Others
-        elif game_has_prefixes("QSP"):
-            type = Type.QSP
-        elif game_has_prefixes("RAGS"):
-            type = Type.RAGS
-        elif game_has_prefixes("RPGM"):
-            type = Type.RPGM
-        elif game_has_prefixes("Ren'Py"):
-            type = Type.RenPy
-        elif game_has_prefixes("Tads"):
-            type = Type.Tads
-        elif game_has_prefixes("Unity"):
-            type = Type.Unity
-        elif game_has_prefixes("Unreal Engine"):
-            type = Type.Unreal_Eng
-        elif game_has_prefixes("WebGL"):
-            type = Type.WebGL
-        elif game_has_prefixes("Wolf RPG"):
-            type = Type.Wolf_RPG
-        else:
-            type = Type.Misc
-
         old_status = game.status
-        if game_has_prefixes("Completed"):
-            status = Status.Completed
-        elif game_has_prefixes("Onhold"):
-            status = Status.OnHold
-        elif game_has_prefixes("Abandoned"):
-            status = Status.Abandoned
-        else:
-            status = Status.Normal
 
-        last_updated = 0
-        text = get_game_attr("thread updated", "updated").replace("/", "-")
-        try:
-            last_updated = dt.datetime.fromisoformat(text).timestamp()
-        except ValueError:
-            pass
-        if not last_updated:
-            if elem := post.find(is_class("message-lastEdit")):
-                last_updated = int(elem.find("time").get("data-time"))
-            else:
-                last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
-        last_updated = int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(last_updated).date().toordinal()).timestamp())
+        ctx = multiprocessing.get_context("spawn")  # Using fork defeats the purpose, with spawn the main ui does not hang
+        pipe_in, pipe_out = ctx.Pipe(duplex=False)
+        proc = ctx.Process(target=parser.thread, args=(game.id, res, pipe_out))
+        proc.start()
+        while not pipe_in.poll(timeout=0):
+            await asyncio.sleep(0.1)
+        res = pipe_in.recv()
+        if isinstance(res, parser.ParserException):
+            raise msgbox.Exc(**res.kwargs)
+        (name, version, developer, type, status, last_updated, description, changelog, tags, image_url) = res
+        proc.join()
 
         last_full_refresh = int(time.time())
+        last_refresh_version = globals.version
 
         # Do not reset played and installed checkboxes if refreshing with braking changes
         played = game.played
@@ -504,22 +356,6 @@ async def check(game: Game, full=False, login=False):
             if version != old_version:
                 played = False  # Not breaking and version changed, remove played checkbox
 
-        description = get_long_game_attr("overview", "story")
-
-        changelog = get_long_game_attr("changelog", "change-log")
-
-        tags = []
-        if (taglist := head.find(is_class("js-tagList"))) is not None:
-            for child in taglist.children:
-                if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
-                    tag = tag.replace("/tags/", "").strip("/")
-                    tags.append(Tag._members_[tag])
-
-        elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
-        if elem:
-            image_url = elem.get("data-src")
-        else:
-            image_url = "-"
         fetch_image = game.image.missing
         if not globals.settings.update_keep_image and not breaking_keep_old_image:
             fetch_image = fetch_image or (image_url != game.image_url)
@@ -563,8 +399,6 @@ async def check(game: Game, full=False, login=False):
                     game.image.loaded = False
                     game.image.resolve()
                 await asyncio.shield(replace_image())
-
-        last_refresh_version = globals.version
 
         async def update_game():
             game.name = name
