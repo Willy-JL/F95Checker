@@ -81,6 +81,27 @@ The extension is available for both major browser families (for example Brave co
 
 ## FAQ:
 
+- **How do I use this tool?** and **How do the versions and checkboxes work?**
+
+  After you have installed it using the instructions above, the day-to-day usage is quite simple. You need to **add the games you want to track** (more on this below) and every once in a while you **hit the big `Refresh!` button to check for updates** of your games. Each game has 2 main checkboxes, the `Installed / Downloaded` box and the `Played / Finished` box; this should be quite intuitive: if you have a game installed / downloaded on your system, mark it as installed, and once you have finished playing the content for that version mark it as played / finished. **When a game receives an update you will get a popup about it at the end of the refresh.** If the name changes (the game has been renamed by the developer) or its status changed (e.g. from normal to abandoned) you will get a popup about it. If a version number change is detected, however, along with the update popup you will have a few other changes: the played checkbox will be deselected (a new version usually means more content is available) and (if you had marked it as installed) the installed checkbox will be half selected. This is because the tool remembers what version you had marked as installed, so if a new version is available it will show you that you still have it installed, just not on the latest version. There will also be an `Update Available` marker next to the game's name. The version number text will also reflect this, showing both the installed version and the latest version with the appropriate icons. In this state you can then click the installed checkbox to mark the latest version as installed.
+
+- **How do I add games to the tool?**
+
+  There are quite a few ways:
+
+  - Open the thread in a browser, copy the URL, paste it in the tool's bottom textbox and click `Add!`
+  - Type a name in the bottombar, press enter and select from the options (this uses F95Zone's quicksearch)
+  - Using the browser extension (more info above)
+  - Using the `Manage > Import` section in the settings sidebar:
+    - Thread links to paste multiple links at once
+    - F95 bookmarks and watched threads to add the pages you saved on your F95Zone account
+    - Browser bookmarks to import the bookmarks you saved in your browser
+    - URL shortcut file for Windows web shortcut files
+
+      (For the last 2 you can drag the files into the tool window)
+
+  After adding the games make sure to refresh atleast once to fetch all the game information!
+
 - **Can you make it download game updates?** and **Can you make it detect my game folders?**
 
   The main reason I decided to make this tool is because all the other alternatives were, in my opinion, too complicated to setup and did way more than what I wanted / needed. Most of this overhead I believe comes from trying to manage your game folders and files on disk, which introduces SO much complexity and room for error. That is what brought me to making my own program, which will NEVER download updates, manage your folders and so on. **F95Checker is not a tool that manages your games, it is a tool that helps you manage your games yourself.**
@@ -102,9 +123,9 @@ The extension is available for both major browser families (for example Brave co
 
   Everything to do with columns and sorting can only be changed from list view but also applies to grid view. Each column has a header bar at the top, you can use those to customize the interface. You can drag the headers around to reorder the columns, you can drag the edge of some select columns to change their width (only works if other variable size columns are enabled). Left clicking on a header will sort the list by that column, holding shift while clicking a header will add a secondary sort (multisort). Right clicking on any header will allow you to enable or disable some columns and also gives you access to manual sort. When manual sort is enabled you can drag games (both in list and grid view) to reorder them. Manual sort remembers the order if you disable and enable it again, but you will not be able to reorder the games if you have any filters enabled.
 
-- **How do versions and the played/installed toggles work?**
+- **How can I try new features early?**
 
-  When you add a game to F95Checker it is marked with its latest version. When you check the installed toggle it will remember that you had installed that version. When an update comes to that game and the version number changes, both the played and installed checkboxes will be unchecked. However the tool remembers what version you had installed and will show both of them next to each other (installed is marked with a download icon, latest is marked with a shooting star icon). Checking the installed checkbox will then update the installed version to the latest version, so the version text will again show only the latest one. The played checkbox is completely unrelated so that you can mark a game played without installing the latest version, for example when the update was a simple hotfix and had no new content.
+  When I implement new features or work on fixing bugs I submit directly to the [main branch on GitHub](https://github.com/Willy-JL/F95Checker), so running directly from the source code there could prove unstable at times, and also requires a development environment with an updated Python install and all the requirements up to date. To make testing new versions easier, I sometimes issue beta builds. This usually happens when I make some significant change, or an important bugfix, and want to have some binaries that everyone can try easily and give me feedback. **You can see the beta builds in the [Actions tab on the GitHub repo](https://github.com/Willy-JL/F95Checker/actions);** here you should look for entries with a green tick or a red cross icon. When you open one, scroll down to the `Artifacts` section, look for your platform and click on it to download. **Keep in mind you will need to be logged into GitHub to download.** If the entry had a red icon, that means that the build has failed for some platforms, but yours might be fine so check anyway.
 
 ## About the speed™:
 
