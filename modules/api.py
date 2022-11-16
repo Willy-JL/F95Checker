@@ -14,6 +14,7 @@ import asyncio
 import zipfile
 import shutil
 import socket
+import queue
 import shlex
 import imgui
 import time
@@ -344,16 +345,19 @@ async def check(game: Game, full=False, login=False):
             proc = multiprocessing.Process(target=parser.thread, args=(*args, pipe))
             proc.start()
             try:
-                async with async_timeout.timeout(10):
-                    while pipe.qsize() == 0:
-                        await asyncio.sleep(0.1)
+                async with async_timeout.timeout(globals.settings.request_timeout):
+                    while True:
+                        try:
+                            ret = pipe.get_nowait()
+                            break
+                        except queue.Empty:
+                            await asyncio.sleep(0.1)
             except TimeoutError:
                 try:
                     proc.kill()
                 except Exception:
                     pass
                 raise msgbox.Exc("Parser process timeout", "The thread parser process did not respond in time.", MsgBox.error)
-            ret = pipe.get_nowait()
             proc.join()
         else:
             ret = parser.thread(*args)
