@@ -519,35 +519,42 @@ class Game:
     rating               : int
     played               : bool
     installed            : str
-    executable           : str
+    executables          : list[str]
     description          : str
     changelog            : str
     tags                 : list[Tag]
     notes                : str
     image_url            : str
     image                : imagehelper.ImageHelper = None
-    executable_valid     : bool = None
+    executables_valids   : list[bool] = None
+    executables_valid    : bool = None
     _init_done           : bool = False
 
     def __post_init__(self):
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
-        self.validate_executable()
-        self._init_done = True
+        self.validate_executables()
 
-    def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if name == "executable" and self._init_done:
-            self.validate_executable()
-
-    def validate_executable(self):
+    def validate_executables(self):
         from modules import globals
-        if self.executable:
-            self.executable_valid = os.path.isfile(self.executable)
-        else:
-            self.executable_valid = False
+        self.executables_valids = [os.path.isfile(executable) for executable in self.executables]
+        self.executables_valid = all(self.executables_valids)
         if globals.gui:
             globals.gui.require_sort = True
+
+    def add_executable(self, executable: str):
+        if executable in self.executables:
+            return
+        self.executables.append(executable)
+        self.validate_executables()
+
+    def remove_executable(self, executable: str):
+        self.executables.remove(executable)
+        self.validate_executables()
+
+    def clear_executables(self):
+        self.executables.clear()
+        self.validate_executables()
 
 
 @dataclasses.dataclass

@@ -790,22 +790,30 @@ class MainGUI():
             utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
         return clicked
 
-    def draw_game_play_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}###{game.id}_play_button"
-        if not game.executable:
+    def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1, *args, **kwargs):
+        id = f"{label}###{game.id}_play_button_{i}"
+        if not game.executables:
             imgui.push_style_color(imgui.COLOR_TEXT, *imgui.style.colors[imgui.COLOR_TEXT_DISABLED][:3], 0.75)
-        elif not game.executable_valid:
-            imgui.push_style_color(imgui.COLOR_TEXT, 0.87, 0.20, 0.20)
+        else:
+            if executable:
+                try:
+                    valid = game.executables_valids[game.executables.index(executable)]
+                except Exception:
+                    valid = False
+            else:
+                valid = game.executables_valid
+            if not valid:
+                imgui.push_style_color(imgui.COLOR_TEXT, 0.87, 0.20, 0.20)
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
-        if not game.executable or not game.executable_valid:
+        if not game.executables or not valid:
             imgui.pop_style_color()
         if imgui.is_item_clicked(2):
             callbacks.open_game_folder(game)
         elif clicked:
-            callbacks.launch_game_exe(game)
+            callbacks.launch_game(game, executable=executable)
         return clicked
 
     def draw_game_type_widget(self, game: Game, align=False, *args, **kwargs):
@@ -929,8 +937,8 @@ class MainGUI():
             callbacks.remove_game(game)
         return clicked
 
-    def draw_game_select_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}###{game.id}_select_exe"
+    def draw_game_add_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+        id = f"{label}###{game.id}_add_exe"
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
@@ -938,38 +946,38 @@ class MainGUI():
         if clicked:
             def select_callback(selected):
                 if selected:
-                    game.executable = selected
-                    async_thread.run(db.update_game(game, "executable"))
+                    game.add_executable(selected)
+                    async_thread.run(db.update_game(game, "executables"))
             utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
         return clicked
 
-    def draw_game_unset_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}###{game.id}_unset_exe"
-        if not game.executable:
+    def draw_game_clear_exes_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+        id = f"{label}###{game.id}_clear_exes"
+        if not game.executables:
             utils.push_disabled()
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
-        if not game.executable:
+        if not game.executables:
             utils.pop_disabled()
         if clicked:
-            game.executable = ""
-            async_thread.run(db.update_game(game, "executable"))
+            game.clear_executables()
+            async_thread.run(db.update_game(game, "executables"))
         return clicked
 
-    def draw_game_open_folder_button(self, game: Game, label="", selectable=False, *args, **kwargs):
-        id = f"{label}###{game.id}_open_folder"
-        if not game.executable:
+    def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1, *args, **kwargs):
+        id = f"{label}###{game.id}_open_folder_{i}"
+        if not game.executables:
             utils.push_disabled()
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
-        if not game.executable:
+        if not game.executables:
             utils.pop_disabled()
         if clicked:
-            callbacks.open_game_folder(game)
+            callbacks.open_game_folder(game, executable=executable)
         return clicked
 
     def draw_game_recheck_button(self, game: Game, label="", selectable=False, *args, **kwargs):
@@ -990,8 +998,8 @@ class MainGUI():
         self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Open Thread", selectable=True)
         self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Copy Link", selectable=True)
         imgui.separator()
-        self.draw_game_select_exe_button(game, label=f"{icons.folder_edit_outline} Select Exe", selectable=True)
-        self.draw_game_unset_exe_button(game, label=f"{icons.folder_remove_outline} Unset Exe", selectable=True)
+        self.draw_game_add_exe_button(game, label=f"{icons.folder_edit_outline} Add Exe", selectable=True)
+        self.draw_game_clear_exes_button(game, label=f"{icons.folder_remove_outline} Clear Exes", selectable=True)
         self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
         self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
@@ -1315,16 +1323,31 @@ class MainGUI():
             imgui.same_line()
             imgui.text(game.added_on.display)
 
-            imgui.text_disabled("Executable:")
-            imgui.same_line()
-            offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
-            utils.wrap_text(game.executable or "Not set", width=offset + imgui.get_content_region_available_width(), offset=offset)
+            if len(game.executables) <= 1:
+                imgui.text_disabled("Executable:")
+                imgui.same_line()
+                if game.executables:
+                    offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
+                    utils.wrap_text(game.executables[0], width=offset + imgui.get_content_region_available_width(), offset=offset)
+                else:
+                    imgui.text("Not set")
+            else:
+                imgui.text_disabled("Executables:")
+                for i, executable in enumerate(game.executables):
+                    self.draw_game_play_button(game, label=icons.play, executable=executable, i=i)
+                    imgui.same_line()
+                    self.draw_game_open_folder_button(game, label=icons.folder_open_outline, executable=executable, i=i)
+                    imgui.same_line()
+                    if imgui.button(f"{icons.folder_remove_outline}###{game.id}_remove_exe_{i}"):
+                        game.remove_executable(executable)
+                    imgui.same_line()
+                    imgui.text_unformatted(executable)
 
-            imgui.text_disabled("Manage Exe:")
+            imgui.text_disabled("Manage Exes:")
             imgui.same_line()
-            self.draw_game_select_exe_button(game, label=f"{icons.folder_edit_outline} Select Exe")
+            self.draw_game_add_exe_button(game, label=f"{icons.folder_edit_outline} Add Exe")
             imgui.same_line()
-            self.draw_game_unset_exe_button(game, label=f"{icons.folder_remove_outline} Unset Exe")
+            self.draw_game_clear_exes_button(game, label=f"{icons.folder_remove_outline} Clear Exes")
             imgui.same_line()
             self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Open Folder")
 
@@ -1590,7 +1613,7 @@ class MainGUI():
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
-                        key = lambda id: flt.invert != ((globals.games[id].executable == "") if flt.match is ExeState.Unset else ((globals.games[id].executable != "") and (globals.games[id].executable_valid != (flt.match is ExeState.Invalid))))
+                        key = lambda id: flt.invert != ((not globals.games[id].executables) if flt.match is ExeState.Unset else (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid))))
                     case FilterMode.Installed.value:
                         key = lambda id: flt.invert != ((globals.games[id].installed != "") if flt.include_outdated else (globals.games[id].installed == globals.games[id].version))
                     case FilterMode.Played.value:

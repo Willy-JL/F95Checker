@@ -234,9 +234,9 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
     center_next_window()
     if imgui.begin_popup_modal(label, closable or None, flags=globals.gui.popup_flags)[0]:
         if outside:
-             closed = close_weak_popup()
+             closed = closed or close_weak_popup()
         imgui.begin_group()
-        popup_content()
+        closed = closed or (popup_content() is True)  # Close if content returns True
         imgui.end_group()
         imgui.spacing()
         if buttons:

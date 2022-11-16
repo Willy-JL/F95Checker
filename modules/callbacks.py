@@ -4,6 +4,7 @@ import plistlib
 import pathlib
 import asyncio
 import shlex
+import imgui
 import time
 import stat
 import os
@@ -50,7 +51,7 @@ def update_start_with_system(toggle: bool):
         utils.push_popup(msgbox.msgbox, "Start with system error", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
 
 
-async def _launch(path: str | pathlib.Path):
+async def _launch_exe(path: str):
     exe = pathlib.Path(path).absolute()
     if not exe.is_file():
         raise FileNotFoundError()
@@ -102,75 +103,125 @@ async def _launch(path: str | pathlib.Path):
             )
 
 
-def launch_game_exe(game: Game):
-    async def _launch_game():
-        if not game.executable:
-            return
-        try:
-            await _launch(game.executable)
-            game.last_played.update(time.time())
-            async_thread.run(db.update_game(game, "last_played"))
-        except FileNotFoundError:
-            def select_callback(selected):
-                if selected:
-                    game.executable = selected
-                    async_thread.run(db.update_game(game, "executable"))
-                    async_thread.run(_launch_game())
-            buttons = {
-                f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
-                f"{icons.cancel} No": None
-            }
-            utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to select another one?", MsgBox.warn, buttons)
-        except Exception:
-            utils.push_popup(msgbox.msgbox, "Game launch error", f"Something went wrong launching {game.name}:\n\n{utils.get_traceback()}", MsgBox.error)
-    if not game.executable:
+async def _launch_game_exe(game: Game, executable: str):
+    try:
+        await _launch_exe(executable)
+        game.last_played.update(time.time())
+        await db.update_game(game, "last_played")
+    except FileNotFoundError:
         def select_callback(selected):
             if selected:
-                game.executable = selected
-                async_thread.run(db.update_game(game, "executable"))
-                async_thread.run(_launch_game())
+                game.remove_executable(executable)
+                game.add_executable(selected)
+                async_thread.run(db.update_game(game, "executables"))
+                async_thread.run(_launch_game_exe(game, selected))
+        buttons = {
+            f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+            f"{icons.cancel} No": None
+        }
+        utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to select another one?", MsgBox.warn, buttons)
+    except Exception:
+        utils.push_popup(msgbox.msgbox, "Game launch error", f"Something went wrong launching {executable}:\n\n{utils.get_traceback()}", MsgBox.error)
+
+
+def launch_game(game: Game, executable: str = None):
+    if not executable and len(game.executables) == 1:
+        executable = game.executables[0]
+    if executable:
+        async_thread.run(_launch_game_exe(game, executable))
+        return
+
+    if not game.executables:
+        def select_callback(selected):
+            if selected:
+                game.add_executable(selected)
+                async_thread.run(db.update_game(game, "executables"))
+                async_thread.run(_launch_game_exe(game, selected))
         utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+        return
+
+    def popup_content():
+        imgui.text("Click one of the executables to launch it, or Cancel to not do anything.\n\n")
+        for i, executable in enumerate(game.executables):
+            if imgui.selectable(f"{executable}###{game.id}_launch_exe_{i}", False)[0]:
+                async_thread.run(_launch_game_exe(game, executable))
+                return True
+    buttons = {
+        f"{icons.cancel} Cancel": None
+    }
+    utils.push_popup(utils.popup, f"Choose Exe for {game.name}", popup_content, buttons=buttons, closable=True, outside=True)
+
+
+async def _open_folder(path: str):
+    folder = pathlib.Path(path).absolute().parent
+    if not folder.is_dir():
+        raise FileNotFoundError()
+
+    if globals.os is Os.Windows:
+        os.startfile(str(folder))
     else:
-        async_thread.run(_launch_game())
+        if globals.os is Os.Linux:
+            open_util = "xdg-open"
+        elif globals.os is Os.MacOS:
+            open_util = "open"
+        await asyncio.create_subprocess_exec(
+            open_util, str(folder),
+            cwd=str(folder),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
 
 
-def open_game_folder(game: Game):
-    if not game.executable:
+async def _open_game_folder_exe(game: Game, executable: str):
+    try:
+        await _open_folder(executable)
+    except FileNotFoundError:
         def select_callback(selected):
             if selected:
-                game.executable = selected
-                async_thread.run(db.update_game(game, "executable"))
-                open_game_folder(game)
+                game.remove_executable(executable)
+                game.add_executable(selected)
+                async_thread.run(db.update_game(game, "executables"))
+                async_thread.run(_open_game_folder_exe(game, selected))
+        buttons = {
+            f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+            f"{icons.cancel} No": None
+        }
+        utils.push_popup(msgbox.msgbox, "Folder not found", "The parent folder for the game executable could not be found.\n\nDo you want to select another executable?", MsgBox.warn, buttons)
+    except Exception:
+        utils.push_popup(msgbox.msgbox, "Open folder error", f"Something went wrong opening the folder for {executable}:\n\n{utils.get_traceback()}", MsgBox.error)
+
+
+def open_game_folder(game: Game, executable: str = None):
+    if not executable and len(game.executables) == 1:
+        executable = game.executables[0]
+    if executable:
+        async_thread.run(_open_game_folder_exe(game, executable))
+        return
+
+    if not game.executables:
+        def select_callback(selected):
+            if selected:
+                game.add_executable(selected)
+                async_thread.run(db.update_game(game, "executables"))
+                async_thread.run(_open_game_folder_exe(game, selected))
         buttons = {
             f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
             f"{icons.cancel} No": None
         }
         utils.push_popup(msgbox.msgbox, "Exe not selected", "You did not select an executable for this game, so\nopening its folder is not possible.\n\nDo you want to select it now?", MsgBox.warn, buttons)
         return
-    dir = pathlib.Path(game.executable).absolute().parent
-    if not dir.is_dir():
-        def reset_callback():
-            game.executable = ""
-            async_thread.run(db.update_game(game, "executable"))
-        buttons = {
-            f"{icons.check} Yes": reset_callback,
-            f"{icons.cancel} No": None
-        }
-        utils.push_popup(msgbox.msgbox, "Folder not found", "The parent folder for the game executable could not be found.\n\nDo you want to unset the path?", MsgBox.warn, buttons)
-        return
-    if globals.os is Os.Windows:
-        os.startfile(str(dir))
-    else:
-        if globals.os is Os.Linux:
-            open_util = "xdg-open"
-        elif globals.os is Os.MacOS:
-            open_util = "open"
-        async_thread.run(asyncio.create_subprocess_exec(
-            open_util, str(dir),
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        ))
+
+    def popup_content():
+        imgui.text("Click one of the executables to open its folder, or Cancel to not do anything.\n\n")
+        for i, executable in enumerate(game.executables):
+            if imgui.selectable(f"{executable}###{game.id}_open_folder_{i}", False)[0]:
+                async_thread.run(_open_game_folder_exe(game, executable))
+                return True
+    buttons = {
+        f"{icons.cancel} Cancel": None
+    }
+    utils.push_popup(utils.popup, f"Choose Folder for {game.name}", popup_content, buttons=buttons, closable=True, outside=True)
 
 
 def open_webpage(url: str):
@@ -245,17 +296,16 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
             if globals.settings.select_executable_after_add:
                 def select_callback(selected):
                     if selected:
-                        game.executable = selected
-                        async_thread.run(db.update_game(game, "executable"))
+                        game.add_executable(selected)
+                        async_thread.run(db.update_game(game, "executables"))
                 utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
         dupe_count = len(dupes)
         added_count = len(added)
         if dupe_count > 0 or added_count > 1:
             utils.push_popup(msgbox.msgbox, ("Duplicate" if dupe_count > 0 else "Added") + " games", ((f"{added_count} new game{' has' if added_count == 1 else 's have'} been added to your library.\nMake sure to refresh to grab all the game details.") if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + ((f"{dupe_count} duplicate game{' has' if dupe_count == 1 else 's have'} not been re-added.") if dupe_count > 0 else ""), MsgBox.warn if dupe_count > 0 else MsgBox.info, more=(("Added:\n - " + "\n - ".join(added)) if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + (("Duplicates:\n - " + "\n - ".join(dupes)) if dupe_count > 0 else ""))
         globals.gui.require_sort = True
-    ask_exe = globals.settings.select_executable_after_add
     count = len(threads)
-    if ask_exe and count > 1:
+    if globals.settings.select_executable_after_add and count > 1:
         buttons = {
             f"{icons.check} Yes": lambda: async_thread.run(_add_games()),
             f"{icons.cancel} No": None
