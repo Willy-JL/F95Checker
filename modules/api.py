@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QSystemTrayIcon
 import multiprocessing
 import datetime as dt
 from PIL import Image
+import async_timeout
 import configparser
 import contextlib
 import subprocess
@@ -38,6 +39,11 @@ def setup():
     global session
     session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
     session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{'.'.join(str(num) for num in sys.version_info[:3])} aiohttp/{aiohttp.__version__}"
+    # Setup multiprocessing for parsing threads
+    method = "spawn"  # Using fork defeats the purpose, with spawn the main ui does not hang
+    if globals.os is not Os.Windows and globals.frozen:
+        method = "fork"  # But unix doesn't support spawn in frozen contexts
+    multiprocessing.set_start_method(method)
     try:
         yield
     finally:
@@ -331,17 +337,29 @@ async def check(game: Game, full=False, login=False):
         old_version = game.version
         old_status = game.status
 
-        ctx = multiprocessing.get_context("spawn")  # Using fork defeats the purpose, with spawn the main ui does not hang
-        pipe_in, pipe_out = ctx.Pipe(duplex=False)
-        proc = ctx.Process(target=parser.thread, args=(game.id, res, pipe_out))
-        proc.start()
-        while not pipe_in.poll(timeout=0):
-            await asyncio.sleep(0.1)
-        res = pipe_in.recv()
-        if isinstance(res, parser.ParserException):
-            raise msgbox.Exc(**res.kwargs)
-        (name, version, developer, type, status, last_updated, description, changelog, tags, image_url) = res
-        proc.join()
+        args = (game.id, res)
+        if globals.settings.use_parser_processes:
+            # Using multiprocessing can help with interface stutters
+            pipe = multiprocessing.Queue()
+            proc = multiprocessing.Process(target=parser.thread, args=(*args, pipe))
+            proc.start()
+            try:
+                async with async_timeout.timeout(10):
+                    while pipe.qsize() == 0:
+                        await asyncio.sleep(0.1)
+            except TimeoutError:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+                raise msgbox.Exc("Parser process timeout", "The thread parser process did not respond in time.", MsgBox.error)
+            ret = pipe.get_nowait()
+            proc.join()
+        else:
+            ret = parser.thread(*args)
+        if isinstance(ret, parser.ParserException):
+            raise msgbox.Exc(**ret.kwargs)
+        (name, version, developer, type, status, last_updated, description, changelog, tags, image_url) = ret
 
         last_full_refresh = int(time.time())
         last_refresh_version = globals.version

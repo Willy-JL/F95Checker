@@ -1,4 +1,4 @@
-import multiprocessing.connection
+import multiprocessing
 import datetime as dt
 import traceback
 import functools
@@ -34,7 +34,7 @@ class ParserException(Exception):
         self.kwargs = kwargs
 
 
-def thread(game_id: int, res: bytes, pipe_out: multiprocessing.connection.Connection):
+def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
     def game_has_prefixes(*names: list[str]):
         for name in names:
             if head.find("span", text=f"[{name}]"):
@@ -85,8 +85,11 @@ def thread(game_id: int, res: bytes, pipe_out: multiprocessing.connection.Connec
                 msg=f"Failed to parse necessary sections in thread response, the html file has\nbeen saved to:\n{self_path}{os.sep}{game_id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.",
                 type=MsgBox.error
             )
-            pipe_out.send(exc)
-            return
+            if pipe:
+                pipe.put_nowait(exc)
+                return
+            else:
+                return exc
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:
                 next(spoiler.span.span.children).replace_with(html.new_string(""))
@@ -207,14 +210,21 @@ def thread(game_id: int, res: bytes, pipe_out: multiprocessing.connection.Connec
         else:
             image_url = "-"
 
-    except Exception as e:
+    except Exception:
         tb = "".join(traceback.format_exception(*sys.exc_info()))
         exc = ParserException(
             title="Thread parsing error",
             msg=f"Something went wrong while parsing thread {game_id}:\n\n{tb}",
             type=MsgBox.error
         )
-        pipe_out.send(exc)
-        return
+        if pipe:
+            pipe.put_nowait(exc)
+            return
+        else:
+            return exc
 
-    pipe_out.send((name, version, developer, type, status, last_updated, description, changelog, tags, image_url))
+    ret = (name, version, developer, type, status, last_updated, description, changelog, tags, image_url)
+    if pipe:
+        pipe.put_nowait(ret)
+    else:
+        return ret

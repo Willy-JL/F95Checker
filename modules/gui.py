@@ -2707,6 +2707,15 @@ class MainGUI():
             draw_settings_checkbox("ignore_semaphore_timeouts")
 
             draw_settings_label(
+                "Use parser processes:",
+                "Parsing the game threads is an intensive task so when a full recheck is running the interface can stutter a lot. When "
+                "this setting is enabled the thread parsing will be offloaded to dedicated processes that might be (very slightly) slower "
+                "and less stable but that allow the interface to remain fully responsive. It is recommended you keep this enabled unless it "
+                "is causing problems."
+            )
+            draw_settings_checkbox("use_parser_processes")
+
+            draw_settings_label(
                 "BG interval:",
                 "When F95Checker is minimized in background mode it automatically refreshes your games periodically. This "
                 "controls how often (in minutes) this happens."

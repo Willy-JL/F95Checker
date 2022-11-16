@@ -429,6 +429,7 @@ class Settings:
     tray_refresh_interval       : int
     tray_notifs_interval        : int
     update_keep_image           : bool
+    use_parser_processes        : bool
     vsync_ratio                 : int
     zoom_amount                 : int
     zoom_enabled                : bool

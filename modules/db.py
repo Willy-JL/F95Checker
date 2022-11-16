@@ -144,6 +144,7 @@ async def connect():
             "tray_refresh_interval":       f'INTEGER DEFAULT 30',
             "tray_notifs_interval":        f'INTEGER DEFAULT 15',
             "update_keep_image":           f'INTEGER DEFAULT {int(False)}',
+            "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "zoom_amount":                 f'INTEGER DEFAULT 4',
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',
