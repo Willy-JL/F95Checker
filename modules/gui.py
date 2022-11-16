@@ -575,207 +575,209 @@ class MainGUI():
         draw_next = 5.0
         size = (0, 0)
         cursor = -1
-        # While window is open
-        while not glfw.window_should_close(self.window):
-            # Tick events and inputs
-            prev_mouse_pos = imgui.io.mouse_pos
-            prev_minimized = self.minimized
-            prev_win_hovered = win_hovered
-            prev_any_hovered = any_hovered
-            prev_iconized = self.iconized
-            prev_focused = self.focused
-            self.prev_size = size
-            prev_cursor = cursor
-            self.tray.tick_msgs()
-            self.qt_app.processEvents()
-            if self.repeat_chars:
-                for char in self.input_chars:
-                    imgui.io.add_input_character(char)
-                self.repeat_chars = False
-            self.input_chars.clear()
-            glfw.poll_events()
-            self.impl.process_inputs()
-            # Window state handling
-            size = imgui.io.display_size
-            mouse_pos = imgui.io.mouse_pos
-            cursor = imgui.get_mouse_cursor()
-            any_hovered = imgui.is_any_item_hovered()
-            win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
-            if not self.focused and win_hovered:
-                # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
-                imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
-            if not self.minimized and not self.iconized and (self.focused or globals.settings.render_when_unfocused):
-
-                # Scroll modifiers (must be before new_frame())
-                imgui.io.mouse_wheel *= globals.settings.scroll_amount
-                if globals.settings.scroll_smooth:
-                    scroll_energy += imgui.io.mouse_wheel
-                    if abs(scroll_energy) > 0.1:
-                        scroll_now = scroll_energy * imgui.io.delta_time * globals.settings.scroll_smooth_speed
-                        scroll_energy -= scroll_now
-                    else:
-                        scroll_now = 0.0
-                        scroll_energy = 0.0
-                    imgui.io.mouse_wheel = scroll_now
-
-                # Redraw only when needed
-                draw = False
-                draw = draw or self.require_sort
-                draw = draw or imagehelper.redraw
-                draw = draw or utils.is_refreshing()
-                draw = draw or size != self.prev_size
-                draw = draw or prev_focused != self.focused
-                draw = draw or prev_iconized != self.iconized
-                draw = draw or prev_minimized != self.minimized
-                draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
-                draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
-                if draw:
-                    draw_next = max(draw_next, 0.5)  # Draw for at least next half second
-                if draw_next > 0.0:
-                    draw_next -= imgui.io.delta_time
-
-                    # Reactive mouse cursors
-                    if cursor != prev_cursor or any_hovered != prev_any_hovered:
-                        shape = glfw.ARROW_CURSOR
-                        if cursor == imgui.MOUSE_CURSOR_TEXT_INPUT:
-                            shape = glfw.IBEAM_CURSOR
-                        elif any_hovered:
-                            shape = glfw.HAND_CURSOR
-                        glfw.set_cursor(self.window, glfw.create_standard_cursor(shape))
-
-                    # Updated games popup
-                    if not utils.is_refreshing() and globals.updated_games:
-                        updated_games = dict(globals.updated_games)
-                        globals.updated_games.clear()
-                        sorted_ids = list(updated_games)
-                        sorted_ids.sort(key=lambda id: 2 if globals.games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if globals.games[id].type in (Type.Collection, Type.Manga, Type.SiteRip, Type.Comics, Type.CG, Type.Pinup, Type.Video, Type.GIF) else 0)
-                        utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids, len(updated_games))
-
-                    # Start drawing
-                    imgui.new_frame()
-                    imagehelper.redraw = False
-
-                    # Imgui window is top left of display window, and has same size
-                    imgui.set_next_window_position(0, 0, imgui.ONCE)
-                    if size != self.prev_size and not self.iconized:
-                        imgui.set_next_window_size(*size, imgui.ALWAYS)
-
-                    # Create main window
-                    imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
-                    imgui.begin("F95Checker", closable=False, flags=self.window_flags)
-                    imgui.pop_style_var()
-                    sidebar_size = self.scaled(self.sidebar_size)
-
-                    # Main pane
-                    imgui.begin_child("###main_frame", width=-sidebar_size)
-                    self.hovered_game = None
-                    # Games container
-                    if globals.settings.display_mode is DisplayMode.list:
-                        self.draw_games_list()
-                    elif globals.settings.display_mode is DisplayMode.grid:
-                        self.draw_games_grid()
-                    # Bottombar
-                    self.draw_bottombar()
-                    imgui.end_child()
-
-                    # Prepare bottom status / watermark text (done before sidebar to get text offset from bottom of window)
-                    if (count := api.images.count) > 0:
-                        text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} image{'s' if count > 1 else ''}..."
-                    elif (count := api.fulls.count) > 0:
-                        text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full recheck{'s' if count > 1 else ''}..."
-                    elif globals.last_update_check is None:
-                        text = "Checking for updates..."
-                    else:
-                        text = self.watermark_text
-                    _3 = self.scaled(3)
-                    _6 = self.scaled(6)
-                    text_size = imgui.calc_text_size(text)
-                    text_x = size.x - text_size.x - _6
-                    text_y = size.y - text_size.y - _6
-
-                    # Sidebar
-                    imgui.same_line(spacing=1)
-                    imgui.begin_child("###sidebar_frame", width=sidebar_size - 1, height=-text_size.y)
-                    self.draw_sidebar()
-                    imgui.end_child()
-
-                    # Status / watermark text
-                    imgui.set_cursor_screen_pos((text_x - _3, text_y))
-                    if imgui.invisible_button("###watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
-                        utils.push_popup(self.draw_about_popup)
-                    imgui.set_cursor_screen_pos((text_x, text_y))
-                    imgui.text(text)
-
-                    # Popups
-                    open_popup_count = 0
-                    for popup_func in globals.popup_stack:
-                        opened, closed =  popup_func()
-                        if closed:
-                            globals.popup_stack.remove(popup_func)
-                        open_popup_count += opened
-                    # Popups are closed all at the end to allow stacking
-                    for _ in range(open_popup_count):
-                        imgui.end_popup()
-
-                    # Close main window (technically popups are inside the window, and inside one another - this gives proper stacking order)
-                    imgui.end()
-
-                    # Render interface
-                    imgui.render()
-                    self.impl.render(imgui.get_draw_data())
-                    # Rescale fonts
-                    if self.size_mult != globals.settings.interface_scaling:
-                        self.refresh_fonts()
-                        self.refresh_styles()
-                        async_thread.run(db.update_settings("interface_scaling"))
-                # Wait idle time
-                    glfw.swap_buffers(self.window)
-                else:
-                    time.sleep(1 / 15)
-            else:
-                # Tray bg mode and not paused
-                if self.minimized and not self.bg_mode_paused:
-                    if not self.bg_mode_timer and not utils.is_refreshing():
-                        # Schedule next refresh
-                        self.bg_mode_timer = time.time() + globals.settings.tray_refresh_interval * 60
-                        self.tray.update_status()
-                    elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
-                        # Run scheduled refresh
-                        self.bg_mode_timer = None
-                        utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
-                    elif globals.settings.check_notifs:
-                        if not self.bg_mode_notifs_timer and not utils.is_refreshing():
-                            # Schedule next notif check
-                            self.bg_mode_notifs_timer = time.time() + globals.settings.tray_notifs_interval * 60
-                            self.tray.update_status()
-                        elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
-                            # Run scheduled notif check
-                            self.bg_mode_notifs_timer = None
-                            utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
-                # Wait idle time
-                if self.tray.menu_open:
-                    time.sleep(1 / 60)
-                else:
-                    time.sleep(1 / 3)
-        # Main loop over, cleanup and close
-        imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
-        ini = imgui.save_ini_settings_to_memory()
         try:
-            start = ini.find("[Window][F95Checker]")
-            assert start != -1
-            end = ini.find("\n\n", start)
-            assert end != -1
-            if "ScreenPos=" not in ini[start:end]:
-                insert = ini.find("\n", start)
-                new_ini = ini[:insert] + f"\nScreenPos={self.screen_pos[0]},{self.screen_pos[1]}" + ini[insert:]
-            else:
+            # While window is open
+            while not glfw.window_should_close(self.window):
+                # Tick events and inputs
+                prev_mouse_pos = imgui.io.mouse_pos
+                prev_minimized = self.minimized
+                prev_win_hovered = win_hovered
+                prev_any_hovered = any_hovered
+                prev_iconized = self.iconized
+                prev_focused = self.focused
+                self.prev_size = size
+                prev_cursor = cursor
+                self.tray.tick_msgs()
+                self.qt_app.processEvents()
+                if self.repeat_chars:
+                    for char in self.input_chars:
+                        imgui.io.add_input_character(char)
+                    self.repeat_chars = False
+                self.input_chars.clear()
+                glfw.poll_events()
+                self.impl.process_inputs()
+                # Window state handling
+                size = imgui.io.display_size
+                mouse_pos = imgui.io.mouse_pos
+                cursor = imgui.get_mouse_cursor()
+                any_hovered = imgui.is_any_item_hovered()
+                win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
+                if not self.focused and win_hovered:
+                    # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
+                    imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
+                if not self.minimized and not self.iconized and (self.focused or globals.settings.render_when_unfocused):
+
+                    # Scroll modifiers (must be before new_frame())
+                    imgui.io.mouse_wheel *= globals.settings.scroll_amount
+                    if globals.settings.scroll_smooth:
+                        scroll_energy += imgui.io.mouse_wheel
+                        if abs(scroll_energy) > 0.1:
+                            scroll_now = scroll_energy * imgui.io.delta_time * globals.settings.scroll_smooth_speed
+                            scroll_energy -= scroll_now
+                        else:
+                            scroll_now = 0.0
+                            scroll_energy = 0.0
+                        imgui.io.mouse_wheel = scroll_now
+
+                    # Redraw only when needed
+                    draw = False
+                    draw = draw or self.require_sort
+                    draw = draw or imagehelper.redraw
+                    draw = draw or utils.is_refreshing()
+                    draw = draw or size != self.prev_size
+                    draw = draw or prev_focused != self.focused
+                    draw = draw or prev_iconized != self.iconized
+                    draw = draw or prev_minimized != self.minimized
+                    draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
+                    draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
+                    if draw:
+                        draw_next = max(draw_next, 0.5)  # Draw for at least next half second
+                    if draw_next > 0.0:
+                        draw_next -= imgui.io.delta_time
+
+                        # Reactive mouse cursors
+                        if cursor != prev_cursor or any_hovered != prev_any_hovered:
+                            shape = glfw.ARROW_CURSOR
+                            if cursor == imgui.MOUSE_CURSOR_TEXT_INPUT:
+                                shape = glfw.IBEAM_CURSOR
+                            elif any_hovered:
+                                shape = glfw.HAND_CURSOR
+                            glfw.set_cursor(self.window, glfw.create_standard_cursor(shape))
+
+                        # Updated games popup
+                        if not utils.is_refreshing() and globals.updated_games:
+                            updated_games = dict(globals.updated_games)
+                            globals.updated_games.clear()
+                            sorted_ids = list(updated_games)
+                            sorted_ids.sort(key=lambda id: 2 if globals.games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if globals.games[id].type in (Type.Collection, Type.Manga, Type.SiteRip, Type.Comics, Type.CG, Type.Pinup, Type.Video, Type.GIF) else 0)
+                            utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids, len(updated_games))
+
+                        # Start drawing
+                        imgui.new_frame()
+                        imagehelper.redraw = False
+
+                        # Imgui window is top left of display window, and has same size
+                        imgui.set_next_window_position(0, 0, imgui.ONCE)
+                        if size != self.prev_size and not self.iconized:
+                            imgui.set_next_window_size(*size, imgui.ALWAYS)
+
+                        # Create main window
+                        imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
+                        imgui.begin("F95Checker", closable=False, flags=self.window_flags)
+                        imgui.pop_style_var()
+                        sidebar_size = self.scaled(self.sidebar_size)
+
+                        # Main pane
+                        imgui.begin_child("###main_frame", width=-sidebar_size)
+                        self.hovered_game = None
+                        # Games container
+                        if globals.settings.display_mode is DisplayMode.list:
+                            self.draw_games_list()
+                        elif globals.settings.display_mode is DisplayMode.grid:
+                            self.draw_games_grid()
+                        # Bottombar
+                        self.draw_bottombar()
+                        imgui.end_child()
+
+                        # Prepare bottom status / watermark text (done before sidebar to get text offset from bottom of window)
+                        if (count := api.images.count) > 0:
+                            text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} image{'s' if count > 1 else ''}..."
+                        elif (count := api.fulls.count) > 0:
+                            text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full recheck{'s' if count > 1 else ''}..."
+                        elif globals.last_update_check is None:
+                            text = "Checking for updates..."
+                        else:
+                            text = self.watermark_text
+                        _3 = self.scaled(3)
+                        _6 = self.scaled(6)
+                        text_size = imgui.calc_text_size(text)
+                        text_x = size.x - text_size.x - _6
+                        text_y = size.y - text_size.y - _6
+
+                        # Sidebar
+                        imgui.same_line(spacing=1)
+                        imgui.begin_child("###sidebar_frame", width=sidebar_size - 1, height=-text_size.y)
+                        self.draw_sidebar()
+                        imgui.end_child()
+
+                        # Status / watermark text
+                        imgui.set_cursor_screen_pos((text_x - _3, text_y))
+                        if imgui.invisible_button("###watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
+                            utils.push_popup(self.draw_about_popup)
+                        imgui.set_cursor_screen_pos((text_x, text_y))
+                        imgui.text(text)
+
+                        # Popups
+                        open_popup_count = 0
+                        for popup_func in globals.popup_stack:
+                            opened, closed =  popup_func()
+                            if closed:
+                                globals.popup_stack.remove(popup_func)
+                            open_popup_count += opened
+                        # Popups are closed all at the end to allow stacking
+                        for _ in range(open_popup_count):
+                            imgui.end_popup()
+
+                        # Close main window (technically popups are inside the window, and inside one another - this gives proper stacking order)
+                        imgui.end()
+
+                        # Render interface
+                        imgui.render()
+                        self.impl.render(imgui.get_draw_data())
+                        # Rescale fonts
+                        if self.size_mult != globals.settings.interface_scaling:
+                            self.refresh_fonts()
+                            self.refresh_styles()
+                            async_thread.run(db.update_settings("interface_scaling"))
+                    # Wait idle time
+                        glfw.swap_buffers(self.window)
+                    else:
+                        time.sleep(1 / 15)
+                else:
+                    # Tray bg mode and not paused
+                    if self.minimized and not self.bg_mode_paused:
+                        if not self.bg_mode_timer and not utils.is_refreshing():
+                            # Schedule next refresh
+                            self.bg_mode_timer = time.time() + globals.settings.tray_refresh_interval * 60
+                            self.tray.update_status()
+                        elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
+                            # Run scheduled refresh
+                            self.bg_mode_timer = None
+                            utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
+                        elif globals.settings.check_notifs:
+                            if not self.bg_mode_notifs_timer and not utils.is_refreshing():
+                                # Schedule next notif check
+                                self.bg_mode_notifs_timer = time.time() + globals.settings.tray_notifs_interval * 60
+                                self.tray.update_status()
+                            elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
+                                # Run scheduled notif check
+                                self.bg_mode_notifs_timer = None
+                                utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
+                    # Wait idle time
+                    if self.tray.menu_open:
+                        time.sleep(1 / 60)
+                    else:
+                        time.sleep(1 / 3)
+        finally:
+            # Main loop over, cleanup and close
+            imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
+            ini = imgui.save_ini_settings_to_memory()
+            try:
+                start = ini.find("[Window][F95Checker]")
+                assert start != -1
+                end = ini.find("\n\n", start)
+                assert end != -1
+                if "ScreenPos=" not in ini[start:end]:
+                    insert = ini.find("\n", start)
+                    new_ini = ini[:insert] + f"\nScreenPos={self.screen_pos[0]},{self.screen_pos[1]}" + ini[insert:]
+                else:
+                    new_ini = ini
+            except Exception:
                 new_ini = ini
-        except Exception:
-            new_ini = ini
-        with open(imgui.io.ini_file_name, "w") as f:
-            f.write(new_ini)
-        self.impl.shutdown()
-        glfw.terminate()
+            with open(imgui.io.ini_file_name, "w") as f:
+                f.write(new_ini)
+            self.impl.shutdown()
+            glfw.terminate()
 
     def draw_hover_text(self, hover_text: str, text="(?)", force=False, *args, **kwargs):
         if text:
