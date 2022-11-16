@@ -18,7 +18,7 @@ def start():
         try:
             server = xmlrpc.server.SimpleXMLRPCServer(("localhost", globals.rpc_port), logRequests=False, allow_none=True)
         except Exception:
-            raise msgbox.Exc("RPC server error", f"Failed to start RPC server on localhost port {globals.rpc_port}. This means that the web\nbrowser extension will not work, while F95Checker itself should be unaffected.\n\nThis can often be caused by:\n - Hyper-V\n - Docker\n - Antivirus or firewall", MsgBox.warn, more=utils.get_traceback())
+            raise msgbox.Exc("RPC server error", f"Failed to start RPC server on localhost port {globals.rpc_port}:\n{utils.get_error()}\n\nThis means that the web browser extension will not work, while F95Checker\nitself should be unaffected. Some common causes are:\n - Hyper-V\n - Docker\n - Antivirus or firewall", MsgBox.warn, more=utils.get_traceback())
 
         server.register_function(globals.gui.show, "show_window")
         def add_game(url):

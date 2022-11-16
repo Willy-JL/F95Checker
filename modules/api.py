@@ -145,7 +145,7 @@ async def login():
         new_cookies = json.loads(data[0])
         await asyncio.shield(db.update_cookies(new_cookies))
     except Exception:
-        raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n\n{utils.get_traceback()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+        raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n{utils.get_error()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=utils.get_traceback())
 
 
 async def assert_login():
@@ -470,7 +470,7 @@ async def check_notifs(login=False):
     except Exception:
         async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
             await f.write(res)
-        raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+        raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n{utils.get_error()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=utils.get_traceback())
     if alerts != 0 and inbox != 0:
         msg = f"You have {alerts + inbox} unread notifications.\n({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})"
     elif alerts != 0 and inbox == 0:
@@ -539,7 +539,7 @@ async def check_updates():
     except Exception:
         async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
             await f.write(res)
-        raise msgbox.Exc("Update check error", f"Something went wrong checking for F95Checker updates:\n\n{utils.get_traceback()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}update_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+        raise msgbox.Exc("Update check error", f"Something went wrong checking for F95Checker updates:\n{utils.get_error()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}update_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=utils.get_traceback())
     async def update_callback():
         progress = 0.0
         total = float(asset_size)

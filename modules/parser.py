@@ -2,6 +2,7 @@ import multiprocessing
 import datetime as dt
 import traceback
 import functools
+import builtins
 import bs4
 import sys
 import re
@@ -80,16 +81,16 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             from main import self_path
             with open(self_path / f"{game_id}_broken.html", "wb") as f:
                 f.write(res)
-            exc = ParserException(
+            e = ParserException(
                 title="Thread parsing error",
                 msg=f"Failed to parse necessary sections in thread response, the html file has\nbeen saved to:\n{self_path}{os.sep}{game_id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.",
                 type=MsgBox.error
             )
             if pipe:
-                pipe.put_nowait(exc)
+                pipe.put_nowait(e)
                 return
             else:
-                return exc
+                return e
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:
                 next(spoiler.span.span.children).replace_with(html.new_string(""))
@@ -210,18 +211,20 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             image_url = "-"
 
-    except Exception:
+    except Exception as exc:
+        err = f"{builtins.type(exc).__name__}: {str(exc) or 'No further details'}"
         tb = "".join(traceback.format_exception(*sys.exc_info()))
-        exc = ParserException(
+        e = ParserException(
             title="Thread parsing error",
-            msg=f"Something went wrong while parsing thread {game_id}:\n\n{tb}",
-            type=MsgBox.error
+            msg=f"Something went wrong while parsing thread {game_id}:\n{err}",
+            type=MsgBox.error,
+            more=tb
         )
         if pipe:
-            pipe.put_nowait(exc)
+            pipe.put_nowait(e)
             return
         else:
-            return exc
+            return e
 
     ret = (name, version, developer, type, status, last_updated, description, changelog, tags, image_url)
     if pipe:

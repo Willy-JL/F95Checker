@@ -311,8 +311,9 @@ class MainGUI():
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
             if args.exc_type is not msgbox.Exc:
+                err = utils.get_error(args.exc_value)
                 tb = utils.get_traceback(args.exc_type, args.exc_value, args.exc_traceback)
-                utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n\n{tb}", MsgBox.error)
+                utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n{err}", MsgBox.error, more=tb)
         threading.excepthook = syncexcepthook
         def asyncexcepthook(future: asyncio.Future):
             try:
@@ -321,11 +322,12 @@ class MainGUI():
                 return
             if not exc or type(exc) is msgbox.Exc:
                 return
-            tb = utils.get_traceback(type(exc), exc, exc.__traceback__)
+            err = utils.get_error(exc)
+            tb = utils.get_traceback(exc)
             if isinstance(exc, asyncio.TimeoutError) or isinstance(exc, aiohttp.ClientError):
-                utils.push_popup(msgbox.msgbox, "Connection error", f"A connection request to F95Zone has failed:\n{type(exc).__name__}: {str(exc) or 'No further details'}\n\nPossible causes include:\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n - Your retries value is too low, try increasing it in settings (last resort!)", MsgBox.warn, more=tb)
+                utils.push_popup(msgbox.msgbox, "Connection error", f"A connection request to F95Zone has failed:\n{err}\n\nPossible causes include:\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n - Your retries value is too low, try increasing it in settings (last resort!)", MsgBox.warn, more=tb)
                 return
-            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n\n{tb}", MsgBox.error)
+            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n{err}", MsgBox.error, more=tb)
         async_thread.done_callback = asyncexcepthook
 
         # Load style configuration
@@ -448,12 +450,15 @@ class MainGUI():
         imgui.io.font_global_scale = 1 / font_scaling_factor
         self.size_mult = globals.settings.interface_scaling
         karla_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
+        meslo_path = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
         noto_path = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
         mdi_path = str(next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")))
         karla_config = imgui.core.FontConfig(oversample_h=3, oversample_v=3)
+        meslo_config = imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         noto_config = imgui.core.FontConfig(merge_mode=True, oversample_h=3, oversample_v=3)
         mdi_config = imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1)
         karla_range = imgui.core.GlyphRanges([0x1, 0x20ac, 0])
+        meslo_range = imgui.core.GlyphRanges([0x1, 0x2e2e, 0])
         noto_range = imgui.core.GlyphRanges([0x1, 0xfffd, 0])
         mdi_range_values = []
         for name, icon in vars(icons).items():
@@ -467,6 +472,7 @@ class MainGUI():
             msgbox_range_values += [ord(icon), ord(icon)]
         msgbox_range_values.append(0)
         msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
+        size_15 = 15 * font_scaling_factor * self.size_mult
         size_18 = 18 * font_scaling_factor * self.size_mult
         size_28 = 28 * font_scaling_factor * self.size_mult
         size_69 = 69 * font_scaling_factor * self.size_mult
@@ -479,6 +485,8 @@ class MainGUI():
         self.big_font = add_font(   karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                   noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                   mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
+        # Monospace font for tracebacks
+        msgbox.mono_font = add_font(meslo_path, size_15, font_config=meslo_config, glyph_ranges=meslo_range)
         # MsgBox type icons
         msgbox.icon_font = add_font(mdi_path,   size_69,                           glyph_ranges=msgbox_range)
         try:

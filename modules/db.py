@@ -577,4 +577,4 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
 
         await save()
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong transferring data from the previous version:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong transferring data from the previous version:\n{utils.get_error()}", MsgBox.error, more=utils.get_traceback())

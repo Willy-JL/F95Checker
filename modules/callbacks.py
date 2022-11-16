@@ -48,7 +48,7 @@ def update_start_with_system(toggle: bool):
                 globals.autostart.unlink()
         globals.start_with_system = toggle
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Start with system error", f"Something went wrong changing the start with system setting:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Start with system error", f"Something went wrong changing the start with system setting:\n{utils.get_error()}", MsgBox.error, more=utils.get_traceback())
 
 
 async def _launch_exe(path: str):
@@ -121,7 +121,7 @@ async def _launch_game_exe(game: Game, executable: str):
         }
         utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to select another one?", MsgBox.warn, buttons)
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Game launch error", f"Something went wrong launching {executable}:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Game launch error", f"Something went wrong launching {executable}:\n{utils.get_error()}", MsgBox.error, more=utils.get_traceback())
 
 
 def launch_game(game: Game, executable: str = None):
@@ -189,7 +189,7 @@ async def _open_game_folder_exe(game: Game, executable: str):
         }
         utils.push_popup(msgbox.msgbox, "Folder not found", "The parent folder for the game executable could not be found.\n\nDo you want to select another executable?", MsgBox.warn, buttons)
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Open folder error", f"Something went wrong opening the folder for {executable}:\n\n{utils.get_traceback()}", MsgBox.error)
+        utils.push_popup(msgbox.msgbox, "Open folder error", f"Something went wrong opening the folder for {executable}:\n{utils.get_error()}", MsgBox.error, more=utils.get_traceback())
 
 
 def open_game_folder(game: Game, executable: str = None):
@@ -246,7 +246,7 @@ def open_webpage(url: str):
                 stderr=subprocess.DEVNULL
             )
         except Exception:
-            utils.push_popup(msgbox.msgbox, "Open webpage error", f"Something went wrong opening {name}:\n\n{utils.get_traceback()}", MsgBox.error)
+            utils.push_popup(msgbox.msgbox, "Open webpage error", f"Something went wrong opening {name}:\n{utils.get_error()}", MsgBox.error, more=utils.get_traceback())
     if globals.settings.browser_html:
         async def _fetch_open_page():
             html = await api.download_webpage(url)
