@@ -447,14 +447,14 @@ class MainGUI():
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
         imgui.io.font_global_scale = 1 / font_scaling_factor
         self.size_mult = globals.settings.interface_scaling
-        karla_path = str(globals.self_path / "resources/fonts/Karla-Regular.ttf")
-        noto_path = str(globals.self_path / "resources/fonts/NotoSans-Regular.ttf")
+        karla_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
+        noto_path = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
         mdi_path = str(next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")))
         karla_config = imgui.core.FontConfig(oversample_h=3, oversample_v=3)
         noto_config = imgui.core.FontConfig(merge_mode=True, oversample_h=3, oversample_v=3)
         mdi_config = imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1)
-        karla_range = imgui.core.GlyphRanges([0x1, 0x131, 0])
-        noto_range = imgui.core.GlyphRanges([0x1, 0x10663, 0])
+        karla_range = imgui.core.GlyphRanges([0x1, 0x20ac, 0])
+        noto_range = imgui.core.GlyphRanges([0x1, 0xfffd, 0])
         mdi_range_values = []
         for name, icon in vars(icons).items():
             if name.startswith("_"):
@@ -470,16 +470,17 @@ class MainGUI():
         size_18 = 18 * font_scaling_factor * self.size_mult
         size_28 = 28 * font_scaling_factor * self.size_mult
         size_69 = 69 * font_scaling_factor * self.size_mult
+        add_font = imgui.io.fonts.add_font_from_file_ttf
         # Default font + more glyphs + icons
-        imgui.io.fonts.add_font_from_file_ttf(karla_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
-        imgui.io.fonts.add_font_from_file_ttf(noto_path,  size_18, font_config=noto_config,  glyph_ranges=noto_range)
-        imgui.io.fonts.add_font_from_file_ttf(mdi_path,   size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
+        add_font(                   karla_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                   noto_path,  size_18, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                   mdi_path,   size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Big font + more glyphs
-        self.big_font = imgui.io.fonts.add_font_from_file_ttf(karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
-        imgui.io.fonts.add_font_from_file_ttf(                noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
-        imgui.io.fonts.add_font_from_file_ttf(                mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
+        self.big_font = add_font(   karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                   noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                   mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
         # MsgBox type icons
-        msgbox.icon_font = imgui.io.fonts.add_font_from_file_ttf(mdi_path, size_69, glyph_ranges=msgbox_range)
+        msgbox.icon_font = add_font(mdi_path,   size_69,                           glyph_ranges=msgbox_range)
         try:
             tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
         except SystemError:
