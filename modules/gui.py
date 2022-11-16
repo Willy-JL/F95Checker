@@ -2254,20 +2254,20 @@ class MainGUI():
                 imgui.spacing()
 
             draw_settings_label("Add filter:")
-            changed, value = imgui.combo("###add_filter", 0, list(FilterMode._members_))
+            changed, value = imgui.combo("###add_filter", 0, FilterMode._member_names_)
             if changed and value > 0:
                 flt = Filter(FilterMode(value + 1))
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
-                        flt.match = ExeState._members_[ExeState._members_list_[0]]
+                        flt.match = ExeState[ExeState._member_names_[0]]
                     case FilterMode.Rating.value:
                         flt.match = 0
                     case FilterMode.Status.value:
-                        flt.match = Status._members_[Status._members_list_[0]]
+                        flt.match = Status[Status._member_names_[0]]
                     case FilterMode.Tag.value:
-                        flt.match = Tag._members_[Tag._members_list_[0]]
+                        flt.match = Tag[Tag._member_names_[0]]
                     case FilterMode.Type.value:
-                        flt.match = Type._members_[Type._members_list_[0]]
+                        flt.match = Type[Type._member_names_[0]]
                 self.filters.append(flt)
                 self.require_sort = True
 
@@ -2283,9 +2283,9 @@ class MainGUI():
 
                 if flt.mode is FilterMode.Exe_State:
                     draw_settings_label("Executable state:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", ExeState._members_list_.index(flt.match.name), ExeState._members_list_)
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, ExeState._member_names_)
                     if changed:
-                        flt.match = ExeState._members_[ExeState._members_list_[value]]
+                        flt.match = ExeState[ExeState._member_names_[value]]
                         self.require_sort = True
 
                 elif flt.mode is FilterMode.Installed:
@@ -2306,23 +2306,23 @@ class MainGUI():
 
                 elif flt.mode is FilterMode.Status:
                     draw_settings_label("Status value:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", Status._members_list_.index(flt.match.name), Status._members_list_)
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Status._member_names_)
                     if changed:
-                        flt.match = Status._members_[Status._members_list_[value]]
+                        flt.match = Status[Status._member_names_[value]]
                         self.require_sort = True
 
                 elif flt.mode is FilterMode.Tag:
                     draw_settings_label("Tag value:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", Tag._members_list_.index(flt.match.name), Tag._members_list_)
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Tag._member_names_)
                     if changed:
-                        flt.match = Tag._members_[Tag._members_list_[value]]
+                        flt.match = Tag[Tag._member_names_[value]]
                         self.require_sort = True
 
                 elif flt.mode is FilterMode.Type:
                     draw_settings_label("Type value:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", Type._members_list_.index(flt.match.name), Type._members_list_)
+                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Type._member_names_)
                     if changed:
-                        flt.match = Type._members_[Type._members_list_[value]]
+                        flt.match = Type[Type._member_names_[value]]
                         self.require_sort = True
 
                 draw_settings_label("Invert filter:")

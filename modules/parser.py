@@ -202,7 +202,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             for child in taglist.children:
                 if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
                     tag = tag.replace("/tags/", "").strip("/")
-                    tags.append(Tag._members_[tag])
+                    tags.append(Tag[tag])
 
         elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
         if elem:
