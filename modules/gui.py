@@ -844,7 +844,9 @@ class MainGUI():
         if align:
             imgui.begin_group()
             imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
+        utils.push_disabled(grayed_out=False)
         imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width, **kwargs)
+        utils.pop_disabled(grayed_out=False)
         if align:
             imgui.end_group()
         imgui.pop_style_color(3)
@@ -980,13 +982,13 @@ class MainGUI():
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1, *args, **kwargs):
         id = f"{label}###{game.id}_open_folder_{i}"
         if not game.executables:
-            utils.push_disabled()
+            utils.push_disabled(block_interaction=False)
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if not game.executables:
-            utils.pop_disabled()
+            utils.pop_disabled(block_interaction=False)
         if clicked:
             callbacks.open_game_folder(game, executable=executable)
         return clicked
