@@ -827,7 +827,7 @@ class MainGUI():
             callbacks.launch_game(game, executable=executable)
         return clicked
 
-    def draw_game_type_widget(self, game: Game, align=False, *args, **kwargs):
+    def draw_game_type_widget(self, game: Game, align=False, wide=True, *args, **kwargs):
         col = game.type.color
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
@@ -845,7 +845,7 @@ class MainGUI():
             imgui.begin_group()
             imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
         utils.push_disabled(grayed_out=False)
-        imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width, **kwargs)
+        imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width if wide else 0, **kwargs)
         utils.pop_disabled(grayed_out=False)
         if align:
             imgui.end_group()
@@ -1935,6 +1935,12 @@ class MainGUI():
                     imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
                     self.draw_game_remove_button(game, label=icons.trash_can_outline)
                     imgui.set_cursor_pos(old_pos)
+                # Type
+                if showed_img and cols.type.enabled:
+                    old_pos = imgui.get_cursor_pos()
+                    imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + height - frame_height))
+                    self.draw_game_type_widget(game, wide=False)
+                    imgui.set_cursor_pos(old_pos)
                 # Name
                 if game.installed and game.installed != game.version:
                     self.draw_game_update_icon(game)
@@ -2001,11 +2007,6 @@ class MainGUI():
                             imgui.text_disabled("Developer:")
                             imgui.same_line()
                             utils.wrap_text(game.developer or "Unknown", width=wrap_width, offset=developer_width)
-                        # Type
-                        if cols.type.enabled:
-                            imgui.text_disabled("Type:")
-                            imgui.same_line()
-                            self.draw_game_type_widget(game)
                         # Last Updated
                         if cols.last_updated.enabled:
                             imgui.text_disabled("Last Updated:")
