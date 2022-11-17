@@ -1831,7 +1831,7 @@ class MainGUI():
             checkboxes = cols.played.enabled + cols.installed.enabled
             buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
             actions = checkboxes + buttons
-            data_rows = cols.type.enabled + cols.developer.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
+            data_rows = cols.developer.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
