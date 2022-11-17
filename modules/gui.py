@@ -16,7 +16,6 @@ import imgui
 import time
 import glfw
 import sys
-import os
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
 from modules import globals, api, async_thread, callbacks, colors, db, filepicker, icons, imagehelper, login, msgbox, ratingwidget, rpc_thread, utils
@@ -89,7 +88,7 @@ class Columns:
             default=True,
         )
         self.separator = self.Column(
-            self, "",
+            self, "-----------------------------------",
             ghost=True,
             default=True,
             hideable=False,
