@@ -312,7 +312,6 @@ class Filter:
     mode: FilterMode
     invert = False
     match = None
-    include_outdated = True
 
     def __post_init__(self):
         self.id = id(self)

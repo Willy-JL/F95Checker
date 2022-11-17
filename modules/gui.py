@@ -1627,7 +1627,7 @@ class MainGUI():
                     case FilterMode.Exe_State.value:
                         key = lambda id: flt.invert != ((not globals.games[id].executables) if flt.match is ExeState.Unset else (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid))))
                     case FilterMode.Installed.value:
-                        key = lambda id: flt.invert != ((globals.games[id].installed != "") if flt.include_outdated else (globals.games[id].installed == globals.games[id].version))
+                        key = lambda id: flt.invert != ((globals.games[id].installed != "") if flt.match else (globals.games[id].installed == globals.games[id].version))
                     case FilterMode.Played.value:
                         key = lambda id: flt.invert != (globals.games[id].played is True)
                     case FilterMode.Rating.value:
@@ -2273,6 +2273,8 @@ class MainGUI():
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
                         flt.match = ExeState[ExeState._member_names_[0]]
+                    case FilterMode.Installed.value:
+                        flt.match = True
                     case FilterMode.Rating.value:
                         flt.match = 0
                     case FilterMode.Status.value:
@@ -2304,9 +2306,9 @@ class MainGUI():
                 elif flt.mode is FilterMode.Installed:
                     draw_settings_label("Include outdated:")
                     imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                    changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.include_outdated)
+                    changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
                     if changed:
-                        flt.include_outdated = value
+                        flt.match = value
                         self.require_sort = True
 
                 elif flt.mode is FilterMode.Rating:
