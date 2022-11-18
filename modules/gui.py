@@ -83,7 +83,7 @@ class Columns:
             default=True,
         )
         self.status = self.Column(
-            self, f"{icons.checkbox_marked_circle} Status",
+            self, f"{icons.checkbox_marked_circle} Status (after name)",
             ghost=True,
             default=True,
         )
@@ -168,6 +168,12 @@ class Columns:
         )
         self.open_folder = self.Column(
             self, f"{icons.folder_open_outline} Open Folder",
+            resizable=False,
+            no_header=True,
+        )
+        self.status_standalone = self.Column(
+            self, f"{icons.checkbox_marked_circle} Status (own column)",
+            sortable=True,
             resizable=False,
             no_header=True,
         )
@@ -1617,6 +1623,8 @@ class MainGUI():
                             key = lambda id: - globals.games[id].rating
                         case cols.notes.index:
                             key = lambda id: globals.games[id].notes.lower() or "z"
+                        case cols.status_standalone.index:
+                            key = lambda id: globals.games[id].status.value
                         case _:  # Name and all others
                             key = lambda id: globals.games[id].name.lower()
                     ids.sort(key=key, reverse=sort_spec.reverse)
@@ -1767,12 +1775,12 @@ class MainGUI():
                             if game.notes:
                                 imgui.same_line()
                                 imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-                            if cols.version.enabled:
-                                imgui.same_line()
-                                imgui.text_disabled(self.get_game_version_text(game))
                             if cols.status.enabled and game.status is not Status.Normal:
                                 imgui.same_line()
                                 self.draw_game_status_widget(game)
+                            if cols.version.enabled:
+                                imgui.same_line()
+                                imgui.text_disabled(self.get_game_version_text(game))
                         case cols.developer.index:
                             imgui.text(game.developer or "Unknown")
                         case cols.last_updated.index:
@@ -1797,6 +1805,8 @@ class MainGUI():
                             self.draw_game_copy_link_button(game, label=icons.content_copy)
                         case cols.open_folder.index:
                             self.draw_game_open_folder_button(game, label=icons.folder_open_outline)
+                        case cols.status_standalone.index:
+                            self.draw_game_status_widget(game)
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -1952,7 +1962,7 @@ class MainGUI():
                     imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
                 if cols.version.enabled:
                     imgui.text_disabled(self.get_game_version_text(game))
-                if cols.status.enabled and game.status is not Status.Normal:
+                if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
                     imgui.same_line()
                     if imgui.get_content_region_available_width() < status_badge_width:
                         imgui.dummy(0, 0)
