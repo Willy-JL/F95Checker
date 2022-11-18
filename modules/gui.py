@@ -2084,20 +2084,27 @@ class MainGUI():
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
-        changed = False
-        if not globals.popup_stack and not imgui.is_any_item_active() and (self.input_chars or any(imgui.io.keys_down)):
+        any_active_old = imgui.is_any_item_active()
+        any_active = False
+        if not globals.popup_stack and not any_active_old and (self.input_chars or any(imgui.io.keys_down)):
             if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
                 self.add_box_text = self.add_box_text[:-1]
-                changed = True
             if self.input_chars:
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
+            any_active = True
         activated, value = imgui.input_text_with_hint("###bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
         activated = bool(activated and value)
+        any_active = any_active or imgui.is_any_item_active()
+        if any_active_old != any_active and imgui.is_key_pressed(glfw.KEY_ESCAPE):
+            # Changed active state, and escape is pressed, so clear textbox
+            value = ""
         if imgui.begin_popup_context_item(f"###bottombar_context"):
             # Right click = more options context menu
             if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
                 value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
+            if imgui.selectable(f"{icons.trash_can_outline} Clear", False)[0]:
+                value = ""
             imgui.separator()
             if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                 utils.push_popup(
@@ -2111,7 +2118,7 @@ class MainGUI():
                     MsgBox.info
                 )
             imgui.end_popup()
-        if changed or value != self.add_box_text:
+        if value != self.add_box_text:
             self.add_box_text = value
             self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
             self.require_sort = True
