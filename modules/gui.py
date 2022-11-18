@@ -1599,23 +1599,23 @@ class MainGUI():
                 ids = list(globals.games)
                 for sort_spec in self.sort_specs:
                     match sort_spec.index:
-                        case 5:  # Type
+                        case cols.type.index:
                             key = lambda id: globals.games[id].type.name
-                        case 7:  # Developer
+                        case cols.developer.index:
                             key = lambda id: globals.games[id].developer.lower()
-                        case 8:  # Last Updated
+                        case cols.last_updated.index:
                             key = lambda id: - globals.games[id].last_updated.value
-                        case 9:  # Last Played
+                        case cols.last_played.index:
                             key = lambda id: - globals.games[id].last_played.value
-                        case 10:  # Added On
+                        case cols.added_on.index:
                             key = lambda id: - globals.games[id].added_on.value
-                        case 11:  # Played
+                        case cols.played.index:
                             key = lambda id: not globals.games[id].played
-                        case 12:  # Installed
+                        case cols.installed.index:
                             key = lambda id: 2 if not globals.games[id].installed else 1 if globals.games[id].installed == globals.games[id].version else 0
-                        case 13:  # Rating
+                        case cols.rating.index:
                             key = lambda id: - globals.games[id].rating
-                        case 14:  # Notes
+                        case cols.notes.index:
                             key = lambda id: globals.games[id].notes.lower() or "z"
                         case _:  # Name and all others
                             key = lambda id: globals.games[id].name.lower()
