@@ -27,6 +27,7 @@ import re
 from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status
 from modules import globals, async_thread, callbacks, colors, db, error, icons, msgbox, parser, utils
 
+updating = False
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
 webpage_prefix = "F95Checker-Temp-"
@@ -561,6 +562,7 @@ async def check_updates():
             text_y = screen_pos.y - (height + text_size.y) / 2 - imgui.style.item_spacing.y
             draw_list.add_text(text_x, text_y, col, text)
             imgui.text("(DON'T reopen manually after the update!)")
+            imgui.text("(Might take up to 3 minutes to finish up)")
         def cancel_callback():
             cancel[0] = True
         buttons = {
@@ -605,11 +607,14 @@ async def check_updates():
         if macos_app := (globals.frozen and globals.os is Os.MacOS):
             src = next(asset_path.glob("*.app")).absolute()  # F95Checker-123/F95Checker.app
             dst = globals.self_path.parent.parent.absolute()  # F95Checker.app/Contents/MacOS
+        ppid = os.getppid()  # main.py launches a subprocess for the main script, so we need the parent pid
         if globals.os is Os.Windows:
             script = "\n".join([
-                f"Wait-Process -Id {os.getpid()}",
+                f"Wait-Process -Id {ppid}",  # main.py launches a subprocess for the main script, so we need the parent pid
+                "Start-Sleep -Seconds 3",
                 f"Get-ChildItem -Force -Recurse -Path {shlex.quote(str(dst))} | Select-Object -ExpandProperty FullName | Sort-Object -Property Length -Descending | Remove-Item -Force -Recurse",
                 f"Get-ChildItem -Force -Path {shlex.quote(str(src))} | Select-Object -ExpandProperty FullName | Move-Item -Force -Destination {shlex.quote(str(dst))}",
+                "Start-Sleep -Seconds 3",
                 f"& {globals.start_cmd}"
             ])
             shell = [shutil.which("powershell")]
@@ -628,7 +633,8 @@ async def check_updates():
                 except Exception:
                     pass
             script = "\n".join([
-                shlex.join(["tail", "--pid", str(os.getpid()), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(os.getpid()), "+r", "1"]),
+                shlex.join(["tail", "--pid", str(ppid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(ppid), "+r", "1"]),
+                "sleep 3",
                 globals.start_cmd
             ])
             shell = [shutil.which("bash") or shutil.which("zsh") or shutil.which("sh"), "-c"]
@@ -642,8 +648,16 @@ async def check_updates():
             stderr=subprocess.DEVNULL
         )
         globals.gui.close()
+    def update_callback_wrapper():
+        global updating
+        updating = True
+        def update_callback_done(_):
+            global updating
+            updating = False
+        task = async_thread.run(update_callback())
+        task.add_done_callback(update_callback_done)
     buttons = {
-        f"{icons.check} Yes": lambda: async_thread.run(update_callback()),
+        f"{icons.check} Yes": update_callback_wrapper,
         f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:

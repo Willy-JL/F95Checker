@@ -626,6 +626,7 @@ class MainGUI():
 
                     # Redraw only when needed
                     draw = False
+                    draw = draw or api.updating
                     draw = draw or self.require_sort
                     draw = draw or imagehelper.redraw
                     draw = draw or utils.is_refreshing()
