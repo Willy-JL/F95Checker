@@ -1,12 +1,15 @@
 # https://gist.github.com/Willy-JL/e9e9dac70b7970b6ee12fcf52b9b8f11
 import imgui
 
-from modules import icons
+from modules import icons  # added
+
+filled_icon = icons.star          # changed
+empty_icon  = icons.star_outline  # changed
 
 
 def ratingwidget(id: str, current: int, num_stars=5, *args, **kwargs):
     value = current
-    accent_col = imgui.style.colors[imgui.COLOR_BUTTON_HOVERED]
+    accent_col = imgui.style.colors[imgui.COLOR_BUTTON_HOVERED]  # added
     imgui.push_style_color(imgui.COLOR_BUTTON, 0, 0, 0, 0)
     imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
     imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
@@ -15,14 +18,14 @@ def ratingwidget(id: str, current: int, num_stars=5, *args, **kwargs):
     imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
     for i in range(1, num_stars + 1):
         if i <= current:
-            label = icons.star  # Filled / selected star
-            imgui.push_style_color(imgui.COLOR_TEXT, *accent_col)
+            label = filled_icon
+            imgui.push_style_color(imgui.COLOR_TEXT, *accent_col)  # added
         else:
-            label = icons.star_outline  # Empty / unselected star
+            label = empty_icon
         if imgui.small_button(f"{label}###{id}_{i}", *args, **kwargs):
             value = i if current != i else 0  # Clicking the current value resets the rating to 0
-        if i <= current:
-            imgui.pop_style_color()
+        if i <= current:  # added
+            imgui.pop_style_color()  # added
         imgui.same_line()
     value = min(max(value, 0), num_stars)
     imgui.pop_style_color(3)
