@@ -1167,7 +1167,11 @@ class MainGUI():
                     self.draw_game_status_widget(game)
 
                 imgui.spacing()
-                self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info and Actions", carousel_ids=sorted_ids)
+                self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Thread")
+                imgui.same_line()
+                self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Link")
+                imgui.same_line()
+                self.draw_game_more_info_button(game, label=f"{icons.information_outline} Info", carousel_ids=sorted_ids)
 
                 imgui.end_group()
                 height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
