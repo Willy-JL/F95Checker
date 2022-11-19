@@ -18,7 +18,7 @@ import glfw
 import sys
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
-from modules import globals, api, async_thread, callbacks, colors, db, filepicker, icons, imagehelper, login, msgbox, ratingwidget, rpc_thread, utils
+from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, login, msgbox, ratingwidget, rpc_thread, utils
 
 imgui.io = None
 imgui.style = None
@@ -316,8 +316,8 @@ class MainGUI():
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
             if args.exc_type is not msgbox.Exc:
-                err = utils.get_error(args.exc_value)
-                tb = utils.get_traceback(args.exc_type, args.exc_value, args.exc_traceback)
+                err = error.text(args.exc_value)
+                tb = error.traceback(args.exc_type, args.exc_value, args.exc_traceback)
                 utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n{err}", MsgBox.error, more=tb)
         threading.excepthook = syncexcepthook
         def asyncexcepthook(future: asyncio.Future):
@@ -327,8 +327,8 @@ class MainGUI():
                 return
             if not exc or type(exc) is msgbox.Exc:
                 return
-            err = utils.get_error(exc)
-            tb = utils.get_traceback(exc)
+            err = error.text(exc)
+            tb = error.traceback(exc)
             if isinstance(exc, asyncio.TimeoutError) or isinstance(exc, aiohttp.ClientError):
                 utils.push_popup(msgbox.msgbox, "Connection error", f"A connection request to F95Zone has failed:\n{err}\n\nPossible causes include:\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n - Your retries value is too low, try increasing it in settings (last resort!)", MsgBox.warn, more=tb)
                 return

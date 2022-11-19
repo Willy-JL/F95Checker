@@ -2,7 +2,6 @@ from PyQt6.QtWidgets import QSystemTrayIcon
 import OpenGL.GL as gl
 import concurrent
 import functools
-import traceback
 import asyncio
 import weakref
 import typing
@@ -58,20 +57,6 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
                     globals.last_update_check = 0.0
             update_check.add_done_callback(reset_timer)
     globals.refresh_task.add_done_callback(done_callback)
-
-
-# https://gist.github.com/Willy-JL/f733c960c6b0d2284bcbee0316f88878
-def get_traceback(*exc_info: list):
-    exc_info = exc_info or sys.exc_info()
-    if len(exc_info) == 1:
-        exc_info = type(exc_info), exc_info, exc_info.__traceback__
-    tb_lines = traceback.format_exception(*exc_info)
-    tb = "".join(tb_lines)
-    return tb
-
-def get_error(exc: Exception = None):
-    exc = exc or sys.exc_info()[1]
-    return f"{type(exc).__name__}: {str(exc) or 'No further details'}"
 
 
 class daemon:

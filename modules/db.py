@@ -11,7 +11,7 @@ import time
 import re
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
-from modules import globals, async_thread, colors, msgbox, utils
+from modules import globals, async_thread, colors, error, msgbox, utils
 
 connection: aiosqlite.Connection = None
 
@@ -570,4 +570,4 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
 
         await save()
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong transferring data from the previous version:\n{utils.get_error()}", MsgBox.error, more=utils.get_traceback())
+        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong transferring data from the previous version:\n{error.text()}", MsgBox.error, more=error.traceback())

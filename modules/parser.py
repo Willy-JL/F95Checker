@@ -1,14 +1,12 @@
 import multiprocessing
 import datetime as dt
-import traceback
 import functools
-import builtins
 import bs4
-import sys
 import re
 import os
 
 from modules.structs import MsgBox, Status, Tag, Type
+from modules import error
 
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
@@ -211,14 +209,12 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             image_url = "-"
 
-    except Exception as exc:
-        err = f"{builtins.type(exc).__name__}: {str(exc) or 'No further details'}"
-        tb = "".join(traceback.format_exception(*sys.exc_info()))
+    except Exception:
         e = ParserException(
             title="Thread parsing error",
-            msg=f"Something went wrong while parsing thread {game_id}:\n{err}",
+            msg=f"Something went wrong while parsing thread {game_id}:\n{error.text()}",
             type=MsgBox.error,
-            more=tb
+            more=error.traceback()
         )
         if pipe:
             pipe.put_nowait(e)
