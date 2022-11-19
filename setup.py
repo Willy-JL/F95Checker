@@ -40,7 +40,7 @@ if sys.platform.startswith("win"):
 
 
 if sys.platform.startswith("linux"):
-    bin_includes += find_libs("c", "m", "ffi", "ssl", "crypto", "sqlite3")
+    bin_includes += find_libs("ffi", "ssl", "crypto", "sqlite3")
 elif sys.platform.startswith("darwin"):
     bin_includes += find_libs("intl")
 
