@@ -55,4 +55,9 @@ if __name__ == "__main__":
     import singleton  # This script is designed as a module you import
     singleton.lock("SomeCoolProgram")
 
+    print("Do some very cool stuff")
+
+    # Release usually happens automatically on exit, but call this to be sure
+    singleton.release("SomeCoolProgram")
+
 # Credits for the basic functionality go to this answer on stackoverflow https://stackoverflow.com/a/66002139
