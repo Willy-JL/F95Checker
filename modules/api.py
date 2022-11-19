@@ -562,7 +562,7 @@ async def check_updates():
             text_y = screen_pos.y - (height + text_size.y) / 2 - imgui.style.item_spacing.y
             draw_list.add_text(text_x, text_y, col, text)
             imgui.text("(DON'T reopen manually after the update!)")
-            imgui.text("(Might take up to 3 minutes to finish up)")
+            imgui.text("(Allow it up to 3 minutes to finish up after)")
         def cancel_callback():
             cancel[0] = True
         buttons = {
