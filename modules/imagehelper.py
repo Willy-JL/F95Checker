@@ -4,9 +4,9 @@ import OpenGL.GL as gl
 import pathlib
 import imgui
 
-from modules import sync_thread
+from modules import sync_thread  # added
 
-redraw = False
+redraw = False  # added
 _dummy_texture_id = None
 
 
@@ -57,7 +57,7 @@ class ImageHelper:
                 self.missing = True
                 return
             # If you want you can setup preferred extensions like this:
-            paths.sort(key=lambda path: path.suffix != ".gif")
+            paths.sort(key=lambda path: path.suffix != ".gif")  # changed
             # This will prefer .gif files!
             self.resolved_path = paths[0]
         self.missing = not self.resolved_path.is_file()
@@ -106,9 +106,9 @@ class ImageHelper:
         if self.texture_ids:
             gl.glDeleteTextures([self.texture_ids])
             self.texture_ids.clear()
-        for frame in self.frames:
-            texture_id = gl.glGenTextures(1)  # TODO: generate all together
-            self.texture_ids.append(texture_id)
+        texture_gen = gl.glGenTextures(len(self.frames))
+        self.texture_ids.extend([texture_gen] if len(self.frames) == 1 else texture_gen)
+        for frame, texture_id in zip(self.frames, self.texture_ids):
             gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
@@ -125,11 +125,11 @@ class ImageHelper:
                 self.loading = True
                 self.applied = False
                 # This next self.reload() actually loads the image and does all the conversion. It takes time and resources!
-                # self.reload()
+                # self.reload()  # changed
                 # You can (and maybe should) run this in a thread! threading.Thread(target=self.reload, daemon=True).start()
                 # Or maybe setup an image thread and queue images to load one by one?
-                # You could do this with https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44
-                sync_thread.queue(self.reload)
+                # You could do this with https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44 like so:
+                sync_thread.queue(self.reload)  # changed
             return dummy_texture_id()
 
         if self.missing or self.invalid:
@@ -152,9 +152,9 @@ class ImageHelper:
 
     def render(self, width: int, height: int, *args, **kwargs):
         if imgui.is_rect_visible(width, height):
-            if self.animated or self.loading:
-                global redraw
-                redraw = True
+            if self.animated or self.loading:  # added
+                global redraw  # added
+                redraw = True  # added
             if "rounding" in kwargs:
                 flags = kwargs.pop("flags", None)
                 if flags is None:
