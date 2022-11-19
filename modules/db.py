@@ -49,15 +49,9 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 ALTER TABLE {table_name}
                 RENAME COLUMN {rename_old} TO {rename_new}
             """)
-            # has_columns is not updated because tuples and becasue its not used later
+            # has_columns is not updated because its not used later
             has_column_names[has_column_names.index(rename_old)] = rename_new
-    # Find key column
-    key_column = None
-    for column_name, column_def in columns.items():
-        if "primary key" in column_def.lower():
-            key_column = column_name
-            break
-    # Update old columns
+    recreate = False
     for column_name, column_def in columns.items():
         if column_name not in has_column_names:
             # Column is missing, add it
@@ -65,32 +59,31 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 ALTER TABLE {table_name}
                 ADD COLUMN {column_name} {column_def}
             """)
-        elif key_column is not None:  # Can only attempt default fix if key is present to transfer values
+        else:
             has_column_def = has_column_defs[has_column_names.index(column_name)]  # (type, default)
             if not column_def.strip().lower().startswith(has_column_def[0].lower()):
-                raise Exception(f"Existing database column '{column_name}' has incorrect type ({column_def[:column_def.find(' ')]} != {has_column_def[0]})")
+                raise Exception(f"Existing database column '{column_name}' has incorrect type ({column_def.strip()[:column_def.strip().find(' ')]} != {has_column_def[0]})")
             if " default " in column_def.lower() and not re.search(r"[Dd][Ee][Ff][Aa][Uu][Ll][Tt]\s+?" + re.escape(str(has_column_def[1])), column_def):
-                # Default is different, recreate column and transfer values
-                cursor = await connection.execute(f"""
-                    SELECT {key_column}, {column_name}
-                    FROM {table_name}
-                """)
-                rows = await cursor.fetchall()
-                await connection.execute(f"""
-                    ALTER TABLE {table_name}
-                    DROP COLUMN {column_name}
-                """)
-                await connection.execute(f"""
-                    ALTER TABLE {table_name}
-                    ADD COLUMN {column_name} {column_def}
-                """)
-                for row in rows:
-                    await connection.execute(f"""
-                        UPDATE {table_name}
-                        SET
-                            {column_name} = ?
-                        WHERE {key_column}=?
-                    """, (row[column_name], row[key_column]))
+                # Default is different, recreate table and transfer values
+                recreate = True
+    if recreate:
+        temp_column_list = ", ".join(columns.keys())
+        temp_table_name = f"{table_name}-temp-{utils.rand_num_str()}"
+        await connection.execute(f"""
+            ALTER TABLE {table_name}
+            RENAME TO {temp_table_name}
+        """)
+        await create_table(table_name, columns, renames)
+        await connection.execute(f"""
+            INSERT INTO {table_name}
+            ({temp_column_list})
+            SELECT
+            {temp_column_list}
+            FROM {temp_table_name};
+        """)
+        await connection.execute(f"""
+            DROP TABLE {temp_table_name}
+        """)
 
 
 async def connect():
