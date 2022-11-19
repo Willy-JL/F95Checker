@@ -68,7 +68,7 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 recreate = True
     if recreate:
         temp_column_list = ", ".join(columns.keys())
-        temp_table_name = f"{table_name}-temp-{utils.rand_num_str()}"
+        temp_table_name = f"{table_name}_temp_{utils.rand_num_str()}"
         await connection.execute(f"""
             ALTER TABLE {table_name}
             RENAME TO {temp_table_name}
