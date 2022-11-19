@@ -7,7 +7,14 @@ import glfw
 import sys
 import os
 
-from modules import globals, icons, utils
+from modules import globals, icons, utils  # added
+
+dir_icon     = f"{icons.folder}  "       # changed
+file_icon    = f"{icons.file}  "         # changed
+up_icon      = icons.arrow_up_thick      # changed
+refresh_icon = icons.refresh             # changed
+cancel_icon  = f"{icons.cancel} Cancel"  # changed
+ok_icon      = f"{icons.check} Ok"       # changed
 
 
 class FilePicker:
@@ -24,8 +31,6 @@ class FilePicker:
         self.title = title
         self.active = True
         self.elapsed = 0.0
-        self.dir_icon = f"{icons.folder}  "
-        self.file_icon = f"{icons.file}  "
         self.callback = callback
         self.selected: str = None
         self.filter_box_text = ""
@@ -65,7 +70,7 @@ class FilePicker:
                 items.sort(key=lambda item: item.name.lower())  # Sort alphabetically
                 items.sort(key=lambda item: item.is_dir(), reverse=True)  # Sort dirs first
                 for item in items:
-                    self.items.append((self.dir_icon if item.is_dir() else self.file_icon) + item.name)
+                    self.items.append((dir_icon if item.is_dir() else file_icon) + item.name)
             else:
                 self.items.append("No items match your filter!" if self.filter_box_text else "This folder is empty!")
         except Exception:
@@ -96,18 +101,18 @@ class FilePicker:
             self.elapsed = 0.0
             self.refresh()
         # Setup popup
-        label = self.title + "###picker_" + popup_uuid
+        label = self.title + "###picker_" + popup_uuid  # changed
         if not imgui.is_popup_open(label):
             imgui.open_popup(label)
-        closed = False
-        opened = 1
+        closed = False  # added
+        opened = 1  # added
         size = io.display_size
         imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
         if imgui.begin_popup_modal(label, True, flags=self.flags)[0]:
-            closed = utils.close_weak_popup()
+            closed = utils.close_weak_popup()  # added
             imgui.begin_group()
             # Up button
-            if imgui.button(icons.arrow_up_thick):
+            if imgui.button(up_icon):
                 self.goto(self.dir.parent)
             # Drive selector
             if self.windows:
@@ -120,43 +125,43 @@ class FilePicker:
             imgui.same_line()
             imgui.set_next_item_width(size.x * 0.7)
             confirmed, dir = imgui.input_text("###location_bar", str(self.dir), flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
-            if imgui.begin_popup_context_item(f"###location_context"):
-                if imgui.selectable(f"{icons.content_paste} Paste", False)[0] and (clip := glfw.get_clipboard_string(globals.gui.window)):
-                    dir = str(clip, encoding="utf-8")
-                    confirmed = True
-                imgui.end_popup()
+            if imgui.begin_popup_context_item(f"###location_context"):  # added
+                if imgui.selectable(f"{icons.content_paste} Paste", False)[0] and (clip := glfw.get_clipboard_string(globals.gui.window)):  # added
+                    dir = str(clip, encoding="utf-8")  # added
+                    confirmed = True  # added
+                imgui.end_popup()  # added
             if confirmed:
                 self.goto(dir)
             # Refresh button
             imgui.same_line()
-            if imgui.button(icons.refresh):
+            if imgui.button(refresh_icon):
                 self.refresh()
             imgui.end_group()
             width = imgui.get_item_rect_size().x
 
             # Main list
             imgui.set_next_item_width(width)
-            imgui.push_style_color(imgui.COLOR_HEADER, *style.colors[imgui.COLOR_BUTTON_HOVERED])
+            imgui.push_style_color(imgui.COLOR_HEADER, *style.colors[imgui.COLOR_BUTTON_HOVERED])  # added
             _, value = imgui.listbox(f"###file_list", self.current, self.items, (size.y * 0.65) / imgui.get_frame_height())
-            imgui.pop_style_color()
+            imgui.pop_style_color()  # added
             if value != -1:
                 self.current = min(max(value, 0), len(self.items) - 1)
                 item = self.items[self.current]
-                is_dir = item.startswith(self.dir_icon)
-                is_file = item.startswith(self.file_icon)
+                is_dir = item.startswith(dir_icon)
+                is_file = item.startswith(file_icon)
                 if imgui.is_item_hovered() and imgui.is_mouse_double_clicked():
                     if is_dir:
-                        self.goto(self.dir / item[len(self.dir_icon):])
+                        self.goto(self.dir / item[len(dir_icon):])
                     elif is_file and not self.dir_picker:
-                        self.selected = str(self.dir / item[len(self.file_icon):])
+                        self.selected = str(self.dir / item[len(file_icon):])
                         imgui.close_current_popup()
-                        closed = True
+                        closed = True  # added
             else:
                 is_dir = True
                 is_file = False
 
             # Cancel button
-            if imgui.button(f"{icons.cancel} Cancel"):
+            if imgui.button(cancel_icon):
                 imgui.close_current_popup()
                 closed = True
             # Ok button
@@ -164,13 +169,13 @@ class FilePicker:
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):
                 imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
                 imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
-            if imgui.button(f"{icons.check} Ok"):
+            if imgui.button(ok_icon):
                 if value == -1:
                     self.selected = str(self.dir)
                 else:
-                    self.selected = str(self.dir / item[len(self.dir_icon if self.dir_picker else self.file_icon):])
+                    self.selected = str(self.dir / item[len(dir_icon if self.dir_picker else file_icon):])
                 imgui.close_current_popup()
-                closed = True
+                closed = True  # added
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):
                 imgui.internal.pop_item_flag()
                 imgui.pop_style_var()
@@ -181,27 +186,29 @@ class FilePicker:
                 if value == -1:
                     imgui.text(f"Selected:  {self.dir.name}")
                 else:
-                    imgui.text(f"Selected:  {item[len(self.dir_icon if self.dir_picker else self.file_icon):]}")
+                    imgui.text(f"Selected:  {item[len(dir_icon if self.dir_picker else file_icon):]}")
             # Filter bar
-            if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active() and (globals.gui.input_chars or any(io.keys_down)):
-                if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
-                    self.filter_box_text = self.filter_box_text[:-1]
-                if globals.gui.input_chars:
-                    globals.gui.repeat_chars = True
-                imgui.set_keyboard_focus_here()
+            if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active() and (globals.gui.input_chars or any(io.keys_down)):  # added
+                if imgui.is_key_pressed(glfw.KEY_BACKSPACE):  # added
+                    self.filter_box_text = self.filter_box_text[:-1]  # added
+                if globals.gui.input_chars:  # added
+                    globals.gui.repeat_chars = True  # added
+                imgui.set_keyboard_focus_here()  # added
             imgui.same_line()
             new_pos_x = prev_pos_x + width * 0.5
             imgui.set_cursor_pos_x(new_pos_x)
             imgui.set_next_item_width(width - new_pos_x + 2 * style.item_spacing.x)
             self.update_filter, self.filter_box_text = imgui.input_text_with_hint("###filterbar", "Filter...", self.filter_box_text)
-        else:
-            opened = 0
-            closed = True
-        if closed:
+
+            # imgui.end_popup()  # removed
+        else:  # added
+            opened = 0  # added
+            closed = True  # added
+        if closed:  # changed
             if self.callback:
                 self.callback(self.selected)
             self.active = False
-        return opened, closed
+        return opened, closed  # added
 
 
 class DirPicker(FilePicker):
