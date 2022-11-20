@@ -81,6 +81,10 @@ The extension is available for both major browser families (for example Brave co
 
 ## FAQ:
 
+- **Crashes on start with GLError 'invalid operation'?**
+
+  Update Windows, update GPU drivers, and if you have them update MSI AfterBurner and RTSS or just disable / remove them.
+
 - **How do I use this tool?** and **How do the versions and checkboxes work?**
 
   After you have installed it using the instructions above, the day-to-day usage is quite simple. You need to **add the games you want to track** (more on this below) and every once in a while you **hit the big `Refresh!` button to check for updates** of your games. Each game has 2 main checkboxes, the `Installed / Downloaded` box and the `Played / Finished` box; this should be quite intuitive: if you have a game installed / downloaded on your system, mark it as installed, and once you have finished playing the content for that version mark it as played / finished. **When a game receives an update you will get a popup about it at the end of the refresh.** If the name changes (the game has been renamed by the developer) or its status changed (e.g. from normal to abandoned) you will get a popup about it. If a version number change is detected, however, along with the update popup you will have a few other changes: the played checkbox will be deselected (a new version usually means more content is available) and (if you had marked it as installed) the installed checkbox will be half selected. This is because the tool remembers what version you had marked as installed, so if a new version is available it will show you that you still have it installed, just not on the latest version. There will also be an `Update Available` marker next to the game's name. The version number text will also reflect this, showing both the installed version and the latest version with the appropriate icons. In this state you can then click the installed checkbox to mark the latest version as installed.
