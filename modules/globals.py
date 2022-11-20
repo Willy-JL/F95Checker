@@ -31,17 +31,11 @@ def _():
 
     # Optimize OpenGL
     import OpenGL
-    OpenGL.FORWARD_COMPATIBLE_ONLY = True
+    for option in ("ERROR_LOGGING", "ERROR_CHECKING", "CONTEXT_CHECKING"):
+        setattr(OpenGL, option, debug)
     if debug:
         import logging
         logging.basicConfig()
-        OpenGL.ERROR_LOGGING = True
-        OpenGL.ERROR_CHECKING = True
-        OpenGL.CONTEXT_CHECKING = True
-    else:
-        OpenGL.ERROR_LOGGING = False
-        OpenGL.ERROR_CHECKING = False
-        OpenGL.CONTEXT_CHECKING = False
 _()
 
 host = "f95zone.to"
