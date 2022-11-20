@@ -2,6 +2,7 @@ import datetime as dt
 import dataclasses
 import asyncio
 import hashlib
+import typing
 import enum
 import os
 
@@ -40,23 +41,44 @@ class CounterContext:
 
 
 class Timestamp:
-    def __init__(self, unix_time: int | float, format="%d/%m/%Y %H:%M"):
-        self.format = format
-        self.display = ""
-        self.value = 0
+    _instances: list[typing.Self] = []
+    def __init__(self, unix_time: int | float):
         self.update(unix_time)
+        type(self)._instances.append(self)
 
-    def update(self, unix_time: int | float):
-        self.value = int(unix_time)
-        if self.value == 0:
-            self.display = ""
-        else:
-            self.display = dt.datetime.fromtimestamp(unix_time).strftime(self.format)
+    def update(self, unix_time: int | float = None):
+        if unix_time is not None:
+            self.value = int(unix_time)
+        self._display = None
+
+    @property
+    def format(self):
+        from modules import globals
+        return globals.settings.timestamp_format
+
+    @property
+    def display(self):
+        if self._display is None:
+            if self.value == 0:
+                self._display = ""
+            else:
+                try:
+                    self._display = dt.datetime.fromtimestamp(self.value).strftime(self.format)
+                except Exception:
+                    self._display = "Bad format!"
+        return self._display
 
 
 class Datestamp(Timestamp):
+    _instances: list[typing.Self] = []
     def __init__(self, unix_time: int | float):
-        super().__init__(unix_time, format="%d/%m/%Y")
+        self.update(unix_time)
+        type(self)._instances.append(self)
+
+    @property
+    def format(self):
+        from modules import globals
+        return globals.settings.datestamp_format
 
 
 class DefaultStyle:
@@ -384,6 +406,7 @@ class Settings:
     browser_private             : bool
     check_notifs                : bool
     confirm_on_remove           : bool
+    datestamp_format            : str
     default_exe_dir             : str
     display_mode                : DisplayMode
     fit_images                  : bool
@@ -414,8 +437,9 @@ class Settings:
     style_corner_radius         : int
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
-    tray_refresh_interval       : int
+    timestamp_format            : str
     tray_notifs_interval        : int
+    tray_refresh_interval       : int
     update_keep_image           : bool
     use_parser_processes        : bool
     vsync_ratio                 : int

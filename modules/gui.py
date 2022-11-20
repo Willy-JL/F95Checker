@@ -17,8 +17,8 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, TrayMsg, Type
-from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, login, msgbox, ratingwidget, rpc_thread, utils
+from modules.structs import Browser, Datestamp, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, Timestamp, TrayMsg, Type
+from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils
 
 imgui.io = None
 imgui.style = None
@@ -2547,6 +2547,37 @@ class MainGUI():
             set.scroll_amount = min(max(value, 0.1), 10)
             if changed:
                 async_thread.run(db.update_settings("scroll_amount"))
+
+            draw_settings_label(
+                "Time format:",
+                "The format expression to use for full timestamps. Uses the strftime specification. Default is '%d/%m/%Y %H:%M'."
+            )
+            changed, value = imgui.input_text("###timestamp_format", set.timestamp_format)
+            if changed:
+                set.timestamp_format = value
+                async_thread.run(db.update_settings("timestamp_format"))
+                for timestamp in Timestamp._instances:
+                    timestamp.update()
+
+            now = dt.datetime.now()
+            draw_settings_label(f"Time: {now.strftime(set.timestamp_format)}")
+            imgui.text("")
+            imgui.spacing()
+
+            draw_settings_label(
+                "Date format:",
+                "The format expression to use for short datestamps. Uses the strftime specification. Default is '%d/%m/%Y'."
+            )
+            changed, value = imgui.input_text("###datestamp_format", set.datestamp_format)
+            if changed:
+                set.datestamp_format = value
+                async_thread.run(db.update_settings("datestamp_format"))
+                for datestamp in Datestamp._instances:
+                    datestamp.update()
+
+            draw_settings_label(f"Date: {now.strftime(set.datestamp_format)}")
+            imgui.text("")
+            imgui.spacing()
 
             draw_settings_label(
                 "Vsync ratio:",
