@@ -28,6 +28,20 @@ def _():
             process = self_path / "lib/PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
             if process.is_file():
                 _os.environ["QTWEBENGINEPROCESS_PATH"] = str(process)
+
+    # Optimize OpenGL
+    import OpenGL
+    OpenGL.FORWARD_COMPATIBLE_ONLY = True
+    if debug:
+        import logging
+        logging.basicConfig()
+        OpenGL.ERROR_LOGGING = True
+        OpenGL.ERROR_CHECKING = True
+        OpenGL.CONTEXT_CHECKING = True
+    else:
+        OpenGL.ERROR_LOGGING = False
+        OpenGL.ERROR_CHECKING = False
+        OpenGL.CONTEXT_CHECKING = False
 _()
 
 host = "f95zone.to"
