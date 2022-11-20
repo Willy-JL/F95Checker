@@ -20,6 +20,15 @@ def rand_num_str(len=8):
     return "".join((random.choice('0123456789') for _ in range(len)))
 
 
+def map_range(in_value: float, in_start: float, in_end: float, out_start: float, out_end: float):
+    in_value -= in_start
+    in_end -= in_start
+    in_start = 0.0
+    out_range = out_end - out_start
+    out_value = ((in_value / in_end) * out_range) + out_start
+    return out_value
+
+
 def is_refreshing():
     if globals.refresh_task and not globals.refresh_task.done():
         return True

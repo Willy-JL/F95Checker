@@ -444,9 +444,8 @@ class Settings:
     use_parser_processes        : bool
     vsync_ratio                 : int
     zoom_amount                 : int
+    zoom_area                   : int
     zoom_enabled                : bool
-    zoom_region                 : bool
-    zoom_size                   : int
 
 
 from modules import colors, imagehelper

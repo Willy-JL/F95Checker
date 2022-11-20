@@ -142,9 +142,8 @@ async def connect():
             "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "zoom_amount":                 f'INTEGER DEFAULT 4',
-            "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',
-            "zoom_region":                 f'INTEGER DEFAULT {int(True)}',
-            "zoom_size":                   f'INTEGER DEFAULT 64'
+            "zoom_area":                   f'INTEGER DEFAULT 50',
+            "zoom_enabled":                f'INTEGER DEFAULT {int(True)}'
         }
     )
     await connection.execute("""

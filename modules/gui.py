@@ -1241,35 +1241,16 @@ class MainGUI():
                     # Zoom
                     elif globals.settings.zoom_enabled:
                         zoom_popup[0] = True
-                        size = globals.settings.zoom_size
-                        zoom = globals.settings.zoom_amount
-                        zoomed_size = size * zoom
+                        out_size = min(*imgui.io.display_size) * globals.settings.zoom_area / 100
+                        in_size = out_size / globals.settings.zoom_amount
                         mouse_pos = imgui.io.mouse_pos
-                        ratio = image.width / width
-                        x = mouse_pos.x - image_pos.x - size * 0.5
-                        y = mouse_pos.y - image_pos.y - size * 0.5
-                        if x < 0:
-                            x = 0
-                        elif x > (new_x := width - size):
-                            x = new_x
-                        if y < 0:
-                            y = 0
-                        elif y > (new_y := height - size):
-                            y = new_y
-                        if globals.settings.zoom_region:
-                            rect_x = x + image_pos.x
-                            rect_y = y + image_pos.y
-                            draw_list = imgui.get_window_draw_list()
-                            draw_list.add_rect(rect_x, rect_y, rect_x + size, rect_y + size, imgui.get_color_u32_rgba(1, 1, 1, 1), thickness=2)
-                        x *= ratio
-                        y *= ratio
-                        size *= ratio
-                        left = x / image.width
-                        top = y / image.height
-                        right = (x + size) / image.width
-                        bottom = (y + size) / image.height
+                        imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
+                        off_x = utils.map_range(in_size, 0.0, width, 0.0, 1.0) / 2.0
+                        off_y = utils.map_range(in_size, 0.0, height, 0.0, 1.0) / 2.0
+                        x = utils.map_range(mouse_pos.x, image_pos.x, image_pos.x + width, 0.0, 1.0)
+                        y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
                         imgui.begin_tooltip()
-                        image.render(zoomed_size, zoomed_size, (left, top), (right, bottom), rounding=globals.settings.style_corner_radius)
+                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
             imgui.push_text_wrap_pos()
 
@@ -2473,14 +2454,11 @@ class MainGUI():
             if changed:
                 async_thread.run(db.update_settings("zoom_amount"))
 
-            draw_settings_label("Zoom size:")
-            changed, value = imgui.drag_int("###zoom_size", set.zoom_size, change_speed=5, min_value=16, max_value=1024, format="%d px")
-            set.zoom_size = min(max(value, 16), 1024)
+            draw_settings_label("Zoom area:")
+            changed, value = imgui.drag_int("###zoom_area", set.zoom_area, change_speed=0.1, min_value=1, max_value=200, format="%d%%")
+            set.zoom_area = min(max(value, 1), 200)
             if changed:
-                async_thread.run(db.update_settings("zoom_size"))
-
-            draw_settings_label("Show zoom region:")
-            draw_settings_checkbox("zoom_region")
+                async_thread.run(db.update_settings("zoom_area"))
 
             if not set.zoom_enabled:
                 utils.pop_disabled()
