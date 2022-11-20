@@ -67,7 +67,7 @@ Versions after 7.0 are hosted in the [GitHub releases section](https://github.co
 
 ## Browser extension
 
-The F95Checker browser addon allows you to easily add games while browsing the forum in 3 ways:
+The F95Checker browser addon allows you to easily add games to you desktop F95Checker library while browsing the forum in 3 ways:
 
 - Clicking the extension icon while viewing a thread
 - Right clicking a link to a thread
@@ -78,6 +78,8 @@ The extension is available for both major browser families (for example Brave co
 - **Chrome:** Install from [Web Store](https://chrome.google.com/webstore/detail/f95checker-browser-addon/fcipbnanhmafkfgbhgbagidnaempgmjb)
 
 - **Firefox:** Install from [AMO](https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/)
+
+Please note that this extension is solely to aid the usage of the desktop tool, you still need the desktop application installed and running.
 
 ## FAQ:
 
