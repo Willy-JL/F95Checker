@@ -63,7 +63,7 @@ jobs:
           python -m pip install 'https://download.lfd.uci.edu/pythonlibs/archived/lxml-4.9.0-cp311-cp311-win_amd64.whl' || true
           python -m pip install -U -r ./requirements.txt
         # numpy is installed before to avoid the numpy formathandler warning on startup with pyopengl-accelerate
-        # cython version restriction is to fix complciation of opengl-accelerate on python 3.11+
+        # cython version restriction is to fix compilation of opengl-accelerate on python 3.11+
         # lxml is installed from a direct wheel on windows because there are no official binaries for python 3.11+ yet
 
       - name: "Mark as release"
