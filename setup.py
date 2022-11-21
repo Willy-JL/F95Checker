@@ -30,7 +30,6 @@ include_files = [
 zip_include_packages = "*"
 zip_exclude_packages = [
     "OpenGL_accelerate",
-    "PyQt6",
     "glfw"
 ]
 
