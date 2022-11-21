@@ -17,7 +17,7 @@ icon = "resources/icons/icon"
 
 # Build configuration
 optimize = 1
-excludes = []
+excludes = ["tkinter"]
 includes = []
 packages = ["OpenGL"]
 constants = []
