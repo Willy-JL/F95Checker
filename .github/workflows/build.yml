@@ -89,7 +89,7 @@ jobs:
       - name: "Build (macOS)"
         if: "runner.os == 'macOS'"
         run: |
-          python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@main'
+          python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@v6.11.1'
           python ./setup.py bdist_mac
           mkdir ./dist/
           mv ./build/*.app/ ./dist/
