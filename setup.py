@@ -6,45 +6,48 @@ import re
 path = pathlib.Path(__file__).absolute().parent
 
 
-def find_libs(*names):
-    libs = []
-    for name in names:
-        if lib := find_library(name):
-            libs.append(lib)
-    return libs
-
-
+# Main metadata
 name = "F95Checker"
 identifier = "io.github.willy-jl.f95checker"
 script = "main.py"
 debug_script = "main-debug.py"
-base = None
+version = str(re.search(rb'version = "(\S+)"', (path / script).read_bytes()).group(1), encoding="utf-8")
+icon = "resources/icons/icon"
+
+
+# Build configuration
 optimize = 1
+excludes = ["tkinter"]
+includes = []
 packages = ["OpenGL"]
+constants = []
 bin_includes = []
 bin_excludes = []
+platform_libs = {
+    "linux": ["ffi", "ssl", "crypto", "sqlite3"],
+    "darwin": ["intl"]
+}
 include_files = [
     "resources/",
     "LICENSE"
 ]
+zip_includes = []
 zip_include_packages = "*"
 zip_exclude_packages = [
     "OpenGL_accelerate",
     "glfw"
 ]
+silent_level = 0
+include_msvcr = True
 
 
-if sys.platform.startswith("win"):
-    base = "Win32GUI"
+# Generate debug script
+with open(path / debug_script, "wb") as f:
+    f.write(re.sub(rb"debug = .*", rb"debug = True", (path / script).read_bytes()))
 
 
-if sys.platform.startswith("linux"):
-    bin_includes += find_libs("ffi", "ssl", "crypto", "sqlite3")
-elif sys.platform.startswith("darwin"):
-    bin_includes += find_libs("intl")
-
-
-icon = str(path / "resources/icons/icon")
+# Add correct icon extension
+icon = str(path / icon)
 if sys.platform.startswith("win"):
     icon += ".ico"
 elif sys.platform.startswith("darwin"):
@@ -53,48 +56,55 @@ else:
     icon += ".png"
 
 
-with open(path / script, "rb") as f:
-    version = str(re.search(rb'version = "(\S+)"', f.read()).group(1), encoding="utf-8")
+# Bundle system libraries
+for platform, libs in platform_libs.items():
+    if sys.platform.startswith(platform):
+        for lib in libs:
+            if lib_path := find_library(lib):
+                bin_includes.append(lib_path)
 
 
-with open(path / debug_script, "wb") as d:
-    with open(path / script, "rb") as s:
-        d.write(re.sub(rb"debug = .*", rb"debug = True", s.read()))
-
-
+# Friendly reminder
 try:
     import cx_Freeze
 except ModuleNotFoundError:
     print('cx_Freeze is not installed!')
     sys.exit(1)
 
+
+# Actual build
 cx_Freeze.setup(
     name=name,
     version=version,
     executables=[
         cx_Freeze.Executable(
             script=path / script,
+            base="Win32GUI" if sys.platform.startswith("win") else None,
             target_name=name,
-            base=base,
             icon=icon
         ),
         cx_Freeze.Executable(
             script=path / debug_script,
-            target_name=name + "-Debug",
             base=None,
+            target_name=name + "-Debug",
             icon=icon
         )
     ],
     options={
         "build_exe": {
             "optimize": optimize,
+            "excludes": excludes,
+            "includes": includes,
             "packages": packages,
+            "constants": constants,
             "bin_includes": bin_includes,
             "bin_excludes": bin_excludes,
             "include_files": [path / item for item in include_files],
+            "zip_includes": zip_includes,
             "zip_include_packages": zip_include_packages,
             "zip_exclude_packages": zip_exclude_packages,
-            "include_msvcr": True
+            "silent_level": silent_level,
+            "include_msvcr": include_msvcr
         },
         "bdist_mac": {
             "iconfile": icon,
