@@ -2538,7 +2538,11 @@ class MainGUI():
                     timestamp.update()
 
             now = dt.datetime.now()
-            draw_settings_label(f"Time: {now.strftime(set.timestamp_format)}")
+            try:
+                timestamp = now.strftime(set.timestamp_format)
+            except Exception:
+                timestamp = "Bad format!"
+            draw_settings_label(f"Time: {timestamp}")
             imgui.text("")
             imgui.spacing()
 
@@ -2553,7 +2557,11 @@ class MainGUI():
                 for datestamp in Datestamp._instances:
                     datestamp.update()
 
-            draw_settings_label(f"Date: {now.strftime(set.datestamp_format)}")
+            try:
+                datestamp = now.strftime(set.datestamp_format)
+            except Exception:
+                datestamp = "Bad format!"
+            draw_settings_label(f"Date: {datestamp}")
             imgui.text("")
             imgui.spacing()
 
