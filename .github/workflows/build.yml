@@ -18,7 +18,7 @@ jobs:
           - "ubuntu-20.04"
           - "macos-11"
         python:
-          - "3.11.0"
+          - "3.10.8"
         cx-freeze:
           - "6.13.1"  # Versions after v6.11.1 have bugs on macOS - also Windows ignores this since it needs newer versions for Python 3.11+
     name: "${{ matrix.os }}"
