@@ -262,8 +262,8 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
 def push_popup(*args, bottom=False, **kwargs):
     popup_func = functools.partial(*args, **kwargs, popup_uuid=f"{time.time()}{rand_num_str()}")
     if globals.gui:
-        if (globals.gui.minimized or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] is MsgBox.warn or args[3] is MsgBox.error):
-            if globals.gui.minimized and args[1].startswith("Daily backups###popup_"):
+        if (globals.gui.minimized or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
+            if globals.gui.minimized and args[1] == "Daily backups":
                 return
             globals.gui.tray.push_msg(title="Oops", msg="Something went wrong, click here to view the error.", icon=QSystemTrayIcon.MessageIcon.Critical)
     if bottom:

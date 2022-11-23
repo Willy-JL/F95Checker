@@ -1,4 +1,5 @@
 from concurrent.futures import Future
+from functools import partial
 import os as _os
 import pathlib
 import shutil
@@ -203,7 +204,6 @@ def _():
 _()
 
 # Variables
-popup_stack = []
 refresh_total = 0
 gui: MainGUI = None
 refresh_progress = 0
@@ -212,4 +212,5 @@ settings: Settings = None
 refresh_task: Future = None
 games: dict[int, Game] = None
 cookies: dict[str, str] = None
+popup_stack: list[partial] = []
 updated_games: dict[int, OldGame] = {}

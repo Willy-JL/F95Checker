@@ -490,7 +490,7 @@ async def check_notifs(login=False):
         f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:
-        if getattr(popup, "func", None) is msgbox.msgbox and popup.args[0].startswith("Notifications###popup_"):
+        if popup.func is msgbox.msgbox and popup.args[0] == "Notifications":
             globals.popup_stack.remove(popup)
     utils.push_popup(msgbox.msgbox, "Notifications", msg + f"\n\nDo you want to view {'them' if (alerts + inbox) > 1 else 'it'}?", MsgBox.info, buttons)
     if globals.gui.minimized or not globals.gui.focused:
@@ -661,7 +661,7 @@ async def check_updates():
         f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:
-        if getattr(popup, "func", None) is msgbox.msgbox and popup.args[0].startswith("F95Checker update###popup_"):
+        if popup.func is msgbox.msgbox and popup.args[0] == "F95Checker update":
             globals.popup_stack.remove(popup)
     if globals.frozen and globals.os is Os.MacOS:
         path = globals.self_path.parent.parent
