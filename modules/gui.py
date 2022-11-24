@@ -1219,8 +1219,12 @@ class MainGUI():
                 if width < avail.x:
                     imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
                 image_pos = imgui.get_cursor_screen_pos()
-                image.render(width, height, rounding=globals.settings.style_corner_radius)
 
+                imgui.begin_child("###image_zoomer", width=width, height=height + 1.0, flags=imgui.WINDOW_NO_SCROLLBAR)
+                imgui.dummy(width + 2.0, height)
+                imgui.set_scroll_x(1.0)
+                imgui.set_cursor_screen_pos(image_pos)
+                image.render(width, height, rounding=globals.settings.style_corner_radius)
                 if imgui.is_item_hovered():
                     # Image popup
                     if imgui.is_mouse_down():
@@ -1240,18 +1244,24 @@ class MainGUI():
                         fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
                     # Zoom
                     elif globals.settings.zoom_enabled:
+                        if diff := int(imgui.get_scroll_x() - 1.0):
+                            if imgui.is_key_down(glfw.KEY_LEFT_ALT):
+                                globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 200)
+                            else:
+                                globals.settings.zoom_times = min(max(globals.settings.zoom_times * (-diff / 50.0 + 1.0), 1), 20)
                         zoom_popup[0] = True
                         out_size = min(*imgui.io.display_size) * globals.settings.zoom_area / 100
-                        in_size = out_size / globals.settings.zoom_amount
+                        in_size = out_size / globals.settings.zoom_times
                         mouse_pos = imgui.io.mouse_pos
-                        imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
                         off_x = utils.map_range(in_size, 0.0, width, 0.0, 1.0) / 2.0
                         off_y = utils.map_range(in_size, 0.0, height, 0.0, 1.0) / 2.0
                         x = utils.map_range(mouse_pos.x, image_pos.x, image_pos.x + width, 0.0, 1.0)
                         y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
+                        imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
                         imgui.begin_tooltip()
                         image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
+                imgui.end_child()
             imgui.push_text_wrap_pos()
 
             imgui.push_font(self.big_font)
@@ -2435,23 +2445,35 @@ class MainGUI():
             )
             draw_settings_checkbox("update_keep_image")
 
-            draw_settings_label("Zoom on hover:")
+            draw_settings_label(
+                "Zoom on hover:",
+                "Allow zooming header images inside info popups.\n"
+                "Tip: hold shift and scroll while hovering the image to change the zoom amount, or hold shift and alt while "
+                "scrolling to change the zoom area."
+            )
             draw_settings_checkbox("zoom_enabled")
 
             if not set.zoom_enabled:
                 utils.push_disabled()
 
-            draw_settings_label("Zoom amount:")
-            changed, value = imgui.drag_int("###zoom_amount", set.zoom_amount, change_speed=0.1, min_value=1, max_value=20, format="%dx")
-            set.zoom_amount = min(max(value, 1), 20)
-            if changed:
-                async_thread.run(db.update_settings("zoom_amount"))
-
-            draw_settings_label("Zoom area:")
+            draw_settings_label(
+                "Zoom area:",
+                "The size of the zoom popup compared to the main window size (uses the shorter of the two window dimensions). "
+                "Default 50%."
+            )
             changed, value = imgui.drag_int("###zoom_area", set.zoom_area, change_speed=0.1, min_value=1, max_value=200, format="%d%%")
             set.zoom_area = min(max(value, 1), 200)
             if changed:
                 async_thread.run(db.update_settings("zoom_area"))
+
+            draw_settings_label(
+                "Zoom times:",
+                "How many times to magnify the zoomed area of the image. Default 4x."
+            )
+            changed, value = imgui.drag_float("###zoom_times", set.zoom_times, change_speed=0.02, min_value=1, max_value=20, format="%.1fx")
+            set.zoom_times = min(max(value, 1), 20)
+            if changed:
+                async_thread.run(db.update_settings("zoom_times"))
 
             if not set.zoom_enabled:
                 utils.pop_disabled()

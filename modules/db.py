@@ -141,8 +141,8 @@ async def connect():
             "update_keep_image":           f'INTEGER DEFAULT {int(False)}',
             "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
-            "zoom_amount":                 f'INTEGER DEFAULT 4',
             "zoom_area":                   f'INTEGER DEFAULT 50',
+            "zoom_times":                  f'REAL    DEFAULT 4.0',
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}'
         }
     )

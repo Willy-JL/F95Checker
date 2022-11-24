@@ -443,8 +443,8 @@ class Settings:
     update_keep_image           : bool
     use_parser_processes        : bool
     vsync_ratio                 : int
-    zoom_amount                 : int
     zoom_area                   : int
+    zoom_times                  : float
     zoom_enabled                : bool
 
 
