@@ -36,7 +36,7 @@ zip_include_packages = "*"
 zip_exclude_packages = [
     "OpenGL_accelerate",
     "glfw"
-]
+] + (["PyQt6"] if sys.platform.startswith("win") else [])
 silent_level = 0
 include_msvcr = True
 
