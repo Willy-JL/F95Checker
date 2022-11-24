@@ -75,7 +75,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         html = _html(res)
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
-        if head is None or post is None or not head.find("select", attrs={"name": "rating"}):  # FIXME
+        if head is None or post is None:
             from main import self_path
             (self_path / f"{game_id}_broken.html").write_bytes(res)
             e = ParserException(
@@ -191,7 +191,11 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
         last_updated = int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(last_updated).date().toordinal()).timestamp())
 
-        score = float(head.find("select", attrs={"name": "rating"}).get("data-initial-rating"))
+        score = 0.0
+        if elem := head.find("select", attrs={"name": "rating"}):
+            score = float(elem.get("data-initial-rating"))
+        elif elem := head.find(is_class("bratr-rating")):
+            score = float(re.search(r"(\d(?:\.\d\d?)?)", elem.get("title")).group(1))
 
         description = get_long_game_attr("overview", "story")
 
