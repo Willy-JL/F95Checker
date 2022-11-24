@@ -683,8 +683,9 @@ async def refresh(full=False, notifs=True):
             try:
                 await check(game_queue.get_nowait(), full=full)
             except Exception:
-                game_refresh_task.cancel()
-                raise
+                pass  # FIXME
+                # game_refresh_task.cancel()
+                # raise
             globals.refresh_progress += 1
 
     for game in globals.games.values():

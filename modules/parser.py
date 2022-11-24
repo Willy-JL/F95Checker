@@ -75,7 +75,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         html = _html(res)
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
-        if head is None or post is None:
+        if head is None or post is None or not head.find("select", attrs={"name": "rating"}):  # FIXME
             from main import self_path
             (self_path / f"{game_id}_broken.html").write_bytes(res)
             e = ParserException(
