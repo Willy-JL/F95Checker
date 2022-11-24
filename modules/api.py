@@ -304,7 +304,7 @@ async def check(game: Game, full=False, login=False):
         return breaking_changes
     breaking_version_parsing = last_refresh_before("9.0")  # Keep installed and played checkboxes from pre 9.0
     breaking_keep_old_image = last_refresh_before("9.0")  # Keep images from pre 9.0
-    breaking_parsing_changes = last_refresh_before("9.4.1")  # Improved developer parsing (3e5c0e35cde41a210bde1ee8ac9098ead23efa34)
+    breaking_parsing_changes = last_refresh_before("9.6")  # Forum score
     breaking_skip_update_popup = breaking_version_parsing  # Hide update notification for breaking backend changes
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_parsing_changes
     if not full:
@@ -364,7 +364,7 @@ async def check(game: Game, full=False, login=False):
             ret = parser.thread(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(**ret.kwargs)
-        (name, version, developer, type, status, last_updated, description, changelog, tags, image_url) = ret
+        (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url) = ret
 
         last_full_refresh = int(time.time())
         last_refresh_version = globals.version
@@ -433,13 +433,14 @@ async def check(game: Game, full=False, login=False):
             game.last_updated.update(last_updated)
             game.last_full_refresh = last_full_refresh
             game.last_refresh_version = last_refresh_version
+            game.score = score
             game.played = played
             game.installed = installed
             game.description = description
             game.changelog = changelog
             game.tags = tags
             game.image_url = image_url
-            await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "played", "description", "changelog", "tags", "image_url")
+            await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "score", "played", "installed", "description", "changelog", "tags", "image_url")
 
             if old_status is not Status.Unchecked and not breaking_skip_update_popup and (
                 name != old_name or

@@ -191,6 +191,8 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
         last_updated = int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(last_updated).date().toordinal()).timestamp())
 
+        score = float(head.find("select", attrs={"name": "rating"}).get("data-initial-rating"))
+
         description = get_long_game_attr("overview", "story")
 
         changelog = get_long_game_attr("changelog", "change-log")
@@ -221,7 +223,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             return e
 
-    ret = (name, version, developer, type, status, last_updated, description, changelog, tags, image_url)
+    ret = (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url)
     if pipe:
         pipe.put_nowait(ret)
     else:

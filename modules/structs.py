@@ -529,6 +529,7 @@ class Game:
     last_full_refresh    : int
     last_refresh_version : str
     last_played          : Datestamp
+    score                : float
     rating               : int
     played               : bool
     installed            : str

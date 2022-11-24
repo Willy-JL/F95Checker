@@ -169,6 +169,7 @@ async def connect():
             "last_full_refresh":           f'INTEGER DEFAULT 0',
             "last_refresh_version":        f'TEXT    DEFAULT ""',
             "last_played":                 f'INTEGER DEFAULT 0',
+            "score":                       f'REAL    DEFAULT 0',
             "rating":                      f'INTEGER DEFAULT 0',
             "played":                      f'INTEGER DEFAULT {int(False)}',
             "installed":                   f'TEXT    DEFAULT ""',

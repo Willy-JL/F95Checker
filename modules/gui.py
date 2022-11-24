@@ -177,6 +177,12 @@ class Columns:
             resizable=False,
             no_header=True,
         )
+        self.score = self.Column(
+            self, f"{icons.message_star} Forum Score",
+            sortable=True,
+            resizable=False,
+            short_header=True,
+        )
 
 cols = Columns()
 
@@ -1314,6 +1320,10 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_status_widget(game)
 
+            imgui.text_disabled("Forum Score:")
+            imgui.same_line()
+            imgui.text(f"{game.score:.1f}/5")
+
             imgui.text_disabled("Type:")
             imgui.same_line()
             self.draw_game_type_widget(game)
@@ -1614,6 +1624,8 @@ class MainGUI():
                             key = lambda id: globals.games[id].notes.lower() or "z"
                         case cols.status_standalone.index:
                             key = lambda id: globals.games[id].status.value
+                        case cols.score.index:
+                            key = lambda id: - globals.games[id].score
                         case _:  # Name and all others
                             key = lambda id: globals.games[id].name.lower()
                     ids.sort(key=key, reverse=sort_spec.reverse)
@@ -1796,6 +1808,8 @@ class MainGUI():
                             self.draw_game_open_folder_button(game, label=icons.folder_open_outline)
                         case cols.status_standalone.index:
                             self.draw_game_status_widget(game)
+                        case cols.score.index:
+                            imgui.text(f"{game.score:.1f}")
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -1830,7 +1844,7 @@ class MainGUI():
             checkboxes = cols.played.enabled + cols.installed.enabled
             buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
             actions = checkboxes + buttons
-            data_rows = cols.developer.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
+            data_rows = cols.developer.enabled + cols.score.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
@@ -2005,6 +2019,11 @@ class MainGUI():
                             imgui.text_disabled("Developer:")
                             imgui.same_line()
                             utils.wrap_text(game.developer or "Unknown", width=wrap_width, offset=developer_width)
+                        # Forum Score
+                        if cols.score.enabled:
+                            imgui.text_disabled("Forum Score:")
+                            imgui.same_line()
+                            imgui.text(f"{game.score:.1f}/5")
                         # Last Updated
                         if cols.last_updated.enabled:
                             imgui.text_disabled("Last Updated:")
