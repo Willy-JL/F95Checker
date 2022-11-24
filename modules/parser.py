@@ -77,8 +77,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
             from main import self_path
-            with open(self_path / f"{game_id}_broken.html", "wb") as f:
-                f.write(res)
+            (self_path / f"{game_id}_broken.html").write_bytes(res)
             e = ParserException(
                 title="Thread parsing error",
                 msg=f"Failed to parse necessary sections in thread response, the html file has\nbeen saved to:\n{self_path}{os.sep}{game_id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.",

@@ -113,8 +113,7 @@ def _():
     elif os is Os.Linux:
         import configparser
         app_dir = pathlib.Path("/usr/share/applications")
-        with open(app_dir / "mimeinfo.cache", "rb") as f:
-            raw = f.read()
+        raw = (app_dir / "mimeinfo.cache").read_bytes()
         apps = []
         for match in re.finditer(br"x-scheme-handler/https?=(.+)", raw):
             for app in match.group(1)[:-1].split(b";"):
@@ -140,8 +139,7 @@ def _():
             app_file = app / "Contents/Info.plist"
             if not app_file.is_file():
                 continue
-            with open(app_file, "rb") as f:
-                parser = plistlib.load(f)
+            parser = plistlib.loads(app_file.read_bytes())
             found = False
             for handler in parser.get("CFBundleURLTypes", empty):
                 for scheme in handler.get("CFBundleURLSchemes", empty):
@@ -195,8 +193,7 @@ def _():
         autostart_dir.mkdir(parents=True, exist_ok=True)
         autostart = autostart_dir / "io.github.willy-jl.f95checker.plist"
         try:
-            with autostart.open("rb") as f:
-                plist = plistlib.load(f)
+            plist = plistlib.loads(autostart.read_bytes())
             value = shlex.join(plist["ProgramArguments"])
             start_with_system = value == start_cmd
         except Exception:

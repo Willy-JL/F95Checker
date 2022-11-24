@@ -349,9 +349,8 @@ async def update_cookies(new_cookies: dict[str, str]):
     globals.cookies = new_cookies
 
 
-def legacy_json_to_dict(path: str | pathlib.Path):  # Pre v9.0
-    with open(path, "rb") as f:
-        config = json.load(f)
+def legacy_json_to_dict(path: pathlib.Path):  # Pre v9.0
+    config = json.loads(path.read_bytes())
     if type(config.get("game_list")) is list and type(config.get("game_data")) is dict:  # Pre v8.0
         config.setdefault("games", {})
         for game in config["game_list"]:
@@ -374,7 +373,7 @@ def legacy_json_to_dict(path: str | pathlib.Path):  # Pre v9.0
     return config
 
 
-def legacy_ini_to_dict(path: str | pathlib.Path):  # Pre v7.0
+def legacy_ini_to_dict(path: pathlib.Path):  # Pre v7.0
     old_config = configparser.RawConfigParser()
     old_config.read(path)
     config = {}

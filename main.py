@@ -88,7 +88,7 @@ if __name__ == "__main__":
             with lock_singleton() as locked:
                 if not locked:
                     sys.exit(0)
-                with open(self_path / "log.txt", "wb", buffering=0) as log:
+                with (self_path / "log.txt").open("wb", buffering=0) as log:
                     stream = None if debug else log  # Don't redirect in debug mode
                     import subprocess
                     import os

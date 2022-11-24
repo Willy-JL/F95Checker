@@ -37,8 +37,7 @@ def update_start_with_system(toggle: bool):
                     "KeepAlive": False,
                     "RunAtLoad": True
                 }
-                with globals.autostart.open("wb") as f:
-                    plistlib.dump(plist, f)
+                globals.autostart.write_bytes(plistlib.dumps(plist))
         else:
             if globals.os is Os.Windows:
                 import winreg
