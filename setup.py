@@ -17,8 +17,8 @@ debug_script.write_bytes(re.sub(rb"debug = .*", rb"debug = True", script.read_by
 
 # Build configuration
 optimize = 1
-excludes = ["tkinter"]
 includes = []
+excludes = ["tkinter"]
 packages = ["OpenGL"]
 constants = []
 bin_includes = []
@@ -31,7 +31,7 @@ include_files = [
     path / "resources/",
     path / "LICENSE"
 ]
-zip_includes = []
+zip_include_files = []
 zip_include_packages = "*"
 zip_exclude_packages = [
     "OpenGL_accelerate",
@@ -87,14 +87,14 @@ cx_Freeze.setup(
     options={
         "build_exe": {
             "optimize": optimize,
-            "excludes": excludes,
             "includes": includes,
+            "excludes": excludes,
             "packages": packages,
             "constants": constants,
             "bin_includes": bin_includes,
             "bin_excludes": bin_excludes,
             "include_files": include_files,
-            "zip_includes": zip_includes,
+            "zip_includes": zip_include_files,
             "zip_include_packages": zip_include_packages,
             "zip_exclude_packages": zip_exclude_packages,
             "silent_level": silent_level,
