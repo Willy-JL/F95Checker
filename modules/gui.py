@@ -1641,6 +1641,8 @@ class MainGUI():
                         key = lambda id: flt.invert != (globals.games[id].played is True)
                     case FilterMode.Rating.value:
                         key = lambda id: flt.invert != (globals.games[id].rating == flt.match)
+                    case FilterMode.Score.value:
+                        key = lambda id: flt.invert != (globals.games[id].score >= flt.match)
                     case FilterMode.Status.value:
                         key = lambda id: flt.invert != (globals.games[id].status is flt.match)
                     case FilterMode.Tag.value:
@@ -2302,6 +2304,8 @@ class MainGUI():
                         flt.match = True
                     case FilterMode.Rating.value:
                         flt.match = 0
+                    case FilterMode.Score.value:
+                        flt.match = 0.0
                     case FilterMode.Status.value:
                         flt.match = Status[Status._member_names_[0]]
                     case FilterMode.Tag.value:
@@ -2321,49 +2325,51 @@ class MainGUI():
                             self.filters.pop(i)
                     self.require_sort = True
 
-                if flt.mode is FilterMode.Exe_State:
-                    draw_settings_label("Executable state:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, ExeState._member_names_)
-                    if changed:
-                        flt.match = ExeState[ExeState._member_names_[value]]
-                        self.require_sort = True
-
-                elif flt.mode is FilterMode.Installed:
-                    draw_settings_label("Include outdated:")
-                    imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                    changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
-                    if changed:
-                        flt.match = value
-                        self.require_sort = True
-
-                elif flt.mode is FilterMode.Rating:
-                    draw_settings_label("Rating value:")
-                    changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
-                    if changed:
-                        flt.match = value
-                        self.require_sort = True
-                    imgui.spacing()
-
-                elif flt.mode is FilterMode.Status:
-                    draw_settings_label("Status value:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Status._member_names_)
-                    if changed:
-                        flt.match = Status[Status._member_names_[value]]
-                        self.require_sort = True
-
-                elif flt.mode is FilterMode.Tag:
-                    draw_settings_label("Tag value:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Tag._member_names_)
-                    if changed:
-                        flt.match = Tag[Tag._member_names_[value]]
-                        self.require_sort = True
-
-                elif flt.mode is FilterMode.Type:
-                    draw_settings_label("Type value:")
-                    changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Type._member_names_)
-                    if changed:
-                        flt.match = Type[Type._member_names_[value]]
-                        self.require_sort = True
+                match flt.mode.value:
+                    case FilterMode.Exe_State.value:
+                        draw_settings_label("Executable state:")
+                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, ExeState._member_names_)
+                        if changed:
+                            flt.match = ExeState[ExeState._member_names_[value]]
+                            self.require_sort = True
+                    case FilterMode.Installed.value:
+                        draw_settings_label("Include outdated:")
+                        imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+                        changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
+                        if changed:
+                            flt.match = value
+                            self.require_sort = True
+                    case FilterMode.Rating.value:
+                        draw_settings_label("Rating value:")
+                        changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
+                        if changed:
+                            flt.match = value
+                            self.require_sort = True
+                        imgui.spacing()
+                    case FilterMode.Score.value:
+                        draw_settings_label("Score value:")
+                        changed, value = imgui.drag_float(f"###filter_{flt.id}_value", flt.match, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
+                        if changed:
+                            flt.match = value
+                            self.require_sort = True
+                    case FilterMode.Status.value:
+                        draw_settings_label("Status value:")
+                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Status._member_names_)
+                        if changed:
+                            flt.match = Status[Status._member_names_[value]]
+                            self.require_sort = True
+                    case FilterMode.Tag.value:
+                        draw_settings_label("Tag value:")
+                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Tag._member_names_)
+                        if changed:
+                            flt.match = Tag[Tag._member_names_[value]]
+                            self.require_sort = True
+                    case FilterMode.Type.value:
+                        draw_settings_label("Type value:")
+                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Type._member_names_)
+                        if changed:
+                            flt.match = Type[Type._member_names_[value]]
+                            self.require_sort = True
 
                 draw_settings_label("Invert filter:")
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
