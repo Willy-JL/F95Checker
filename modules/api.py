@@ -74,8 +74,14 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                 res = b""
                 if read:
                     if until:
-                        for marker in until:
-                            res += await req.content.readuntil(marker)
+                        async for chunk in req.content.iter_any():
+                            if not chunk:
+                                break
+                            res += chunk
+                            if res.find(until[0]) != -1:
+                                until.pop(0)
+                                if not until:
+                                    break
                     else:
                         res += await req.read()
                 yield res, req
