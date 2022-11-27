@@ -319,7 +319,7 @@ async def check(game: Game, full=False, login=False):
 
     with fulls:
 
-        async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
+        async with request("GET", game.url, until=[b"</article>"], timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
             if req.status == 404 or req.status == 403:
                 buttons = {
