@@ -57,7 +57,7 @@ github_page       = "https://github.com/Willy-JL/F95Checker"
 developer_page    = "https://linktr.ee/WillyJL"
 update_endpoint   = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
 
-from modules.structs import Browser, Game, Label, OldGame, Os, Settings
+from modules.structs import Browser, Game, OldGame, Os, Settings
 from modules.gui import MainGUI
 
 os = None
@@ -209,6 +209,5 @@ settings: Settings = None
 refresh_task: Future = None
 games: dict[int, Game] = None
 cookies: dict[str, str] = None
-labels: dict[int, Label] = None
 popup_stack: list[partial] = []
 updated_games: dict[int, OldGame] = {}

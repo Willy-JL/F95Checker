@@ -41,10 +41,10 @@ class CounterContext:
 
 
 class Timestamp:
-    _instances: list[typing.Self] = []
+    instances: list[typing.Self] = []
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
-        type(self)._instances.append(self)
+        type(self).instances.append(self)
 
     def update(self, unix_time: int | float = None):
         if unix_time is not None:
@@ -70,10 +70,10 @@ class Timestamp:
 
 
 class Datestamp(Timestamp):
-    _instances: list[typing.Self] = []
+    instances: list[typing.Self] = []
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
-        type(self)._instances.append(self)
+        type(self).instances.append(self)
 
     @property
     def format(self):
@@ -345,6 +345,26 @@ class Label:
     id: int
     name: str
     color: tuple[float]
+    instances: typing.ClassVar = []
+
+    @classmethod
+    def add(cls, *args, **kwargs):
+        if args and isinstance(obj := args[0], cls):
+            self = obj
+        else:
+            self = cls(*args, **kwargs)
+        if self in cls.instances:
+            return
+        cls.instances.append(self)
+
+    @classmethod
+    def get(cls, id):
+        return cls.instances.get(id)
+
+    @classmethod
+    def remove(cls, self):
+        while self in cls.instances:
+            cls.instances.remove(self)
 
 
 @dataclasses.dataclass
@@ -356,6 +376,8 @@ class Browser:
     unset: bool = None
     is_custom: bool = None
     private_arg: list = None
+    instances: typing.ClassVar = {}
+    avail_list: typing.ClassVar = []
 
     def __post_init__(self):
         if self.hash is None:
@@ -382,21 +404,20 @@ class Browser:
 
     @classmethod
     def add(cls, *args, **kwargs):
-        self = cls(*args, **kwargs)
-        if not hasattr(cls, "available"):
-            cls.available: dict[str, cls] = {}
-        if not hasattr(cls, "avail_list"):
-            cls.avail_list: list[str] = []
-        if self.hashed_name in cls.available:
+        if args and isinstance(obj := args[0], cls):
+            self = obj
+        else:
+            self = cls(*args, **kwargs)
+        if self.hashed_name in cls.instances:
             return
-        cls.available[self.hashed_name] = self
+        cls.instances[self.hashed_name] = self
         cls.avail_list.append(self.hashed_name)
-        for browser in cls.available.values():
+        for browser in cls.instances.values():
             browser.index = cls.avail_list.index(browser.hashed_name)
 
     @classmethod
     def get(cls, hash):
-        for browser in cls.available.values():
+        for browser in cls.instances.values():
             if browser.hash == hash or browser.hashed_name == hash:
                 return browser
         return cls.get(0)
@@ -423,7 +444,7 @@ class Settings:
     ignore_semaphore_timeouts   : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp
-    manual_sort_list            : list
+    manual_sort_list            : list[int]
     max_retries                 : int
     minimize_on_close           : bool
     refresh_completed_games     : bool

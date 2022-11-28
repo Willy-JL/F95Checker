@@ -17,7 +17,7 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, Datestamp, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, MsgBox, Os, SortSpec, Status, Tag, Timestamp, TrayMsg, Type
+from modules.structs import Browser, Datestamp, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, Label, MsgBox, Os, SortSpec, Status, Tag, Timestamp, TrayMsg, Type
 from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils
 
 imgui.io = None
@@ -2575,7 +2575,7 @@ class MainGUI():
             if changed:
                 set.timestamp_format = value
                 async_thread.run(db.update_settings("timestamp_format"))
-                for timestamp in Timestamp._instances:
+                for timestamp in Timestamp.instances:
                     timestamp.update()
 
             now = dt.datetime.now()
@@ -2595,7 +2595,7 @@ class MainGUI():
             if changed:
                 set.datestamp_format = value
                 async_thread.run(db.update_settings("datestamp_format"))
-                for datestamp in Datestamp._instances:
+                for datestamp in Datestamp.instances:
                     datestamp.update()
 
             try:
@@ -2637,7 +2637,7 @@ class MainGUI():
 
         if draw_settings_section("Labels"):
             buttons_offset = right_width - (2 * frame_height + imgui.style.item_spacing.x)
-            for label in globals.labels.values():
+            for label in Label.instances:
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.set_next_item_width(imgui.get_content_region_available_width() + buttons_offset + imgui.style.cell_padding.x)
@@ -2653,7 +2653,7 @@ class MainGUI():
                     async_thread.run(db.update_label(label, "color"))
                 imgui.same_line()
                 if imgui.button(f"{icons.trash_can_outline}###label_remove_{label.id}", width=frame_height):
-                    async_thread.run(db.remove_label(label.id))
+                    async_thread.run(db.remove_label(label))
 
             draw_settings_label("New label:")
             if imgui.button("Add", width=right_width):

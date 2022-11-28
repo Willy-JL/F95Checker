@@ -227,17 +227,17 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
                 value = json.loads(value)
             except json.JSONDecodeError:
                 value = [value] if value else []
-            if hasattr(data_type, "__args__"):
-                content_type = data_type.__args__[0]
-                value = [content_type(x) for x in value]
+            if data_type_args := getattr(data_type, "__args__", None):
+                content_type = data_type_args[0]
+                value = [x for x in (content_type(x) for x in value) if x is not None]
         case "tuple":
             if isinstance(value, str) and getattr(data_type, "__args__", [None])[0] is float:
                 value = colors.hex_to_rgba_0_1(value)
             else:
                 value = json.loads(value)
-                if hasattr(data_type, "__args__"):
-                    content_type = data_type.__args__[0]
-                    value = [content_type(x) for x in value]
+                if data_type_args := getattr(data_type, "__args__", None):
+                    content_type = data_type_args[0]
+                    value = [x for x in (content_type(x) for x in value) if x is not None]
                 value = tuple(value)
         case _:
             value = data_type(value)
@@ -295,8 +295,8 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
     elif isinstance(value, bool):
         value = int(value)
     elif isinstance(value, list):
-        value = list(value)
-        value = [getattr(item, "value", item) for item in value]
+        value = value.copy()
+        value = [getattr(item, "value", getattr(item, "id", item)) for item in value]
         value = json.dumps(value)
     elif isinstance(value, tuple) and 3 <= len(value) <= 4:
         value = colors.rgba_0_1_to_hex(value)
@@ -364,12 +364,12 @@ async def update_label(label: Label, *keys: list[str]):
     """, tuple(values))
 
 
-async def remove_label(id: int):
+async def remove_label(label: Label):
     await connection.execute(f"""
         DELETE FROM labels
-        WHERE id={id}
+        WHERE id={label.id}
     """)
-    del globals.labels[id]
+    Label.remove(label)
 
 
 async def add_label():
@@ -382,8 +382,7 @@ async def add_label():
         FROM labels
         WHERE id={cursor.lastrowid}
     """)
-    label = row_to_cls(await cursor.fetchone(), Label)
-    globals.labels[label.id] = label
+    Label.add(row_to_cls(await cursor.fetchone(), Label))
 
 
 async def update_cookies(new_cookies: dict[str, str]):
