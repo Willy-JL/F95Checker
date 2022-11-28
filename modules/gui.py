@@ -2176,7 +2176,8 @@ class MainGUI():
     def draw_sidebar(self):
         set = globals.settings
         right_width = self.scaled(90)
-        checkbox_offset = right_width - imgui.get_frame_height()
+        frame_height = imgui.get_frame_height()
+        checkbox_offset = right_width - frame_height
 
         def draw_settings_section(name: str, collapsible=True):
             if collapsible:
@@ -2630,6 +2631,33 @@ class MainGUI():
             draw_settings_label(f"Current framerate: {round(imgui.io.framerate, 3)}")
             imgui.text("")
             imgui.spacing()
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Labels"):
+            buttons_offset = right_width - (2 * frame_height + imgui.style.item_spacing.x)
+            for label in globals.labels.values():
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.set_next_item_width(imgui.get_content_region_available_width() + buttons_offset + imgui.style.cell_padding.x)
+                changed, value = imgui.input_text(f"###label_name_{label.id}", label.name)
+                if changed:
+                    label.name = value
+                    async_thread.run(db.update_label(label, "name"))
+                imgui.table_next_column()
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
+                changed, value = imgui.color_edit3(f"###label_color_{label.id}", *label.color[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
+                if changed:
+                    label.color = (*value, 1.0)
+                    async_thread.run(db.update_label(label, "color"))
+                imgui.same_line()
+                if imgui.button(f"{icons.trash_can_outline}###label_remove_{label.id}", width=frame_height):
+                    async_thread.run(db.remove_label(label.id))
+
+            draw_settings_label("New label:")
+            if imgui.button("Add", width=right_width):
+                async_thread.run(db.add_label())
 
             imgui.end_table()
             imgui.spacing()
