@@ -1109,17 +1109,20 @@ class MainGUI():
         imgui.pop_style_color(3)
 
     def draw_game_labels_select_widget(self, game: Game, *args, **kwargs):
-        for label in Label.instances:
-            changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
-            if changed:
-                if value:
-                    game.labels.append(label)
-                else:
-                    game.labels.remove(label)
-                self.require_sort = True
-                async_thread.run(db.update_game(game, "labels"))
-            imgui.same_line()
-            self.draw_label_widget(label)
+        if Label.instances:
+            for label in Label.instances:
+                changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
+                if changed:
+                    if value:
+                        game.labels.append(label)
+                    else:
+                        game.labels.remove(label)
+                    self.require_sort = True
+                    async_thread.run(db.update_game(game, "labels"))
+                imgui.same_line()
+                self.draw_label_widget(label)
+        else:
+            imgui.text_disabled("Make some labels first!")
 
     def draw_game_labels_widget(self, game: Game, *args, **kwargs):
         _20 = self.scaled(20)
@@ -1451,6 +1454,11 @@ class MainGUI():
 
                 if imgui.begin_tab_item((icons.label_multiple_outline if len(game.labels) > 1 else icons.label_outline if len(game.labels) == 1 else icons.label_off_outline) + " Labels###labels")[0]:
                     imgui.spacing()
+                    imgui.button("Right click to edit")
+                    if imgui.begin_popup_context_item(f"###{game.id}_context_labels"):
+                        self.draw_game_labels_select_widget(game)
+                        imgui.end_popup()
+                    imgui.same_line(spacing=2 * imgui.style.item_spacing.x)
                     if game.labels:
                         self.draw_game_labels_widget(game)
                     else:
