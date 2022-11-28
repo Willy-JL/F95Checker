@@ -376,7 +376,11 @@ async def add_label():
     cursor = await connection.execute(f"""
         INSERT INTO labels
         DEFAULT VALUES
-        RETURNING {", ".join(Label.__annotations__)}
+    """)
+    cursor = await connection.execute(f"""
+        SELECT *
+        FROM labels
+        WHERE id={cursor.lastrowid}
     """)
     label = row_to_cls(await cursor.fetchone(), Label)
     globals.labels[label.id] = label
