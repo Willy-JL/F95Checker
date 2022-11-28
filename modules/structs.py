@@ -341,6 +341,13 @@ class Filter:
 
 
 @dataclasses.dataclass
+class Label:
+    id: int
+    name: str
+    color: tuple[float]
+
+
+@dataclasses.dataclass
 class Browser:
     name: str
     hash: int = None

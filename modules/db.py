@@ -10,7 +10,7 @@ import json
 import time
 import re
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, Game, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
+from modules.structs import Browser, DefaultStyle, DisplayMode, Game, Label, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
 from modules import globals, async_thread, colors, error, msgbox, utils
 
 connection: aiosqlite.Connection = None
@@ -192,6 +192,14 @@ async def connect():
             "value":                       f'TEXT    DEFAULT ""'
         }
     )
+    await create_table(
+        table_name="labels",
+        columns={
+            "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
+            "name":                        f'TEXT    DEFAULT ""',
+            "color":                       f'TEXT    DEFAULT "#000000"'
+        }
+    )
 
     if migrate and ((path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file()):
         await migrate_legacy(path)
@@ -236,8 +244,13 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
     return value
 
 
+def row_to_cls(row: sqlite3.Row, cls: typing.Type):
+    types = cls.__annotations__
+    data = {key: sql_to_py(value, types[key]) for key, value in dict(row).items() if key in types}
+    return cls(**data)
+
+
 async def load_games(id: int = None):
-    types = Game.__annotations__
     query = """
         SELECT *
         FROM games
@@ -247,20 +260,16 @@ async def load_games(id: int = None):
             WHERE id={id}
         """
     cursor = await connection.execute(query)
-    games = await cursor.fetchall()
-    for game in games:
-        game = {key: sql_to_py(value, types[key]) for key, value in dict(game).items() if key in types}
-        globals.games[game["id"]] = Game(**game)
+    for game in await cursor.fetchall():
+        globals.games[game["id"]] = row_to_cls(game, Game)
 
 
 async def load():
-    types = Settings.__annotations__
     cursor = await connection.execute("""
         SELECT *
         FROM settings
     """)
-    settings = {key: sql_to_py(value, types[key]) for key, value in dict(await cursor.fetchone()).items() if key in types}
-    globals.settings = Settings(**settings)
+    globals.settings = row_to_cls(await cursor.fetchone(), Settings)
 
     globals.games = {}
     await load_games()
@@ -269,8 +278,13 @@ async def load():
         SELECT *
         FROM cookies
     """)
-    cookies = await cursor.fetchall()
-    globals.cookies = {cookie["key"]: cookie["value"] for cookie in cookies}
+    globals.cookies = {cookie["key"]: cookie["value"] for cookie in await cursor.fetchall()}
+
+    cursor = await connection.execute("""
+        SELECT *
+        FROM labels
+    """)
+    globals.labels = {label["id"]: row_to_cls(label, Label) for label in await cursor.fetchall()}
 
 
 def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
@@ -333,6 +347,39 @@ async def add_game(thread: ThreadMatch | SearchResult):
         VALUES
         (?,  ?,    ?,   ?       )
     """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{globals.threads_page}{thread.id}", time.time()))
+
+
+async def update_label(label: Label, *keys: list[str]):
+    values = []
+
+    for key in keys:
+        value = py_to_sql(getattr(label, key))
+        values.append(value)
+
+    await connection.execute(f"""
+        UPDATE labels
+        SET
+            {", ".join(f"{key} = ?" for key in keys)}
+        WHERE id={label.id}
+    """, tuple(values))
+
+
+async def remove_label(id: int):
+    await connection.execute(f"""
+        DELETE FROM labels
+        WHERE id={id}
+    """)
+    del globals.labels[id]
+
+
+async def add_label():
+    cursor = await connection.execute(f"""
+        INSERT INTO labels
+        DEFAULT VALUES
+        RETURNING {", ".join(Label.__annotations__)}
+    """)
+    label = row_to_cls(await cursor.fetchone(), Label)
+    globals.labels[label.id] = label
 
 
 async def update_cookies(new_cookies: dict[str, str]):
