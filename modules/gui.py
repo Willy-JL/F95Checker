@@ -2727,6 +2727,24 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.set_next_item_width(imgui.get_content_region_available_width() + buttons_offset + imgui.style.cell_padding.x)
                 changed, value = imgui.input_text_with_hint(f"###label_name_{label.id}", "Label name", label.name)
+                if imgui.begin_popup_context_item(f"###label_name_{label.id}_context"):
+                    if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
+                        value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
+                        changed = True
+                    if imgui.selectable(f"{icons.tooltip_image} Add Icons", False)[0]:
+                        search = [""]
+                        def popup_content():
+                            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+                            _, search[0] = imgui.input_text_with_hint(f"###label_name_{label.id}_icons_search", "Search icons...", search[0])
+                            imgui.begin_child(f"###label_name_{label.id}_icons_frame", width=self.scaled(350), height=imgui.io.display_size.y * 0.5)
+                            for name, icon in icons.names.items():
+                                if not search[0] or search[0] in name:
+                                    if imgui.selectable(f"{icon}  {name}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]:
+                                        label.name += icon
+                                        async_thread.run(db.update_label(label, "name"))
+                            imgui.end_child()
+                        utils.push_popup(utils.popup, "Select icon", popup_content, buttons=True, closable=True, outside=True)
+                    imgui.end_popup()
                 if changed:
                     label.name = value
                     async_thread.run(db.update_label(label, "name"))
