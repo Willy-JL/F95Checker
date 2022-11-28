@@ -1080,6 +1080,8 @@ class MainGUI():
         imgui.push_style_color(imgui.COLOR_BUTTON, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
+        utils.push_disabled(grayed_out=False)
         _20 = self.scaled(20)
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + _20:
@@ -1087,6 +1089,8 @@ class MainGUI():
             imgui.small_button(tag.name, *args, **kwargs)
             imgui.same_line()
         imgui.dummy(0, 0)
+        utils.pop_disabled(grayed_out=False)
+        imgui.pop_style_var()
         imgui.pop_style_color(3)
 
     def draw_updates_popup(self, updated_games, sorted_ids, count, popup_uuid: str = ""):
@@ -1405,7 +1409,7 @@ class MainGUI():
                     if game.tags:
                         self.draw_game_tags_widget(game)
                     else:
-                        imgui.text("This game has no tags!")
+                        imgui.text_disabled("This game has no tags!")
                     imgui.end_tab_item()
 
                 imgui.end_tab_bar()
