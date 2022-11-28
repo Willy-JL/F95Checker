@@ -197,7 +197,7 @@ async def connect():
         table_name="labels",
         columns={
             "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
-            "name":                        f'TEXT    DEFAULT "Label"',
+            "name":                        f'TEXT    DEFAULT ""',
             "color":                       f'TEXT    DEFAULT "#696969"'
         }
     )

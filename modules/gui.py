@@ -2726,7 +2726,7 @@ class MainGUI():
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.set_next_item_width(imgui.get_content_region_available_width() + buttons_offset + imgui.style.cell_padding.x)
-                changed, value = imgui.input_text(f"###label_name_{label.id}", label.name)
+                changed, value = imgui.input_text_with_hint(f"###label_name_{label.id}", "Label name", label.name)
                 if changed:
                     label.name = value
                     async_thread.run(db.update_label(label, "name"))
