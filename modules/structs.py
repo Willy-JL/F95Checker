@@ -568,6 +568,7 @@ class Game:
     description          : str
     changelog            : str
     tags                 : list[Tag]
+    labels               : list[Label.get]
     notes                : str
     image_url            : str
     image                : imagehelper.ImageHelper = None

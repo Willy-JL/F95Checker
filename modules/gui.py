@@ -1031,6 +1031,9 @@ class MainGUI():
         self.draw_game_installed_checkbox(game, label=f"{icons.cloud_download} Installed")
         imgui.separator()
         self.draw_game_rating_widget(game)
+        if imgui.begin_menu(f"{icons.label_multiple_outline} Labels"):
+            self.draw_game_labels_select_widget(game)
+            imgui.end_menu()
         imgui.separator()
         self.draw_game_remove_button(game, label=f"{icons.trash_can_outline} Remove", selectable=True)
 
@@ -1092,6 +1095,40 @@ class MainGUI():
         utils.pop_disabled(grayed_out=False)
         imgui.pop_style_var()
         imgui.pop_style_color(3)
+
+    def draw_label_widget(self, label: Label, *args, **kwargs):
+        col = label.color
+        imgui.push_style_color(imgui.COLOR_BUTTON, *col)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
+        utils.push_disabled(grayed_out=False)
+        imgui.small_button(f"{label.name}###label_{label.id}", *args, **kwargs)
+        utils.pop_disabled(grayed_out=False)
+        imgui.pop_style_var()
+        imgui.pop_style_color(3)
+
+    def draw_game_labels_select_widget(self, game: Game, *args, **kwargs):
+        for label in Label.instances:
+            changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
+            if changed:
+                if value:
+                    game.labels.append(label)
+                else:
+                    game.labels.remove(label)
+                self.require_sort = True
+                async_thread.run(db.update_game(game, "labels"))
+            imgui.same_line()
+            self.draw_label_widget(label)
+
+    def draw_game_labels_widget(self, game: Game, *args, **kwargs):
+        _20 = self.scaled(20)
+        for label in game.labels:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(label.name).x + _20:
+                imgui.dummy(0, 0)
+            self.draw_label_widget(label, *args, **kwargs)
+            imgui.same_line()
+        imgui.dummy(0, 0)
 
     def draw_updates_popup(self, updated_games, sorted_ids, count, popup_uuid: str = ""):
         def popup_content():
@@ -1410,6 +1447,14 @@ class MainGUI():
                         self.draw_game_tags_widget(game)
                     else:
                         imgui.text_disabled("This game has no tags!")
+                    imgui.end_tab_item()
+
+                if imgui.begin_tab_item((icons.label_multiple_outline if len(game.labels) > 1 else icons.label_outline if len(game.labels) == 1 else icons.label_off_outline) + " Labels###labels")[0]:
+                    imgui.spacing()
+                    if game.labels:
+                        self.draw_game_labels_widget(game)
+                    else:
+                        imgui.text_disabled("This game has no labels!")
                     imgui.end_tab_item()
 
                 imgui.end_tab_bar()

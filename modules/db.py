@@ -177,6 +177,7 @@ async def connect():
             "description":                 f'TEXT    DEFAULT ""',
             "changelog":                   f'TEXT    DEFAULT ""',
             "tags":                        f'TEXT    DEFAULT "[]"',
+            "labels":                      f'TEXT    DEFAULT "[]"',
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""'
         },
@@ -271,6 +272,13 @@ async def load():
     """)
     globals.settings = row_to_cls(await cursor.fetchone(), Settings)
 
+    cursor = await connection.execute("""
+        SELECT *
+        FROM labels
+    """)
+    for label in await cursor.fetchall():
+        Label.add(row_to_cls(label, Label))
+
     globals.games = {}
     await load_games()
 
@@ -279,12 +287,6 @@ async def load():
         FROM cookies
     """)
     globals.cookies = {cookie["key"]: cookie["value"] for cookie in await cursor.fetchall()}
-
-    cursor = await connection.execute("""
-        SELECT *
-        FROM labels
-    """)
-    globals.labels = {label["id"]: row_to_cls(label, Label) for label in await cursor.fetchall()}
 
 
 def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
@@ -370,6 +372,9 @@ async def remove_label(label: Label):
         WHERE id={label.id}
     """)
     Label.remove(label)
+    for game in globals.games.values():
+        if label in game.labels:
+            game.labels.remove(label)
 
 
 async def add_label():
