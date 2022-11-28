@@ -378,6 +378,7 @@ async def remove_label(label: Label):
     for flt in globals.gui.filters:
         if flt.match is label:
             globals.gui.filters.remove(flt)
+            globals.gui.require_sort = True
     Label.remove(label)
 
 

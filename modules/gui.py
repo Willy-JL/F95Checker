@@ -2365,8 +2365,6 @@ class MainGUI():
                     case FilterMode.Label.value:
                         if Label.instances:
                             flt.match = Label.instances[0]
-                        else:
-                            flt = None
                     case FilterMode.Rating.value:
                         flt.match = 0
                     case FilterMode.Score.value:
@@ -2377,9 +2375,8 @@ class MainGUI():
                         flt.match = Tag[Tag._member_names_[0]]
                     case FilterMode.Type.value:
                         flt.match = Type[Type._member_names_[0]]
-                if flt:
-                    self.filters.append(flt)
-                    self.require_sort = True
+                self.filters.append(flt)
+                self.require_sort = True
 
             for flt in self.filters:
                 imgui.spacing()
@@ -2406,11 +2403,18 @@ class MainGUI():
                             flt.match = value
                             self.require_sort = True
                     case FilterMode.Label.value:
-                        draw_settings_label("Label value:")
-                        changed, value = imgui.combo(f"###filter_{flt.id}_value", Label.instances.index(flt.match), [label.name for label in Label.instances])
-                        if changed:
-                            flt.match = Label.instances[value]
-                            self.require_sort = True
+                        if Label.instances:
+                            if flt.match is None:
+                                flt.match = Label.instances[0]
+                            draw_settings_label("Label value:")
+                            changed, value = imgui.combo(f"###filter_{flt.id}_value", Label.instances.index(flt.match), [label.name for label in Label.instances])
+                            if changed:
+                                flt.match = Label.instances[value]
+                                self.require_sort = True
+                        else:
+                            draw_settings_label("Make some labels first!")
+                            imgui.text("")
+                            imgui.spacing()
                     case FilterMode.Rating.value:
                         draw_settings_label("Rating value:")
                         changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
