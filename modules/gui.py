@@ -369,6 +369,27 @@ class MainGUI():
             imgui.pop_style_color()
             return result
         imgui.combo = combo
+        # Utils
+        def push_no_interaction():
+            imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
+        imgui.push_no_interaction = push_no_interaction
+        def pop_no_interaction():
+            imgui.internal.pop_item_flag()
+        imgui.pop_no_interaction = pop_no_interaction
+        def push_alpha(amount: float = 0.5):
+            imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha * amount)
+        imgui.push_alpha = push_alpha
+        def pop_alpha():
+            imgui.pop_style_var()
+        imgui.pop_alpha = pop_alpha
+        def push_disabled():
+            imgui.push_no_interaction()
+            imgui.push_alpha()
+        imgui.push_disabled = push_disabled
+        def pop_disabled():
+            imgui.pop_alpha()
+            imgui.pop_no_interaction()
+        imgui.pop_disabled = pop_disabled
 
     def refresh_styles(self):
         globals.settings.style_accent = \
@@ -839,30 +860,31 @@ class MainGUI():
             callbacks.launch_game(game, executable=executable)
         return clicked
 
-    def draw_game_type_widget(self, game: Game, align=False, wide=True, *args, **kwargs):
-        col = game.type.color
-        imgui.push_style_color(imgui.COLOR_BUTTON, *col)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+    def draw_game_type_widget(self, game: Game, wide=True, align=False, *args, **kwargs):
+        imgui.push_no_interaction()
+        imgui.push_style_color(imgui.COLOR_BUTTON, *game.type.color)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        x_padding = 4
-        backup_y_padding = imgui.style.frame_padding.y
-        imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (x_padding, 0))
-        if self.type_label_width is None:
-            self.type_label_width = 0
-            for type in list(Type):
-                self.type_label_width = max(self.type_label_width, imgui.calc_text_size(type.name).x)
-            self.type_label_width += 2 * x_padding
-        if align:
-            imgui.begin_group()
-            imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
-        utils.push_disabled(grayed_out=False)
-        imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width if wide else 0, **kwargs)
-        utils.pop_disabled(grayed_out=False)
-        if align:
-            imgui.end_group()
-        imgui.pop_style_color(3)
-        imgui.pop_style_var(2)
+        if wide:
+            x_padding = 4
+            backup_y_padding = imgui.style.frame_padding.y
+            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (x_padding, 0))
+            if self.type_label_width is None:
+                self.type_label_width = 0
+                for name in Type._member_names_:
+                    self.type_label_width = max(self.type_label_width, imgui.calc_text_size(name).x)
+                self.type_label_width += 2 * x_padding
+            if align:
+                imgui.begin_group()
+                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
+            imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width, **kwargs)
+            if align:
+                imgui.end_group()
+            imgui.pop_style_var(2)
+        else:
+            imgui.small_button(f"{game.type.name}###{game.id}_type", *args, **kwargs)
+            imgui.pop_style_var()
+        imgui.pop_style_color()
+        imgui.pop_no_interaction()
 
     def draw_game_update_icon(self, game: Game, *args, **kwargs):
         imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00, *args, **kwargs)
@@ -979,13 +1001,13 @@ class MainGUI():
     def draw_game_clear_exes_button(self, game: Game, label="", selectable=False, *args, **kwargs):
         id = f"{label}###{game.id}_clear_exes"
         if not game.executables:
-            utils.push_disabled()
+            imgui.push_disabled()
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if not game.executables:
-            utils.pop_disabled()
+            imgui.pop_disabled()
         if clicked:
             game.clear_executables()
             async_thread.run(db.update_game(game, "executables"))
@@ -994,13 +1016,13 @@ class MainGUI():
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1, *args, **kwargs):
         id = f"{label}###{game.id}_open_folder_{i}"
         if not game.executables:
-            utils.push_disabled(block_interaction=False)
+            imgui.push_alpha()
         if selectable:
             clicked = imgui.selectable(id, False, *args, **kwargs)[0]
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if not game.executables:
-            utils.pop_disabled(block_interaction=False)
+            utils.pop_alpha()
         if clicked:
             callbacks.open_game_folder(game, executable=executable)
         return clicked
@@ -1079,12 +1101,9 @@ class MainGUI():
             async_thread.run(db.update_game(game, "notes"))
 
     def draw_game_tags_widget(self, game: Game, *args, **kwargs):
-        col = (0.3, 0.3, 0.3, 1)
-        imgui.push_style_color(imgui.COLOR_BUTTON, *col)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        imgui.push_no_interaction()
+        imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.3, 0.3, 1.0)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        utils.push_disabled(grayed_out=False)
         _20 = self.scaled(20)
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + _20:
@@ -1092,21 +1111,18 @@ class MainGUI():
             imgui.small_button(tag.name, *args, **kwargs)
             imgui.same_line()
         imgui.dummy(0, 0)
-        utils.pop_disabled(grayed_out=False)
         imgui.pop_style_var()
-        imgui.pop_style_color(3)
+        imgui.pop_style_color()
+        imgui.pop_no_interaction()
 
     def draw_label_widget(self, label: Label, *args, **kwargs):
-        col = label.color
-        imgui.push_style_color(imgui.COLOR_BUTTON, *col)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *col)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *col)
+        imgui.push_no_interaction()
+        imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        utils.push_disabled(grayed_out=False)
         imgui.small_button(f"{label.name}###label_{label.id}", *args, **kwargs)
-        utils.pop_disabled(grayed_out=False)
         imgui.pop_style_var()
-        imgui.pop_style_color(3)
+        imgui.pop_style_color()
+        imgui.pop_no_interaction()
 
     def draw_game_labels_select_widget(self, game: Game, *args, **kwargs):
         if Label.instances:
@@ -1874,9 +1890,9 @@ class MainGUI():
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
-                imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha *  0.25)
+                imgui.push_alpha(0.25)
                 imgui.selectable(f"###{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
-                imgui.pop_style_var()
+                imgui.pop_alpha()
                 self.handle_game_hitbox_events(game, game_i)
 
             imgui.end_table()
@@ -2220,10 +2236,10 @@ class MainGUI():
                     imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
                     for result in results:
                         if result.id in globals.games:
-                            utils.push_disabled()
+                            imgui.push_disabled()
                         clicked = imgui.selectable(f"{result.title}###result_{result.id}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
                         if result.id in globals.games:
-                            utils.pop_disabled()
+                            imgui.pop_disabled()
                         if clicked:
                             async_thread.run(callbacks.add_games(result))
                 utils.push_popup(utils.popup, "Search results", popup_content, buttons=True, closable=True, outside=False)
@@ -2470,7 +2486,7 @@ class MainGUI():
                 async_thread.run(db.update_settings("browser"))
 
             if set.browser.unset:
-                utils.push_disabled()
+                imgui.push_disabled()
 
             if set.browser.is_custom:
                 draw_settings_label("Custom browser:")
@@ -2525,7 +2541,7 @@ class MainGUI():
             draw_settings_checkbox("browser_html")
 
             if set.browser.unset:
-                utils.pop_disabled()
+                imgui.pop_disabled()
 
             imgui.end_table()
             imgui.spacing()
@@ -2555,7 +2571,7 @@ class MainGUI():
             draw_settings_checkbox("zoom_enabled")
 
             if not set.zoom_enabled:
-                utils.push_disabled()
+                imgui.push_disabled()
 
             draw_settings_label(
                 "Zoom area:",
@@ -2577,7 +2593,7 @@ class MainGUI():
                 async_thread.run(db.update_settings("zoom_times"))
 
             if not set.zoom_enabled:
-                utils.pop_disabled()
+                imgui.pop_disabled()
 
             imgui.end_table()
             imgui.spacing()
@@ -2619,7 +2635,7 @@ class MainGUI():
             draw_settings_checkbox("scroll_smooth")
 
             if not set.scroll_smooth:
-                utils.push_disabled()
+                imgui.push_disabled()
 
             draw_settings_label(
                 "Smoothness:",
@@ -2631,7 +2647,7 @@ class MainGUI():
                 async_thread.run(db.update_settings("scroll_smooth_speed"))
 
             if not set.scroll_smooth:
-                utils.pop_disabled()
+                imgui.pop_disabled()
 
             draw_settings_label(
                 "Scroll mult:",
@@ -2923,7 +2939,7 @@ class MainGUI():
                 async_thread.run(db.update_settings("tray_refresh_interval"))
 
             if not set.check_notifs:
-                utils.push_disabled()
+                imgui.push_disabled()
 
             draw_settings_label(
                 "BG notifs intv:",
@@ -2936,7 +2952,7 @@ class MainGUI():
                 async_thread.run(db.update_settings("tray_notifs_interval"))
 
             if not set.check_notifs:
-                utils.pop_disabled()
+                imgui.pop_disabled()
 
             draw_settings_label(f"Last refresh: {set.last_successful_refresh.display or 'Never'}")
             imgui.text("")

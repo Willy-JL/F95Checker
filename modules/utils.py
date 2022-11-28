@@ -135,20 +135,6 @@ def validate_geometry(x, y, width, height):
     return valid
 
 
-def push_disabled(block_interaction=True, grayed_out=True):
-    if block_interaction:
-        imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
-    if grayed_out:
-        imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha *  0.5)
-
-
-def pop_disabled(block_interaction=True, grayed_out=True):
-    if block_interaction:
-        imgui.internal.pop_item_flag()
-    if grayed_out:
-        imgui.pop_style_var()
-
-
 def center_next_window():
     size = imgui.io.display_size
     imgui.set_next_window_position(size.x / 2, size.y / 2, pivot_x=0.5, pivot_y=0.5)
