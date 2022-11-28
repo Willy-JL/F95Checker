@@ -358,8 +358,10 @@ class Label:
         cls.instances.append(self)
 
     @classmethod
-    def get(cls, id):
-        return cls.instances.get(id)
+    def get(cls, id: int):
+        for label in cls.instances:
+            if label.id == id:
+                return label
 
     @classmethod
     def remove(cls, self):
