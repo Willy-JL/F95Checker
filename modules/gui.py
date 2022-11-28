@@ -492,13 +492,7 @@ class MainGUI():
         karla_range = imgui.core.GlyphRanges([0x1, 0x20ac, 0])
         meslo_range = imgui.core.GlyphRanges([0x1, 0x2e2e, 0])
         noto_range = imgui.core.GlyphRanges([0x1, 0xfffd, 0])
-        mdi_range_values = []
-        for name, icon in vars(icons).items():
-            if name.startswith("_"):
-                continue
-            mdi_range_values += [ord(icon), ord(icon)]
-        mdi_range_values.append(0)
-        mdi_range = imgui.core.GlyphRanges(mdi_range_values)
+        mdi_range = imgui.core.GlyphRanges([icons.min_char, icons.max_char, 0])
         msgbox_range_values = []
         for icon in [icons.information, icons.alert_rhombus, icons.alert_octagon]:
             msgbox_range_values += [ord(icon), ord(icon)]

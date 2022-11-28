@@ -4,9 +4,11 @@ import struct
 from modules import globals
 
 names: dict[str, str] = {}
+min_char = max_char = None
 
 
 def _():
+    global min_char, max_char
     font = next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")).read_bytes()
     def unpack(fmt: str, size: int, offset: int):
         return struct.unpack(fmt, font[offset:offset + size])[0]
@@ -34,6 +36,10 @@ def _():
         char_num = ulong(group_offset)
         glyph_id = ulong(group_offset + 2*ulong_size)
         glyphs_chars[glyph_id] = chr(char_num)
+        if min_char is None and max_char is None:
+            min_char = max_char = char_num
+        min_char = min(min_char, char_num)
+        max_char = max(max_char, char_num)
 
     post_offset = ulong(font.find(b"post") + len(b"post") + ulong_size)
     glyphs = ushort(post_offset + 2*4 + 2*2 + 5*ulong_size)
