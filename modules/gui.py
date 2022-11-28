@@ -1686,6 +1686,8 @@ class MainGUI():
                         key = lambda id: flt.invert != ((not globals.games[id].executables) if flt.match is ExeState.Unset else (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid))))
                     case FilterMode.Installed.value:
                         key = lambda id: flt.invert != ((globals.games[id].installed != "") if flt.match else (globals.games[id].installed == globals.games[id].version))
+                    case FilterMode.Label.value:
+                        key = lambda id: flt.invert != (flt.match in globals.games[id].labels)
                     case FilterMode.Played.value:
                         key = lambda id: flt.invert != (globals.games[id].played is True)
                     case FilterMode.Rating.value:
@@ -2352,6 +2354,11 @@ class MainGUI():
                         flt.match = ExeState[ExeState._member_names_[0]]
                     case FilterMode.Installed.value:
                         flt.match = True
+                    case FilterMode.Label.value:
+                        if Label.instances:
+                            flt.match = Label.instances[0]
+                        else:
+                            flt = None
                     case FilterMode.Rating.value:
                         flt.match = 0
                     case FilterMode.Score.value:
@@ -2362,8 +2369,9 @@ class MainGUI():
                         flt.match = Tag[Tag._member_names_[0]]
                     case FilterMode.Type.value:
                         flt.match = Type[Type._member_names_[0]]
-                self.filters.append(flt)
-                self.require_sort = True
+                if flt:
+                    self.filters.append(flt)
+                    self.require_sort = True
 
             for flt in self.filters:
                 imgui.spacing()
@@ -2388,6 +2396,12 @@ class MainGUI():
                         changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
                         if changed:
                             flt.match = value
+                            self.require_sort = True
+                    case FilterMode.Label.value:
+                        draw_settings_label("Label value:")
+                        changed, value = imgui.combo(f"###filter_{flt.id}_value", Label.instances.index(flt.match), [label.name for label in Label.instances])
+                        if changed:
+                            flt.match = Label.instances[value]
                             self.require_sort = True
                     case FilterMode.Rating.value:
                         draw_settings_label("Rating value:")

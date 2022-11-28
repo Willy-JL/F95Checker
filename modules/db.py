@@ -371,11 +371,14 @@ async def remove_label(label: Label):
         DELETE FROM labels
         WHERE id={label.id}
     """)
-    Label.remove(label)
     for game in globals.games.values():
         if label in game.labels:
             game.labels.remove(label)
             await update_game(game, "labels")
+    for flt in globals.gui.filters:
+        if flt.match is label:
+            globals.gui.filters.remove(flt)
+    Label.remove(label)
 
 
 async def add_label():

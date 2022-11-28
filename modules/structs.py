@@ -320,6 +320,7 @@ FilterMode = IntEnumHack("FilterMode", [
     "Choose",
     "Exe State",
     "Installed",
+    "Label",
     "Played",
     "Rating",
     "Score",
