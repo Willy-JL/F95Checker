@@ -375,6 +375,7 @@ async def remove_label(label: Label):
     for game in globals.games.values():
         if label in game.labels:
             game.labels.remove(label)
+            await update_game(game, "labels")
 
 
 async def add_label():
