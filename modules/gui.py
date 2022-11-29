@@ -390,6 +390,9 @@ class MainGUI():
             imgui.pop_alpha()
             imgui.pop_no_interaction()
         imgui.pop_disabled = pop_disabled
+        def is_topmost():
+            return not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID)
+        imgui.is_topmost = is_topmost
 
     def refresh_styles(self):
         globals.settings.style_accent = \
@@ -1055,7 +1058,7 @@ class MainGUI():
 
     def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None, *args, **kwargs):
         if multiline:
-            changed, value = imgui.input_text_multiline(
+            changed, game.notes = imgui.input_text_multiline(
                 f"###{game.id}_notes",
                 value=game.notes,
                 width=width or imgui.get_content_region_available_width(),
@@ -1063,36 +1066,37 @@ class MainGUI():
                 *args,
                 **kwargs
             )
-            if imgui.begin_popup_context_item(f"###notes_context"):
-                if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-                    value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
-                    changed = True
+            setter_extra = lambda _=None: [setattr(self, "require_sort", True), async_thread.run(db.update_game(game, "notes"))]
+            if changed:
+                setter_extra()
+            if imgui.begin_popup_context_item(f"###{game.id}_notes_context"):
+                utils.text_context(game, "notes", setter_extra)
                 imgui.end_popup()
         else:
             imgui.set_next_item_width(width or imgui.get_content_region_available_width())
+            # Only show first line
             if (offset := game.notes.find("\n")) != -1:
-                # Only show first line
-                value = game.notes[:offset]
+                first_line = game.notes[:offset]
             else:
-                value = game.notes
-            changed, value = imgui.input_text(
+                first_line = game.notes
+            changed, first_line = imgui.input_text(
                 f"###{game.id}_notes_inline",
-                value=value,
+                value=first_line,
                 *args,
                 **kwargs
             )
-            if imgui.begin_popup_context_item(f"###notes_inline_context"):
-                if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-                    value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
-                    changed = True
-                imgui.end_popup()
-            if changed and offset != -1:
+            def setter_extra(value: str):
                 # Merge with remaining lines
-                value = value + game.notes[offset:]
-        if changed:
-            game.notes = value
-            self.require_sort = True
-            async_thread.run(db.update_game(game, "notes"))
+                if (offset := game.notes.find("\n")) != -1:
+                    value += game.notes[offset:]
+                game.notes = value
+                self.require_sort = True
+                async_thread.run(db.update_game(game, "notes"))
+            if changed:
+                setter_extra(first_line)
+            if imgui.begin_popup_context_item(f"###{game.id}_notes_inline_context"):
+                utils.text_context(type("_", (), dict(_=first_line))(), "_", setter_extra)
+                imgui.end_popup()
 
     def draw_game_tags_widget(self, game: Game, *args, **kwargs):
         imgui.push_no_interaction()
@@ -1483,7 +1487,7 @@ class MainGUI():
             return 0, True
         return_args = utils.popup(game.name, popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
         # Has and is in carousel ids, is not the only one in them, is topmost popup and no item is active
-        if carousel_ids and len(carousel_ids) > 1 and game.id in carousel_ids and not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active():
+        if carousel_ids and len(carousel_ids) > 1 and game.id in carousel_ids and imgui.is_topmost() and not imgui.is_any_item_active():
             pos = popup_pos[0]
             size = popup_size[0]
             if size and pos:
@@ -1765,7 +1769,8 @@ class MainGUI():
                     lst[game_i], lst[payload] = lst[payload], lst[game_i]
                     async_thread.run(db.update_settings("manual_sort_list"))
                 imgui.end_drag_drop_target()
-        if imgui.begin_popup_context_item(f"###{game.id}_context"):
+        context_id = f"###{game.id}_context"
+        if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
             # Right click = context menu
             self.draw_game_context_menu(game)
             imgui.end_popup()
@@ -2183,17 +2188,22 @@ class MainGUI():
             imgui.set_keyboard_focus_here()
             any_active = True
         activated, value = imgui.input_text_with_hint("###bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
-        activated = bool(activated and value)
+        changed = value != self.add_box_text
+        self.add_box_text = value
+        activated = bool(activated and self.add_box_text)
         any_active = any_active or imgui.is_any_item_active()
         if any_active_old != any_active and imgui.is_key_pressed(glfw.KEY_ESCAPE):
             # Changed active state, and escape is pressed, so clear textbox
-            value = ""
+            self.add_box_text = ""
+            changed = True
+        def setter_extra(_=None):
+            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
+            self.require_sort = True
+        if changed:
+            setter_extra()
         if imgui.begin_popup_context_item(f"###bottombar_context"):
             # Right click = more options context menu
-            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-                value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
-            if imgui.selectable(f"{icons.trash_can_outline} Clear", False)[0]:
-                value = ""
+            utils.text_context(self, "add_box_text", setter_extra, no_icons=True)
             imgui.separator()
             if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                 utils.push_popup(
@@ -2207,10 +2217,6 @@ class MainGUI():
                     MsgBox.info
                 )
             imgui.end_popup()
-        if value != self.add_box_text:
-            self.add_box_text = value
-            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
-            self.require_sort = True
         if self.add_box_valid:
             imgui.same_line()
             if imgui.button("Add!") or activated:
@@ -2486,18 +2492,16 @@ class MainGUI():
                 draw_settings_label("Custom browser:")
                 if imgui.button("Configure", width=right_width):
                     def popup_content():
-                        # set = globals.settings
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
                         changed, set.browser_custom_executable = imgui.input_text("###browser_custom_executable", set.browser_custom_executable)
-                        if imgui.begin_popup_context_item(f"###browser_context"):
-                            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-                                set.browser_custom_executable += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
-                                changed = True
-                            imgui.end_popup()
+                        setter_extra = lambda _=None: async_thread.run(db.update_settings("browser_custom_executable"))
                         if changed:
-                            async_thread.run(db.update_settings("browser_custom_executable"))
+                            setter_extra()
+                        if imgui.begin_popup_context_item(f"###browser_custom_executable_context"):
+                            utils.text_context(set, "browser_custom_executable", setter_extra, no_icons=True)
+                            imgui.end_popup()
                         imgui.same_line()
                         clicked = imgui.button(icons.folder_open_outline)
                         imgui.same_line(spacing=0)
@@ -2514,13 +2518,12 @@ class MainGUI():
                         imgui.set_cursor_pos_x(pos)
                         imgui.set_next_item_width(args_width)
                         changed, set.browser_custom_arguments = imgui.input_text("###browser_custom_arguments", set.browser_custom_arguments)
-                        if imgui.begin_popup_context_item(f"###browser_args_context"):
-                            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-                                set.browser_custom_arguments += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
-                                changed = True
-                            imgui.end_popup()
+                        setter_extra = lambda _=None: async_thread.run(db.update_settings("browser_custom_arguments"))
                         if changed:
-                            async_thread.run(db.update_settings("browser_custom_arguments"))
+                            setter_extra()
+                        if imgui.begin_popup_context_item(f"###browser_custom_arguments_context"):
+                            utils.text_context(set, "browser_custom_arguments", setter_extra, no_icons=True)
+                            imgui.end_popup()
                     utils.push_popup(utils.popup, "Configure custom browser", popup_content, buttons=True, closable=True, outside=False)
             else:
                 draw_settings_label("Use private mode:")
@@ -2656,12 +2659,16 @@ class MainGUI():
                 "Time format:",
                 "The format expression to use for full timestamps. Uses the strftime specification. Default is '%d/%m/%Y %H:%M'."
             )
-            changed, value = imgui.input_text("###timestamp_format", set.timestamp_format)
-            if changed:
-                set.timestamp_format = value
+            changed, set.timestamp_format = imgui.input_text("###timestamp_format", set.timestamp_format)
+            def setter_extra(_=None):
                 async_thread.run(db.update_settings("timestamp_format"))
                 for timestamp in Timestamp.instances:
                     timestamp.update()
+            if changed:
+                setter_extra()
+            if imgui.begin_popup_context_item(f"###timestamp_format_context"):
+                utils.text_context(set, "timestamp_format", setter_extra)
+                imgui.end_popup()
 
             now = dt.datetime.now()
             try:
@@ -2676,12 +2683,16 @@ class MainGUI():
                 "Date format:",
                 "The format expression to use for short datestamps. Uses the strftime specification. Default is '%d/%m/%Y'."
             )
-            changed, value = imgui.input_text("###datestamp_format", set.datestamp_format)
-            if changed:
-                set.datestamp_format = value
+            changed, set.datestamp_format = imgui.input_text("###datestamp_format", set.datestamp_format)
+            def setter_extra(_=None):
                 async_thread.run(db.update_settings("datestamp_format"))
                 for datestamp in Datestamp.instances:
                     datestamp.update()
+            if changed:
+                setter_extra()
+            if imgui.begin_popup_context_item(f"###datestamp_format_context"):
+                utils.text_context(set, "datestamp_format", setter_extra)
+                imgui.end_popup()
 
             try:
                 datestamp = now.strftime(set.datestamp_format)
@@ -2726,29 +2737,13 @@ class MainGUI():
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.set_next_item_width(imgui.get_content_region_available_width() + buttons_offset + imgui.style.cell_padding.x)
-                changed, value = imgui.input_text_with_hint(f"###label_name_{label.id}", "Label name", label.name)
-                if imgui.begin_popup_context_item(f"###label_name_{label.id}_context"):
-                    if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-                        value += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
-                        changed = True
-                    if imgui.selectable(f"{icons.tooltip_image} Add Icons", False)[0]:
-                        popup_label = label
-                        search = [""]
-                        def popup_content():
-                            imgui.set_next_item_width(-imgui.FLOAT_MIN)
-                            _, search[0] = imgui.input_text_with_hint(f"###label_name_{popup_label.id}_icons_search", "Search icons...", search[0])
-                            imgui.begin_child(f"###label_name_{popup_label.id}_icons_frame", width=self.scaled(350), height=imgui.io.display_size.y * 0.5)
-                            for name, icon in icons.names.items():
-                                if not search[0] or search[0] in name:
-                                    if imgui.selectable(f"{icon}  {name}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]:
-                                        popup_label.name += icon
-                                        async_thread.run(db.update_label(popup_label, "name"))
-                            imgui.end_child()
-                        utils.push_popup(utils.popup, "Select icon", popup_content, buttons=True, closable=True, outside=True)
-                    imgui.end_popup()
+                changed, label.name = imgui.input_text_with_hint(f"###label_name_{label.id}", "Label name", label.name)
+                setter_extra = lambda _=None: async_thread.run(db.update_label(label, "name"))
                 if changed:
-                    label.name = value
-                    async_thread.run(db.update_label(label, "name"))
+                    setter_extra()
+                if imgui.begin_popup_context_item(f"###label_name_{label.id}_context"):
+                    utils.text_context(label, "name", setter_extra)
+                    imgui.end_popup()
                 imgui.table_next_column()
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
                 changed, value = imgui.color_edit3(f"###label_color_{label.id}", *label.color[:3], flags=imgui.COLOR_EDIT_NO_INPUTS)
@@ -2776,21 +2771,21 @@ class MainGUI():
             if imgui.tree_node("Import", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x
                 if imgui.button("Thread links", width=-offset):
-                    thread_links = [""]
+                    thread_links = type("_", (), dict(_=""))()
                     def popup_content():
+                        nonlocal thread_links
                         imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
-                        _, thread_links[0] = imgui.input_text_multiline(
+                        _, thread_links._ = imgui.input_text_multiline(
                             f"###import_links",
-                            value=thread_links[0],
+                            value=thread_links._,
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6
                         )
                         if imgui.begin_popup_context_item(f"###import_links_context"):
-                            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-                                thread_links[0] += str(glfw.get_clipboard_string(self.window) or b"", encoding="utf-8")
+                            utils.text_context(thread_links, "_", no_icons=True)
                             imgui.end_popup()
                     buttons={
-                        f"{icons.check} Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links[0]))),
+                        f"{icons.check} Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links._))),
                         f"{icons.cancel} Cancel": None
                     }
                     utils.push_popup(utils.popup, "Import thread links", popup_content, buttons, closable=True, outside=False)
@@ -2820,15 +2815,18 @@ class MainGUI():
             if imgui.tree_node("Export", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x
                 if imgui.button("Thread links", width=-offset):
-                    thread_links = "\n".join(game.url for game in globals.games.values())
+                    thread_links = type("_", (), dict(_="\n".join(game.url for game in globals.games.values())))()
                     def popup_content():
                         imgui.input_text_multiline(
                             f"###export_links",
-                            value=thread_links,
+                            value=thread_links._,
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6,
                             flags=imgui.INPUT_TEXT_READ_ONLY
                         )
+                        if imgui.begin_popup_context_item(f"###export_links_context"):
+                            utils.text_context(thread_links, "_", editable=False)
+                            imgui.end_popup()
                     utils.push_popup(utils.popup, "Export thread links", popup_content, buttons=True, closable=True, outside=False)
                 imgui.tree_pop()
             if imgui.tree_node("Clear", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):

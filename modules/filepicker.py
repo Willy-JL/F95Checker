@@ -126,6 +126,8 @@ class FilePicker:
             imgui.set_next_item_width(size.x * 0.7)
             confirmed, dir = imgui.input_text("###location_bar", str(self.dir), flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if imgui.begin_popup_context_item(f"###location_context"):  # added
+                if imgui.selectable(f"{icons.content_copy} Copy", False)[0]:  # added
+                    glfw.set_clipboard_string(globals.gui.window, dir)  # added
                 if imgui.selectable(f"{icons.content_paste} Paste", False)[0] and (clip := glfw.get_clipboard_string(globals.gui.window)):  # added
                     dir = str(clip, encoding="utf-8")  # added
                     confirmed = True  # added
@@ -188,7 +190,7 @@ class FilePicker:
                 else:
                     imgui.text(f"Selected:  {item[len(dir_icon if self.dir_picker else file_icon):]}")
             # Filter bar
-            if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID) and not imgui.is_any_item_active() and (globals.gui.input_chars or any(io.keys_down)):  # added
+            if imgui.is_topmost() and not imgui.is_any_item_active() and (globals.gui.input_chars or any(io.keys_down)):  # added
                 if imgui.is_key_pressed(glfw.KEY_BACKSPACE):  # added
                     self.filter_box_text = self.filter_box_text[:-1]  # added
                 if globals.gui.input_chars:  # added
@@ -198,7 +200,13 @@ class FilePicker:
             new_pos_x = prev_pos_x + width * 0.5
             imgui.set_cursor_pos_x(new_pos_x)
             imgui.set_next_item_width(width - new_pos_x + 2 * style.item_spacing.x)
-            self.update_filter, self.filter_box_text = imgui.input_text_with_hint("###filterbar", "Filter...", self.filter_box_text)
+            changed, self.filter_box_text = imgui.input_text_with_hint("###filterbar", "Filter...", self.filter_box_text)  # changed
+            setter_extra = lambda _=None: setattr(self, "update_filter", True)  # added
+            if changed:  # added
+                setter_extra()  # added
+            if imgui.begin_popup_context_item(f"###filtercontext"):  # added
+                utils.text_context(self, "filter_box_text", setter_extra, no_icons=True)  # added
+                imgui.end_popup()  # added
 
             # imgui.end_popup()  # removed
         else:  # added

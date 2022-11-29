@@ -146,7 +146,7 @@ def constrain_next_window():
 
 
 def close_weak_popup():
-    if not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID):
+    if imgui.is_topmost():
         # This is the topmost popup
         if imgui.io.keys_down[glfw.KEY_ESCAPE]:
             # Escape is pressed
@@ -189,6 +189,36 @@ def wrap_text(text: str, *args, width: float, offset=0, func: typing.Callable = 
             if offset is not None:
                 offset = None
                 avail = width
+
+
+def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda _: None, editable=True, no_icons=False):
+    getter = lambda: getattr(obj, attr)
+    setter = lambda val: [setattr(obj, attr, val), setter_extra(val)]
+    if imgui.selectable(f"{icons.content_copy} Copy", False)[0]:
+        glfw.set_clipboard_string(globals.gui.window, getter())
+    if editable:
+        if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
+            setter(getter() + str(glfw.get_clipboard_string(globals.gui.window) or b"", encoding="utf-8"))
+        if imgui.selectable(f"{icons.trash_can_outline} Clear", False)[0]:
+            setter("")
+        if no_icons:
+            return
+        if imgui.selectable(f"{icons.tooltip_image} Icons", False)[0]:
+            search = type("_", (), dict(_=""))()
+            def popup_content():
+                nonlocal search
+                imgui.set_next_item_width(-imgui.FLOAT_MIN)
+                _, search._ = imgui.input_text_with_hint(f"###text_context_icons_search", "Search icons...", search._)
+                if imgui.begin_popup_context_item(f"###text_context_icons_search_context"):
+                    text_context(search, "_", no_icons=True)
+                    imgui.end_popup()
+                imgui.begin_child(f"###text_context_icons_frame", width=globals.gui.scaled(350), height=imgui.io.display_size.y * 0.5)
+                for name, icon in icons.names.items():
+                    if not search._ or search._ in name:
+                        if imgui.selectable(f"{icon}  {name}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]:
+                            setter(getter() + icon)
+                imgui.end_child()
+            push_popup(popup, "Select icon", popup_content, buttons=True, closable=True, outside=True)
 
 
 def clean_thread_url(url: str):
