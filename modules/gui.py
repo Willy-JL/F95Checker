@@ -1019,7 +1019,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id, *args, **kwargs)
         if not game.executables:
-            utils.pop_alpha()
+            imgui.pop_alpha()
         if clicked:
             callbacks.open_game_folder(game, executable=executable)
         return clicked
