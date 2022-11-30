@@ -370,6 +370,13 @@ class MainGUI():
             return result
         imgui.combo = combo
         # Utils
+        def push_y(offset: float):
+            imgui.begin_group()
+            imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + offset)
+        imgui.push_y = push_y
+        def pop_y():
+            imgui.end_group()
+        imgui.pop_y = pop_y
         def push_no_interaction():
             imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
         imgui.push_no_interaction = push_no_interaction
@@ -873,11 +880,10 @@ class MainGUI():
                     self.type_label_width = max(self.type_label_width, imgui.calc_text_size(name).x)
                 self.type_label_width += 2 * x_padding
             if align:
-                imgui.begin_group()
-                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + backup_y_padding)
+                imgui.push_y(backup_y_padding)
             imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width, **kwargs)
             if align:
-                imgui.end_group()
+                imgui.pop_y()
             imgui.pop_style_var(2)
         else:
             imgui.small_button(f"{game.type.name}###{game.id}_type", *args, **kwargs)
