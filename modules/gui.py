@@ -492,19 +492,19 @@ class MainGUI():
         imgui.io.font_global_scale = 1 / font_scaling_factor
         self.size_mult = globals.settings.interface_scaling
         karla_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
-        noto_path = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
-        mdi_path = str(icons.font_path)
         meslo_path = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
+        noto_path  = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
+        mdi_path   = str(icons.font_path)
         merge = dict(merge_mode=True)
         oversample = dict(oversample_h=2, oversample_v=2)
-        karla_config = imgui.core.FontConfig(        glyph_offset_y=-0.5, **oversample)
-        meslo_config = imgui.core.FontConfig(                             **oversample)
-        noto_config = imgui.core.FontConfig(**merge, glyph_offset_y=-0.5, **oversample)
-        mdi_config = imgui.core.FontConfig( **merge, glyph_offset_y=+1.0)
-        karla_range = imgui.core.GlyphRanges([0x1, 0x20ac, 0])
-        meslo_range = imgui.core.GlyphRanges([0x1, 0x2e2e, 0])
-        noto_range = imgui.core.GlyphRanges([0x1, 0xfffd, 0])
-        mdi_range = imgui.core.GlyphRanges([icons.min_char, icons.max_char, 0])
+        karla_config = imgui.core.FontConfig(         glyph_offset_y=-0.5, **oversample)
+        meslo_config = imgui.core.FontConfig(                              **oversample)
+        noto_config  = imgui.core.FontConfig(**merge, glyph_offset_y=-0.5, **oversample)
+        mdi_config   = imgui.core.FontConfig(**merge, glyph_offset_y=+1.0)
+        karla_range = imgui.core.GlyphRanges([0x1,            0x20ac,         0])
+        meslo_range = imgui.core.GlyphRanges([0x1,            0x2e2e,         0])
+        noto_range  = imgui.core.GlyphRanges([0x1,            0xfffd,         0])
+        mdi_range   = imgui.core.GlyphRanges([icons.min_char, icons.max_char, 0])
         msgbox_range_values = []
         for icon in [icons.information, icons.alert_rhombus, icons.alert_octagon]:
             msgbox_range_values += [ord(icon), ord(icon)]
@@ -515,23 +515,25 @@ class MainGUI():
         size_18 = 18 * font_scaling_factor * self.size_mult
         size_28 = 28 * font_scaling_factor * self.size_mult
         size_69 = 69 * font_scaling_factor * self.size_mult
+        fonts = type("FontStore", (), {})()
+        imgui.fonts = fonts
         add_font = imgui.io.fonts.add_font_from_file_ttf
         # Default font + more glyphs + icons
-        add_font(                   karla_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
-        add_font(                   noto_path,  size_18, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                   mdi_path,   size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
+        fonts.default = add_font(karla_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                noto_path,  size_18, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                mdi_path,   size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Big font + more glyphs + icons
-        self.big_font = add_font(   karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
-        add_font(                   noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                   mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
+        fonts.big     = add_font(karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Big font + more glyphs + icons
-        self.small_font = add_font( karla_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
-        add_font(                   noto_path,  size_14, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                   mdi_path,   size_14, font_config=mdi_config,   glyph_ranges=mdi_range)
+        fonts.small   = add_font(karla_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                noto_path,  size_14, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                mdi_path,   size_14, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Monospace font for more info dropdowns
-        msgbox.mono_font = add_font(meslo_path, size_15, font_config=meslo_config, glyph_ranges=meslo_range)
+        fonts.mono    = add_font(meslo_path, size_15, font_config=meslo_config, glyph_ranges=meslo_range)
         # MsgBox type icons/thumbnails
-        msgbox.icon_font = add_font(mdi_path,   size_69,                           glyph_ranges=msgbox_range)
+        fonts.msgbox  = add_font(mdi_path,   size_69,                           glyph_ranges=msgbox_range)
         try:
             tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
         except SystemError:
@@ -1188,7 +1190,7 @@ class MainGUI():
                     new_category = 0
                 if new_category != category:
                     category = new_category
-                    imgui.push_font(self.big_font)
+                    imgui.push_font(imgui.fonts.big)
                     imgui.set_cursor_pos_x(img_pos_x - self.scaled(8))
                     match category:
                         case 1:
@@ -1203,7 +1205,7 @@ class MainGUI():
                 img_pos_y = imgui.get_cursor_pos_y()
                 imgui.begin_group()
 
-                imgui.push_font(self.big_font)
+                imgui.push_font(imgui.fonts.big)
                 imgui.text(old_game.name)
                 imgui.pop_font()
 
@@ -1341,7 +1343,7 @@ class MainGUI():
                 imgui.end_child()
             imgui.push_text_wrap_pos()
 
-            imgui.push_font(self.big_font)
+            imgui.push_font(imgui.fonts.big)
             self.draw_game_name_text(game)
             imgui.pop_font()
 
@@ -1504,7 +1506,7 @@ class MainGUI():
             pos = popup_pos[0]
             size = popup_size[0]
             if size and pos:
-                imgui.push_font(self.big_font)
+                imgui.push_font(imgui.fonts.big)
                 text_size = imgui.calc_text_size(icons.arrow_left_drop_circle)
                 offset = self.scaled(10)
                 mouse_pos = imgui.get_mouse_pos()
@@ -1548,7 +1550,7 @@ class MainGUI():
             self.icon_texture.render(_230, _230, rounding=globals.settings.style_corner_radius)
             imgui.same_line()
             imgui.begin_group()
-            imgui.push_font(self.big_font)
+            imgui.push_font(imgui.fonts.big)
             imgui.text("F95Checker")
             imgui.pop_font()
             imgui.text(f"Version {globals.version_name}")
@@ -1601,7 +1603,7 @@ class MainGUI():
             imgui.spacing()
             imgui.spacing()
             imgui.text("")
-            imgui.push_font(self.big_font)
+            imgui.push_font(imgui.fonts.big)
             size = imgui.calc_text_size("Cool people")
             imgui.set_cursor_pos_x((width - size.x + imgui.style.scrollbar_size) / 2)
             imgui.text("Cool people")
