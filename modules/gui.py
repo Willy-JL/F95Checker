@@ -485,13 +485,15 @@ class MainGUI():
         imgui.io.font_global_scale = 1 / font_scaling_factor
         self.size_mult = globals.settings.interface_scaling
         karla_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
-        meslo_path = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
         noto_path = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
-        mdi_path = str(next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")))
-        karla_config = imgui.core.FontConfig(oversample_h=3, oversample_v=3)
-        meslo_config = imgui.core.FontConfig(oversample_h=3, oversample_v=3)
-        noto_config = imgui.core.FontConfig(merge_mode=True, oversample_h=3, oversample_v=3)
-        mdi_config = imgui.core.FontConfig(merge_mode=True, glyph_offset_y=1)
+        mdi_path = str(icons.font_path)
+        meslo_path = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
+        merge = dict(merge_mode=True)
+        oversample = dict(oversample_h=2, oversample_v=2)
+        karla_config = imgui.core.FontConfig(        glyph_offset_y=-0.5, **oversample)
+        meslo_config = imgui.core.FontConfig(                             **oversample)
+        noto_config = imgui.core.FontConfig(**merge, glyph_offset_y=-0.5, **oversample)
+        mdi_config = imgui.core.FontConfig( **merge, glyph_offset_y=+1.0)
         karla_range = imgui.core.GlyphRanges([0x1, 0x20ac, 0])
         meslo_range = imgui.core.GlyphRanges([0x1, 0x2e2e, 0])
         noto_range = imgui.core.GlyphRanges([0x1, 0xfffd, 0])
@@ -510,13 +512,13 @@ class MainGUI():
         add_font(                   karla_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                   noto_path,  size_18, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                   mdi_path,   size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
-        # Big font + more glyphs
+        # Big font + more glyphs + icons
         self.big_font = add_font(   karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                   noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                   mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
-        # Monospace font for tracebacks
+        # Monospace font for more info dropdowns
         msgbox.mono_font = add_font(meslo_path, size_15, font_config=meslo_config, glyph_ranges=meslo_range)
-        # MsgBox type icons
+        # MsgBox type icons/thumbnails
         msgbox.icon_font = add_font(mdi_path,   size_69,                           glyph_ranges=msgbox_range)
         try:
             tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()

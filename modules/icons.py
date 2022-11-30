@@ -3,13 +3,14 @@ import struct
 
 from modules import globals
 
+font_path = next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf"))
 names: dict[str, str] = {}
 min_char = max_char = None
 
 
 def _():
     global min_char, max_char
-    font = next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")).read_bytes()
+    font = font_path.read_bytes()
     def unpack(fmt: str, size: int, offset: int):
         return struct.unpack(fmt, font[offset:offset + size])[0]
     ulong_size  = 4
