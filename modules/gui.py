@@ -510,6 +510,7 @@ class MainGUI():
             msgbox_range_values += [ord(icon), ord(icon)]
         msgbox_range_values.append(0)
         msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
+        size_14 = 14 * font_scaling_factor * self.size_mult
         size_15 = 15 * font_scaling_factor * self.size_mult
         size_18 = 18 * font_scaling_factor * self.size_mult
         size_28 = 28 * font_scaling_factor * self.size_mult
@@ -523,6 +524,10 @@ class MainGUI():
         self.big_font = add_font(   karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                   noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                   mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
+        # Big font + more glyphs + icons
+        self.small_font = add_font( karla_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                   noto_path,  size_14, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                   mdi_path,   size_14, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Monospace font for more info dropdowns
         msgbox.mono_font = add_font(meslo_path, size_15, font_config=meslo_config, glyph_ranges=meslo_range)
         # MsgBox type icons/thumbnails
