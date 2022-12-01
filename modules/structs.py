@@ -348,6 +348,10 @@ class Label:
     color: tuple[float]
     instances: typing.ClassVar = []
 
+    @property
+    def short_name(self):
+        return "".join(word[:1] for word in self.name.split(" "))
+
     @classmethod
     def add(cls, *args, **kwargs):
         if args and isinstance(obj := args[0], cls):

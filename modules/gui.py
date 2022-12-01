@@ -1129,14 +1129,28 @@ class MainGUI():
         imgui.pop_style_color()
         imgui.pop_no_interaction()
 
-    def draw_label_widget(self, label: Label, *args, **kwargs):
-        imgui.push_no_interaction()
-        imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
+    def draw_label_widget(self, label: Label, short=False, *args, **kwargs):
+        if short:
+            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
+            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *label.color)
+            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *label.color)
+        else:
+            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
+            imgui.push_no_interaction()
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        imgui.small_button(f"{label.name}###label_{label.id}", *args, **kwargs)
+        imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}", *args, **kwargs)
+        if short and imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.push_font(imgui.fonts.default)
+            self.draw_label_widget(label, short=False)
+            imgui.pop_font()
+            imgui.end_tooltip()
         imgui.pop_style_var()
-        imgui.pop_style_color()
-        imgui.pop_no_interaction()
+        if short:
+            imgui.pop_style_color(3)
+        else:
+            imgui.pop_no_interaction()
+            imgui.pop_style_color()
 
     def draw_game_labels_select_widget(self, game: Game, *args, **kwargs):
         if Label.instances:
@@ -1154,14 +1168,27 @@ class MainGUI():
         else:
             imgui.text_disabled("Make some labels first!")
 
-    def draw_game_labels_widget(self, game: Game, *args, **kwargs):
+    def draw_game_labels_widget(self, game: Game, wrap=True, small=False, align=False, *args, **kwargs):
         _20 = self.scaled(20)
+        if small:
+            imgui.push_font(imgui.fonts.small)
+            if align:
+                imgui.push_y(self.scaled(2.5))
+                popped_y = False
         for label in game.labels:
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(label.name).x + _20:
+            if wrap and imgui.get_content_region_available_width() < imgui.calc_text_size(label.short_name if small else label.name).x + _20:
+                if small and align and not popped_y:
+                    imgui.pop_y()
+                    popped_y = True
                 imgui.dummy(0, 0)
-            self.draw_label_widget(label, *args, **kwargs)
+            self.draw_label_widget(label, short=small, *args, **kwargs)
             imgui.same_line()
-        imgui.dummy(0, 0)
+        if small and align and not popped_y:
+            imgui.pop_y()
+        if wrap:
+            imgui.dummy(0, 0)
+        if small:
+            imgui.pop_font()
 
     def draw_updates_popup(self, updated_games, sorted_ids, count, popup_uuid: str = ""):
         def popup_content():
@@ -1868,6 +1895,9 @@ class MainGUI():
                             if game.notes:
                                 imgui.same_line()
                                 imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+                            if game.labels:
+                                imgui.same_line()
+                                self.draw_game_labels_widget(game, wrap=False, small=True, align=True)
                             if cols.status.enabled and game.status is not Status.Normal:
                                 imgui.same_line()
                                 self.draw_game_status_widget(game)
@@ -2055,6 +2085,9 @@ class MainGUI():
                     if imgui.get_content_region_available_width() < notes_badge_width:
                         imgui.dummy(0, 0)
                     imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+                if game.labels:
+                    imgui.same_line()
+                    self.draw_game_labels_widget(game, small=True, align=True)
                 if cols.version.enabled:
                     imgui.text_disabled(self.get_game_version_text(game))
                 if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
