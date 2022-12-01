@@ -238,7 +238,6 @@ class MainGUI():
 
         # Variables
         self.focused = True
-        self.size_mult = 0.0
         self.iconized = False
         self.minimized = False
         self.add_box_text = ""
@@ -456,7 +455,7 @@ class MainGUI():
             imgui.style.popup_rounding = \
             imgui.style.window_rounding = \
             imgui.style.scrollbar_rounding = \
-        globals.settings.style_corner_radius * self.size_mult
+        globals.settings.style_corner_radius * globals.settings.interface_scaling
         globals.settings.style_text = \
             imgui.style.colors[imgui.COLOR_TEXT] = \
         globals.settings.style_text
@@ -490,7 +489,6 @@ class MainGUI():
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
         imgui.io.font_global_scale = 1 / font_scaling_factor
-        self.size_mult = globals.settings.interface_scaling
         karla_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
         meslo_path = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
         noto_path  = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
@@ -510,11 +508,11 @@ class MainGUI():
             msgbox_range_values += [ord(icon), ord(icon)]
         msgbox_range_values.append(0)
         msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
-        size_14 = 14 * font_scaling_factor * self.size_mult
-        size_15 = 15 * font_scaling_factor * self.size_mult
-        size_18 = 18 * font_scaling_factor * self.size_mult
-        size_28 = 28 * font_scaling_factor * self.size_mult
-        size_69 = 69 * font_scaling_factor * self.size_mult
+        size_14 = self.scaled(14 * font_scaling_factor)
+        size_15 = self.scaled(15 * font_scaling_factor)
+        size_18 = self.scaled(18 * font_scaling_factor)
+        size_28 = self.scaled(28 * font_scaling_factor)
+        size_69 = self.scaled(69 * font_scaling_factor)
         fonts = type("FontStore", (), {})()
         imgui.fonts = fonts
         add_font = imgui.io.fonts.add_font_from_file_ttf
@@ -601,12 +599,13 @@ class MainGUI():
         self.tray.update_status()
 
     def scaled(self, size: int | float):
-        return size * self.size_mult
+        return size * globals.settings.interface_scaling
 
     def main_loop(self):
         if globals.settings.start_refresh and not self.minimized:
             utils.start_refresh_task(api.refresh())
         # Loop variables
+        prev_scaling = globals.settings.interface_scaling
         prev_any_hovered = None
         prev_win_hovered = None
         prev_mouse_pos = None
@@ -674,10 +673,11 @@ class MainGUI():
                     draw = draw or prev_focused != self.focused
                     draw = draw or prev_iconized != self.iconized
                     draw = draw or prev_minimized != self.minimized
+                    draw = draw or prev_scaling != globals.settings.interface_scaling
                     draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                     draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                     if draw:
-                        draw_next = max(draw_next, 0.5)  # Draw for at least next half second
+                        draw_next = max(draw_next, imgui.io.delta_time + 0.5)  # Draw for at least next half second
                     if draw_next > 0.0:
                         draw_next -= imgui.io.delta_time
 
@@ -699,6 +699,7 @@ class MainGUI():
                             utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids, len(updated_games))
 
                         # Start drawing
+                        prev_scaling = globals.settings.interface_scaling
                         imgui.new_frame()
                         imagehelper.redraw = False
 
@@ -771,7 +772,7 @@ class MainGUI():
                         imgui.render()
                         self.impl.render(imgui.get_draw_data())
                         # Rescale fonts
-                        if self.size_mult != globals.settings.interface_scaling:
+                        if prev_scaling != globals.settings.interface_scaling:
                             self.refresh_fonts()
                             self.refresh_styles()
                             async_thread.run(db.update_settings("interface_scaling"))
