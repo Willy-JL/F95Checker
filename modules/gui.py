@@ -225,7 +225,6 @@ class MainGUI():
             imgui.TABLE_REORDERABLE |
             imgui.TABLE_NO_HOST_EXTEND_Y |
             imgui.TABLE_SIZING_FIXED_SAME |
-            imgui.TABLE_NO_SAVED_SETTINGS |
             imgui.TABLE_BORDERS_INNER_VERTICAL
         )
         self.game_hitbox_drag_drop_flags: int = (
