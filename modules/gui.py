@@ -218,6 +218,17 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_SAME |
             imgui.TABLE_NO_SAVED_SETTINGS
         )
+        self.game_kanban_table_flags: int = (
+            imgui.TABLE_SCROLL_X |
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_HIDEABLE |
+            imgui.TABLE_PAD_OUTER_X |
+            imgui.TABLE_REORDERABLE |
+            imgui.TABLE_NO_HOST_EXTEND_Y |
+            imgui.TABLE_SIZING_FIXED_SAME |
+            imgui.TABLE_NO_SAVED_SETTINGS |
+            imgui.TABLE_BORDERS_INNER_VERTICAL
+        )
         self.game_hitbox_drag_drop_flags: int = (
             imgui.DRAG_DROP_ACCEPT_PEEK_ONLY |
             imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID |
@@ -712,6 +723,8 @@ class MainGUI():
                                 self.draw_games_list()
                             case DisplayMode.grid.value:
                                 self.draw_games_grid()
+                            case DisplayMode.kanban.value:
+                                self.draw_games_kanban()
                         # Bottombar
                         self.draw_bottombar()
                         imgui.end_child()
@@ -1934,7 +1947,7 @@ class MainGUI():
             imgui.end_table()
 
     def tick_list_columns(self):
-        # Hack: get sort and column specs for list mode in grid mode
+        # Hack: get sort and column specs for list mode in grid and kanban mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
             "###game_list",
@@ -2192,12 +2205,16 @@ class MainGUI():
             imgui.end_table()
         imgui.pop_style_var()
 
+    def draw_games_kanban(self):
+        return self.draw_games_grid()
+
     def draw_bottombar(self):
         new_display_mode = None
 
         for display_mode, mode_icon in (
             (DisplayMode.list,   icons.view_agenda_outline),
-            (DisplayMode.grid,   icons.view_grid_outline)
+            (DisplayMode.grid,   icons.view_grid_outline),
+            (DisplayMode.kanban, icons.view_week_outline)
         ):
             if globals.settings.display_mode is display_mode:
                 imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])

@@ -145,8 +145,9 @@ Os = IntEnumHack("Os", [
 
 
 DisplayMode = IntEnumHack("DisplayMode", [
-    ("list", 1),
-    ("grid", 2),
+    ("list",   1),
+    ("grid",   2),
+    ("kanban", 3),
 ])
 
 
