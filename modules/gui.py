@@ -1774,7 +1774,7 @@ class MainGUI():
             sort_specs.specs_dirty = False
             self.require_sort = False
 
-    def handle_game_hitbox_events(self, game: Game, game_i: int):
+    def handle_game_hitbox_events(self, game: Game, game_i: int = None):
         manual_sort = cols.manual_sort.enabled
         not_filtering = len(self.filters) == 0 and not self.add_box_text
         if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
@@ -1786,22 +1786,23 @@ class MainGUI():
                 # Left click = open game info popup
                 self.game_hitbox_click = False
                 utils.push_popup(self.draw_game_info_popup, game, self.sorted_games_ids.copy())
-        # Left click drag = swap if in manual sort mode
-        if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
-            self.game_hitbox_click = False
-            payload = game_i + 1
-            payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
-            imgui.set_drag_drop_payload("game_i", payload)
-            imgui.end_drag_drop_source()
-        if manual_sort and not_filtering:
-            if imgui.begin_drag_drop_target():
-                if payload := imgui.accept_drag_drop_payload("game_i", flags=self.game_hitbox_drag_drop_flags):
-                    payload = int.from_bytes(payload, sys.byteorder)
-                    payload = payload - 1
-                    lst = globals.settings.manual_sort_list
-                    lst[game_i], lst[payload] = lst[payload], lst[game_i]
-                    async_thread.run(db.update_settings("manual_sort_list"))
-                imgui.end_drag_drop_target()
+        if game_i is not None:
+            # Left click drag = swap if in manual sort mode
+            if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
+                self.game_hitbox_click = False
+                payload = game_i + 1
+                payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
+                imgui.set_drag_drop_payload("game_i", payload)
+                imgui.end_drag_drop_source()
+            if manual_sort and not_filtering:
+                if imgui.begin_drag_drop_target():
+                    if payload := imgui.accept_drag_drop_payload("game_i", flags=self.game_hitbox_drag_drop_flags):
+                        payload = int.from_bytes(payload, sys.byteorder)
+                        payload = payload - 1
+                        lst = globals.settings.manual_sort_list
+                        lst[game_i], lst[payload] = lst[payload], lst[game_i]
+                        async_thread.run(db.update_settings("manual_sort_list"))
+                    imgui.end_drag_drop_target()
         context_id = f"###{game.id}_context"
         if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
             # Right click = context menu
