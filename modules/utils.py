@@ -237,6 +237,14 @@ def extract_thread_matches(text: str) -> list[ThreadMatch]:
     return matches
 
 
+popup_flags: int = (
+    imgui.WINDOW_NO_MOVE |
+    imgui.WINDOW_NO_RESIZE |
+    imgui.WINDOW_NO_COLLAPSE |
+    imgui.WINDOW_NO_SAVED_SETTINGS |
+    imgui.WINDOW_ALWAYS_AUTO_RESIZE
+)
+
 def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, popup_uuid: str = ""):
     if buttons is True:
         buttons = {
@@ -249,7 +257,7 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
     opened = 1
     constrain_next_window()
     center_next_window()
-    if imgui.begin_popup_modal(label, closable or None, flags=globals.gui.popup_flags)[0]:
+    if imgui.begin_popup_modal(label, closable or None, flags=popup_flags)[0]:
         if outside:
              closed = closed or close_weak_popup()
         imgui.begin_group()
