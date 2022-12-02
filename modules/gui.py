@@ -1989,7 +1989,7 @@ class MainGUI():
 
         frame_height = imgui.get_frame_height()
         data_height = data_rows * imgui.get_text_line_height_with_spacing()
-        badge_wrap = side_indent + imgui.style.item_spacing.x + frame_height
+        badge_wrap = side_indent + imgui.get_text_line_height()
         dev_wrap = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x * 2
 
         config = (side_indent, action_items, data_rows, bg_col, frame_height, data_height, badge_wrap, dev_wrap)
