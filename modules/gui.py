@@ -221,7 +221,6 @@ class MainGUI():
         self.game_kanban_table_flags: int = (
             imgui.TABLE_SCROLL_X |
             imgui.TABLE_SCROLL_Y |
-            imgui.TABLE_HIDEABLE |
             imgui.TABLE_PAD_OUTER_X |
             imgui.TABLE_REORDERABLE |
             imgui.TABLE_NO_HOST_EXTEND_Y |
@@ -2200,7 +2199,47 @@ class MainGUI():
         imgui.pop_style_var()
 
     def draw_games_kanban(self):
-        return self.draw_games_grid()
+        # Configure table
+        self.tick_list_columns()
+        cell_width, cell_config = self.get_game_cell_config()
+        column_count = len(Label.instances) + 1
+        img_height = cell_width / globals.settings.grid_image_ratio
+        if imgui.begin_table(
+            "###game_kanban",
+            column=column_count,
+            flags=self.game_kanban_table_flags,
+            inner_width=(cell_width * column_count) + (imgui.style.cell_padding.x * 2 * column_count),
+            outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
+        ):
+            # Setup columns
+            not_labelled = len(Label.instances)
+            for label in Label.instances:
+                imgui.table_setup_column(f"{label.name}###game_kanban_{label.id}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            imgui.table_setup_column(f"Not Labelled###game_kanban_-1", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+
+            # Column headers
+            imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
+            imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
+            for label_i, label in enumerate(Label.instances):
+                imgui.table_set_column_index(label_i)
+                imgui.table_header(label.name)
+            imgui.table_set_column_index(not_labelled)
+            imgui.table_header("Not Labelled")
+
+            # Loop cells
+            self.sync_scroll()
+            for label_i, label in (*enumerate(Label.instances), (not_labelled, None)):
+                imgui.table_next_column()
+                for id in self.sorted_games_ids:
+                    game = globals.games[id]
+                    if label_i == not_labelled:
+                        if game.labels:
+                            continue
+                    elif label not in game.labels:
+                        continue
+                    self.draw_game_cell(game, None, cell_width, img_height, cell_config)
+
+            imgui.end_table()
 
     def draw_bottombar(self):
         new_display_mode = None
