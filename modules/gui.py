@@ -1988,17 +1988,16 @@ class MainGUI():
             ))
         )
 
-        draw_list = imgui.get_window_draw_list()
         frame_height = imgui.get_frame_height()
         data_height = data_rows * imgui.get_text_line_height_with_spacing()
         badge_wrap = side_indent + imgui.style.item_spacing.x + frame_height
         dev_wrap = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x * 2
 
-        config = (side_indent, action_items, data_rows, bg_col, draw_list, frame_height, data_height, badge_wrap, dev_wrap)
+        config = (side_indent, action_items, data_rows, bg_col, frame_height, data_height, badge_wrap, dev_wrap)
         return min_width, config
 
-    def draw_game_cell(self, game: Game, game_i: int | None, cell_width: float, img_height: float, config: tuple):
-        (side_indent, action_items, data_rows, bg_col, draw_list, frame_height, data_height, badge_wrap, dev_wrap) = config
+    def draw_game_cell(self, game: Game, game_i: int | None, draw_list, cell_width: float, img_height: float, config: tuple):
+        (side_indent, action_items, data_rows, bg_col, frame_height, data_height, badge_wrap, dev_wrap) = config
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
@@ -2189,10 +2188,11 @@ class MainGUI():
 
             # Loop cells
             self.sync_scroll()
+            draw_list = imgui.get_window_draw_list()
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
                 imgui.table_next_column()
-                self.draw_game_cell(game, game_i, cell_width, img_height, cell_config)
+                self.draw_game_cell(game, game_i, draw_list, cell_width, img_height, cell_config)
 
             imgui.end_table()
         imgui.pop_style_var()
@@ -2227,6 +2227,7 @@ class MainGUI():
 
             # Loop cells
             self.sync_scroll()
+            draw_list = imgui.get_window_draw_list()
             for label_i, label in (*enumerate(Label.instances), (not_labelled, None)):
                 imgui.table_next_column()
                 for id in self.sorted_games_ids:
@@ -2236,7 +2237,7 @@ class MainGUI():
                             continue
                     elif label not in game.labels:
                         continue
-                    self.draw_game_cell(game, None, cell_width, img_height, cell_config)
+                    self.draw_game_cell(game, None, draw_list, cell_width, img_height, cell_config)
 
             imgui.end_table()
 
