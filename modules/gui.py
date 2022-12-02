@@ -218,21 +218,10 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_SAME |
             imgui.TABLE_NO_SAVED_SETTINGS
         )
-        self.game_grid_cell_flags: int = (
-            imgui.WINDOW_NO_SCROLLBAR |
-            imgui.WINDOW_NO_SCROLL_WITH_MOUSE
-        )
         self.game_hitbox_drag_drop_flags: int = (
             imgui.DRAG_DROP_ACCEPT_PEEK_ONLY |
             imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID |
             imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
-        )
-        self.popup_flags: int = (
-            imgui.WINDOW_NO_MOVE |
-            imgui.WINDOW_NO_RESIZE |
-            imgui.WINDOW_NO_COLLAPSE |
-            imgui.WINDOW_NO_SAVED_SETTINGS |
-            imgui.WINDOW_ALWAYS_AUTO_RESIZE
         )
         self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.release else ' by WillyJL'}"
 
@@ -718,10 +707,11 @@ class MainGUI():
                         imgui.begin_child("###main_frame", width=-sidebar_size)
                         self.hovered_game = None
                         # Games container
-                        if globals.settings.display_mode is DisplayMode.list:
-                            self.draw_games_list()
-                        elif globals.settings.display_mode is DisplayMode.grid:
-                            self.draw_games_grid()
+                        match globals.settings.display_mode.value:
+                            case DisplayMode.list.value:
+                                self.draw_games_list()
+                            case DisplayMode.grid.value:
+                                self.draw_games_grid()
                         # Bottombar
                         self.draw_bottombar()
                         imgui.end_child()
@@ -1842,7 +1832,7 @@ class MainGUI():
             self.ghost_columns_enabled_count = 0
             can_sort = 0
             for column in cols.items:
-                imgui.table_setup_column(column.name, column.flags | (can_sort if column.sortable else 0))
+                imgui.table_setup_column(column.name, column.flags | (can_sort * column.sortable))
                 # Enabled columns
                 column.enabled = bool(imgui.table_get_column_flags(column.index) & imgui.TABLE_COLUMN_IS_ENABLED)
                 # Ghosts count
@@ -1942,7 +1932,7 @@ class MainGUI():
 
             imgui.end_table()
 
-    def draw_games_grid(self):
+    def tick_list_columns(self):
         # Hack: get sort and column specs for list mode in grid mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
@@ -1951,25 +1941,27 @@ class MainGUI():
             flags=self.game_list_table_flags,
             outer_size_height=1
         ):
-            # Setup columns
             can_sort = 0
             for column in cols.items:
-                imgui.table_setup_column("", column.flags | (can_sort if column.sortable else 0))
+                imgui.table_setup_column("", column.flags | (can_sort * column.sortable))
                 # Enabled columns
                 column.enabled = bool(imgui.table_get_column_flags(column.index) & imgui.TABLE_COLUMN_IS_ENABLED)
                 # Set sorting condition
                 if column is cols.manual_sort:
                     can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
             self.sort_games(imgui.table_get_sort_specs())
-
-            # Grid only stuff
-            checkboxes = cols.played.enabled + cols.installed.enabled
-            buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
-            actions = checkboxes + buttons
-            data_rows = cols.developer.enabled + cols.score.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
+    def draw_games_grid(self):
+        # Grab list specs
+        self.tick_list_columns()
+        checkboxes = cols.played.enabled + cols.installed.enabled
+        buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
+        actions = checkboxes + buttons
+        data_rows = cols.developer.enabled + cols.score.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
+
+        # Adjust column count
         column_count = globals.settings.grid_columns
         padding = self.scaled(10)
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
@@ -1991,6 +1983,8 @@ class MainGUI():
         avail = imgui.get_content_region_available_width()
         while column_count > 1 and (avail - (column_count + 1) * padding) / column_count < min_width:
             column_count -= 1
+
+        # Actual grid
         if imgui.begin_table(
             "###game_grid",
             column=column_count,
@@ -2200,29 +2194,23 @@ class MainGUI():
     def draw_bottombar(self):
         new_display_mode = None
 
-        if globals.settings.display_mode is DisplayMode.list:
-            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-        if imgui.button(icons.view_agenda_outline):
-            new_display_mode = DisplayMode.list
-            self.switched_display_mode = True
-        if globals.settings.display_mode is DisplayMode.list:
-            imgui.pop_style_color()
-
-        imgui.same_line()
-
-        if globals.settings.display_mode is DisplayMode.grid:
-            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-        if imgui.button(icons.view_grid_outline):
-            new_display_mode = DisplayMode.grid
-            self.switched_display_mode = True
-        if globals.settings.display_mode is DisplayMode.grid:
-            imgui.pop_style_color()
+        for display_mode, mode_icon in (
+            (DisplayMode.list,   icons.view_agenda_outline),
+            (DisplayMode.grid,   icons.view_grid_outline)
+        ):
+            if globals.settings.display_mode is display_mode:
+                imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+            if imgui.button(mode_icon):
+                new_display_mode = display_mode
+                self.switched_display_mode = True
+            if globals.settings.display_mode is display_mode:
+                imgui.pop_style_color()
+            imgui.same_line()
 
         if new_display_mode is not None:
             globals.settings.display_mode = new_display_mode
             async_thread.run(db.update_settings("display_mode"))
 
-        imgui.same_line()
         if self.add_box_valid:
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
