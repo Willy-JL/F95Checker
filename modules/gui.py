@@ -2200,13 +2200,17 @@ class MainGUI():
         # Configure table
         self.tick_list_columns()
         cell_width, cell_config = self.get_game_cell_config()
+        column_width = cell_width + imgui.style.scrollbar_size
+        padding = self.scaled(4)
+        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
         column_count = len(Label.instances) + 1
         img_height = cell_width / globals.settings.grid_image_ratio
         if imgui.begin_table(
             "###game_kanban",
             column=column_count,
             flags=self.game_kanban_table_flags,
-            inner_width=(cell_width * column_count) + (imgui.style.cell_padding.x * 2 * column_count),
+            inner_width=(column_width * column_count) + (padding * 2 * column_count),
+            outer_size_width=-imgui.style.scrollbar_size - padding,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
             # Setup columns
@@ -2226,9 +2230,10 @@ class MainGUI():
 
             # Loop cells
             self.sync_scroll()
-            draw_list = imgui.get_window_draw_list()
             for label_i, label in (*enumerate(Label.instances), (not_labelled, None)):
                 imgui.table_next_column()
+                imgui.begin_child(f"###game_kanban_{label_i}", width=column_width, height=-padding)
+                draw_list = imgui.get_window_draw_list()
                 for id in self.sorted_games_ids:
                     game = globals.games[id]
                     if label_i == not_labelled:
@@ -2236,9 +2241,12 @@ class MainGUI():
                             continue
                     elif label not in game.labels:
                         continue
+                    imgui.spacing()
                     self.draw_game_cell(game, None, draw_list, cell_width, img_height, cell_config)
+                imgui.end_child()
 
             imgui.end_table()
+        imgui.pop_style_var()
 
     def draw_bottombar(self):
         new_display_mode = None
