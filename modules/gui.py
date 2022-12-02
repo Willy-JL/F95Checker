@@ -1188,7 +1188,7 @@ class MainGUI():
             imgui.same_line()
         if small and align and not popped_y:
             imgui.pop_y()
-        if wrap:
+        elif wrap:
             imgui.dummy(0, 0)
         if small:
             imgui.pop_font()
