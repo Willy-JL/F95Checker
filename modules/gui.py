@@ -1967,23 +1967,18 @@ class MainGUI():
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
-    def draw_games_grid(self):
-        # Grab list specs
-        self.tick_list_columns()
+    def get_game_cell_config(self):
+        side_indent = imgui.style.item_spacing.x * 2
         checkboxes = cols.played.enabled + cols.installed.enabled
         buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
-        actions = checkboxes + buttons
+        action_items = checkboxes + buttons
         data_rows = cols.developer.enabled + cols.score.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
+        bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
 
-        # Adjust column count
-        column_count = globals.settings.grid_columns
-        padding = self.scaled(10)
-        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
-        indent = imgui.style.item_spacing.x * 2
         min_width = (
-            indent * 2 +  # Side padding * 2 sides
+            side_indent * 2 +  # Side indent * 2 sides
             max((
-                imgui.style.item_spacing.x * 2 * (actions - 1) +  # Spacing * 2 * (6 action items - 1 (between items))
+                imgui.style.item_spacing.x * action_items +  # Spacing * 6 action items
                 imgui.style.frame_padding.x * 2 * buttons +  # Button padding * 2 sides * 4 buttons
                 imgui.style.item_inner_spacing.x * checkboxes +  # Checkbox to label spacing * 2 checkboxes
                 imgui.get_frame_height() * checkboxes +  # (Checkbox height = width) * 2 checkboxes
@@ -1994,11 +1989,196 @@ class MainGUI():
                 imgui.calc_text_size("Last Updated:00/00/0000").x  # Text
             ))
         )
-        avail = imgui.get_content_region_available_width()
-        while column_count > 1 and (avail - (column_count + 1) * padding) / column_count < min_width:
-            column_count -= 1
 
-        # Actual grid
+        draw_list = imgui.get_window_draw_list()
+        frame_height = imgui.get_frame_height()
+        data_height = data_rows * imgui.get_text_line_height_with_spacing()
+        badge_wrap = side_indent + imgui.style.item_spacing.x + frame_height
+        dev_wrap = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x * 2
+
+        config = (side_indent, action_items, data_rows, bg_col, draw_list, frame_height, data_height, badge_wrap, dev_wrap)
+        return min_width, config
+
+    def draw_game_cell(self, game: Game, game_i: int | None, cell_width: float, img_height: float, config: tuple):
+        (side_indent, action_items, data_rows, bg_col, draw_list, frame_height, data_height, badge_wrap, dev_wrap) = config
+        draw_list.channels_split(2)
+        draw_list.channels_set_current(1)
+        pos = imgui.get_cursor_pos()
+        imgui.begin_group()
+        # Image
+        if game.image.missing:
+            text = "Image missing!"
+            text_size = imgui.calc_text_size(text)
+            showed_img = imgui.is_rect_visible(cell_width, img_height)
+            if text_size.x < cell_width:
+                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
+                self.draw_hover_text(
+                    text=text,
+                    hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
+                )
+                imgui.set_cursor_pos(pos)
+            imgui.dummy(cell_width, img_height)
+        elif game.image.invalid:
+            text = "Invalid image!"
+            text_size = imgui.calc_text_size(text)
+            showed_img = imgui.is_rect_visible(cell_width, img_height)
+            if text_size.x < cell_width:
+                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
+                self.draw_hover_text(
+                    text=text,
+                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
+                )
+                imgui.set_cursor_pos(pos)
+            imgui.dummy(cell_width, img_height)
+        else:
+            crop = game.image.crop_to_ratio(globals.settings.grid_image_ratio, fit=globals.settings.fit_images)
+            showed_img = game.image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+        # Alignments
+        imgui.indent(side_indent)
+        imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
+        imgui.spacing()
+        # Remove button
+        if showed_img and globals.settings.show_remove_btn:
+            old_pos = imgui.get_cursor_pos()
+            imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
+            self.draw_game_remove_button(game, label=icons.trash_can_outline)
+            imgui.set_cursor_pos(old_pos)
+        # Type
+        if showed_img and cols.type.enabled:
+            old_pos = imgui.get_cursor_pos()
+            imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + img_height - frame_height))
+            self.draw_game_type_widget(game, wide=False)
+            imgui.set_cursor_pos(old_pos)
+        # Name
+        if game.installed and game.installed != game.version:
+            self.draw_game_update_icon(game)
+            imgui.same_line()
+        self.draw_game_name_text(game)
+        if game.notes:
+            imgui.same_line()
+            if imgui.get_content_region_available_width() < badge_wrap:
+                imgui.dummy(0, 0)
+            imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+        if game.labels:
+            imgui.same_line()
+            self.draw_game_labels_widget(game, small=True, align=True)
+        if cols.version.enabled:
+            imgui.text_disabled(self.get_game_version_text(game))
+        if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
+            imgui.same_line()
+            if imgui.get_content_region_available_width() < badge_wrap:
+                imgui.dummy(0, 0)
+            self.draw_game_status_widget(game)
+        if action_items:
+            if imgui.is_rect_visible(cell_width, frame_height):
+                # Play Button
+                did_newline = False
+                if cols.play_button.enabled:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_play_button(game, label=f"{icons.play} Play")
+                    did_newline = True
+                # Open Folder
+                if cols.open_folder.enabled:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Folder")
+                    did_newline = True
+                # Open Thread
+                if cols.open_thread.enabled:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Thread")
+                    did_newline = True
+                # Copy Link
+                if cols.copy_link.enabled:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Link")
+                    did_newline = True
+                # Played
+                if cols.played.enabled:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_played_checkbox(game, label=icons.flag_checkered)
+                    did_newline = True
+                # Installed
+                if cols.installed.enabled:
+                    if did_newline:
+                        imgui.same_line()
+                    self.draw_game_installed_checkbox(game, label=icons.cloud_download)
+                    did_newline = True
+            else:
+                # Skip if outside view
+                imgui.dummy(0, frame_height)
+        if data_rows:
+            if imgui.is_rect_visible(cell_width, data_height):
+                # Developer
+                if cols.developer.enabled:
+                    imgui.text_disabled("Developer:")
+                    imgui.same_line()
+                    utils.wrap_text(game.developer or "Unknown", width=cell_width - 2 * side_indent, offset=dev_wrap)
+                # Forum Score
+                if cols.score.enabled:
+                    imgui.text_disabled("Forum Score:")
+                    imgui.same_line()
+                    imgui.text(f"{game.score:.1f}/5")
+                # Last Updated
+                if cols.last_updated.enabled:
+                    imgui.text_disabled("Last Updated:")
+                    imgui.same_line()
+                    imgui.text(game.last_updated.display or "Unknown")
+                # Last Played
+                if cols.last_played.enabled:
+                    imgui.text_disabled("Last Played:")
+                    imgui.same_line()
+                    imgui.text(game.last_played.display or "Never")
+                # Added On
+                if cols.added_on.enabled:
+                    imgui.text_disabled("Added On:")
+                    imgui.same_line()
+                    imgui.text(game.added_on.display)
+                # Rating
+                if cols.rating.enabled:
+                    imgui.text_disabled("Rating:")
+                    imgui.same_line()
+                    self.draw_game_rating_widget(game)
+                # Notes
+                if cols.notes.enabled:
+                    self.draw_game_notes_widget(game, multiline=False, width=cell_width - 2 * side_indent)
+            else:
+                # Skip if outside view
+                imgui.dummy(0, data_height)
+        # Cell hitbox
+        imgui.pop_text_wrap_pos()
+        imgui.spacing()
+        imgui.spacing()
+        imgui.end_group()
+        draw_list.channels_set_current(0)
+        imgui.set_cursor_pos(pos)
+        cell_height = imgui.get_item_rect_size().y
+        if imgui.is_rect_visible(cell_width, cell_height):
+            # Skip if outside view
+            imgui.invisible_button(f"###{game.id}_kanban_hitbox", cell_width, cell_height)
+            self.handle_game_hitbox_events(game, game_i)
+            pos = imgui.get_item_rect_min()
+            pos2 = imgui.get_item_rect_max()
+            draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+        else:
+            imgui.dummy(cell_width, cell_height)
+        draw_list.channels_merge()
+
+    def draw_games_grid(self):
+        # Configure table
+        self.tick_list_columns()
+        min_cell_width, cell_config = self.get_game_cell_config()
+        padding = self.scaled(8)
+        avail = imgui.get_content_region_available_width()
+        column_count = globals.settings.grid_columns
+        while column_count > 1 and (cell_width := (avail - padding * 2 * column_count) / column_count) < min_cell_width:
+            column_count -= 1
+        img_height = cell_width / globals.settings.grid_image_ratio
+        imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
         if imgui.begin_table(
             "###game_grid",
             column=column_count,
@@ -2008,199 +2188,13 @@ class MainGUI():
             # Setup
             for i in range(column_count):
                 imgui.table_setup_column(f"###game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-            img_ratio = globals.settings.grid_image_ratio
-            width = None
-            height = None
-            wrap_width = None
-            notes_width = None
-            developer_width = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x * 2
-            notes_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size(icons.draw_pen).x
-            status_badge_width = indent + imgui.style.item_spacing.x + imgui.calc_text_size(icons.alert_circle).x
-            draw_list = imgui.get_window_draw_list()
-            bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
-            rounding = globals.settings.style_corner_radius
-            frame_height = imgui.get_frame_height()
-            data_height = data_rows * imgui.get_text_line_height_with_spacing()
 
             # Loop cells
             self.sync_scroll()
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
-                draw_list.channels_split(2)
-                draw_list.channels_set_current(1)
                 imgui.table_next_column()
-
-                # Setup pt2
-                if width is None:
-                    width = imgui.get_content_region_available_width()
-                    height = width / img_ratio
-                    wrap_width = width - 2 * indent
-
-                # Cell
-                pos = imgui.get_cursor_pos()
-                imgui.begin_group()
-                # Image
-                if game.image.missing:
-                    text = "Image missing!"
-                    text_size = imgui.calc_text_size(text)
-                    showed_img = imgui.is_rect_visible(width, height)
-                    if text_size.x < width:
-                        imgui.set_cursor_pos((pos.x + (width - text_size.x) / 2, pos.y + height / 2))
-                        self.draw_hover_text(
-                            text=text,
-                            hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
-                        )
-                        imgui.set_cursor_pos(pos)
-                    imgui.dummy(width, height)
-                elif game.image.invalid:
-                    text = "Invalid image!"
-                    text_size = imgui.calc_text_size(text)
-                    showed_img = imgui.is_rect_visible(width, height)
-                    if text_size.x < width:
-                        imgui.set_cursor_pos((pos.x + (width - text_size.x) / 2, pos.y + height / 2))
-                        self.draw_hover_text(
-                            text=text,
-                            hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
-                        )
-                        imgui.set_cursor_pos(pos)
-                    imgui.dummy(width, height)
-                else:
-                    crop = game.image.crop_to_ratio(img_ratio, fit=globals.settings.fit_images)
-                    showed_img = game.image.render(width, height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
-                # Setup pt3
-                imgui.indent(indent)
-                imgui.push_text_wrap_pos(pos.x + width - indent)
-                imgui.spacing()
-                # Remove button
-                if showed_img and globals.settings.show_remove_btn:
-                    old_pos = imgui.get_cursor_pos()
-                    imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
-                    self.draw_game_remove_button(game, label=icons.trash_can_outline)
-                    imgui.set_cursor_pos(old_pos)
-                # Type
-                if showed_img and cols.type.enabled:
-                    old_pos = imgui.get_cursor_pos()
-                    imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + height - frame_height))
-                    self.draw_game_type_widget(game, wide=False)
-                    imgui.set_cursor_pos(old_pos)
-                # Name
-                if game.installed and game.installed != game.version:
-                    self.draw_game_update_icon(game)
-                    imgui.same_line()
-                self.draw_game_name_text(game)
-                if game.notes:
-                    imgui.same_line()
-                    if imgui.get_content_region_available_width() < notes_badge_width:
-                        imgui.dummy(0, 0)
-                    imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-                if game.labels:
-                    imgui.same_line()
-                    self.draw_game_labels_widget(game, small=True, align=True)
-                if cols.version.enabled:
-                    imgui.text_disabled(self.get_game_version_text(game))
-                if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
-                    imgui.same_line()
-                    if imgui.get_content_region_available_width() < status_badge_width:
-                        imgui.dummy(0, 0)
-                    self.draw_game_status_widget(game)
-                if actions:
-                    if imgui.is_rect_visible(width, frame_height):
-                        # Play Button
-                        did_newline = False
-                        if cols.play_button.enabled:
-                            if did_newline:
-                                imgui.same_line()
-                            self.draw_game_play_button(game, label=f"{icons.play} Play")
-                            did_newline = True
-                        # Open Folder
-                        if cols.open_folder.enabled:
-                            if did_newline:
-                                imgui.same_line()
-                            self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Folder")
-                            did_newline = True
-                        # Open Thread
-                        if cols.open_thread.enabled:
-                            if did_newline:
-                                imgui.same_line()
-                            self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Thread")
-                            did_newline = True
-                        # Copy Link
-                        if cols.copy_link.enabled:
-                            if did_newline:
-                                imgui.same_line()
-                            self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Link")
-                            did_newline = True
-                        # Played
-                        if cols.played.enabled:
-                            if did_newline:
-                                imgui.same_line()
-                            self.draw_game_played_checkbox(game, label=icons.flag_checkered)
-                            did_newline = True
-                        # Installed
-                        if cols.installed.enabled:
-                            if did_newline:
-                                imgui.same_line()
-                            self.draw_game_installed_checkbox(game, label=icons.cloud_download)
-                            did_newline = True
-                    else:
-                        # Skip if outside view
-                        imgui.dummy(0, frame_height)
-                if data_rows:
-                    if imgui.is_rect_visible(width, data_height):
-                        # Developer
-                        if cols.developer.enabled:
-                            imgui.text_disabled("Developer:")
-                            imgui.same_line()
-                            utils.wrap_text(game.developer or "Unknown", width=wrap_width, offset=developer_width)
-                        # Forum Score
-                        if cols.score.enabled:
-                            imgui.text_disabled("Forum Score:")
-                            imgui.same_line()
-                            imgui.text(f"{game.score:.1f}/5")
-                        # Last Updated
-                        if cols.last_updated.enabled:
-                            imgui.text_disabled("Last Updated:")
-                            imgui.same_line()
-                            imgui.text(game.last_updated.display or "Unknown")
-                        # Last Played
-                        if cols.last_played.enabled:
-                            imgui.text_disabled("Last Played:")
-                            imgui.same_line()
-                            imgui.text(game.last_played.display or "Never")
-                        # Added On
-                        if cols.added_on.enabled:
-                            imgui.text_disabled("Added On:")
-                            imgui.same_line()
-                            imgui.text(game.added_on.display)
-                        # Rating
-                        if cols.rating.enabled:
-                            imgui.text_disabled("Rating:")
-                            imgui.same_line()
-                            self.draw_game_rating_widget(game)
-                        # Notes
-                        if cols.notes.enabled:
-                            if not notes_width:
-                                notes_width = width - 2 * (imgui.get_cursor_pos_x() - pos.x)
-                            self.draw_game_notes_widget(game, multiline=False, width=notes_width)
-                    else:
-                        # Skip if outside view
-                        imgui.dummy(0, data_height)
-                # Cell hitbox
-                imgui.pop_text_wrap_pos()
-                imgui.spacing()
-                imgui.spacing()
-                imgui.end_group()
-                draw_list.channels_set_current(0)
-                imgui.set_cursor_pos(pos)
-                cell_height = imgui.get_item_rect_size().y
-                if imgui.is_rect_visible(width, cell_height):
-                    # Skip if outside view
-                    imgui.invisible_button(f"###{game.id}_grid_hitbox", width, cell_height)
-                    self.handle_game_hitbox_events(game, game_i)
-                    pos = imgui.get_item_rect_min()
-                    pos2 = imgui.get_item_rect_max()
-                    draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
-                draw_list.channels_merge()
+                self.draw_game_cell(game, game_i, cell_width, img_height, cell_config)
 
             imgui.end_table()
         imgui.pop_style_var()
