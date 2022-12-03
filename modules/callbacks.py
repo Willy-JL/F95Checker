@@ -124,6 +124,7 @@ async def _launch_game_exe(game: Game, executable: str):
 
 
 def launch_game(game: Game, executable: str = None):
+    game.validate_executables()
     if not executable and len(game.executables) == 1:
         executable = game.executables[0]
     if executable:
@@ -192,6 +193,7 @@ async def _open_game_folder_exe(game: Game, executable: str):
 
 
 def open_game_folder(game: Game, executable: str = None):
+    game.validate_executables()
     if not executable and len(game.executables) == 1:
         executable = game.executables[0]
     if executable:
