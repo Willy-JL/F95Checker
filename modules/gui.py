@@ -2253,7 +2253,6 @@ class MainGUI():
             imgui.table_header("Not Labelled")
 
             # Loop cells
-            self.sync_scroll()
             for label_i, label in (*enumerate(Label.instances), (not_labelled, None)):
                 imgui.table_next_column()
                 imgui.begin_child(f"###game_kanban_{label_i}", width=column_width, height=-padding)
