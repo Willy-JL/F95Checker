@@ -839,6 +839,63 @@ class MainGUI():
             return True
         return False
 
+    def draw_type_widget(self, type: Type, wide=True, align=False, *args, **kwargs):
+        imgui.push_no_interaction()
+        imgui.push_style_color(imgui.COLOR_BUTTON, *type.color)
+        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
+        if wide:
+            x_padding = 4
+            backup_y_padding = imgui.style.frame_padding.y
+            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (x_padding, 0))
+            if self.type_label_width is None:
+                self.type_label_width = 0
+                for name in Type._member_names_:
+                    self.type_label_width = max(self.type_label_width, imgui.calc_text_size(name).x)
+                self.type_label_width += 2 * x_padding
+            if align:
+                imgui.push_y(backup_y_padding)
+            imgui.button(f"{type.name}###type_{type.value}", *args, width=self.type_label_width, **kwargs)
+            if align:
+                imgui.pop_y()
+            imgui.pop_style_var(2)
+        else:
+            imgui.small_button(f"{type.name}###type_{type.value}", *args, **kwargs)
+            imgui.pop_style_var()
+        imgui.pop_style_color()
+        imgui.pop_no_interaction()
+
+    def draw_tag_widget(self, tag: Tag, *args, **kwargs):
+        imgui.push_no_interaction()
+        imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.3, 0.3, 1.0)
+        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
+        imgui.small_button(f"{tag.name}###tag_{tag.value}", *args, **kwargs)
+        imgui.pop_style_var()
+        imgui.pop_style_color()
+        imgui.pop_no_interaction()
+
+    def draw_label_widget(self, label: Label, short=False, *args, **kwargs):
+        if short:
+            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
+            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *label.color)
+            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *label.color)
+        else:
+            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
+            imgui.push_no_interaction()
+        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
+        imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}", *args, **kwargs)
+        if short and imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.push_font(imgui.fonts.default)
+            self.draw_label_widget(label, short=False)
+            imgui.pop_font()
+            imgui.end_tooltip()
+        imgui.pop_style_var()
+        if short:
+            imgui.pop_style_color(3)
+        else:
+            imgui.pop_no_interaction()
+            imgui.pop_style_color()
+
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None, *args, **kwargs):
         id = f"{label}###{game.id}_more_info"
         if selectable:
@@ -874,31 +931,6 @@ class MainGUI():
         elif clicked:
             callbacks.launch_game(game, executable=executable)
         return clicked
-
-    def draw_game_type_widget(self, game: Game, wide=True, align=False, *args, **kwargs):
-        imgui.push_no_interaction()
-        imgui.push_style_color(imgui.COLOR_BUTTON, *game.type.color)
-        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        if wide:
-            x_padding = 4
-            backup_y_padding = imgui.style.frame_padding.y
-            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (x_padding, 0))
-            if self.type_label_width is None:
-                self.type_label_width = 0
-                for name in Type._member_names_:
-                    self.type_label_width = max(self.type_label_width, imgui.calc_text_size(name).x)
-                self.type_label_width += 2 * x_padding
-            if align:
-                imgui.push_y(backup_y_padding)
-            imgui.button(f"{game.type.name}###{game.id}_type", *args, width=self.type_label_width, **kwargs)
-            if align:
-                imgui.pop_y()
-            imgui.pop_style_var(2)
-        else:
-            imgui.small_button(f"{game.type.name}###{game.id}_type", *args, **kwargs)
-            imgui.pop_style_var()
-        imgui.pop_style_color()
-        imgui.pop_no_interaction()
 
     def draw_game_update_icon(self, game: Game, *args, **kwargs):
         imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00, *args, **kwargs)
@@ -1123,35 +1155,12 @@ class MainGUI():
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + _20:
                 imgui.dummy(0, 0)
-            imgui.small_button(tag.name, *args, **kwargs)
+            imgui.small_button(f"{tag.name}###tag_{tag.value}", *args, **kwargs)
             imgui.same_line()
         imgui.dummy(0, 0)
         imgui.pop_style_var()
         imgui.pop_style_color()
         imgui.pop_no_interaction()
-
-    def draw_label_widget(self, label: Label, short=False, *args, **kwargs):
-        if short:
-            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
-            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *label.color)
-            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *label.color)
-        else:
-            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
-            imgui.push_no_interaction()
-        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}", *args, **kwargs)
-        if short and imgui.is_item_hovered():
-            imgui.begin_tooltip()
-            imgui.push_font(imgui.fonts.default)
-            self.draw_label_widget(label, short=False)
-            imgui.pop_font()
-            imgui.end_tooltip()
-        imgui.pop_style_var()
-        if short:
-            imgui.pop_style_color(3)
-        else:
-            imgui.pop_no_interaction()
-            imgui.pop_style_color()
 
     def draw_game_labels_select_widget(self, game: Game, *args, **kwargs):
         if Label.instances:
@@ -1428,7 +1437,7 @@ class MainGUI():
 
             imgui.text_disabled("Type:")
             imgui.same_line()
-            self.draw_game_type_widget(game)
+            self.draw_type_widget(game.type)
 
             imgui.text_disabled("Last Updated:")
             imgui.same_line()
@@ -1884,7 +1893,7 @@ class MainGUI():
                         case cols.play_button.index:
                             self.draw_game_play_button(game, label=icons.play)
                         case cols.type.index:
-                            self.draw_game_type_widget(game, align=True)
+                            self.draw_type_widget(game.type, align=True)
                         case cols.name.index:
                             if globals.settings.show_remove_btn:
                                 self.draw_game_remove_button(game, label=icons.trash_can_outline)
@@ -2043,7 +2052,7 @@ class MainGUI():
         if showed_img and cols.type.enabled:
             old_pos = imgui.get_cursor_pos()
             imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + img_height - frame_height))
-            self.draw_game_type_widget(game, wide=False)
+            self.draw_type_widget(game.type, wide=False)
             imgui.set_cursor_pos(old_pos)
         # Name
         if game.installed and game.installed != game.version:
