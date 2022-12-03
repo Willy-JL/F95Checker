@@ -353,18 +353,19 @@ class MainGUI():
                 imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND_HOVERED, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
                 imgui.push_style_color(imgui.COLOR_FRAME_BACKGROUND, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
                 imgui.push_style_color(imgui.COLOR_CHECK_MARK, *imgui.style.colors[imgui.COLOR_WINDOW_BACKGROUND])
-            result = imgui._checkbox(label, state)
+            ret = imgui._checkbox(label, state)
             if state:
                 imgui.pop_style_color(3)
-            return result
+            return ret
         imgui.checkbox = checkbox
         # Custom combo style
         imgui._combo = imgui.combo
         def combo(*args, **kwargs):
             imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-            result = imgui._combo(*args, **kwargs)
-            imgui.pop_style_color()
-            return result
+            imgui.push_style_color(imgui.COLOR_HEADER, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED][:3], 0.5)
+            ret = imgui._combo(*args, **kwargs)
+            imgui.pop_style_color(2)
+            return ret
         imgui.combo = combo
         # Utils
         def push_y(offset: float):
