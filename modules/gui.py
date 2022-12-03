@@ -367,6 +367,20 @@ class MainGUI():
             imgui.pop_style_color(2)
             return ret
         imgui.combo = combo
+        imgui._begin_combo = imgui.begin_combo
+        def begin_combo(*args, **kwargs):
+            imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+            ret = imgui._begin_combo(*args, **kwargs)
+            imgui.pop_style_color()
+            if ret:
+                imgui.push_style_color(imgui.COLOR_HEADER, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED][:3], 0.5)
+            return ret
+        imgui.begin_combo = begin_combo
+        imgui._end_combo = imgui.end_combo
+        def end_combo(*args, **kwargs):
+            imgui.pop_style_color()
+            return imgui._end_combo(*args, **kwargs)
+        imgui.end_combo = end_combo
         # Utils
         def push_y(offset: float):
             imgui.begin_group()
@@ -2528,10 +2542,18 @@ class MainGUI():
                             if flt.match is None:
                                 flt.match = Label.instances[0]
                             draw_settings_label("Label value:")
-                            changed, value = imgui.combo(f"###filter_{flt.id}_value", Label.instances.index(flt.match), [label.name for label in Label.instances])
-                            if changed:
-                                flt.match = Label.instances[value]
-                                self.require_sort = True
+                            if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                                for label in Label.instances:
+                                    selected = label is flt.match
+                                    pos = imgui.get_cursor_pos()
+                                    if imgui.selectable(f"###filter_{flt.id}_value_{label.id}", selected)[0]:
+                                        flt.match = label
+                                        self.require_sort = True
+                                    if selected:
+                                        imgui.set_item_default_focus()
+                                    imgui.set_cursor_pos(pos)
+                                    self.draw_label_widget(label)
+                                imgui.end_combo()
                         else:
                             draw_settings_label("Make some labels first!")
                             imgui.text("")
@@ -2557,16 +2579,32 @@ class MainGUI():
                             self.require_sort = True
                     case FilterMode.Tag.value:
                         draw_settings_label("Tag value:")
-                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Tag._member_names_)
-                        if changed:
-                            flt.match = Tag[Tag._member_names_[value]]
-                            self.require_sort = True
+                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                            for tag in Tag:
+                                selected = tag is flt.match
+                                pos = imgui.get_cursor_pos()
+                                if imgui.selectable(f"###filter_{flt.id}_value_{tag.value}", selected)[0]:
+                                    flt.match = tag
+                                    self.require_sort = True
+                                if selected:
+                                    imgui.set_item_default_focus()
+                                imgui.set_cursor_pos(pos)
+                                self.draw_tag_widget(tag)
+                            imgui.end_combo()
                     case FilterMode.Type.value:
                         draw_settings_label("Type value:")
-                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Type._member_names_)
-                        if changed:
-                            flt.match = Type[Type._member_names_[value]]
-                            self.require_sort = True
+                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                            for type in Type:
+                                selected = type is flt.match
+                                pos = imgui.get_cursor_pos()
+                                if imgui.selectable(f"###filter_{flt.id}_value_{type.value}", selected)[0]:
+                                    flt.match = type
+                                    self.require_sort = True
+                                if selected:
+                                    imgui.set_item_default_focus()
+                                imgui.set_cursor_pos(pos)
+                                self.draw_type_widget(type)
+                            imgui.end_combo()
 
                 draw_settings_label("Invert filter:")
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
