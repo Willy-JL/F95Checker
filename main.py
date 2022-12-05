@@ -37,11 +37,10 @@ def main():
         from modules import gui
         globals.gui = gui.MainGUI()
 
-        if globals.settings.rpc_enabled:
-            from modules import rpc_thread
-            rpc_thread.start()
+        from modules import rpc_thread
+        with rpc_thread.setup():
 
-        globals.gui.main_loop()
+            globals.gui.main_loop()
 
 
 @contextlib.contextmanager
@@ -59,9 +58,8 @@ def lock_singleton():
             singleton.release("F95Checker")
         else:
             try:
-                import xmlrpc.client
-                with xmlrpc.client.ServerProxy(f"http://localhost:{rpc_port}/", allow_none=True) as proxy:
-                    proxy.show_window()
+                from urllib import request
+                request.urlopen(request.Request(f"http://localhost:{rpc_port}/window/show", method="POST"))
             except Exception:
                 pass
 

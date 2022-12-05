@@ -3008,7 +3008,7 @@ class MainGUI():
 
             draw_settings_label(
                 "RPC enabled:",
-                f"The RPC allows other programs on your pc to interact with F95Checker via the xmlrpc on localhost:{globals.rpc_port}. "
+                f"The RPC allows other programs on your pc to interact with F95Checker via the api on localhost:{globals.rpc_port}. "
                 "Essentially this is what makes the web browser extension work. Disable this if you are having issues with the RPC, "
                 "but do note that doing so will prevent the extension from working at all."
             )
