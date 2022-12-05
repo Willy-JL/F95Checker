@@ -237,7 +237,7 @@ class MainGUI():
         # Variables
         self.hidden = False
         self.focused = True
-        self.iconized = False
+        self.minimized = False
         self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
@@ -309,7 +309,7 @@ class MainGUI():
         self.impl = GlfwRenderer(self.window)
         glfw.set_char_callback(self.window, self.char_callback)
         glfw.set_window_close_callback(self.window, self.close_callback)
-        glfw.set_window_iconify_callback(self.window, self.iconify_callback)
+        glfw.set_window_iconify_callback(self.window, self.minimize_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.set_window_pos_callback(self.window, self.pos_callback)
         glfw.set_drop_callback(self.window, self.drop_callback)
@@ -569,8 +569,8 @@ class MainGUI():
             self.hide()
             glfw.set_window_should_close(self.window, False)
 
-    def iconify_callback(self, window: glfw._GLFWwindow, iconized: int):
-        self.iconized = iconized
+    def minimize_callback(self, window: glfw._GLFWwindow, minimized: int):
+        self.minimized = minimized
 
     def focus_callback(self, window: glfw._GLFWwindow, focused: int):
         self.focused = focused
@@ -622,7 +622,7 @@ class MainGUI():
         prev_any_hovered = None
         prev_win_hovered = None
         prev_mouse_pos = None
-        prev_iconized = None
+        prev_minimized = None
         scroll_energy = 0.0
         prev_focused = None
         any_hovered = False
@@ -637,9 +637,9 @@ class MainGUI():
             while not glfw.window_should_close(self.window):
                 # Tick events and inputs
                 prev_mouse_pos = imgui.io.mouse_pos
+                prev_minimized = self.minimized
                 prev_win_hovered = win_hovered
                 prev_any_hovered = any_hovered
-                prev_iconized = self.iconized
                 prev_focused = self.focused
                 prev_hidden = self.hidden
                 self.prev_size = size
@@ -662,7 +662,7 @@ class MainGUI():
                 if not self.focused and win_hovered:
                     # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
                     imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
-                if not self.hidden and not self.iconized and (self.focused or globals.settings.render_when_unfocused):
+                if not self.hidden and not self.minimized and (self.focused or globals.settings.render_when_unfocused):
 
                     # Scroll modifiers (must be before new_frame())
                     imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -685,7 +685,7 @@ class MainGUI():
                     draw = draw or size != self.prev_size
                     draw = draw or prev_hidden != self.hidden
                     draw = draw or prev_focused != self.focused
-                    draw = draw or prev_iconized != self.iconized
+                    draw = draw or prev_minimized != self.minimized
                     draw = draw or prev_scaling != globals.settings.interface_scaling
                     draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                     draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
@@ -718,7 +718,7 @@ class MainGUI():
 
                         # Imgui window is top left of display window, and has same size
                         imgui.set_next_window_position(0, 0, imgui.ONCE)
-                        if size != self.prev_size and not self.iconized:
+                        if size != self.prev_size and not self.minimized:
                             imgui.set_next_window_size(*size, imgui.ALWAYS)
 
                         # Create main window
