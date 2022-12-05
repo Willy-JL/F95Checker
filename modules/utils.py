@@ -50,7 +50,7 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
         globals.refresh_task = None
         globals.gui.tray.update_status()
         globals.gui.require_sort = True
-        if (globals.gui.minimized or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
+        if (globals.gui.hidden or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
             globals.gui.tray.push_msg(title="Updates", msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates, click here to view {'it' if count == 1 else 'them'}.", icon=QSystemTrayIcon.MessageIcon.Information)
         # Continues after this only if the task was not cancelled
         try:
@@ -286,8 +286,8 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
 def push_popup(*args, bottom=False, **kwargs):
     popup_func = functools.partial(*args, **kwargs, popup_uuid=f"{time.time()}{rand_num_str()}")
     if globals.gui:
-        if (globals.gui.minimized or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
-            if globals.gui.minimized and args[1] == "Daily backups":
+        if (globals.gui.hidden or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
+            if globals.gui.hidden and args[1] == "Daily backups":
                 return
             globals.gui.tray.push_msg(title="Oops", msg="Something went wrong, click here to view the error.", icon=QSystemTrayIcon.MessageIcon.Critical)
     if bottom:

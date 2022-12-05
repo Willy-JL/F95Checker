@@ -235,9 +235,9 @@ class MainGUI():
         self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.release else ' by WillyJL'}"
 
         # Variables
+        self.hidden = False
         self.focused = True
         self.iconized = False
-        self.minimized = False
         self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
@@ -302,7 +302,7 @@ class MainGUI():
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_tray:
-            self.minimize()
+            self.hide()
         self.icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = imagehelper.ImageHelper(self.icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(self.icon_path))
@@ -566,7 +566,7 @@ class MainGUI():
 
     def close_callback(self, window: glfw._GLFWwindow):
         if globals.settings.minimize_on_close:
-            self.minimize()
+            self.hide()
             glfw.set_window_should_close(self.window, False)
 
     def iconify_callback(self, window: glfw._GLFWwindow, iconized: int):
@@ -595,10 +595,10 @@ class MainGUI():
                 elif path.suffix and path.suffix.lower() == ".url":
                     async_thread.run(api.import_url_shortcut(path))
 
-    def minimize(self, *args, **kwargs):
+    def hide(self, *args, **kwargs):
         self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
-        self.minimized = True
+        self.hidden = True
         self.tray.update_status()
 
     def show(self, *args, **kwargs):
@@ -608,27 +608,27 @@ class MainGUI():
         glfw.show_window(self.window)
         if utils.validate_geometry(*self.screen_pos, *self.prev_size):
             glfw.set_window_pos(self.window, *self.screen_pos)
-        self.minimized = False
+        self.hidden = False
         self.tray.update_status()
 
     def scaled(self, size: int | float):
         return size * globals.settings.interface_scaling
 
     def main_loop(self):
-        if globals.settings.start_refresh and not self.minimized:
+        if globals.settings.start_refresh and not self.hidden:
             utils.start_refresh_task(api.refresh())
         # Loop variables
         prev_scaling = globals.settings.interface_scaling
         prev_any_hovered = None
         prev_win_hovered = None
         prev_mouse_pos = None
-        prev_minimized = None
         prev_iconized = None
         scroll_energy = 0.0
         prev_focused = None
         any_hovered = False
         win_hovered = None
         prev_cursor = None
+        prev_hidden = None
         draw_next = 5.0
         size = (0, 0)
         cursor = -1
@@ -637,11 +637,11 @@ class MainGUI():
             while not glfw.window_should_close(self.window):
                 # Tick events and inputs
                 prev_mouse_pos = imgui.io.mouse_pos
-                prev_minimized = self.minimized
                 prev_win_hovered = win_hovered
                 prev_any_hovered = any_hovered
                 prev_iconized = self.iconized
                 prev_focused = self.focused
+                prev_hidden = self.hidden
                 self.prev_size = size
                 prev_cursor = cursor
                 self.tray.tick_msgs()
@@ -662,7 +662,7 @@ class MainGUI():
                 if not self.focused and win_hovered:
                     # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
                     imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
-                if not self.minimized and not self.iconized and (self.focused or globals.settings.render_when_unfocused):
+                if not self.hidden and not self.iconized and (self.focused or globals.settings.render_when_unfocused):
 
                     # Scroll modifiers (must be before new_frame())
                     imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -683,9 +683,9 @@ class MainGUI():
                     draw = draw or imagehelper.redraw
                     draw = draw or utils.is_refreshing()
                     draw = draw or size != self.prev_size
+                    draw = draw or prev_hidden != self.hidden
                     draw = draw or prev_focused != self.focused
                     draw = draw or prev_iconized != self.iconized
-                    draw = draw or prev_minimized != self.minimized
                     draw = draw or prev_scaling != globals.settings.interface_scaling
                     draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                     draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
@@ -798,7 +798,7 @@ class MainGUI():
                         time.sleep(1 / 15)
                 else:
                     # Tray bg mode and not paused
-                    if self.minimized and not self.bg_mode_paused:
+                    if self.hidden and not self.bg_mode_paused:
                         if not self.bg_mode_timer and not utils.is_refreshing():
                             # Schedule next refresh
                             self.bg_mode_timer = time.time() + globals.settings.tray_refresh_interval * 60
@@ -2746,7 +2746,7 @@ class MainGUI():
 
             draw_settings_label(
                 "BG on close:",
-                "When closing the window F95Checker will instead minimize to background mode. Quit the app via the tray icon."
+                "When closing the window F95Checker will instead switch to background mode. Quit the app via the tray icon."
             )
             draw_settings_checkbox("minimize_on_close")
 
@@ -3083,7 +3083,7 @@ class MainGUI():
 
             draw_settings_label(
                 "BG interval:",
-                "When F95Checker is minimized in background mode it automatically refreshes your games periodically. This "
+                "When F95Checker is in background mode it automatically refreshes your games periodically. This "
                 "controls how often (in minutes) this happens."
             )
             changed, value = imgui.drag_int("###tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=30, max_value=1440, format="%d min")
@@ -3096,7 +3096,7 @@ class MainGUI():
 
             draw_settings_label(
                 "BG notifs intv:",
-                "When F95Checker is minimized in background mode it automatically checks your notifications periodically. This "
+                "When F95Checker is in background mode it automatically checks your notifications periodically. This "
                 "controls how often (in minutes) this happens."
             )
             changed, value = imgui.drag_int("###tray_notifs_interval", set.tray_notifs_interval, change_speed=4.0, min_value=15, max_value=1440, format="%d min")
@@ -3119,8 +3119,8 @@ class MainGUI():
             draw_settings_checkbox("start_refresh")
 
             draw_settings_label(
-                "Start minimized:",
-                "F95Checker will start in background mode, minimized in the system tray."
+                "Start in BG:",
+                "F95Checker will start in background mode, hidden in the system tray."
             )
             draw_settings_checkbox("start_in_tray")
 
@@ -3184,10 +3184,15 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
-        if draw_settings_section("Minimize", collapsible=False):
-            draw_settings_label("Switch to BG:")
-            if imgui.button("Minimize", width=right_width):
-                self.minimize()
+        if draw_settings_section("Background", collapsible=False):
+            draw_settings_label(
+                "BG mode:",
+                "When in background mode, F95Checker hides the main window and only keeps the icon in the system tray. The main feature of "
+                "background mode is periodic refreshing: your list will be automatically refreshed at regular intervals and you will receive "
+                "a desktop notification if some updates / notifications have been found."
+            )
+            if imgui.button("Switch", width=right_width):
+                self.hide()
             imgui.end_table()
 
         imgui.end_child()
@@ -3226,7 +3231,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.toggle_pause.triggered.connect(update_pause)
 
         self.toggle_gui = QtGui.QAction("Toggle GUI")
-        self.toggle_gui.triggered.connect(lambda *_: self.main_gui.show() if self.main_gui.minimized else self.main_gui.minimize())
+        self.toggle_gui.triggered.connect(lambda *_: self.main_gui.show() if self.main_gui.hidden else self.main_gui.hide())
 
         self.quit = QtGui.QAction("Quit")
         self.quit.triggered.connect(self.main_gui.close)
@@ -3252,7 +3257,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
     def update_icon(self, *_):
         if utils.is_refreshing():
             self.setIcon(self.refresh_icon)
-        elif self.main_gui.bg_mode_paused and self.main_gui.minimized:
+        elif self.main_gui.bg_mode_paused and self.main_gui.hidden:
             self.setIcon(self.paused_icon)
         else:
             self.setIcon(self.idle_icon)
@@ -3264,7 +3269,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.menu_open = False
 
     def update_menu(self, *_):
-        if self.main_gui.minimized:
+        if self.main_gui.hidden:
             if self.main_gui.bg_mode_paused:
                 next_refresh = "Paused"
             elif self.main_gui.bg_mode_timer or self.main_gui.bg_mode_notifs_timer:
@@ -3283,7 +3288,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         else:
             self.refresh_btn.setText("Refresh Now!")
 
-        if self.main_gui.minimized:
+        if self.main_gui.hidden:
             if self.main_gui.bg_mode_paused:
                 self.toggle_pause.setText("Unpause Auto Refresh")
             else:
@@ -3292,7 +3297,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         else:
             self.toggle_pause.setVisible(False)
 
-        if self.main_gui.minimized:
+        if self.main_gui.hidden:
             self.toggle_gui.setText("Switch to GUI")
         else:
             self.toggle_gui.setText("Switch to BG")

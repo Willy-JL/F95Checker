@@ -500,7 +500,7 @@ async def check_notifs(login=False):
         if popup.func is msgbox.msgbox and popup.args[0] == "Notifications":
             globals.popup_stack.remove(popup)
     utils.push_popup(msgbox.msgbox, "Notifications", msg + f"\n\nDo you want to view {'them' if (alerts + inbox) > 1 else 'it'}?", MsgBox.info, buttons)
-    if globals.gui.minimized or not globals.gui.focused:
+    if globals.gui.hidden or not globals.gui.focused:
         globals.gui.tray.push_msg(title="Notifications", msg=msg + ".\nClick here to view them.", icon=QSystemTrayIcon.MessageIcon.Information)
 
 
@@ -675,7 +675,7 @@ async def check_updates():
     else:
         path = globals.self_path
     utils.push_popup(msgbox.msgbox, "F95Checker update", f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\nUPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n{path}\n\nDo you want to update?\n(The app will restart automatically, DON'T reopen manually!)", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
-    if globals.gui.minimized or not globals.gui.focused:
+    if globals.gui.hidden or not globals.gui.focused:
         globals.gui.tray.push_msg(title="F95Checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
 
