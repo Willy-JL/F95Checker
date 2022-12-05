@@ -29,41 +29,50 @@ def start():
         global server
 
         class RPCHandler(http.server.SimpleHTTPRequestHandler):
-            def json_response(self, code: int, data: list | dict):
+            def send_resp(self, code: int):
                 self.send_response(code)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
+
+            def send_json(self, code: int, data: list | dict):
+                self.response(code)
                 self.wfile.write(json.dumps(data).encode())
 
             def do_GET(self):
-                match self.path:
-                    case "/games":
-                        self.json_response(200, list(globals.games))
-                        return
-                    case _:
-                        self.json_response(404, {"success": False})
-                        return
-                self.json_response(200, {"success": True})
+                try:
+                    match self.path:
+                        case "/games":
+                            self.send_json(200, list(globals.games))
+                            return
+                        case _:
+                            self.send_resp(404)
+                            return
+                    self.send_resp(200)
+                except Exception:
+                    self.send_resp(500)
 
             def do_POST(self):
-                match self.path:
-                    case "/window/show":
-                        globals.gui.show()
-                    case "/window/hide":
-                        globals.gui.hide()
-                    case "/games/add":
-                        urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
-                        if matches := utils.extract_thread_matches("\n".join(urls)):
+                try:
+                    match self.path:
+                        case "/window/show":
                             globals.gui.show()
-                            async def _add_game():
-                                await asyncio.sleep(0.1)
-                                await callbacks.add_games(*matches)
-                            async_thread.run(_add_game())
-                    case _:
-                        self.json_response(404, {"success": False})
-                        return
-                self.json_response(200, {"success": True})
+                        case "/window/hide":
+                            globals.gui.hide()
+                        case "/games/add":
+                            urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                            if matches := utils.extract_thread_matches("\n".join(urls)):
+                                globals.gui.show()
+                                async def _add_game():
+                                    await asyncio.sleep(0.1)
+                                    await callbacks.add_games(*matches)
+                                async_thread.run(_add_game())
+                        case _:
+                            self.send_resp(404)
+                            return
+                    self.send_resp(200)
+                except Exception:
+                    self.send_resp(500)
 
         try:
             server = socketserver.TCPServer(("localhost", globals.rpc_port), RPCHandler)
