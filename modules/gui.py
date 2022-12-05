@@ -320,7 +320,7 @@ class MainGUI():
         def syncexcepthook(args: threading.ExceptHookArgs):
             if args.exc_type is not msgbox.Exc:
                 err = error.text(args.exc_value)
-                tb = error.traceback(args.exc_type, args.exc_value, args.exc_traceback)
+                tb = error.traceback(args.exc_value)
                 utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n{err}", MsgBox.error, more=tb)
         threading.excepthook = syncexcepthook
         def asyncexcepthook(future: asyncio.Future):
