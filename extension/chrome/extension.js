@@ -2,21 +2,32 @@ const rpcPort = 57095;
 const rpcURL = `http://localhost:${rpcPort}`;
 
 
-function addToF95Checker(url) {
-    match = /threads\/(?:[^\/]*\.)?\d+/.exec(url);
-    if (!match) {
-        return;
+async function rpcCall(tab, method, path, body) {
+    try {
+        const res = await fetch(`${rpcURL}${path}`, {
+            method: method,
+            body: body
+        });
+        if (!res.ok) {
+            throw res.status;
+        }
+    } catch {
+        chrome.scripting.executeScript({
+            target: {tabId: tab.id},
+            func: () => { alert("Could not connect to F95Checker!\nIs it open and updated? Is RPC enabled?") }
+        });
     }
-    fetch(`${rpcURL}/games/add`, {
-        method: "POST",
-        body: JSON.stringify([url])
-    });
+}
+
+
+async function addGame(url, tab) {
+    await rpcCall(tab, "POST", "/games/add", JSON.stringify([url]));
 }
 
 
 // Click on extension icon
 chrome.action.onClicked.addListener(tab => {
-    addToF95Checker(tab.url);
+    addGame(tab.url, tab);
 });
 
 
@@ -36,5 +47,5 @@ chrome.runtime.onInstalled.addListener(async () => {
     });
 });
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    addToF95Checker(info.linkUrl || info.pageUrl);
+    addGame(info.linkUrl || info.pageUrl, tab);
 });

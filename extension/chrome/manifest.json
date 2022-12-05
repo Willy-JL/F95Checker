@@ -25,7 +25,8 @@
         "service_worker": "extension.js"
     },
     "permissions": [
-      "activeTab",
-      "contextMenus"
+        "scripting",
+        "activeTab",
+        "contextMenus"
     ]
   }
