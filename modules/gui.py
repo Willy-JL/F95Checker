@@ -301,7 +301,7 @@ class MainGUI():
         if all([isinstance(x, int) for x in pos]) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
-        if globals.settings.start_in_tray:
+        if globals.settings.start_in_background:
             self.hide()
         self.icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = imagehelper.ImageHelper(self.icon_path)
@@ -565,7 +565,7 @@ class MainGUI():
         self.input_chars.append(char)
 
     def close_callback(self, window: glfw._GLFWwindow):
-        if globals.settings.minimize_on_close:
+        if globals.settings.background_on_close:
             self.hide()
             glfw.set_window_should_close(self.window, False)
 
@@ -801,7 +801,7 @@ class MainGUI():
                     if self.hidden and not self.bg_mode_paused:
                         if not self.bg_mode_timer and not utils.is_refreshing():
                             # Schedule next refresh
-                            self.bg_mode_timer = time.time() + globals.settings.tray_refresh_interval * 60
+                            self.bg_mode_timer = time.time() + globals.settings.bg_refresh_interval * 60
                             self.tray.update_status()
                         elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
                             # Run scheduled refresh
@@ -810,7 +810,7 @@ class MainGUI():
                         elif globals.settings.check_notifs:
                             if not self.bg_mode_notifs_timer and not utils.is_refreshing():
                                 # Schedule next notif check
-                                self.bg_mode_notifs_timer = time.time() + globals.settings.tray_notifs_interval * 60
+                                self.bg_mode_notifs_timer = time.time() + globals.settings.bg_notifs_interval * 60
                                 self.tray.update_status()
                             elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
                                 # Run scheduled notif check
@@ -2748,7 +2748,7 @@ class MainGUI():
                 "BG on close:",
                 "When closing the window F95Checker will instead switch to background mode. Quit the app via the tray icon."
             )
-            draw_settings_checkbox("minimize_on_close")
+            draw_settings_checkbox("background_on_close")
 
             draw_settings_label(
                 "Grid columns:",
@@ -3086,10 +3086,10 @@ class MainGUI():
                 "When F95Checker is in background mode it automatically refreshes your games periodically. This "
                 "controls how often (in minutes) this happens."
             )
-            changed, value = imgui.drag_int("###tray_refresh_interval", set.tray_refresh_interval, change_speed=4.0, min_value=30, max_value=1440, format="%d min")
-            set.tray_refresh_interval = min(max(value, 30), 1440)
+            changed, value = imgui.drag_int("###bg_refresh_interval", set.bg_refresh_interval, change_speed=4.0, min_value=30, max_value=1440, format="%d min")
+            set.bg_refresh_interval = min(max(value, 30), 1440)
             if changed:
-                async_thread.run(db.update_settings("tray_refresh_interval"))
+                async_thread.run(db.update_settings("bg_refresh_interval"))
 
             if not set.check_notifs:
                 imgui.push_disabled()
@@ -3099,10 +3099,10 @@ class MainGUI():
                 "When F95Checker is in background mode it automatically checks your notifications periodically. This "
                 "controls how often (in minutes) this happens."
             )
-            changed, value = imgui.drag_int("###tray_notifs_interval", set.tray_notifs_interval, change_speed=4.0, min_value=15, max_value=1440, format="%d min")
-            set.tray_notifs_interval = min(max(value, 15), 1440)
+            changed, value = imgui.drag_int("###bg_notifs_interval", set.bg_notifs_interval, change_speed=4.0, min_value=15, max_value=1440, format="%d min")
+            set.bg_notifs_interval = min(max(value, 15), 1440)
             if changed:
-                async_thread.run(db.update_settings("tray_notifs_interval"))
+                async_thread.run(db.update_settings("bg_notifs_interval"))
 
             if not set.check_notifs:
                 imgui.pop_disabled()
@@ -3122,7 +3122,7 @@ class MainGUI():
                 "Start in BG:",
                 "F95Checker will start in background mode, hidden in the system tray."
             )
-            draw_settings_checkbox("start_in_tray")
+            draw_settings_checkbox("start_in_background")
 
             draw_settings_label("Start with system:")
             imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
@@ -3273,7 +3273,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             if self.main_gui.bg_mode_paused:
                 next_refresh = "Paused"
             elif self.main_gui.bg_mode_timer or self.main_gui.bg_mode_notifs_timer:
-                next_refresh = dt.datetime.fromtimestamp(min(self.main_gui.bg_mode_timer or globals.settings.tray_refresh_interval, self.main_gui.bg_mode_notifs_timer or globals.settings.tray_notifs_interval)).strftime("%H:%M")
+                next_refresh = dt.datetime.fromtimestamp(min(self.main_gui.bg_mode_timer or globals.settings.bg_refresh_interval, self.main_gui.bg_mode_notifs_timer or globals.settings.bg_notifs_interval)).strftime("%H:%M")
             elif utils.is_refreshing():
                 next_refresh = "Now"
             else:

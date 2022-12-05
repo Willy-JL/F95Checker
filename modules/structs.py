@@ -436,6 +436,9 @@ Browser.add("Custom", -1)
 
 @dataclasses.dataclass
 class Settings:
+    background_on_close         : bool
+    bg_notifs_interval          : int
+    bg_refresh_interval         : int
     browser                     : Browser.get
     browser_custom_arguments    : str
     browser_custom_executable   : str
@@ -454,7 +457,6 @@ class Settings:
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]
     max_retries                 : int
-    minimize_on_close           : bool
     refresh_completed_games     : bool
     refresh_workers             : int
     render_when_unfocused       : bool
@@ -465,7 +467,7 @@ class Settings:
     scroll_smooth_speed         : float
     select_executable_after_add : bool
     show_remove_btn             : bool
-    start_in_tray               : bool
+    start_in_background         : bool
     start_refresh               : bool
     style_accent                : tuple[float]
     style_alt_bg                : tuple[float]
@@ -475,8 +477,6 @@ class Settings:
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
     timestamp_format            : str
-    tray_notifs_interval        : int
-    tray_refresh_interval       : int
     update_keep_image           : bool
     use_parser_processes        : bool
     vsync_ratio                 : int

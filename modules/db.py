@@ -97,6 +97,9 @@ async def connect():
         table_name="settings",
         columns={
             "_":                           f'INTEGER PRIMARY KEY CHECK (_=0)',
+            "background_on_close":         f'INTEGER DEFAULT {int(False)}',
+            "bg_notifs_interval":          f'INTEGER DEFAULT 15',
+            "bg_refresh_interval":         f'INTEGER DEFAULT 30',
             "browser_custom_arguments":    f'TEXT    DEFAULT ""',
             "browser_custom_executable":   f'TEXT    DEFAULT ""',
             "browser_html":                f'INTEGER DEFAULT {int(False)}',
@@ -115,7 +118,6 @@ async def connect():
             "last_successful_refresh":     f'INTEGER DEFAULT 0',
             "manual_sort_list":            f'TEXT    DEFAULT "[]"',
             "max_retries":                 f'INTEGER DEFAULT 2',
-            "minimize_on_close":           f'INTEGER DEFAULT {int(False)}',
             "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
             "refresh_workers":             f'INTEGER DEFAULT 20',
             "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',
@@ -126,7 +128,7 @@ async def connect():
             "scroll_smooth_speed":         f'REAL    DEFAULT 8.0',
             "select_executable_after_add": f'INTEGER DEFAULT {int(False)}',
             "show_remove_btn":             f'INTEGER DEFAULT {int(False)}',
-            "start_in_tray":               f'INTEGER DEFAULT {int(False)}',
+            "start_in_background":         f'INTEGER DEFAULT {int(False)}',
             "start_refresh":               f'INTEGER DEFAULT {int(False)}',
             "style_accent":                f'TEXT    DEFAULT "{DefaultStyle.accent}"',
             "style_alt_bg":                f'TEXT    DEFAULT "{DefaultStyle.alt_bg}"',
@@ -136,15 +138,19 @@ async def connect():
             "style_text":                  f'TEXT    DEFAULT "{DefaultStyle.text}"',
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
-            "tray_notifs_interval":        f'INTEGER DEFAULT 15',
-            "tray_refresh_interval":       f'INTEGER DEFAULT 30',
             "update_keep_image":           f'INTEGER DEFAULT {int(False)}',
             "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "zoom_area":                   f'INTEGER DEFAULT 50',
             "zoom_times":                  f'REAL    DEFAULT 4.0',
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}'
-        }
+        },
+        renames=[
+            ("minimize_on_close",     "background_on_close"),
+            ("start_in_tray",         "start_in_background"),
+            ("tray_notifs_interval",  "bg_notifs_interval"),
+            ("tray_refresh_interval", "bg_refresh_interval")
+        ]
     )
     await connection.execute("""
         INSERT INTO settings
@@ -519,7 +525,7 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                 values.append(int(start_refresh))
 
             if (bg_mode_delay_mins := options.get("bg_mode_delay_mins")) is not None:
-                keys.append("tray_refresh_interval")
+                keys.append("bg_refresh_interval")
                 values.append(bg_mode_delay_mins)
 
             if (refresh_completed_games := options.get("refresh_completed_games")) is not None:
