@@ -36,7 +36,7 @@ def start():
                 self.end_headers()
 
             def send_json(self, code: int, data: list | dict):
-                self.response(code)
+                self.send_resp(code)
                 self.wfile.write(json.dumps(data).encode())
 
             def do_GET(self):
