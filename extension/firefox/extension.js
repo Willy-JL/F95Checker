@@ -1,8 +1,9 @@
 const rpcPort = 57095;
 const rpcURL = `http://localhost:${rpcPort}`;
+let games = [];
 
 
-async function rpcCall(tab, method, path, body) {
+async function rpcCall(method, path, body, tab) {
     try {
         const res = await fetch(`${rpcURL}${path}`, {
             method: method,
@@ -11,17 +12,31 @@ async function rpcCall(tab, method, path, body) {
         if (!res.ok) {
             throw res.status;
         }
+        return res;
     } catch {
-        chrome.scripting.executeScript({
-            target: {tabId: tab.id},
-            func: () => { alert("Could not connect to F95Checker!\nIs it open and updated? Is RPC enabled?") }
-        });
+        if (tab) {
+            chrome.scripting.executeScript({
+                target: {tabId: tab.id},
+                func: () => { alert("Could not connect to F95Checker!\nIs it open and updated? Is RPC enabled?") }
+            });
+        }
+    }
+}
+
+
+async function getGames() {
+    const res = await rpcCall("GET", "/games");
+    if (res) {
+        games = res.json();
+    } else {
+        games = [];
     }
 }
 
 
 async function addGame(url, tab) {
-    await rpcCall(tab, "POST", "/games/add", JSON.stringify([url]));
+    await rpcCall("POST", "/games/add", JSON.stringify([url]), tab);
+    await getGames();
 }
 
 
@@ -49,3 +64,8 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     addGame(info.linkUrl || info.pageUrl, tab);
 });
+
+
+// Get game list every 5 minutes
+setInterval(getGames, 5 * 60 * 1000)
+getGames();
