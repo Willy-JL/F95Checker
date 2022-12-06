@@ -604,10 +604,10 @@ class MainGUI():
     def show(self, *args, **kwargs):
         self.bg_mode_timer = None
         self.bg_mode_notifs_timer = None
-        glfw.hide_window(self.window)
         glfw.show_window(self.window)
         if utils.validate_geometry(*self.screen_pos, *self.prev_size):
             glfw.set_window_pos(self.window, *self.screen_pos)
+        glfw.focus_window(self.window)
         self.hidden = False
         self.tray.update_status()
 
