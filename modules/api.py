@@ -74,14 +74,17 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                 res = b""
                 if read:
                     if until:
+                        offset = 0
                         async for chunk in req.content.iter_any():
                             if not chunk:
                                 break
                             res += chunk
-                            if res.find(until[0]) != -1:
-                                until.pop(0)
+                            while (new_offset := res.find(until[0], offset)) != -1:
+                                offset = new_offset + len(until.pop(0))
                                 if not until:
                                     break
+                            if not until:
+                                break
                     else:
                         res += await req.read()
                 yield res, req
@@ -114,9 +117,7 @@ def raise_f95zone_error(res: bytes, return_login=False):
 async def is_logged_in():
     global xf_token
     async with request("GET", globals.check_login_page, until=[b"_xfToken", b">"]) as (res, req):
-        start = res.rfind(b'value="') + len(b'value="')
-        end = res.find(b'"', start)
-        xf_token = str(res[start:end], encoding="utf-8")
+        xf_token = str(re.search(rb'<\s*input.*?name\s*=\s*"_xfToken"\s*value\s*=\s*"(.+)"', res).group(1), encoding="utf-8")
         if not 200 <= req.status < 300:
             res += await req.content.read()
             if not raise_f95zone_error(res, return_login=True):
