@@ -2890,7 +2890,7 @@ class MainGUI():
             imgui.spacing()
 
         if draw_settings_section("Labels"):
-            buttons_offset = right_width - (2 * frame_height + imgui.style.item_spacing.x)
+            buttons_offset = right_width - (3 * frame_height + 2 * imgui.style.item_spacing.x)
             for label in Label.instances:
                 imgui.table_next_row()
                 imgui.table_next_column()
@@ -2908,6 +2908,12 @@ class MainGUI():
                 if changed:
                     label.color = (*value, 1.0)
                     async_thread.run(db.update_label(label, "color"))
+                imgui.same_line()
+                if imgui.button(f"{icons.filter_plus_outline}###label_filter_{label.id}", width=frame_height):
+                    flt = Filter(FilterMode.Label)
+                    flt.match = label
+                    self.filters.append(flt)
+                    self.require_sort = True
                 imgui.same_line()
                 if imgui.button(f"{icons.trash_can_outline}###label_remove_{label.id}", width=frame_height):
                     async_thread.run(db.remove_label(label))
