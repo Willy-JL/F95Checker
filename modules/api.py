@@ -674,7 +674,7 @@ async def check_updates():
         path = globals.self_path.parent.parent
     else:
         path = globals.self_path
-    utils.push_popup(msgbox.msgbox, "F95Checker update", f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\nUPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n{path}\n\nDo you want to update?\n(The app will restart automatically, DON'T reopen manually!)", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    utils.push_popup(msgbox.msgbox, "F95Checker update", f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\nUPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n{path}\nYour user data (games, settings, login, ...) will not be affected.\n\nDo you want to update?\n(The app will restart automatically, DON'T reopen manually!)", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
     if globals.gui.hidden or not globals.gui.focused:
         globals.gui.tray.push_msg(title="F95Checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
 
