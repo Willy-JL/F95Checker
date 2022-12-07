@@ -856,8 +856,9 @@ class MainGUI():
         return False
 
     def draw_type_widget(self, type: Type, wide=True, align=False, *args, **kwargs):
-        imgui.push_no_interaction()
         imgui.push_style_color(imgui.COLOR_BUTTON, *type.color)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *type.color)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *type.color)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
         if wide:
             x_padding = 4
@@ -877,28 +878,38 @@ class MainGUI():
         else:
             imgui.small_button(f"{type.name}###type_{type.value}", *args, **kwargs)
             imgui.pop_style_var()
-        imgui.pop_style_color()
-        imgui.pop_no_interaction()
+        if imgui.is_item_clicked():
+            flt = Filter(FilterMode.Type)
+            flt.match = type
+            self.filters.append(flt)
+            self.require_sort = True
+        imgui.pop_style_color(3)
 
     def draw_tag_widget(self, tag: Tag, *args, **kwargs):
-        imgui.push_no_interaction()
         imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.3, 0.3, 1.0)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0.3, 0.3, 0.3, 1.0)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.3, 0.3, 0.3, 1.0)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
         imgui.small_button(f"{tag.name}###tag_{tag.value}", *args, **kwargs)
+        if imgui.is_item_clicked():
+            flt = Filter(FilterMode.Tag)
+            flt.match = tag
+            self.filters.append(flt)
+            self.require_sort = True
         imgui.pop_style_var()
-        imgui.pop_style_color()
-        imgui.pop_no_interaction()
+        imgui.pop_style_color(3)
 
     def draw_label_widget(self, label: Label, short=False, *args, **kwargs):
-        if short:
-            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
-            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *label.color)
-            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *label.color)
-        else:
-            imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
-            imgui.push_no_interaction()
+        imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *label.color)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *label.color)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
         imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}", *args, **kwargs)
+        if imgui.is_item_clicked():
+            flt = Filter(FilterMode.Label)
+            flt.match = label
+            self.filters.append(flt)
+            self.require_sort = True
         if short and imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_font(imgui.fonts.default)
@@ -906,11 +917,7 @@ class MainGUI():
             imgui.pop_font()
             imgui.end_tooltip()
         imgui.pop_style_var()
-        if short:
-            imgui.pop_style_color(3)
-        else:
-            imgui.pop_no_interaction()
-            imgui.pop_style_color()
+        imgui.pop_style_color(3)
 
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None, *args, **kwargs):
         id = f"{label}###{game.id}_more_info"
@@ -974,6 +981,7 @@ class MainGUI():
             return game.version
 
     def draw_game_status_widget(self, game: Game, *args, **kwargs):
+        pos = imgui.get_cursor_pos()
         if game.status is Status.Unchecked:
             imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50, *args, **kwargs)
         elif game.status is Status.Normal:
@@ -986,6 +994,14 @@ class MainGUI():
             imgui.text_colored(icons.close_circle, 0.87, 0.20, 0.20, *args, **kwargs)
         else:
             imgui.text("", *args, **kwargs)
+            return
+        imgui.set_cursor_pos(pos)
+        imgui.invisible_button("", *imgui.get_item_rect_size())
+        if imgui.is_item_clicked():
+            flt = Filter(FilterMode.Status)
+            flt.match = game.status
+            self.filters.append(flt)
+            self.require_sort = True
 
     def draw_game_played_checkbox(self, game: Game, label="", *args, **kwargs):
         changed, game.played = imgui.checkbox(f"{label}###{game.id}_played", game.played, *args, **kwargs)
@@ -1164,19 +1180,24 @@ class MainGUI():
                 imgui.end_popup()
 
     def draw_game_tags_widget(self, game: Game, *args, **kwargs):
-        imgui.push_no_interaction()
         imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.3, 0.3, 1.0)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0.3, 0.3, 0.3, 1.0)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.3, 0.3, 0.3, 1.0)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
         _20 = self.scaled(20)
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + _20:
                 imgui.dummy(0, 0)
             imgui.small_button(f"{tag.name}###tag_{tag.value}", *args, **kwargs)
+            if imgui.is_item_clicked():
+                flt = Filter(FilterMode.Tag)
+                flt.match = tag
+                self.filters.append(flt)
+                self.require_sort = True
             imgui.same_line()
         imgui.dummy(0, 0)
         imgui.pop_style_var()
-        imgui.pop_style_color()
-        imgui.pop_no_interaction()
+        imgui.pop_style_color(3)
 
     def draw_game_labels_select_widget(self, game: Game, *args, **kwargs):
         if Label.instances:
