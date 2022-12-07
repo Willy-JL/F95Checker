@@ -8,6 +8,7 @@ import configparser
 import dataclasses
 import threading
 import platform
+import builtins
 import asyncio
 import pathlib
 import aiohttp
@@ -2928,7 +2929,7 @@ class MainGUI():
             if imgui.tree_node("Import", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x
                 if imgui.button("Thread links", width=-offset):
-                    thread_links = type("_", (), dict(_=""))()
+                    thread_links = builtins.type("_", (), dict(_=""))()
                     def popup_content():
                         nonlocal thread_links
                         imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
@@ -2972,7 +2973,7 @@ class MainGUI():
             if imgui.tree_node("Export", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x
                 if imgui.button("Thread links", width=-offset):
-                    thread_links = type("_", (), dict(_="\n".join(game.url for game in globals.games.values())))()
+                    thread_links = builtins.type("_", (), dict(_="\n".join(game.url for game in globals.games.values())))()
                     def popup_content():
                         imgui.input_text_multiline(
                             f"###export_links",
