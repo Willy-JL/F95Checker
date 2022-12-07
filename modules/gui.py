@@ -2225,16 +2225,21 @@ class MainGUI():
         # Configure table
         self.tick_list_columns()
         cell_width, cell_config = self.get_game_cell_config()
-        column_width = cell_width + imgui.style.scrollbar_size
         padding = self.scaled(4)
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
-        column_count = len(Label.instances) + 1
         img_height = cell_width / globals.settings.grid_image_ratio
+        cells_per_column = 1
+        column_count = len(Label.instances) + 1
+        avail = imgui.get_content_region_available_width()
+        table_width = 0
+        while (new_table_width := (((cell_width * cells_per_column) + (imgui.style.item_spacing.x * (cells_per_column - 1)) + imgui.style.scrollbar_size) * column_count) + (padding * 2 * column_count)) < avail:
+            table_width = new_table_width
+            cells_per_column += 1
         if imgui.begin_table(
             "###game_kanban",
             column=column_count,
             flags=self.game_kanban_table_flags,
-            inner_width=(column_width * column_count) + (padding * 2 * column_count),
+            inner_width=table_width or new_table_width,
             outer_size_width=-imgui.style.scrollbar_size - padding,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
@@ -2256,8 +2261,10 @@ class MainGUI():
             # Loop cells
             for label_i, label in (*enumerate(Label.instances), (not_labelled, None)):
                 imgui.table_next_column()
-                imgui.begin_child(f"###game_kanban_{label_i}", width=column_width, height=-padding)
+                imgui.begin_child(f"###game_kanban_{label_i}", height=-padding)
                 draw_list = imgui.get_window_draw_list()
+                wrap = cells_per_column
+                imgui.begin_group()
                 for id in self.sorted_games_ids:
                     game = globals.games[id]
                     if label_i == not_labelled:
@@ -2265,8 +2272,15 @@ class MainGUI():
                             continue
                     elif label not in game.labels:
                         continue
-                    imgui.spacing()
                     self.draw_game_cell(game, None, draw_list, cell_width, img_height, cell_config)
+                    wrap -= 1
+                    if wrap:
+                        imgui.same_line()
+                    else:
+                        imgui.end_group()
+                        wrap = cells_per_column
+                        imgui.begin_group()
+                imgui.end_group()
                 imgui.end_child()
 
             imgui.end_table()
