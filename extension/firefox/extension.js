@@ -53,6 +53,7 @@ const updateIcons = async (tabId) => {
             const createIcon = (isImage) => {
                 const icon = document.createElement("i");
                 icon.classList.add("fa", "fa-box-check", "f95checker-library-icon");
+                icon.style.fontFamily = "'Font Awesome 5 Pro'";
                 icon.style.color = "#EC5555";
                 if (isImage) {
                     icon.style.position = "absolute";
