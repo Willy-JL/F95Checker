@@ -4,7 +4,7 @@
     "short_name": "F95Checker",
     "author": "WillyJL",
     "version": "0.0.3",
-    "description": "Browser addon to easily add games to F95Checker",
+    "description": "Integration between the F95Zone forum and the F95Checker app",
     "homepage_url": "https://github.com/Willy-JL/F95Checker",
 
     "browser_action": {
