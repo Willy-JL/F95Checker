@@ -75,7 +75,7 @@ The F95Checker browser addon allows you to easily add games to you desktop F95Ch
 
 The extension is available for both major browser families (for example Brave counts as Chrome, LibreWolf counts as Firefox):
 
-- **Chrome:** Install from [Web Store](https://chrome.google.com/webstore/detail/f95checker-browser-addon/fcipbnanhmafkfgbhgbagidnaempgmjb)
+- **Chrome:** Go to [`chrome://extensions/`](chrome://extensions/) and drag `extension/chrome.crx` (from the tool folder) into the page
 
 - **Firefox:** Install from [AMO](https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/)
 
