@@ -52,16 +52,21 @@ const updateIcons = async (tabId) => {
             }
             const createIcon = (isImage) => {
                 const icon = document.createElement("i");
-                icon.classList.add("fa", "fa-box-check", "f95checker-library-icon");
+                icon.classList.add("fa", "fa-box-heart", "f95checker-library-icon");
                 icon.style.fontFamily = "'Font Awesome 5 Pro'";
-                icon.style.color = "#EC5555";
+                icon.style.color = "#FD5555";
                 if (isImage) {
                     icon.style.position = "absolute";
                     icon.style.zIndex = "999";
-                    icon.style.textShadow = "0px 0px 5px #222";
                     icon.style.right = "5px";
-                    icon.style.top = "7px";
+                    icon.style.top = "5px";
                     icon.style.fontSize = "larger";
+                    icon.style.background = "#262626";
+                    icon.style.border = "solid #262626";
+                    icon.style.borderWidth = "4px 5px";
+                    icon.style.borderRadius = "4px";
+                } else {
+                    icon.style.marginRight = "0.2em"
                 }
                 icon.setAttribute("title", "This game is present in your F95Checker library!");
                 icon.addEventListener("click", () => {
