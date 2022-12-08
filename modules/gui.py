@@ -1705,6 +1705,7 @@ class MainGUI():
                 "FaceCrap",
                 "ascsd",
                 "Jarulf",
+                "warez_gamez",
                 "DarkVermilion",
                 "And 1 anon"
             ]:
