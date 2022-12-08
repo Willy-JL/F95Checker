@@ -163,7 +163,7 @@ def close_weak_popup():
     return False
 
 
-def wrap_text(text: str, *args, width: float, offset=0, func: typing.Callable = imgui.text_unformatted, **kwargs):
+def wrap_text(text: str, width: float, offset=0, func: typing.Callable = imgui.text_unformatted):
     for line in text.split("\n"):
         while line:= line.strip():
             if offset is not None:
@@ -184,7 +184,7 @@ def wrap_text(text: str, *args, width: float, offset=0, func: typing.Callable = 
                     cut -= 1
             else:
                 cut = len(line)
-            func(line[:cut], *args, **kwargs)
+            func(line[:cut])
             line = line[cut:]
             if offset is not None:
                 offset = None

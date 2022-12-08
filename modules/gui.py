@@ -558,7 +558,7 @@ class MainGUI():
         self.impl.refresh_font_texture()
         self.type_label_width = None
 
-    def close(self, *args, **kwargs):
+    def close(self, *_, **__):
         glfw.set_window_should_close(self.window, True)
 
     def char_callback(self, window: glfw._GLFWwindow, char: int):
@@ -596,13 +596,13 @@ class MainGUI():
                 elif path.suffix and path.suffix.lower() == ".url":
                     async_thread.run(api.import_url_shortcut(path))
 
-    def hide(self, *args, **kwargs):
+    def hide(self, *_, **__):
         self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
         self.hidden = True
         self.tray.update_status()
 
-    def show(self, *args, **kwargs):
+    def show(self, *_, **__):
         self.bg_mode_timer = None
         self.bg_mode_notifs_timer = None
         glfw.show_window(self.window)
@@ -843,9 +843,9 @@ class MainGUI():
             self.impl.shutdown()
             glfw.terminate()
 
-    def draw_hover_text(self, hover_text: str, text="(?)", force=False, *args, **kwargs):
+    def draw_hover_text(self, hover_text: str, text="(?)", force=False):
         if text:
-            imgui.text_disabled(text, *args, **kwargs)
+            imgui.text_disabled(text)
         if force or imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -855,11 +855,18 @@ class MainGUI():
             return True
         return False
 
-    def draw_type_widget(self, type: Type, wide=True, align=False, *args, **kwargs):
-        imgui.push_style_color(imgui.COLOR_BUTTON, *type.color)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *type.color)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *type.color)
+    def begin_framed_text(self, color: tuple[float]):
+        imgui.push_style_color(imgui.COLOR_BUTTON, *color)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *color)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *color)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
+
+    def end_framed_text(self):
+        imgui.pop_style_var()
+        imgui.pop_style_color(3)
+
+    def draw_type_widget(self, type: Type, wide=True, align=False):
+        self.begin_framed_text(type.color)
         if wide:
             x_padding = 4
             backup_y_padding = imgui.style.frame_padding.y
@@ -871,40 +878,34 @@ class MainGUI():
                 self.type_label_width += 2 * x_padding
             if align:
                 imgui.push_y(backup_y_padding)
-            imgui.button(f"{type.name}###type_{type.value}", *args, width=self.type_label_width, **kwargs)
+            imgui.button(f"{type.name}###type_{type.value}", width=self.type_label_width)
             if align:
                 imgui.pop_y()
-            imgui.pop_style_var(2)
-        else:
-            imgui.small_button(f"{type.name}###type_{type.value}", *args, **kwargs)
             imgui.pop_style_var()
+        else:
+            imgui.small_button(f"{type.name}###type_{type.value}")
         if imgui.is_item_clicked():
             flt = Filter(FilterMode.Type)
             flt.match = type
             self.filters.append(flt)
             self.require_sort = True
-        imgui.pop_style_color(3)
+        self.end_framed_text()
 
-    def draw_tag_widget(self, tag: Tag, *args, **kwargs):
-        imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.3, 0.3, 1.0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0.3, 0.3, 0.3, 1.0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.3, 0.3, 0.3, 1.0)
-        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        imgui.small_button(f"{tag.name}###tag_{tag.value}", *args, **kwargs)
+    def draw_tag_widget(self, tag: Tag, setup=True):
+        if setup:
+            self.begin_framed_text((0.3, 0.3, 0.3, 1.0))
+        imgui.small_button(f"{tag.name}###tag_{tag.value}")
         if imgui.is_item_clicked():
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
             self.require_sort = True
-        imgui.pop_style_var()
-        imgui.pop_style_color(3)
+        if setup:
+            self.end_framed_text()
 
-    def draw_label_widget(self, label: Label, short=False, *args, **kwargs):
-        imgui.push_style_color(imgui.COLOR_BUTTON, *label.color)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *label.color)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *label.color)
-        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
-        imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}", *args, **kwargs)
+    def draw_label_widget(self, label: Label, short=False):
+        self.begin_framed_text(label.color)
+        imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}")
         if imgui.is_item_clicked():
             flt = Filter(FilterMode.Label)
             flt.match = label
@@ -916,20 +917,44 @@ class MainGUI():
             self.draw_label_widget(label, short=False)
             imgui.pop_font()
             imgui.end_tooltip()
-        imgui.pop_style_var()
-        imgui.pop_style_color(3)
+        self.end_framed_text()
 
-    def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None, *args, **kwargs):
+    def draw_status_widget(self, status: Status):
+        imgui.begin_group()
+        pos = imgui.get_cursor_pos()
+        if status is Status.Unchecked:
+            imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50)
+        elif status is Status.Normal:
+            imgui.text_colored(icons.lightning_bolt_circle, *imgui.style.colors[imgui.COLOR_TEXT][:-1])
+        elif status is Status.Completed:
+            imgui.text_colored(icons.checkbox_marked_circle, 0.00, 0.85, 0.00)
+        elif status is Status.OnHold:
+            imgui.text_colored(icons.pause_circle, 0.00, 0.50, 0.95)
+        elif status is Status.Abandoned:
+            imgui.text_colored(icons.close_circle, 0.87, 0.20, 0.20)
+        else:
+            imgui.text("")
+            return
+        imgui.set_cursor_pos(pos)
+        imgui.invisible_button("", *imgui.get_item_rect_size())
+        if imgui.is_item_clicked():
+            flt = Filter(FilterMode.Status)
+            flt.match = status
+            self.filters.append(flt)
+            self.require_sort = True
+        imgui.end_group()
+
+    def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None):
         id = f"{label}###{game.id}_more_info"
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if clicked:
             utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
         return clicked
 
-    def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1, *args, **kwargs):
+    def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1):
         id = f"{label}###{game.id}_play_button_{i}"
         if not game.executables:
             imgui.push_style_color(imgui.COLOR_TEXT, *imgui.style.colors[imgui.COLOR_TEXT_DISABLED][:3], 0.75)
@@ -944,9 +969,9 @@ class MainGUI():
             if not valid:
                 imgui.push_style_color(imgui.COLOR_TEXT, 0.87, 0.20, 0.20)
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if not game.executables or not valid:
             imgui.pop_style_color()
         if imgui.is_item_clicked(2):
@@ -968,55 +993,30 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
-    def draw_game_name_text(self, game: Game, *args, **kwargs):
+    def draw_game_name_text(self, game: Game):
         if game.played:
-            imgui.text(game.name, *args, **kwargs)
+            imgui.text(game.name)
         else:
-            imgui.text_colored(game.name, *globals.settings.style_accent, *args, **kwargs)
+            imgui.text_colored(game.name, *globals.settings.style_accent)
 
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
-            return f"{icons.cloud_download} {game.installed}   |   {icons.star_shooting} {game.version}"
+            return f"{icons.cloud_download} {game.installed}  |  {icons.star_shooting} {game.version}"
         else:
             return game.version
 
-    def draw_game_status_widget(self, game: Game, *args, **kwargs):
-        imgui.begin_group()
-        pos = imgui.get_cursor_pos()
-        if game.status is Status.Unchecked:
-            imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50, *args, **kwargs)
-        elif game.status is Status.Normal:
-            imgui.text_colored(icons.lightning_bolt_circle, *imgui.style.colors[imgui.COLOR_TEXT][:-1], *args, **kwargs)
-        elif game.status is Status.Completed:
-            imgui.text_colored(icons.checkbox_marked_circle, 0.00, 0.85, 0.00, *args, **kwargs)
-        elif game.status is Status.OnHold:
-            imgui.text_colored(icons.pause_circle, 0.00, 0.50, 0.95, *args, **kwargs)
-        elif game.status is Status.Abandoned:
-            imgui.text_colored(icons.close_circle, 0.87, 0.20, 0.20, *args, **kwargs)
-        else:
-            imgui.text("", *args, **kwargs)
-            return
-        imgui.set_cursor_pos(pos)
-        imgui.invisible_button("", *imgui.get_item_rect_size())
-        if imgui.is_item_clicked():
-            flt = Filter(FilterMode.Status)
-            flt.match = game.status
-            self.filters.append(flt)
-            self.require_sort = True
-        imgui.end_group()
-
-    def draw_game_played_checkbox(self, game: Game, label="", *args, **kwargs):
-        changed, game.played = imgui.checkbox(f"{label}###{game.id}_played", game.played, *args, **kwargs)
+    def draw_game_played_checkbox(self, game: Game, label=""):
+        changed, game.played = imgui.checkbox(f"{label}###{game.id}_played", game.played)
         if changed:
             async_thread.run(db.update_game(game, "played"))
             self.require_sort = True
 
-    def draw_game_installed_checkbox(self, game: Game, label="", *args, **kwargs):
+    def draw_game_installed_checkbox(self, game: Game, label=""):
         if game.installed and game.installed == game.version:
             checkbox = imgui.checkbox
         else:
             checkbox = imgui._checkbox
-        changed, _ = checkbox(f"{label}###{game.id}_installed", bool(game.installed), *args, **kwargs)
+        changed, _ = checkbox(f"{label}###{game.id}_installed", bool(game.installed))
         if changed:
             if game.installed == game.version:
                 game.installed = ""  # Latest installed -> Not installed
@@ -1025,51 +1025,51 @@ class MainGUI():
             async_thread.run(db.update_game(game, "installed"))
             self.require_sort = True
 
-    def draw_game_rating_widget(self, game: Game, *args, **kwargs):
+    def draw_game_rating_widget(self, game: Game):
         changed, value = ratingwidget.ratingwidget(f"{game.id}_rating", game.rating)
         if changed:
             game.rating = value
             async_thread.run(db.update_game(game, "rating"))
             self.require_sort = True
 
-    def draw_game_open_thread_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+    def draw_game_open_thread_button(self, game: Game, label="", selectable=False):
         id = f"{label}###{game.id}_open_thread"
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if imgui.is_item_clicked(2):
             glfw.set_clipboard_string(self.window, game.url)
         elif clicked:
             callbacks.open_webpage(game.url)
         return clicked
 
-    def draw_game_copy_link_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+    def draw_game_copy_link_button(self, game: Game, label="", selectable=False):
         id = f"{label}###{game.id}_copy_link"
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if clicked:
             glfw.set_clipboard_string(self.window, game.url)
         return clicked
 
-    def draw_game_remove_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+    def draw_game_remove_button(self, game: Game, label="", selectable=False):
         id = f"{label}###{game.id}_remove"
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if clicked:
             callbacks.remove_game(game)
         return clicked
 
-    def draw_game_add_exe_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+    def draw_game_add_exe_button(self, game: Game, label="", selectable=False):
         id = f"{label}###{game.id}_add_exe"
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if clicked:
             def select_callback(selected):
                 if selected:
@@ -1078,14 +1078,14 @@ class MainGUI():
             utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
         return clicked
 
-    def draw_game_clear_exes_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+    def draw_game_clear_exes_button(self, game: Game, label="", selectable=False):
         id = f"{label}###{game.id}_clear_exes"
         if not game.executables:
             imgui.push_disabled()
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if not game.executables:
             imgui.pop_disabled()
         if clicked:
@@ -1093,61 +1093,75 @@ class MainGUI():
             async_thread.run(db.update_game(game, "executables"))
         return clicked
 
-    def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1, *args, **kwargs):
+    def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1):
         id = f"{label}###{game.id}_open_folder_{i}"
         if not game.executables:
             imgui.push_alpha()
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if not game.executables:
             imgui.pop_alpha()
         if clicked:
             callbacks.open_game_folder(game, executable=executable)
         return clicked
 
-    def draw_game_recheck_button(self, game: Game, label="", selectable=False, *args, **kwargs):
+    def draw_game_recheck_button(self, game: Game, label="", selectable=False):
         id = f"{label}###{game.id}_recheck"
         if selectable:
-            clicked = imgui.selectable(id, False, *args, **kwargs)[0]
+            clicked = imgui.selectable(id, False)[0]
         else:
-            clicked = imgui.button(id, *args, **kwargs)
+            clicked = imgui.button(id)
         if clicked:
             utils.start_refresh_task(api.check(game, full=True, login=True))
         return clicked
 
+    def draw_game_labels_select_widget(self, game: Game):
+        if Label.instances:
+            for label in Label.instances:
+                changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
+                if changed:
+                    if value:
+                        game.labels.append(label)
+                    else:
+                        game.labels.remove(label)
+                    self.require_sort = True
+                    async_thread.run(db.update_game(game, "labels"))
+                imgui.same_line()
+                self.draw_label_widget(label)
+        else:
+            imgui.text_disabled("Make some labels first!")
+
     def draw_game_context_menu(self, game: Game):
-        self.draw_game_more_info_button(game, label=f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
-        self.draw_game_recheck_button(game, label=f"{icons.reload_alert} Full Recheck", selectable=True)
+        self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
+        self.draw_game_recheck_button(game, f"{icons.reload_alert} Full Recheck", selectable=True)
         imgui.separator()
-        self.draw_game_play_button(game, label=f"{icons.play} Play", selectable=True)
-        self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Open Thread", selectable=True)
-        self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Copy Link", selectable=True)
+        self.draw_game_play_button(game, f"{icons.play} Play", selectable=True)
+        self.draw_game_open_thread_button(game, f"{icons.open_in_new} Open Thread", selectable=True)
+        self.draw_game_copy_link_button(game, f"{icons.content_copy} Copy Link", selectable=True)
         imgui.separator()
-        self.draw_game_add_exe_button(game, label=f"{icons.folder_edit_outline} Add Exe", selectable=True)
-        self.draw_game_clear_exes_button(game, label=f"{icons.folder_remove_outline} Clear Exes", selectable=True)
-        self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Open Folder", selectable=True)
+        self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe", selectable=True)
+        self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes", selectable=True)
+        self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
-        self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
-        self.draw_game_installed_checkbox(game, label=f"{icons.cloud_download} Installed")
+        self.draw_game_played_checkbox(game, f"{icons.flag_checkered} Played")
+        self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
         imgui.separator()
         self.draw_game_rating_widget(game)
         if imgui.begin_menu(f"{icons.label_multiple_outline} Labels"):
             self.draw_game_labels_select_widget(game)
             imgui.end_menu()
         imgui.separator()
-        self.draw_game_remove_button(game, label=f"{icons.trash_can_outline} Remove", selectable=True)
+        self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove", selectable=True)
 
-    def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None, *args, **kwargs):
+    def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None):
         if multiline:
             changed, game.notes = imgui.input_text_multiline(
                 f"###{game.id}_notes",
                 value=game.notes,
                 width=width or imgui.get_content_region_available_width(),
-                height=self.scaled(450),
-                *args,
-                **kwargs
+                height=self.scaled(450)
             )
             setter_extra = lambda _=None: [setattr(self, "require_sort", True), async_thread.run(db.update_game(game, "notes"))]
             if changed:
@@ -1164,9 +1178,7 @@ class MainGUI():
                 first_line = game.notes
             changed, first_line = imgui.input_text(
                 f"###{game.id}_notes_inline",
-                value=first_line,
-                *args,
-                **kwargs
+                value=first_line
             )
             def setter_extra(value: str):
                 # Merge with remaining lines
@@ -1181,43 +1193,18 @@ class MainGUI():
                 utils.text_context(type("_", (), dict(_=first_line))(), "_", setter_extra)
                 imgui.end_popup()
 
-    def draw_game_tags_widget(self, game: Game, *args, **kwargs):
-        imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.3, 0.3, 1.0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0.3, 0.3, 0.3, 1.0)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.3, 0.3, 0.3, 1.0)
-        imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
+    def draw_game_tags_widget(self, game: Game):
+        self.begin_framed_text((0.3, 0.3, 0.3, 1.0))
         _20 = self.scaled(20)
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + _20:
                 imgui.dummy(0, 0)
-            imgui.small_button(f"{tag.name}###tag_{tag.value}", *args, **kwargs)
-            if imgui.is_item_clicked():
-                flt = Filter(FilterMode.Tag)
-                flt.match = tag
-                self.filters.append(flt)
-                self.require_sort = True
+            self.draw_tag_widget(tag, setup=False)
             imgui.same_line()
         imgui.dummy(0, 0)
-        imgui.pop_style_var()
-        imgui.pop_style_color(3)
+        self.end_framed_text()
 
-    def draw_game_labels_select_widget(self, game: Game, *args, **kwargs):
-        if Label.instances:
-            for label in Label.instances:
-                changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
-                if changed:
-                    if value:
-                        game.labels.append(label)
-                    else:
-                        game.labels.remove(label)
-                    self.require_sort = True
-                    async_thread.run(db.update_game(game, "labels"))
-                imgui.same_line()
-                self.draw_label_widget(label)
-        else:
-            imgui.text_disabled("Make some labels first!")
-
-    def draw_game_labels_widget(self, game: Game, wrap=True, small=False, align=False, *args, **kwargs):
+    def draw_game_labels_widget(self, game: Game, wrap=True, small=False, align=False):
         _20 = self.scaled(20)
         if small:
             imgui.push_font(imgui.fonts.small)
@@ -1230,7 +1217,7 @@ class MainGUI():
                     imgui.pop_y()
                     popped_y = True
                 imgui.dummy(0, 0)
-            self.draw_label_widget(label, short=small, *args, **kwargs)
+            self.draw_label_widget(label, short=small)
             imgui.same_line()
         if small and align and not popped_y:
             imgui.pop_y()
@@ -1312,7 +1299,7 @@ class MainGUI():
                     imgui.same_line()
                     imgui.text(old_game.status.name)
                     imgui.same_line()
-                    self.draw_game_status_widget(old_game)
+                    self.draw_status_widget(old_game.status)
                     imgui.same_line()
                     if full_width - imgui.get_cursor_pos_x() < arrow_width:
                         imgui.dummy(0, 0)
@@ -1320,14 +1307,14 @@ class MainGUI():
                     imgui.same_line()
                     imgui.text(game.status.name)
                     imgui.same_line()
-                    self.draw_game_status_widget(game)
+                    self.draw_status_widget(game.status)
 
                 imgui.spacing()
-                self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Thread")
+                self.draw_game_open_thread_button(game, f"{icons.open_in_new} Thread")
                 imgui.same_line()
-                self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Link")
+                self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
                 imgui.same_line()
-                self.draw_game_more_info_button(game, label=f"{icons.information_outline} Info", carousel_ids=sorted_ids)
+                self.draw_game_more_info_button(game, f"{icons.information_outline} Info", carousel_ids=sorted_ids)
 
                 imgui.end_group()
                 height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
@@ -1424,11 +1411,11 @@ class MainGUI():
             self.draw_game_name_text(game)
             imgui.pop_font()
 
-            self.draw_game_play_button(game, label=f"{icons.play} Play")
+            self.draw_game_play_button(game, f"{icons.play} Play")
             imgui.same_line()
-            self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Open Thread")
+            self.draw_game_open_thread_button(game, f"{icons.open_in_new} Open Thread")
             imgui.same_line()
-            self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Copy Link")
+            self.draw_game_copy_link_button(game, f"{icons.content_copy} Copy Link")
             imgui.same_line()
             if imgui.button(f"{icons.pound} ID"):
                 glfw.set_clipboard_string(self.window, str(game.id))
@@ -1440,12 +1427,12 @@ class MainGUI():
                 )
                 imgui.end_tooltip()
             imgui.same_line()
-            self.draw_game_played_checkbox(game, label=f"{icons.flag_checkered} Played")
+            self.draw_game_played_checkbox(game, f"{icons.flag_checkered} Played")
             _10 = self.scaled(10)
             imgui.same_line(spacing=_10)
-            self.draw_game_installed_checkbox(game, label=f"{icons.cloud_download} Installed")
+            self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
             imgui.same_line(spacing=_10)
-            self.draw_game_remove_button(game, label=f"{icons.trash_can_outline} Remove")
+            self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
             imgui.text_disabled("Version:")
             imgui.same_line()
@@ -1468,7 +1455,7 @@ class MainGUI():
             imgui.same_line()
             imgui.text(game.status.name)
             imgui.same_line()
-            self.draw_game_status_widget(game)
+            self.draw_status_widget(game.status)
 
             imgui.text_disabled("Forum Score:")
             imgui.same_line()
@@ -1508,9 +1495,9 @@ class MainGUI():
             else:
                 imgui.text_disabled("Executables:")
                 for i, executable in enumerate(game.executables):
-                    self.draw_game_play_button(game, label=icons.play, executable=executable, i=i)
+                    self.draw_game_play_button(game, icons.play, executable=executable, i=i)
                     imgui.same_line()
-                    self.draw_game_open_folder_button(game, label=icons.folder_open_outline, executable=executable, i=i)
+                    self.draw_game_open_folder_button(game, icons.folder_open_outline, executable=executable, i=i)
                     imgui.same_line()
                     if imgui.button(f"{icons.folder_remove_outline}###{game.id}_remove_exe_{i}"):
                         game.remove_executable(executable)
@@ -1519,11 +1506,11 @@ class MainGUI():
 
             imgui.text_disabled("Manage Exes:")
             imgui.same_line()
-            self.draw_game_add_exe_button(game, label=f"{icons.folder_edit_outline} Add Exe")
+            self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe")
             imgui.same_line()
-            self.draw_game_clear_exes_button(game, label=f"{icons.folder_remove_outline} Clear Exes")
+            self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes")
             imgui.same_line()
-            self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Open Folder")
+            self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder")
 
             imgui.spacing()
 
@@ -1930,12 +1917,12 @@ class MainGUI():
                     imgui.table_set_column_index(column.index)
                     match column.index:
                         case cols.play_button.index:
-                            self.draw_game_play_button(game, label=icons.play)
+                            self.draw_game_play_button(game, icons.play)
                         case cols.type.index:
                             self.draw_type_widget(game.type, align=True)
                         case cols.name.index:
                             if globals.settings.show_remove_btn:
-                                self.draw_game_remove_button(game, label=icons.trash_can_outline)
+                                self.draw_game_remove_button(game, icons.trash_can_outline)
                                 imgui.same_line()
                             if game.installed and game.installed != game.version:
                                 self.draw_game_update_icon(game)
@@ -1949,7 +1936,7 @@ class MainGUI():
                                 self.draw_game_labels_widget(game, wrap=False, small=True, align=True)
                             if cols.status.enabled and game.status is not Status.Normal:
                                 imgui.same_line()
-                                self.draw_game_status_widget(game)
+                                self.draw_status_widget(game.status)
                             if cols.version.enabled:
                                 imgui.same_line()
                                 imgui.text_disabled(self.get_game_version_text(game))
@@ -1972,13 +1959,13 @@ class MainGUI():
                                 notes_width = imgui.get_content_region_available_width() - 2 * imgui.style.item_spacing.x
                             self.draw_game_notes_widget(game, multiline=False, width=notes_width)
                         case cols.open_thread.index:
-                            self.draw_game_open_thread_button(game, label=icons.open_in_new)
+                            self.draw_game_open_thread_button(game, icons.open_in_new)
                         case cols.copy_link.index:
-                            self.draw_game_copy_link_button(game, label=icons.content_copy)
+                            self.draw_game_copy_link_button(game, icons.content_copy)
                         case cols.open_folder.index:
-                            self.draw_game_open_folder_button(game, label=icons.folder_open_outline)
+                            self.draw_game_open_folder_button(game, icons.folder_open_outline)
                         case cols.status_standalone.index:
-                            self.draw_game_status_widget(game)
+                            self.draw_status_widget(game.status)
                         case cols.score.index:
                             imgui.text(f"{game.score:.1f}")
                 # Row hitbox
@@ -2086,7 +2073,7 @@ class MainGUI():
         if showed_img and globals.settings.show_remove_btn:
             old_pos = imgui.get_cursor_pos()
             imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
-            self.draw_game_remove_button(game, label=icons.trash_can_outline)
+            self.draw_game_remove_button(game, icons.trash_can_outline)
             imgui.set_cursor_pos(old_pos)
         # Type
         if showed_img and cols.type.enabled:
@@ -2113,7 +2100,7 @@ class MainGUI():
             imgui.same_line()
             if imgui.get_content_region_available_width() < badge_wrap:
                 imgui.dummy(0, 0)
-            self.draw_game_status_widget(game)
+            self.draw_status_widget(game.status)
         if action_items:
             if imgui.is_rect_visible(cell_width, frame_height):
                 # Play Button
@@ -2121,37 +2108,37 @@ class MainGUI():
                 if cols.play_button.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_play_button(game, label=f"{icons.play} Play")
+                    self.draw_game_play_button(game, f"{icons.play} Play")
                     did_newline = True
                 # Open Folder
                 if cols.open_folder.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_open_folder_button(game, label=f"{icons.folder_open_outline} Folder")
+                    self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Folder")
                     did_newline = True
                 # Open Thread
                 if cols.open_thread.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_open_thread_button(game, label=f"{icons.open_in_new} Thread")
+                    self.draw_game_open_thread_button(game, f"{icons.open_in_new} Thread")
                     did_newline = True
                 # Copy Link
                 if cols.copy_link.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_copy_link_button(game, label=f"{icons.content_copy} Link")
+                    self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
                     did_newline = True
                 # Played
                 if cols.played.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_played_checkbox(game, label=icons.flag_checkered)
+                    self.draw_game_played_checkbox(game, icons.flag_checkered)
                     did_newline = True
                 # Installed
                 if cols.installed.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_installed_checkbox(game, label=icons.cloud_download)
+                    self.draw_game_installed_checkbox(game, icons.cloud_download)
                     did_newline = True
             else:
                 # Skip if outside view
