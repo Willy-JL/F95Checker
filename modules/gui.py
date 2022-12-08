@@ -944,6 +944,28 @@ class MainGUI():
             self.require_sort = True
         imgui.end_group()
 
+    def draw_game_update_icon(self, game: Game):
+        imgui.begin_group()
+        pos = imgui.get_cursor_pos()
+        imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00)
+        imgui.set_cursor_pos(pos)
+        imgui.invisible_button("", *imgui.get_item_rect_size())
+        if imgui.is_item_clicked():
+            flt = Filter(FilterMode.Updated)
+            self.filters.append(flt)
+            self.require_sort = True
+        if imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+            imgui.text_unformatted(
+                "This game has an update available!\n"
+                f"Installed version: {game.installed}\n"
+                f"Latest version: {game.version}"
+            )
+            imgui.pop_text_wrap_pos()
+            imgui.end_tooltip()
+        imgui.end_group()
+
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None):
         id = f"{label}###{game.id}_more_info"
         if selectable:
@@ -979,19 +1001,6 @@ class MainGUI():
         elif clicked:
             callbacks.launch_game(game, executable=executable)
         return clicked
-
-    def draw_game_update_icon(self, game: Game, *args, **kwargs):
-        imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00, *args, **kwargs)
-        if imgui.is_item_hovered():
-            imgui.begin_tooltip()
-            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-            imgui.text_unformatted(
-                "This game has an update available!\n"
-                f"Installed version: {game.installed}\n"
-                f"Latest version: {game.version}"
-            )
-            imgui.pop_text_wrap_pos()
-            imgui.end_tooltip()
 
     def draw_game_name_text(self, game: Game):
         if game.played:
