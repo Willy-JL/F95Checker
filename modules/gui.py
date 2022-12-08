@@ -2251,16 +2251,16 @@ class MainGUI():
         cells_per_column = 1
         column_count = len(Label.instances) + 1
         avail = imgui.get_content_region_available_width()
-        table_width = 0
-        while (new_table_width := (((cell_width * cells_per_column) + (imgui.style.item_spacing.x * (cells_per_column - 1)) + imgui.style.scrollbar_size) * column_count) + (padding * 2 * column_count)) < avail:
-            table_width = new_table_width
+        table_width = lambda: (padding * 2 + (cell_width + imgui.style.item_spacing.x) * cells_per_column + imgui.style.scrollbar_size) * column_count
+        while table_width() < avail:
             cells_per_column += 1
+        cells_per_column = max(cells_per_column - 1, 1)
         if imgui.begin_table(
             "###game_kanban",
             column=column_count,
             flags=self.game_kanban_table_flags,
-            inner_width=table_width or new_table_width,
-            outer_size_width=-imgui.style.scrollbar_size - padding,
+            inner_width=table_width(),
+            outer_size_width=-imgui.style.scrollbar_size,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
             # Setup columns
