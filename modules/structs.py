@@ -457,6 +457,7 @@ class Settings:
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]
     max_retries                 : int
+    quick_filters               : bool
     refresh_completed_games     : bool
     refresh_workers             : int
     render_when_unfocused       : bool

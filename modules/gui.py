@@ -855,18 +855,26 @@ class MainGUI():
             return True
         return False
 
-    def begin_framed_text(self, color: tuple[float]):
+    def begin_framed_text(self, color: tuple[float], interaction=True):
+        if interaction:
+            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *color)
+            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *color)
+        else:
+            imgui.push_no_interaction()
         imgui.push_style_color(imgui.COLOR_BUTTON, *color)
-        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, *color)
-        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, *color)
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
 
-    def end_framed_text(self):
+    def end_framed_text(self, interaction=True):
         imgui.pop_style_var()
-        imgui.pop_style_color(3)
+        if interaction:
+            imgui.pop_style_color(3)
+        else:
+            imgui.pop_no_interaction()
+            imgui.pop_style_color()
 
     def draw_type_widget(self, type: Type, wide=True, align=False):
-        self.begin_framed_text(type.color)
+        quick_filter = globals.settings.quick_filters
+        self.begin_framed_text(type.color, interaction=quick_filter)
         if wide:
             x_padding = 4
             backup_y_padding = imgui.style.frame_padding.y
@@ -884,29 +892,31 @@ class MainGUI():
             imgui.pop_style_var()
         else:
             imgui.small_button(f"{type.name}###type_{type.value}")
-        if imgui.is_item_clicked():
+        if quick_filter and imgui.is_item_clicked():
             flt = Filter(FilterMode.Type)
             flt.match = type
             self.filters.append(flt)
             self.require_sort = True
-        self.end_framed_text()
+        self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, setup=True):
+        quick_filter = globals.settings.quick_filters
         if setup:
-            self.begin_framed_text((0.3, 0.3, 0.3, 1.0))
+            self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         imgui.small_button(f"{tag.name}###tag_{tag.value}")
-        if imgui.is_item_clicked():
+        if quick_filter and imgui.is_item_clicked():
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
             self.require_sort = True
         if setup:
-            self.end_framed_text()
+            self.end_framed_text(interaction=quick_filter)
 
     def draw_label_widget(self, label: Label, short=False):
-        self.begin_framed_text(label.color)
+        quick_filter = globals.settings.quick_filters
+        self.begin_framed_text(label.color, interaction=quick_filter)
         imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}")
-        if imgui.is_item_clicked():
+        if quick_filter and imgui.is_item_clicked():
             flt = Filter(FilterMode.Label)
             flt.match = label
             self.filters.append(flt)
@@ -917,11 +927,13 @@ class MainGUI():
             self.draw_label_widget(label, short=False)
             imgui.pop_font()
             imgui.end_tooltip()
-        self.end_framed_text()
+        self.end_framed_text(interaction=quick_filter)
 
     def draw_status_widget(self, status: Status):
-        imgui.begin_group()
-        pos = imgui.get_cursor_pos()
+        quick_filter = globals.settings.quick_filters
+        if quick_filter:
+            imgui.begin_group()
+            pos = imgui.get_cursor_pos()
         if status is Status.Unchecked:
             imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50)
         elif status is Status.Normal:
@@ -935,25 +947,30 @@ class MainGUI():
         else:
             imgui.text("")
             return
-        imgui.set_cursor_pos(pos)
-        imgui.invisible_button("", *imgui.get_item_rect_size())
-        if imgui.is_item_clicked():
-            flt = Filter(FilterMode.Status)
-            flt.match = status
-            self.filters.append(flt)
-            self.require_sort = True
-        imgui.end_group()
+        if quick_filter:
+            imgui.set_cursor_pos(pos)
+            imgui.invisible_button("", *imgui.get_item_rect_size())
+            if imgui.is_item_clicked():
+                flt = Filter(FilterMode.Status)
+                flt.match = status
+                self.filters.append(flt)
+                self.require_sort = True
+            imgui.end_group()
 
     def draw_game_update_icon(self, game: Game):
-        imgui.begin_group()
-        pos = imgui.get_cursor_pos()
+        quick_filter = globals.settings.quick_filters
+        if quick_filter:
+            imgui.begin_group()
+            pos = imgui.get_cursor_pos()
         imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00)
-        imgui.set_cursor_pos(pos)
-        imgui.invisible_button("", *imgui.get_item_rect_size())
-        if imgui.is_item_clicked():
-            flt = Filter(FilterMode.Updated)
-            self.filters.append(flt)
-            self.require_sort = True
+        if quick_filter:
+            imgui.set_cursor_pos(pos)
+            imgui.invisible_button("", *imgui.get_item_rect_size())
+            if imgui.is_item_clicked():
+                flt = Filter(FilterMode.Updated)
+                self.filters.append(flt)
+                self.require_sort = True
+            imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -964,7 +981,6 @@ class MainGUI():
             )
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
-        imgui.end_group()
 
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None):
         id = f"{label}###{game.id}_more_info"
@@ -1203,7 +1219,8 @@ class MainGUI():
                 imgui.end_popup()
 
     def draw_game_tags_widget(self, game: Game):
-        self.begin_framed_text((0.3, 0.3, 0.3, 1.0))
+        quick_filter = globals.settings.quick_filters
+        self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         _20 = self.scaled(20)
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + _20:
@@ -1211,7 +1228,7 @@ class MainGUI():
             self.draw_tag_widget(tag, setup=False)
             imgui.same_line()
         imgui.dummy(0, 0)
-        self.end_framed_text()
+        self.end_framed_text(interaction=quick_filter)
 
     def draw_game_labels_widget(self, game: Game, wrap=True, small=False, align=False):
         _20 = self.scaled(20)
@@ -2831,6 +2848,13 @@ class MainGUI():
             set.scroll_amount = min(max(value, 0.1), 10)
             if changed:
                 async_thread.run(db.update_settings("scroll_amount"))
+
+            draw_settings_label(
+                "Quick filters:",
+                "When this is enabled you can click on some widgets to quickly add filters for them. This includes: type, tag and "
+                "label widgets, and status and update icons."
+            )
+            draw_settings_checkbox("quick_filters")
 
             draw_settings_label(
                 "Time format:",
