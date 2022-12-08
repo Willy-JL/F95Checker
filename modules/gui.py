@@ -981,6 +981,7 @@ class MainGUI():
             return game.version
 
     def draw_game_status_widget(self, game: Game, *args, **kwargs):
+        imgui.begin_group()
         pos = imgui.get_cursor_pos()
         if game.status is Status.Unchecked:
             imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50, *args, **kwargs)
@@ -1002,6 +1003,7 @@ class MainGUI():
             flt.match = game.status
             self.filters.append(flt)
             self.require_sort = True
+        imgui.end_group()
 
     def draw_game_played_checkbox(self, game: Game, label="", *args, **kwargs):
         changed, game.played = imgui.checkbox(f"{label}###{game.id}_played", game.played, *args, **kwargs)
