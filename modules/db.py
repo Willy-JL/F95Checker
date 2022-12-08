@@ -105,6 +105,7 @@ async def connect():
             "browser_html":                f'INTEGER DEFAULT {int(False)}',
             "browser_private":             f'INTEGER DEFAULT {int(False)}',
             "browser":                     f'INTEGER DEFAULT {Browser.get(0).hash}',
+            "cell_image_ratio":            f'REAL    DEFAULT 3.0',
             "check_notifs":                f'INTEGER DEFAULT {int(True)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
@@ -112,7 +113,6 @@ async def connect():
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
-            "grid_image_ratio":            f'REAL    DEFAULT 3.0',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',
             "last_successful_refresh":     f'INTEGER DEFAULT 0',
@@ -146,6 +146,7 @@ async def connect():
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}'
         },
         renames=[
+            ("grid_image_ratio",      "cell_image_ratio"),
             ("minimize_on_close",     "background_on_close"),
             ("start_in_tray",         "start_in_background"),
             ("tray_notifs_interval",  "bg_notifs_interval"),

@@ -444,6 +444,7 @@ class Settings:
     browser_custom_executable   : str
     browser_html                : bool
     browser_private             : bool
+    cell_image_ratio            : float
     check_notifs                : bool
     confirm_on_remove           : bool
     datestamp_format            : str
@@ -451,7 +452,6 @@ class Settings:
     display_mode                : DisplayMode
     fit_images                  : bool
     grid_columns                : int
-    grid_image_ratio            : float
     ignore_semaphore_timeouts   : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp

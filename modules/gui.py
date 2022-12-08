@@ -2072,7 +2072,7 @@ class MainGUI():
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         else:
-            crop = game.image.crop_to_ratio(globals.settings.grid_image_ratio, fit=globals.settings.fit_images)
+            crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
             showed_img = game.image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         # Alignments
         imgui.indent(side_indent)
@@ -2218,7 +2218,7 @@ class MainGUI():
         column_count = globals.settings.grid_columns
         while column_count > 1 and (cell_width := (avail - padding * 2 * column_count) / column_count) < min_cell_width:
             column_count -= 1
-        img_height = cell_width / globals.settings.grid_image_ratio
+        img_height = cell_width / globals.settings.cell_image_ratio
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
         if imgui.begin_table(
             "###game_grid",
@@ -2247,7 +2247,7 @@ class MainGUI():
         cell_width, cell_config = self.get_game_cell_config()
         padding = self.scaled(4)
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
-        img_height = cell_width / globals.settings.grid_image_ratio
+        img_height = cell_width / globals.settings.cell_image_ratio
         cells_per_column = 1
         column_count = len(Label.instances) + 1
         avail = imgui.get_content_region_available_width()
@@ -2722,6 +2722,16 @@ class MainGUI():
 
         if draw_settings_section("Images"):
             draw_settings_label(
+                "Cell ratio:",
+                "The aspect ratio to use for images in grid and kanban view. This is width:height, AKA how many times wider the image "
+                "is compared to its height. Default is 3:1."
+            )
+            changed, value = imgui.drag_float("###cell_image_ratio", set.cell_image_ratio, change_speed=0.02, min_value=0.5, max_value=5, format="%.1f:1")
+            set.cell_image_ratio = min(max(value, 0.5), 5)
+            if changed:
+                async_thread.run(db.update_settings("cell_image_ratio"))
+
+            draw_settings_label(
                 "Fit images:",
                 "Fit images instead of cropping. When cropping the images fill all the space they have available, cutting "
                 "off the sides a bit. When fitting the images you see the whole image but it has some empty space at the sides."
@@ -2794,16 +2804,6 @@ class MainGUI():
             set.grid_columns = min(max(value, 1), 10)
             if changed:
                 async_thread.run(db.update_settings("grid_columns"))
-
-            draw_settings_label(
-                "Grid ratio:",
-                "The aspect ratio to use for images in grid view. This is width:height, AKA how many times wider the image "
-                "is compared to its height. Default is 3:1."
-            )
-            changed, value = imgui.drag_float("###grid_image_ratio", set.grid_image_ratio, change_speed=0.02, min_value=0.5, max_value=5, format="%.1f:1")
-            set.grid_image_ratio = min(max(value, 0.5), 5)
-            if changed:
-                async_thread.run(db.update_settings("grid_image_ratio"))
 
             draw_settings_label("Smooth scrolling:")
             draw_settings_checkbox("scroll_smooth")
