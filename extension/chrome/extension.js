@@ -57,7 +57,7 @@ const updateIcons = async (tabId) => {
                 icon.style.color = "#FD5555";
                 if (isImage) {
                     icon.style.position = "absolute";
-                    icon.style.zIndex = "999";
+                    icon.style.zIndex = "50";
                     icon.style.right = "5px";
                     icon.style.top = "5px";
                     icon.style.fontSize = "larger";
