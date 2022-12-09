@@ -28,6 +28,7 @@
         "scripting",
         "activeTab",
         "contextMenus",
-        "webNavigation", "*://*.f95zone.to/*"
+        "webNavigation",
+        "*://*.f95zone.to/*"
     ]
 }
