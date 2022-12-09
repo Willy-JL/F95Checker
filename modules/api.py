@@ -618,12 +618,22 @@ async def check_updates():
         ppid = os.getppid()  # main.py launches a subprocess for the main script, so we need the parent pid
         if globals.os is Os.Windows:
             script = "\n".join([
-                f"Wait-Process -Id {ppid}",  # main.py launches a subprocess for the main script, so we need the parent pid
+                "try {"
+                'Write-Host "Waiting for F95Checker to quit..."',
+                f"Wait-Process -Id {ppid}",
+                'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
+                'Write-Host "Deleting old version files..."',
                 f"Get-ChildItem -Force -Recurse -Path {shlex.quote(str(dst))} | Select-Object -ExpandProperty FullName | Sort-Object -Property Length -Descending | Remove-Item -Force -Recurse",
+                'Write-Host "Moving new version files..."',
                 f"Get-ChildItem -Force -Path {shlex.quote(str(src))} | Select-Object -ExpandProperty FullName | Move-Item -Force -Destination {shlex.quote(str(dst))}",
+                'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
-                f"& {globals.start_cmd}"
+                'Write-Host "Starting F95Checker..."',
+                f"& {globals.start_cmd}",
+                "} catch {",
+                'Write-Host "An error occurred:`n" $_.InvocationInfo.PositionMessage "`n" $_',
+                "}",
             ])
             shell = [shutil.which("powershell")]
         else:
@@ -641,9 +651,12 @@ async def check_updates():
                 except Exception:
                     pass
             script = "\n".join([
+                shlex.join(["echo", "Waiting for F95Checker to quit..."]),
                 shlex.join(["tail", "--pid", str(ppid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(ppid), "+r", "1"]),
-                "sleep 3",
-                globals.start_cmd
+                shlex.join(["echo", "Sleeping 3 seconds..."]),
+                shlex.join(["sleep", "3"]),
+                shlex.join(["echo", "Starting F95Checker..."]),
+                globals.start_cmd,
             ])
             shell = [shutil.which("bash") or shutil.which("zsh") or shutil.which("sh"), "-c"]
         if macos_app:
