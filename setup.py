@@ -28,8 +28,8 @@ platform_libs = {
     "darwin": ["intl"]
 }
 include_files = [
-    (path / "extension/chrome.crx",  "extension/chrome.crx"),
-    (path / "extension/firefox.xpi", "extension/firefox.xpi"),
+    (path / "extension/chrome.zip",  "extension/chrome.zip"),
+    (path / "extension/firefox.zip", "extension/firefox.zip"),
     (path / "resources/",            "resources/"),
     (path / "LICENSE",               "LICENSE")
 ]

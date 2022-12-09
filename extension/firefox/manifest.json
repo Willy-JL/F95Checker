@@ -3,7 +3,7 @@
     "name": "F95Checker Browser Addon",
     "short_name": "F95Checker",
     "author": "WillyJL",
-    "version": "0.0.3",
+    "version": "9.6.1",
     "description": "Integration between the F95Zone forum and the F95Checker app",
     "homepage_url": "https://github.com/Willy-JL/F95Checker",
 
@@ -22,9 +22,7 @@
     },
 
     "background": {
-        "scripts": [
-            "extension.js"
-        ]
+        "scripts": ["extension.js"]
     },
     "permissions": [
         "scripting",
