@@ -116,6 +116,7 @@ class Columns:
         )
         self.developer = self.Column(
             self, f"{icons.account_outline} Developer",
+            sortable=True,
         )
         self.last_updated = self.Column(
             self, f"{icons.update} Last Updated",
