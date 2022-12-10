@@ -2235,7 +2235,7 @@ class MainGUI():
         padding = self.scaled(8)
         avail = imgui.get_content_region_available_width()
         column_count = globals.settings.grid_columns
-        while column_count > 1 and (cell_width := (avail - padding * 2 * column_count) / column_count) < min_cell_width:
+        while (cell_width := (avail - padding * 2 * column_count) / column_count) < min_cell_width and column_count > 1:
             column_count -= 1
         img_height = cell_width / globals.settings.cell_image_ratio
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
