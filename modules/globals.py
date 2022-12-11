@@ -115,7 +115,7 @@ def _():
         app_dir = pathlib.Path("/usr/share/applications")
         raw = (app_dir / "mimeinfo.cache").read_bytes()
         apps = []
-        for match in re.finditer(br"x-scheme-handler/https?=(.+)", raw):
+        for match in re.finditer(rb"x-scheme-handler/https?=(.+)", raw):
             for app in match.group(1)[:-1].split(b";"):
                 app = str(app, encoding="utf-8")
                 if app not in apps:
