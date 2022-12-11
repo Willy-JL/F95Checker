@@ -3,6 +3,7 @@ import multiprocessing
 import datetime as dt
 from PIL import Image
 import async_timeout
+import http.cookies
 import configparser
 import contextlib
 import subprocess
@@ -53,24 +54,90 @@ def setup():
         cleanup_webpages()
 
 
+def cookiedict(cookies: http.cookies.SimpleCookie):
+    return {cookie.key: cookie.value for cookie in cookies.values()}
+
+
 @contextlib.asynccontextmanager
 async def request(method: str, url: str, read=True, until: list[bytes] = None, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
     retries = globals.settings.max_retries + 1
+    req_opts = dict(
+        timeout=timeout,
+        allow_redirects=True,
+        max_redirects=None,
+        ssl=False,
+    )
+    ddos_guard_cookies = {}
     while retries:
         try:
             async with session.request(
                 method,
                 url,
-                cookies=globals.cookies,
-                timeout=timeout,
-                allow_redirects=True,
-                max_redirects=None,
-                ssl=False,
+                cookies=globals.cookies | ddos_guard_cookies,
+                **req_opts,
                 **kwargs
             ) as req:
+                if req.headers.get("server") == "ddos-guard" and req.status == 403:
+                    # Attempt DDoS-Guard bypass (credits to https://git.gay/a/ddos-guard-bypass)
+                    did_first_challenge = bool(ddos_guard_cookies)
+                    ddos_guard_cookies.update(cookiedict(req.cookies))
+                    if not did_first_challenge:
+                        # First challenge: repeat original request with new cookies
+                        continue
+                    # First challenge failed, attempt manual bypass and retry original request
+                    referer = f"{req.url.scheme}://{req.url.host}"
+                    headers = {
+                        "Accept": "*/*",
+                        "Accept-Language": "en-US,en;q=0.5",
+                        "Accept-Encoding": "gzip, deflate",
+                        "Referer": referer,
+                        "Sec-Fetch-Mode": "no-cors"
+                    }
+                    for script in re.finditer(rb'loadScript\(\s*"(.+?)"', await req.read()):
+                        script = str(script.group(1), encoding="utf-8")
+                        async with session.request(
+                            "GET",
+                            f"{referer if script.startswith('/') else ''}{script}",
+                            cookies=globals.cookies | ddos_guard_cookies,
+                            headers=headers | {
+                                "Sec-Fetch-Dest": "script",
+                                "Sec-Fetch-Site": "same-site" if "ddos-guard.net/" in script else "cross-site"
+                            },
+                            **req_opts
+                        ) as req:
+                            ddos_guard_cookies.update(cookiedict(req.cookies))
+                            for image in re.finditer(rb"\.src\s*=\s*'(.+?)'", await req.read()):
+                                image = str(image.group(1), encoding="utf-8")
+                                async with session.request(
+                                    "GET",
+                                    f"{referer if image.startswith('/') else ''}{image}",
+                                    cookies=globals.cookies | ddos_guard_cookies,
+                                    headers=headers | {
+                                        "Sec-Fetch-Dest": "image",
+                                        "Sec-Fetch-Site": "same-origin"
+                                    },
+                                    **req_opts
+                                ) as req:
+                                    ddos_guard_cookies.update(cookiedict(req.cookies))
+                    async with session.request(
+                        "POST",
+                        f"{referer}/.well-known/ddos-guard/mark/",
+                        json=ddos_guard_bypass_fake_mark,
+                        cookies=globals.cookies | ddos_guard_cookies,
+                        headers=headers | {
+                            "Content-Type": "text/plain;charset=UTF-8",
+                            "DNT": "1",
+                            "Sec-Fetch-Dest": "empty",
+                            "Sec-Fetch-Mode": "cors",
+                            "Sec-Fetch-Site": "same-origin"
+                        },
+                        **req_opts
+                    ) as req:
+                        ddos_guard_cookies.update(cookiedict(req.cookies))
+                    continue
                 res = b""
                 if read:
                     if until:
@@ -728,3 +795,153 @@ async def refresh(full=False, notifs=True):
 
     globals.settings.last_successful_refresh.update(time.time())
     await db.update_settings("last_successful_refresh")
+
+
+ddos_guard_bypass_fake_mark = {
+    "_geo": True,
+    "_sensor": {
+        "gyroscope": False,
+        "accelerometer": False,
+        "magnetometer": False,
+        "absorient": False,
+        "relorient": False
+    },
+    "userAgent": "Linux_x86_64_Gecko_Mozilla_undefined",
+    "webdriver": False,
+    "language": "en-US",
+    "colorDepth": 32,
+    "deviceMemory": "not available",
+    "pixelRatio": 1,
+    "hardwareConcurrency": 12,
+    "screenResolution": [
+        1920,
+        1080
+    ],
+    "availableScreenResolution": [
+        1920,
+        1080
+    ],
+    "timezoneOffset": 240,
+    "timezone": "America/New_York",
+    "sessionStorage": True,
+    "localStorage": True,
+    "indexedDb": True,
+    "addBehavior": False,
+    "openDatabase": False,
+    "cpuClass": "not available",
+    "platform": "Linux x86_64",
+    "doNotTrack": "1",
+    "plugins": [
+        [
+            "PDF Viewer",
+            "Portable Document Format",
+            [
+                [
+                    "application/pdf",
+                    "pdf"
+                ],
+                [
+                    "text/pdf",
+                    "pdf"
+                ]
+            ]
+        ],
+        [
+            "Chrome PDF Viewer",
+            "Portable Document Format",
+            [
+                [
+                    "application/pdf",
+                    "pdf"
+                ],
+                [
+                    "text/pdf",
+                    "pdf"
+                ]
+            ]
+        ],
+        [
+            "Chromium PDF Viewer",
+            "Portable Document Format",
+            [
+                [
+                    "application/pdf",
+                    "pdf"
+                ],
+                [
+                    "text/pdf",
+                    "pdf"
+                ]
+            ]
+        ],
+        [
+            "Microsoft Edge PDF Viewer",
+            "Portable Document Format",
+            [
+                [
+                    "application/pdf",
+                    "pdf"
+                ],
+                [
+                    "text/pdf",
+                    "pdf"
+                ]
+            ]
+        ],
+        [
+            "WebKit built-in PDF",
+            "Portable Document Format",
+            [
+                [
+                    "application/pdf",
+                    "pdf"
+                ],
+                [
+                    "text/pdf",
+                    "pdf"
+                ]
+            ]
+        ]
+    ],
+    "canvas": [],
+    "webgl": False,
+    "adBlock": False,
+    "hasLiedLanguages": False,
+    "hasLiedResolution": False,
+    "hasLiedOs": False,
+    "hasLiedBrowser": False,
+    "touchSupport": [
+        0,
+        False,
+        False
+    ],
+    "fonts": [
+        "Andale Mono",
+        "Arial",
+        "Arial Black",
+        "Bitstream Vera Sans Mono",
+        "Calibri",
+        "Cambria",
+        "Cambria Math",
+        "Comic Sans MS",
+        "Consolas",
+        "Courier",
+        "Courier New",
+        "Georgia",
+        "Helvetica",
+        "Impact",
+        "Lucida Console",
+        "LUCIDA GRANDE",
+        "Lucida Sans Unicode",
+        "Palatino",
+        "Times",
+        "Times New Roman",
+        "Trebuchet MS",
+        "Verdana"
+    ],
+    "audio": "100.00000",
+    "enumerateDevices": [
+        "audioinput;"
+    ],
+    "context": "free_splash"
+}
