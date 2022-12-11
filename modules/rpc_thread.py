@@ -29,6 +29,9 @@ def start():
         global server
 
         class RPCHandler(http.server.SimpleHTTPRequestHandler):
+            if not globals.debug:
+                log_message = lambda *_, **__: None
+
             def send_resp(self, code: int):
                 self.send_response(code)
                 self.send_header("Access-Control-Allow-Origin", "*")
