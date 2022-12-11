@@ -176,8 +176,8 @@ def raise_f95zone_error(res: bytes, return_login=False):
         raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
     if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
         raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
-    # if b"<title>DDOS-GUARD</title>" in data:
-    #     raise Exception("Captcha needed!")
+    if b"<title>DDOS-GUARD</title>" in res:
+        raise msgbox.Exc("DDoS-Guard bypass failure", "F95Zone requested a DDoS-Guard browser challenge and F95Checker\nwas unable to bypass it. Try waiting a few minutes, opening F95Zone\nin browser, rebooting your router, or connecting through a VPN.", MsgBox.warn)
     return True
 
 
