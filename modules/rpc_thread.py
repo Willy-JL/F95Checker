@@ -75,6 +75,8 @@ def start():
                     self.send_resp(500)
 
         try:
+            socketserver.TCPServer.allow_reuse_address = True
+            socketserver.TCPServer.allow_reuse_port = True
             server = socketserver.TCPServer(("localhost", globals.rpc_port), RPCHandler)
         except Exception:
             raise msgbox.Exc("RPC server error", f"Failed to start RPC server on localhost port {globals.rpc_port}:\n{error.text()}\n\nThis means that the web browser extension will not work, while F95Checker\nitself should be unaffected. Some common causes are:\n - Hyper-V\n - Docker\n - Antivirus or firewall", MsgBox.warn, more=error.traceback())
@@ -89,6 +91,7 @@ def stop():
     global server, thread
     if thread is not None and thread.is_alive() and server is not None:
         server.shutdown()
+        server.server_close()
         thread.join()
     server = None
     thread = None
