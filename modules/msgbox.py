@@ -1,3 +1,4 @@
+import builtins
 import typing
 import imgui
 
@@ -51,7 +52,7 @@ def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.
                 height = min(more_size.y + _36, size.y * 0.7 - msg_size_y)
                 imgui.input_text_multiline(f"###more_info", more,  width=width, height=height, flags=imgui.INPUT_TEXT_READ_ONLY)
                 if imgui.begin_popup_context_item(f"###more_info_context"):
-                    utils.text_context(type("_", (), dict(_=more))(), "_", editable=False)
+                    utils.text_context(builtins.type("_", (), dict(_=more))(), "_", editable=False)
                     imgui.end_popup()
                 imgui.pop_font()
                 imgui.tree_pop()
