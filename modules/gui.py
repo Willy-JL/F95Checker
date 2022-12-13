@@ -6,6 +6,7 @@ import datetime as dt
 from PIL import Image
 import configparser
 import dataclasses
+import functools
 import threading
 import platform
 import builtins
@@ -187,6 +188,11 @@ class Columns:
         )
 
 cols = Columns()
+
+
+@functools.cache
+def _scaled(mult: float, size: int | float):
+    return size * mult
 
 
 class MainGUI():
@@ -614,7 +620,7 @@ class MainGUI():
         self.tray.update_status()
 
     def scaled(self, size: int | float):
-        return size * globals.settings.interface_scaling
+        return _scaled(globals.settings.interface_scaling, size)
 
     def main_loop(self):
         if globals.settings.start_refresh and not self.hidden:

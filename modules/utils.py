@@ -20,6 +20,7 @@ def rand_num_str(len=8):
     return "".join((random.choice('0123456789') for _ in range(len)))
 
 
+@functools.cache
 def map_range(in_value: float, in_start: float, in_end: float, out_start: float, out_end: float):
     in_value -= in_start
     in_end -= in_start
@@ -221,6 +222,7 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
             push_popup(popup, "Select icon", popup_content, buttons=True, closable=True, outside=True)
 
 
+@functools.cache
 def clean_thread_url(url: str):
     thread = re.search("threads/([^/]*)", url).group(1)
     return f"{globals.threads_page}{thread}/"

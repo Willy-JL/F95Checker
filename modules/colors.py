@@ -1,3 +1,7 @@
+import functools
+
+
+@functools.cache
 def hex_to_rgba_0_1(hex: str):
     r = int(hex[1:3], base=16) / 255
     g = int(hex[3:5], base=16) / 255
@@ -9,6 +13,7 @@ def hex_to_rgba_0_1(hex: str):
     return (r, g, b, a)
 
 
+@functools.cache
 def rgba_0_1_to_hex(rgba: tuple[int, int, int, int | None]):
     r = "%.2x" % int(rgba[0] * 255)
     g = "%.2x" % int(rgba[1] * 255)

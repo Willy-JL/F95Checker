@@ -1,6 +1,7 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
 from PIL import Image, ImageSequence, UnidentifiedImageError
 import OpenGL.GL as gl
+import functools
 import pathlib
 import imgui
 
@@ -26,6 +27,30 @@ def get_rgba_pixels(image: Image.Image):
         if image.mode != "RGBA":
             image = image.convert("RGBA")
         return image.tobytes("raw", "RGBA")
+
+
+@functools.cache
+def _crop_to_ratio(width, height, ratio: int | float, fit=False):
+    img_ratio = width / height
+    if (img_ratio >= ratio) != fit:
+        crop_h = height
+        crop_w = crop_h * ratio
+        crop_x = (width - crop_w) / 2
+        crop_y = 0
+        left = crop_x / width
+        top = 0
+        right = (crop_x + crop_w) / width
+        bottom = 1
+    else:
+        crop_w = width
+        crop_h = crop_w / ratio
+        crop_y = (height - crop_h) / 2
+        crop_x = 0
+        left = 0
+        top = crop_y / height
+        right = 1
+        bottom = (crop_y + crop_h) / height
+    return (left, top), (right, bottom)
 
 
 class ImageHelper:
@@ -173,26 +198,7 @@ class ImageHelper:
             return False
 
     def crop_to_ratio(self, ratio: int | float, fit=False):
-        img_ratio = self.width / self.height
-        if (img_ratio >= ratio) != fit:
-            crop_h = self.height
-            crop_w = crop_h * ratio
-            crop_x = (self.width - crop_w) / 2
-            crop_y = 0
-            left = crop_x / self.width
-            top = 0
-            right = (crop_x + crop_w) / self.width
-            bottom = 1
-        else:
-            crop_w = self.width
-            crop_h = crop_w / ratio
-            crop_y = (self.height - crop_h) / 2
-            crop_x = 0
-            left = 0
-            top = crop_y / self.height
-            right = 1
-            bottom = (crop_y + crop_h) / self.height
-        return (left, top), (right, bottom)
+        return _crop_to_ratio(self.width, self.height, ratio, fit)
 
 
 # Example usage
