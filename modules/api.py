@@ -156,7 +156,7 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                         res += await req.read()
                 yield res, req
             break
-        except aiohttp.ClientError as exc:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
             if globals.settings.ignore_semaphore_timeouts and isinstance(exc, OSError) and exc.errno == 121:
                 continue
             retries -= 1

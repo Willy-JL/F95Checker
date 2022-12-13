@@ -334,7 +334,7 @@ class MainGUI():
                 return
             err = error.text(exc)
             tb = error.traceback(exc)
-            if isinstance(exc, asyncio.TimeoutError) or isinstance(exc, aiohttp.ClientError):
+            if isinstance(exc, (aiohttp.ClientError, asyncio.TimeoutError)):
                 utils.push_popup(msgbox.msgbox, "Connection error", f"A connection request to F95Zone has failed:\n{err}\n\nPossible causes include:\n - You are refreshing with too many workers, try lowering them in settings\n - Your timeout value is too low, try increasing it in settings\n - F95Zone is experiencing difficulties, try waiting a bit and retrying\n - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n - Your retries value is too low, try increasing it in settings (last resort!)", MsgBox.warn, more=tb)
                 return
             utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n{err}", MsgBox.error, more=tb)
