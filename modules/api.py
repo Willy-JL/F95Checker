@@ -376,8 +376,9 @@ async def check(game: Game, full=False, login=False):
             breaking_changes = int(br) > int(ch)
             break  # If field is bigger then its breaking
         return breaking_changes
-    breaking_version_parsing = last_refresh_before("9.0")  # Keep installed and played checkboxes from pre 9.0
-    breaking_keep_old_image = last_refresh_before("9.0")  # Keep images from pre 9.0
+    breaking_name_parsing = last_refresh_before("9.6.4")  # Skip name change in update popup
+    breaking_version_parsing = last_refresh_before("9.6.4")  # Keep installed and played checkboxes
+    breaking_keep_old_image = last_refresh_before("9.0")  # Keep existing image files
     breaking_parsing_changes = last_refresh_before("9.6.4")  # Version and developer parsing
     breaking_skip_update_popup = breaking_version_parsing  # Hide update notification for breaking backend changes
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_parsing_changes
@@ -452,6 +453,10 @@ async def check(game: Game, full=False, login=False):
         else:
             if version != old_version:
                 played = False  # Not breaking and version changed, remove played checkbox
+
+        # Don't include name change in popup for simple parsing adjustments
+        if breaking_name_parsing:
+            old_name = name
 
         fetch_image = game.image.missing
         if not globals.settings.update_keep_image and not breaking_keep_old_image:

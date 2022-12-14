@@ -1,8 +1,8 @@
 import multiprocessing
 import datetime as dt
 import functools
-import string
 import bs4
+import sys
 import re
 import os
 
@@ -12,12 +12,14 @@ from modules import error
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
 
+fix_spaces = lambda text: re.sub(r"\s+", " ", text).strip()
+
 
 def is_text(text: str):
     def _is_text(elem: bs4.element.Tag):
         if not hasattr(elem, "text"):
             return False
-        val = elem.text.lower().strip()
+        val = fix_spaces(elem.text.lower())
         return val == text or val == text + ":"
     return _is_text
 
@@ -43,7 +45,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
     def get_game_attr(*names: list[str]):
         for name in names:
             if match := re.search(r"^\s*" + name + r"\s*(?:\s*\n?\s*:|:\s*\n?\s*)\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
-                return match.group(1).strip()
+                return fix_spaces(match.group(1))
         return ""
     def get_long_game_attr(*names: list[str]):
         for name in names:
@@ -58,7 +60,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             for sibling in elem.next_siblings:
                 if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
                     break
-                stripped = sibling.text.strip()
+                stripped = sibling.text.strip(whitespaces)
                 if stripped == ":" or stripped == "":
                     continue
                 value += sibling.text
@@ -66,7 +68,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 elem = elem.parent
                 continue
             break
-        value = value.strip()
+        value = value.strip(whitespaces)
         while "\n\n\n" in value:
             value = value.replace("\n\n\n", "\n\n")
         return value
@@ -98,31 +100,27 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             div.insert_after(html.new_string("\n"))
         plain = post.find("article").get_text(separator="", strip=False)
 
-        name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
+        name = fix_spaces(re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1))
 
         version = get_game_attr("version")
         if not version:
             if match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
-                version = match.group(1).strip()
+                version = fix_spaces(match.group(1))
         if not version:
             version = "N/A"
 
         developer = get_game_attr("developer/publisher", "developer & publisher", "developer / publisher", "original developer", "developers", "developer", "publisher", "artist", "animator", "producer", "modder", "remake by", "game by", "posted by")
-        for whitespace in string.whitespace:
-            developer = developer.replace(whitespace, " ")
         for separator in developer_chop_separators:
             developer = developer.split(separator)[0]
         while True:
             prev_developer = developer
-            developer = re.sub(f"({'|'.join(developer_remove_patterns)})", r"", developer, flags=re.IGNORECASE)
+            developer = re.sub(r"(" + r"|".join(developer_remove_patterns) + r")", r"", developer, flags=re.IGNORECASE)
             if not developer:
                 developer = prev_developer
                 break
             if developer == prev_developer:
                 break
-        while "  " in developer:
-            developer = developer.replace("  ", " ")
-        developer = developer.strip(developer_strip_chars)
+        developer = fix_spaces(developer.strip(developer_strip_chars))
 
         # Content Types
         if game_has_prefixes("Cheat Mod"):
@@ -197,7 +195,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             status = Status.Normal
 
         last_updated = 0
-        text = get_game_attr("thread updated", "updated").replace("/", "-")
+        text = get_game_attr("thread updated", "updated", "release date").replace("/", "-")
         try:
             last_updated = dt.datetime.fromisoformat(text).timestamp()
         except ValueError:
@@ -255,7 +253,9 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         return ret
 
 
-developer_strip_chars = "-–|｜/':,([{" + string.whitespace
+whitespaces = "".join(re.findall(r"\s", "".join(chr(c) for c in range(sys.maxunicode+1))))
+
+developer_strip_chars = "-–|｜/':,([{" + whitespaces
 
 developer_chop_separators = [
     "is creating",
