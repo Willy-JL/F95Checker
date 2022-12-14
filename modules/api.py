@@ -362,7 +362,7 @@ async def check(game: Game, full=False, login=False):
             return
         globals.refresh_progress = 1
 
-    def last_refresh_before(breaking):
+    def last_refresh_before(breaking: str):
         checked = (game.last_refresh_version or "0").split(".")
         breaking = breaking.split(".")
         if len(breaking) > len(checked):
@@ -378,7 +378,7 @@ async def check(game: Game, full=False, login=False):
         return breaking_changes
     breaking_version_parsing = last_refresh_before("9.0")  # Keep installed and played checkboxes from pre 9.0
     breaking_keep_old_image = last_refresh_before("9.0")  # Keep images from pre 9.0
-    breaking_parsing_changes = last_refresh_before("9.6")  # Forum score
+    breaking_parsing_changes = last_refresh_before("9.6.4")  # Version and developer parsing
     breaking_skip_update_popup = breaking_version_parsing  # Hide update notification for breaking backend changes
     full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_parsing_changes
     if not full:

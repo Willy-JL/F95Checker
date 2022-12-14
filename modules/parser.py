@@ -1,6 +1,7 @@
 import multiprocessing
 import datetime as dt
 import functools
+import string
 import bs4
 import re
 import os
@@ -41,7 +42,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         return False
     def get_game_attr(*names: list[str]):
         for name in names:
-            if match := re.search(r"^\s*" + name + r"\s*:?\s*\n\s*:?\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
+            if match := re.search(r"^\s*" + name + r"\s*(?:\s*\n?\s*:|:\s*\n?\s*)\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
                 return match.group(1).strip()
         return ""
     def get_long_game_attr(*names: list[str]):
@@ -93,7 +94,9 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 next(spoiler.span.span.children).replace_with(html.new_string(""))
             except Exception:
                 pass
-        plain = post.find("article").get_text(separator="\n", strip=False)
+        for div in post.find_all("div"):
+            div.insert_after(html.new_string("\n"))
+        plain = post.get_text(separator="", strip=False)
 
         name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
 
@@ -104,7 +107,22 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         if not version:
             version = "N/A"
 
-        developer = get_game_attr("developer/publisher", "developer & publisher", "developer / publisher", "developer\n/\npublisher", "original developer", "developers", "developer", "publisher", "artist", "animator", "producer", "modder", "remake by", "game by", "posted by").rstrip("(|-/").strip()
+        developer = get_game_attr("developer/publisher", "developer & publisher", "developer / publisher", "original developer", "developers", "developer", "publisher", "artist", "animator", "producer", "modder", "remake by", "game by", "posted by")
+        for whitespace in string.whitespace:
+            developer = developer.replace(whitespace, " ")
+        for separator in developer_chop_separators:
+            developer = developer.split(separator)[0]
+        while True:
+            prev_developer = developer
+            developer = re.sub(f"({'|'.join(developer_remove_patterns)})", r"", developer, flags=re.IGNORECASE)
+            if not developer:
+                developer = prev_developer
+                break
+            if developer == prev_developer:
+                break
+        while "  " in developer:
+            developer = developer.replace("  ", " ")
+        developer = developer.strip(developer_strip_chars)
 
         # Content Types
         if game_has_prefixes("Cheat Mod"):
@@ -185,10 +203,13 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         except ValueError:
             pass
         if not last_updated:
-            if elem := post.find(is_class("message-lastEdit")):
-                last_updated = int(elem.find("time").get("data-time"))
-            else:
-                last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
+            try:
+                if elem := post.find(is_class("message-lastEdit")):
+                    last_updated = int(elem.find("time").get("data-time"))
+                else:
+                    last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
+            except Exception:
+                pass
         last_updated = int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(last_updated).date().toordinal()).timestamp())
 
         score = 0.0
@@ -232,3 +253,88 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         pipe.put_nowait(ret)
     else:
         return ret
+
+
+developer_strip_chars = "-–|｜/':,([{" + string.whitespace
+
+developer_chop_separators = [
+    "is creating",
+    "and h",
+    " - ",
+    " – ",
+    " | ",
+    " ｜ ",
+    " / ",
+    "'s ",
+    ": ",
+    ", ",
+    " (",
+    " [",
+    " {"
+]
+
+developer_remove_patterns = [
+    r"commissions?",
+    r"blogspot",
+    r"profile",
+    r"website",
+    r"trailer",
+    r"weebly",
+    r" blog",
+    r" page",
+    r" web",
+    r"linktr(\.|\s*)?ee",
+    r"instagram",
+    r"facebook",
+    r"youtube",
+    r"discord",
+    r"twitter",
+    r"reddit",
+    r"tumblr",
+    r"buy\s*me\s*a\s*coffee",
+    r"( |-)itch(\.io)?",
+    r"subscr?ibe?star",
+    r"kickstarter",
+    r"tip\s*jar",
+    r"indiegogo",
+    r"gumroad",
+    r"patreon",
+    r"ko-?fi",
+    r"fanbox",
+    r"fantia",
+    r"slushe",
+    r"naughty\s*machinima",
+    r"hypnopics\s*collective",
+    r"affect3d(store)?",
+    r"rule34(video)?",
+    r"picarto(\.tv)?",
+    r"furaffinity",
+    r"newgrounds",
+    r"deviantart",
+    r"artstation",
+    r"(porn)?3dx",
+    r"redgifs?",
+    r"pornhub",
+    r"xvideos",
+    r"pixiv",
+    r"hentai-?foundry",
+    r"hentaiengine",
+    r"lewdpixels",
+    r"waifu\.nl",
+    r"bowlroll",
+    r"2dmarket",
+    r"ci-en",
+    r"iwara",
+    r"fakku",
+    r" vndb",
+    r" dmm",
+    r"tfgames?site",
+    r"f95(zone)?",
+    r"gamejolt",
+    r"dlsite",
+    r"fenoxo",
+    r"boosty",
+    r"steam",
+    r" enty",
+    r"https?://\S*",
+]
