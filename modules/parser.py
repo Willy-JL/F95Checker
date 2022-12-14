@@ -96,7 +96,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 pass
         for div in post.find_all("div"):
             div.insert_after(html.new_string("\n"))
-        plain = post.get_text(separator="", strip=False)
+        plain = post.find("article").get_text(separator="", strip=False)
 
         name = re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1).strip()
 
