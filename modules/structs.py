@@ -41,7 +41,7 @@ class CounterContext:
 
 
 class Timestamp:
-    instances: list[typing.Self] = []
+    instances = []
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
         type(self).instances.append(self)
@@ -70,7 +70,7 @@ class Timestamp:
 
 
 class Datestamp(Timestamp):
-    instances: list[typing.Self] = []
+    instances = []
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
         type(self).instances.append(self)
@@ -127,7 +127,6 @@ class TrayMsg:
 
 class IntEnumHack(enum.IntEnum):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         cls = type(self)
         # Add index for use with _member_names_
         self._index_ = len(cls._member_names_)  # self is added later, so the length is up to the previous item, so not len() - 1
