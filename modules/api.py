@@ -184,7 +184,6 @@ def raise_f95zone_error(res: bytes, return_login=False):
 async def is_logged_in():
     global xf_token
     async with request("GET", globals.check_login_page, until=[b"_xfToken", b">"]) as (res, req):
-        xf_token = str(re.search(rb'<\s*input.*?name\s*=\s*"_xfToken"\s*value\s*=\s*"(.+)"', res).group(1), encoding="utf-8")
         if not 200 <= req.status < 300:
             res += await req.content.read()
             if not raise_f95zone_error(res, return_login=True):
@@ -193,6 +192,7 @@ async def is_logged_in():
             async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
                 await f.write(res)
             raise msgbox.Exc("Login assertion failure", f"Something went wrong checking the validity of your login session.\n\nF95Zone replied with a status code of {req.status} at this URL:\n{str(req.real_url)}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}login_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+        xf_token = str(re.search(rb'<\s*input.*?name\s*=\s*"_xfToken"\s*value\s*=\s*"(.+)"', res).group(1), encoding="utf-8")
         return True
 
 
