@@ -1534,6 +1534,7 @@ class MainGUI():
                     imgui.same_line()
                     if imgui.button(f"{icons.folder_remove_outline}###{game.id}_remove_exe_{i}"):
                         game.remove_executable(executable)
+                        async_thread.run(db.update_game(game, "executables"))
                     imgui.same_line()
                     imgui.text_unformatted(executable)
 
