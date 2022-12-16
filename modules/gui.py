@@ -2605,10 +2605,20 @@ class MainGUI():
                             self.require_sort = True
                     case FilterMode.Status.value:
                         draw_settings_label("Status value:")
-                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Status._member_names_)
-                        if changed:
-                            flt.match = Status[Status._member_names_[value]]
-                            self.require_sort = True
+                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                            for status in Status:
+                                selected = status is flt.match
+                                pos = imgui.get_cursor_pos()
+                                if imgui.selectable(f"###filter_{flt.id}_value_{status.value}", selected)[0]:
+                                    flt.match = status
+                                    self.require_sort = True
+                                if selected:
+                                    imgui.set_item_default_focus()
+                                imgui.set_cursor_pos(pos)
+                                self.draw_status_widget(status)
+                                imgui.same_line()
+                                imgui.text(status.name)
+                            imgui.end_combo()
                     case FilterMode.Tag.value:
                         draw_settings_label("Tag value:")
                         if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
@@ -2626,7 +2636,11 @@ class MainGUI():
                     case FilterMode.Type.value:
                         draw_settings_label("Type value:")
                         if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                            category = None
                             for type in Type:
+                                if category is not type.category:
+                                    category = type.category
+                                    imgui.text(category.name)
                                 selected = type is flt.match
                                 pos = imgui.get_cursor_pos()
                                 if imgui.selectable(f"###filter_{flt.id}_value_{type.value}", selected)[0]:
