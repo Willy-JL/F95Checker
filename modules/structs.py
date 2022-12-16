@@ -395,8 +395,8 @@ class Browser:
     hash: int = None
     args: list[str] = None
     hashed_name: str = None
-    unset: bool = None
-    is_custom: bool = None
+    integrated: bool = None
+    custom: bool = None
     private_arg: list = None
     instances: typing.ClassVar = {}
     avail_list: typing.ClassVar = []
@@ -405,8 +405,8 @@ class Browser:
         if self.hash is None:
             self.hash = self.make_hash(self.name)
         self.hashed_name = f"{self.name}###{self.hash}"
-        self.unset = self.hash == 0
-        self.is_custom = self.hash == -1
+        self.integrated = self.hash == 0
+        self.custom = self.hash == -1
         private_args = {
             "Opera":   "-private",
             "Chrom":   "-incognito",
@@ -444,7 +444,7 @@ class Browser:
                 return browser
         return cls.get(0)
 
-Browser.add("None", 0)
+Browser.add("Integrated", 0)
 Browser.add("Custom", -1)
 
 

@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtGui, QtWidgets, QtWebEngineCore, QtWebEngineWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets, QtNetwork, QtWebEngineCore, QtWebEngineWidgets
 import multiprocessing
 import sys
 import os
@@ -68,7 +68,7 @@ def create(*, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: 
         loading = True
         app.window.progress.setValue(1)
         app.window.progress.repaint()
-    def load_progress(value):
+    def load_progress(value: int):
         app.window.progress.setValue(max(1, value))
         app.window.progress.repaint()
     def load_finished(*_):
@@ -95,11 +95,25 @@ def create(*, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: 
     return app
 
 
-def cookies(pipe: multiprocessing.Queue, start_page: str, sentinel: str = None, **kwargs):
+def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
+    app = create(**kwargs)
+    cookie_store = app.window.profile.cookieStore()
+    url = QtCore.QUrl(url)
+    for key, value in cookies.items():
+        cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
+    def title_changed(title: str):
+        app.window.setWindowTitle(title)
+    app.window.webview.titleChanged.connect(title_changed)
+    app.window.webview.setUrl(url)
+    app.window.show()
+    app.exec()
+
+
+def cookies(pipe: multiprocessing.Queue, url: str, sentinel: str = None, **kwargs):
     cookies = {}
     try:
         app = create(**kwargs)
-        app.window.webview.setUrl(QtCore.QUrl(start_page))
+        app.window.webview.setUrl(QtCore.QUrl(url))
         app.window.setWindowTitle("F95Checker: Login to F95Zone")
         app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
         def on_cookie_add(cookie):

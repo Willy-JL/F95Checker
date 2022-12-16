@@ -2677,10 +2677,10 @@ class MainGUI():
                 set.browser = Browser.get(Browser.avail_list[value])
                 async_thread.run(db.update_settings("browser"))
 
-            if set.browser.unset:
+            if set.browser.integrated:
                 imgui.push_disabled()
 
-            if set.browser.is_custom:
+            if set.browser.custom:
                 draw_settings_label("Custom browser:")
                 if imgui.button("Configure", width=right_width):
                     def popup_content():
@@ -2729,7 +2729,7 @@ class MainGUI():
             )
             draw_settings_checkbox("browser_html")
 
-            if set.browser.unset:
+            if set.browser.integrated:
                 imgui.pop_disabled()
 
             imgui.end_table()

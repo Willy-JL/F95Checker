@@ -1,3 +1,4 @@
+import multiprocessing
 import configparser
 import subprocess
 import plistlib
@@ -10,7 +11,7 @@ import stat
 import os
 
 from modules.structs import Game, MsgBox, Os, SearchResult, ThreadMatch
-from modules import globals, api, async_thread, db, error, filepicker, icons, msgbox, utils
+from modules import globals, api, async_thread, db, error, filepicker, icons, msgbox, utils, webview
 
 
 def update_start_with_system(toggle: bool):
@@ -227,25 +228,29 @@ def open_game_folder(game: Game, executable: str = None):
 
 def open_webpage(url: str):
     set = globals.settings
-    if set.browser.unset:
-        utils.push_popup(msgbox.msgbox, "Browser not set", "Please select a browser in order to open webpages.", MsgBox.warn)
-        return
-    name = set.browser.name
-    if set.browser.is_custom:
+    if set.browser.integrated:
+        name = "the integrated browser"
+    elif set.browser.custom:
         name = "your custom browser"
         args = [set.browser_custom_executable, *shlex.split(set.browser_custom_arguments)]
     else:
+        name = set.browser.name
         args = [*set.browser.args]
         if set.browser_private:
             args.extend(set.browser.private_arg)
     async def _open_webpage(url: str):
         try:
-            await asyncio.create_subprocess_exec(
-                *args, url,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
+            if set.browser.integrated:
+                proc = multiprocessing.Process(target=webview.open, args=(url,), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(1269, 969)))
+                proc.start()
+                utils.daemon(proc)
+            else:
+                await asyncio.create_subprocess_exec(
+                    *args, url,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
         except Exception:
             utils.push_popup(msgbox.msgbox, "Open webpage error", f"Something went wrong opening {name}:\n{error.text()}", MsgBox.error, more=error.traceback())
     if globals.settings.browser_html:
