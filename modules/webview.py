@@ -26,7 +26,7 @@ def kwargs():
     )
 
 
-def create(*, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: bool, icon: str, col_bg: str, col_accent: str, col_text: str):
+def create(*, title: str = None, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: bool, icon: str, col_bg: str, col_accent: str, col_text: str):
     config_qt_flags(debug)
     app = QtWidgets.QApplication(sys.argv)
     app.window = QtWidgets.QWidget()
@@ -62,6 +62,12 @@ def create(*, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: 
     app.window.profile = QtWebEngineCore.QWebEngineProfile(app.window)
     app.window.webview = QtWebEngineWidgets.QWebEngineView(app.window.profile, app.window)
 
+    if title:
+        app.window.setWindowTitle(title)
+    else:
+        def title_changed(title: str):
+            app.window.setWindowTitle(title)
+        app.window.webview.titleChanged.connect(title_changed)
     loading = False
     def load_started(*_):
         nonlocal loading
@@ -99,34 +105,21 @@ def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
     app = create(**kwargs)
     cookie_store = app.window.profile.cookieStore()
     url = QtCore.QUrl(url)
-    for key, value in cookies.items():
-        cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
-    def title_changed(title: str):
-        app.window.setWindowTitle(title)
-    app.window.webview.titleChanged.connect(title_changed)
+    for name, value in cookies.items():
+        cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(name.encode()), QtCore.QByteArray(value.encode())), url)
     app.window.webview.setUrl(url)
     app.window.show()
     app.exec()
 
 
-def cookies(pipe: multiprocessing.Queue, url: str, sentinel: str = None, **kwargs):
-    cookies = {}
-    try:
-        app = create(**kwargs)
-        app.window.webview.setUrl(QtCore.QUrl(url))
-        app.window.setWindowTitle("F95Checker: Login to F95Zone")
-        app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
-        def on_cookie_add(cookie):
-            name = cookie.name().data().decode('utf-8')
-            value = cookie.value().data().decode('utf-8')
-            cookies[name] = value
-            if sentinel in cookies:
-                try:
-                    app.window.close()
-                except RuntimeError:
-                    pass
-        app.window.profile.cookieStore().cookieAdded.connect(on_cookie_add)
-        app.window.show()
-        app.exec()
-    finally:
-        pipe.put_nowait(cookies)
+def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
+    app = create(**kwargs)
+    app.window.webview.setUrl(QtCore.QUrl(url))
+    app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+    def on_cookie_add(cookie):
+        name = cookie.name().data().decode('utf-8')
+        value = cookie.value().data().decode('utf-8')
+        pipe.put_nowait((name, value))
+    app.window.profile.cookieStore().cookieAdded.connect(on_cookie_add)
+    app.window.show()
+    app.exec()

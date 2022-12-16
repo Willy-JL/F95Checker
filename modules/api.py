@@ -200,7 +200,8 @@ async def is_logged_in():
 async def login():
     try:
         pipe = multiprocessing.Queue()
-        proc = multiprocessing.Process(target=webview.cookies, args=(pipe, globals.login_page, "xf_user"), kwargs=webview.kwargs() | dict(
+        proc = multiprocessing.Process(target=webview.cookies, args=(globals.login_page, pipe), kwargs=webview.kwargs() | dict(
+            title="F95Checker: Login to F95Zone",
             size=(size := (500, 720)),
             pos=(
                 int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
@@ -208,14 +209,17 @@ async def login():
             )
         ))
         proc.start()
+        new_cookies = {}
         with utils.daemon(proc):
             while proc.is_alive():
                 try:
-                    new_cookies = pipe.get_nowait()
-                    await asyncio.shield(db.update_cookies(new_cookies))
-                    break
+                    (key, value) = pipe.get_nowait()
+                    new_cookies[key] = value
+                    if "xf_user" in new_cookies:
+                        break
                 except queue.Empty:
                     await asyncio.sleep(0.1)
+        await asyncio.shield(db.update_cookies(new_cookies))
     except Exception:
         raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n{error.text()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=error.traceback())
 
