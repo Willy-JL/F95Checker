@@ -84,7 +84,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             e = ParserException(
                 title="Thread parsing error",
                 msg=f"Failed to parse necessary sections in thread response, the html file has\nbeen saved to:\n{self_path}{os.sep}{game_id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.",
-                type=MsgBox.error
+                level=MsgBox.error
             )
             if pipe:
                 pipe.put_nowait(e)
@@ -237,7 +237,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         e = ParserException(
             title="Thread parsing error",
             msg=f"Something went wrong while parsing thread {game_id}:\n{error.text()}",
-            type=MsgBox.error,
+            level=MsgBox.error,
             more=error.traceback()
         )
         if pipe:
