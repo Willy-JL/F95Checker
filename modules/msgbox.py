@@ -1,4 +1,3 @@
-import builtins
 import typing
 import imgui
 
@@ -14,24 +13,14 @@ popup_flags: int = (
 )
 
 
-def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None, popup_uuid: str = ""):
+def msgbox(title: str, msg: str, level: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None, popup_uuid: str = ""):
     def popup_content():
         spacing = 2 * imgui.style.item_spacing.x
-        if type is MsgBox.info:
-            icon = icons.information
-            color = (0.10, 0.69, 0.95)
-        elif type is MsgBox.warn:
-            icon = icons.alert_rhombus
-            color = (0.95, 0.69, 0.10)
-        elif type is MsgBox.error:
-            icon = icons.alert_octagon
-            color = (0.95, 0.22, 0.22)
-        else:
-            icon = None
-        if icon:
+        if level:
+            icon = getattr(icons, level.icon)
             imgui.push_font(imgui.fonts.msgbox)
             icon_size = imgui.calc_text_size(icon)
-            imgui.text_colored(icon, *color)
+            imgui.text_colored(icon, *level.color)
             imgui.pop_font()
             imgui.same_line(spacing=spacing)
         imgui.begin_group()
@@ -52,7 +41,7 @@ def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.
                 height = min(more_size.y + _36, size.y * 0.7 - msg_size_y)
                 imgui.input_text_multiline(f"###more_info", more,  width=width, height=height, flags=imgui.INPUT_TEXT_READ_ONLY)
                 if imgui.begin_popup_context_item(f"###more_info_context"):
-                    utils.text_context(builtins.type("_", (), dict(_=more))(), "_", editable=False)
+                    utils.text_context(type("_", (), dict(_=more))(), "_", editable=False)
                     imgui.end_popup()
                 imgui.pop_font()
                 imgui.tree_pop()
@@ -63,7 +52,7 @@ def msgbox(title: str, msg: str, type: MsgBox = None, buttons: dict[str, typing.
 
 
 class Exc(Exception):
-    def __init__(self, title:str, msg: str, type: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None):
+    def __init__(self, title:str, msg: str, level: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None):
         self.title = title
         self.msg = msg
-        self.popup = utils.push_popup(msgbox, title, msg, type, buttons, more)
+        self.popup = utils.push_popup(msgbox, title, msg, level, buttons, more)

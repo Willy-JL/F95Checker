@@ -126,6 +126,14 @@ class TrayMsg:
 
 
 class IntEnumHack(enum.IntEnum):
+    def __new__(cls, value, attrs: dict = None):
+        self = int.__new__(cls, value)
+        self._value_ = value
+        # Add additional attributes
+        if isinstance(attrs, dict):
+            for key, value in attrs.items():
+                setattr(self, key, value)
+        return self
     def __init__(self, *args, **kwargs):
         cls = type(self)
         # Add index for use with _member_names_
@@ -144,18 +152,18 @@ Os = IntEnumHack("Os", [
 
 
 DisplayMode = IntEnumHack("DisplayMode", [
-    ("list",   1),
-    ("grid",   2),
-    ("kanban", 3),
+    ("list",   (1, {"icon": "view_agenda_outline"})),
+    ("grid",   (2, {"icon": "view_grid_outline"})),
+    ("kanban", (3, {"icon": "view_week_outline"})),
 ])
 
 
 Status = IntEnumHack("Status", [
-    ("Normal",    1),
-    ("Completed", 2),
-    ("OnHold",    3),
-    ("Abandoned", 4),
-    ("Unchecked", 5),
+    ("Normal",    (1, {"color" : (0.96, 0.96, 0.96), "icon": "lightning_bolt_circle"})),
+    ("Completed", (2, {"color" : (0.00, 0.85, 0.00), "icon": "checkbox_marked_circle"})),
+    ("OnHold",    (3, {"color" : (0.00, 0.50, 0.95), "icon": "pause_circle"})),
+    ("Abandoned", (4, {"color" : (0.87, 0.20, 0.20), "icon": "close_circle"})),
+    ("Unchecked", (5, {"color" : (0.50, 0.50, 0.50), "icon": "alert_circle"})),
 ])
 
 
@@ -310,9 +318,9 @@ ExeState = IntEnumHack("ExeState", [
 
 
 MsgBox = IntEnumHack("MsgBox", [
-    "info",
-    "warn",
-    "error",
+    ("info",  (1, {"color": (0.10, 0.69, 0.95), "icon": "information"})),
+    ("warn",  (2, {"color": (0.95, 0.69, 0.10), "icon": "alert_rhombus"})),
+    ("error", (3, {"color": (0.95, 0.22, 0.22), "icon": "alert_octagon"})),
 ])
 
 
@@ -328,6 +336,13 @@ FilterMode = IntEnumHack("FilterMode", [
     "Tag",
     "Type",
     "Updated",
+])
+
+
+Category = IntEnumHack("Category", [
+    "Games",
+    "Media",
+    "Misc",
 ])
 
 
@@ -488,68 +503,37 @@ class Settings:
 from modules import colors, imagehelper
 
 Type = IntEnumHack("Type", [
-    ("Unchecked",  23),
-    ("Misc",       1),
-    ("ADRIFT",     2),
-    ("CG",         30),
-    ("Cheat Mod",  3),
-    ("Collection", 7),
-    ("Comics",     24),
-    ("Flash",      4),
-    ("GIF",        25),
-    ("HTML",       5),
-    ("Java",       6),
-    ("Manga",      26),
-    ("Mod",        8),
-    ("Others",     9),
-    ("Pinup",      27),
-    ("QSP",        10),
-    ("RAGS",       11),
-    ("READ ME",    12),
-    ("RenPy",      14),
-    ("Request",    15),
-    ("RPGM",       13),
-    ("SiteRip",    28),
-    ("Tads",       16),
-    ("Tool",       17),
-    ("Tutorial",   18),
-    ("Unity",      19),
-    ("Unreal Eng", 20),
-    ("Video",      29),
-    ("WebGL",      21),
-    ("Wolf RPG",   22),
+    ("ADRIFT",     (2,  {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Games})),
+    ("Flash",      (4,  {"color": colors.hex_to_rgba_0_1("#616161"), "category": Category.Games})),
+    ("HTML",       (5,  {"color": colors.hex_to_rgba_0_1("#689F38"), "category": Category.Games})),
+    ("Java",       (6,  {"color": colors.hex_to_rgba_0_1("#52A6B0"), "category": Category.Games})),
+    ("Others",     (9,  {"color": colors.hex_to_rgba_0_1("#8BC34A"), "category": Category.Games})),
+    ("QSP",        (10, {"color": colors.hex_to_rgba_0_1("#D32F2F"), "category": Category.Games})),
+    ("RAGS",       (11, {"color": colors.hex_to_rgba_0_1("#FF9800"), "category": Category.Games})),
+    ("RenPy",      (14, {"color": colors.hex_to_rgba_0_1("#B069E8"), "category": Category.Games})),
+    ("RPGM",       (13, {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Games})),
+    ("Tads",       (16, {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Games})),
+    ("Unity",      (19, {"color": colors.hex_to_rgba_0_1("#FE5901"), "category": Category.Games})),
+    ("Unreal Eng", (20, {"color": colors.hex_to_rgba_0_1("#0D47A1"), "category": Category.Games})),
+    ("WebGL",      (21, {"color": colors.hex_to_rgba_0_1("#FE5901"), "category": Category.Games})),
+    ("Wolf RPG",   (22, {"color": colors.hex_to_rgba_0_1("#4CAF50"), "category": Category.Games})),
+    ("CG",         (30, {"color": colors.hex_to_rgba_0_1("#DFCB37"), "category": Category.Media})),
+    ("Collection", (7,  {"color": colors.hex_to_rgba_0_1("#616161"), "category": Category.Media})),
+    ("Comics",     (24, {"color": colors.hex_to_rgba_0_1("#FF9800"), "category": Category.Media})),
+    ("GIF",        (25, {"color": colors.hex_to_rgba_0_1("#03A9F4"), "category": Category.Media})),
+    ("Manga",      (26, {"color": colors.hex_to_rgba_0_1("#0FB2FC"), "category": Category.Media})),
+    ("Pinup",      (27, {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Media})),
+    ("SiteRip",    (28, {"color": colors.hex_to_rgba_0_1("#8BC34A"), "category": Category.Media})),
+    ("Video",      (29, {"color": colors.hex_to_rgba_0_1("#FF9800"), "category": Category.Media})),
+    ("Cheat Mod",  (3,  {"color": colors.hex_to_rgba_0_1("#D32F2F"), "category": Category.Misc})),
+    ("Mod",        (8,  {"color": colors.hex_to_rgba_0_1("#BA4545"), "category": Category.Misc})),
+    ("READ ME",    (12, {"color": colors.hex_to_rgba_0_1("#DC143C"), "category": Category.Misc})),
+    ("Request",    (15, {"color": colors.hex_to_rgba_0_1("#D32F2F"), "category": Category.Misc})),
+    ("Tool",       (17, {"color": colors.hex_to_rgba_0_1("#EC5555"), "category": Category.Misc})),
+    ("Tutorial",   (18, {"color": colors.hex_to_rgba_0_1("#EC5555"), "category": Category.Misc})),
+    ("Misc",       (1,  {"color": colors.hex_to_rgba_0_1("#B8B00C"), "category": Category.Misc})),
+    ("Unchecked",  (23, {"color": colors.hex_to_rgba_0_1("#393939"), "category": Category.Misc})),
 ])
-
-Type.Unchecked .color = colors.hex_to_rgba_0_1("#393939")
-Type.Misc      .color = colors.hex_to_rgba_0_1("#B8B00C")
-Type.ADRIFT    .color = colors.hex_to_rgba_0_1("#2196F3")
-Type.CG        .color = colors.hex_to_rgba_0_1("#DFCB37")
-Type.Cheat_Mod .color = colors.hex_to_rgba_0_1("#D32F2F")
-Type.Collection.color = colors.hex_to_rgba_0_1("#616161")
-Type.Comics    .color = colors.hex_to_rgba_0_1("#FF9800")
-Type.Flash     .color = colors.hex_to_rgba_0_1("#616161")
-Type.GIF       .color = colors.hex_to_rgba_0_1("#03A9F4")
-Type.HTML      .color = colors.hex_to_rgba_0_1("#689F38")
-Type.Java      .color = colors.hex_to_rgba_0_1("#52A6B0")
-Type.Manga     .color = colors.hex_to_rgba_0_1("#0FB2FC")
-Type.Mod       .color = colors.hex_to_rgba_0_1("#BA4545")
-Type.Others    .color = colors.hex_to_rgba_0_1("#8BC34A")
-Type.Pinup     .color = colors.hex_to_rgba_0_1("#2196F3")
-Type.QSP       .color = colors.hex_to_rgba_0_1("#D32F2F")
-Type.RAGS      .color = colors.hex_to_rgba_0_1("#FF9800")
-Type.READ_ME   .color = colors.hex_to_rgba_0_1("#DC143C")
-Type.RenPy     .color = colors.hex_to_rgba_0_1("#B069E8")
-Type.Request   .color = colors.hex_to_rgba_0_1("#D32F2F")
-Type.RPGM      .color = colors.hex_to_rgba_0_1("#2196F3")
-Type.SiteRip   .color = colors.hex_to_rgba_0_1("#8BC34A")
-Type.Tads      .color = colors.hex_to_rgba_0_1("#2196F3")
-Type.Tool      .color = colors.hex_to_rgba_0_1("#EC5555")
-Type.Tutorial  .color = colors.hex_to_rgba_0_1("#EC5555")
-Type.Unity     .color = colors.hex_to_rgba_0_1("#FE5901")
-Type.Unreal_Eng.color = colors.hex_to_rgba_0_1("#0D47A1")
-Type.Video     .color = colors.hex_to_rgba_0_1("#FF9800")
-Type.WebGL     .color = colors.hex_to_rgba_0_1("#FE5901")
-Type.Wolf_RPG  .color = colors.hex_to_rgba_0_1("#4CAF50")
 
 
 @dataclasses.dataclass

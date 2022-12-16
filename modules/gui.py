@@ -713,11 +713,10 @@ class MainGUI():
 
                         # Updated games popup
                         if not utils.is_refreshing() and globals.updated_games:
-                            updated_games = dict(globals.updated_games)
+                            updated_games = globals.updated_games.copy()
                             globals.updated_games.clear()
-                            sorted_ids = list(updated_games)
-                            sorted_ids.sort(key=lambda id: 2 if globals.games[id].type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial) else 1 if globals.games[id].type in (Type.Collection, Type.Manga, Type.SiteRip, Type.Comics, Type.CG, Type.Pinup, Type.Video, Type.GIF) else 0)
-                            utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids, len(updated_games))
+                            sorted_ids = sorted(updated_games, key=lambda id: globals.games[id].type.category.value)
+                            utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids)
 
                         # Start drawing
                         prev_scaling = globals.settings.interface_scaling
@@ -941,19 +940,7 @@ class MainGUI():
         if quick_filter:
             imgui.begin_group()
             pos = imgui.get_cursor_pos()
-        if status is Status.Unchecked:
-            imgui.text_colored(icons.alert_circle, 0.50, 0.50, 0.50)
-        elif status is Status.Normal:
-            imgui.text_colored(icons.lightning_bolt_circle, *imgui.style.colors[imgui.COLOR_TEXT][:-1])
-        elif status is Status.Completed:
-            imgui.text_colored(icons.checkbox_marked_circle, 0.00, 0.85, 0.00)
-        elif status is Status.OnHold:
-            imgui.text_colored(icons.pause_circle, 0.00, 0.50, 0.95)
-        elif status is Status.Abandoned:
-            imgui.text_colored(icons.close_circle, 0.87, 0.20, 0.20)
-        else:
-            imgui.text("")
-            return
+        imgui.text_colored(getattr(icons, status.icon), *status.color)
         if quick_filter:
             imgui.set_cursor_pos(pos)
             imgui.invisible_button("", *imgui.get_item_rect_size())
@@ -1259,7 +1246,7 @@ class MainGUI():
         if small:
             imgui.pop_font()
 
-    def draw_updates_popup(self, updated_games, sorted_ids, count, popup_uuid: str = ""):
+    def draw_updates_popup(self, updated_games, sorted_ids, popup_uuid: str = ""):
         def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
@@ -1269,7 +1256,7 @@ class MainGUI():
             version_offset = imgui.calc_text_size("Version: ").x + 2 * imgui.style.item_spacing.x
             arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
             img_pos_x = imgui.get_cursor_pos_x()
-            category = -1
+            category = None
             category_open = False
             imgui.push_text_wrap_pos(full_width)
             imgui.indent(indent)
@@ -1279,23 +1266,11 @@ class MainGUI():
                     continue
                 old_game = updated_games[id]
                 game = globals.games[id]
-                if game.type in (Type.Collection, Type.Manga, Type.SiteRip, Type.Comics, Type.CG, Type.Pinup, Type.Video, Type.GIF):
-                    new_category = 1
-                elif game.type in (Type.Misc, Type.Cheat_Mod, Type.Mod, Type.READ_ME, Type.Request, Type.Tool, Type.Tutorial):
-                    new_category = 2
-                else:
-                    new_category = 0
-                if new_category != category:
-                    category = new_category
+                if category is not game.type.category:
+                    category = game.type.category
                     imgui.push_font(imgui.fonts.big)
                     imgui.set_cursor_pos_x(img_pos_x - self.scaled(8))
-                    match category:
-                        case 1:
-                            category_open = imgui.tree_node(f"Media", flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
-                        case 2:
-                            category_open = imgui.tree_node(f"Misc", flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
-                        case _:
-                            category_open = imgui.tree_node(f"Games", flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
+                    category_open = imgui.tree_node(category.name, flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
                     imgui.pop_font()
                 if not category_open:
                     continue
@@ -1355,11 +1330,11 @@ class MainGUI():
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
 
-                if i != count - 1:
+                if i != len(sorted_ids) - 1:
                     imgui.text("\n")
             imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
-        return utils.popup(f"{count} update{'s' if count > 1 else ''}", popup_content, buttons=True, closable=True, outside=False, popup_uuid=popup_uuid)
+        return utils.popup(f"{len(sorted_ids)} update{'' if len(sorted_ids) == 1 else 's'}", popup_content, buttons=True, closable=True, outside=False, popup_uuid=popup_uuid)
 
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         popup_pos = [None]
@@ -2336,14 +2311,10 @@ class MainGUI():
     def draw_bottombar(self):
         new_display_mode = None
 
-        for display_mode, mode_icon in (
-            (DisplayMode.list,   icons.view_agenda_outline),
-            (DisplayMode.grid,   icons.view_grid_outline),
-            (DisplayMode.kanban, icons.view_week_outline)
-        ):
+        for display_mode in DisplayMode:
             if globals.settings.display_mode is display_mode:
                 imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-            if imgui.button(mode_icon):
+            if imgui.button(getattr(icons, display_mode.icon)):
                 new_display_mode = display_mode
                 self.switched_display_mode = True
             if globals.settings.display_mode is display_mode:
