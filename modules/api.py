@@ -200,13 +200,13 @@ async def is_logged_in():
 async def login():
     try:
         pipe = multiprocessing.Queue()
-        proc = multiprocessing.Process(target=webview.cookies, args=(pipe, globals.login_page, "xf_user"), kwargs=webview.kwargs() | {
-            "size": (size := (500, 720)),
-            "pos": (
+        proc = multiprocessing.Process(target=webview.cookies, args=(pipe, globals.login_page, "xf_user"), kwargs=webview.kwargs() | dict(
+            size=(size := (500, 720)),
+            pos=(
                 int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
                 int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
             )
-        })
+        ))
         proc.start()
         with utils.daemon(proc):
             while proc.is_alive():
