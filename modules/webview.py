@@ -105,8 +105,8 @@ def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
     app = create(**kwargs)
     cookie_store = app.window.profile.cookieStore()
     url = QtCore.QUrl(url)
-    for name, value in cookies.items():
-        cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(name.encode()), QtCore.QByteArray(value.encode())), url)
+    for key, value in cookies.items():
+        cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
     app.window.webview.setUrl(url)
     app.window.show()
     app.exec()
