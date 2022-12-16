@@ -1337,10 +1337,11 @@ class MainGUI():
         return utils.popup(f"{len(sorted_ids)} update{'' if len(sorted_ids) == 1 else 's'}", popup_content, buttons=True, closable=True, outside=False, popup_uuid=popup_uuid)
 
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
-        popup_pos = [None]
-        popup_size = [None]
-        zoom_popup = [False]
+        popup_pos = None
+        popup_size = None
+        zoom_popup = False
         def popup_content():
+            nonlocal popup_pos, popup_size, zoom_popup
             # Image
             image = game.image
             avail = imgui.get_content_region_available()
@@ -1400,7 +1401,7 @@ class MainGUI():
                                 globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 200)
                             else:
                                 globals.settings.zoom_times = min(max(globals.settings.zoom_times * (-diff / 50.0 + 1.0), 1), 20)
-                        zoom_popup[0] = True
+                        zoom_popup = True
                         out_size = min(*imgui.io.display_size) * globals.settings.zoom_area / 100
                         in_size = out_size / globals.settings.zoom_times
                         mouse_pos = imgui.io.mouse_pos
@@ -1569,15 +1570,15 @@ class MainGUI():
 
                 imgui.end_tab_bar()
             imgui.pop_text_wrap_pos()
-            popup_pos[0] = imgui.get_window_position()
-            popup_size[0] = imgui.get_window_size()
+            popup_pos = imgui.get_window_position()
+            popup_size = imgui.get_window_size()
         if game.id not in globals.games:
             return 0, True
         return_args = utils.popup(game.name, popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
         # Has and is in carousel ids, is not the only one in them, is topmost popup and no item is active
         if carousel_ids and len(carousel_ids) > 1 and game.id in carousel_ids and imgui.is_topmost() and not imgui.is_any_item_active():
-            pos = popup_pos[0]
-            size = popup_size[0]
+            pos = popup_pos
+            size = popup_size
             if size and pos:
                 imgui.push_font(imgui.fonts.big)
                 text_size = imgui.calc_text_size(icons.arrow_left_drop_circle)
@@ -1587,7 +1588,7 @@ class MainGUI():
                 y = pos.y + (size.y + text_size.y) / 2
                 x1 = pos.x - offset - text_size.x
                 x2 = pos.x + size.x + offset
-                if not zoom_popup[0]:
+                if not zoom_popup:
                     draw_list = imgui.get_foreground_draw_list()
                     col = imgui.get_color_u32_rgba(*globals.settings.style_text_dim)
                     draw_list.add_text(x1, y, col, icons.arrow_left_drop_circle)

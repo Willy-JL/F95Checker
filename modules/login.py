@@ -80,23 +80,25 @@ def run(*, debug: bool, icon_path: str, start_page: str, parent_geometry: list[i
     profile.cookieStore().cookieAdded.connect(on_cookie_add)
     webview.setUrl(QtCore.QUrl(start_page))
 
-    loading = [False]
+    loading = False
     def load_started(*_):
-        loading[0] = True
+        nonlocal loading
+        loading = True
         progress.setValue(1)
         progress.repaint()
     def load_progress(value):
         progress.setValue(max(1, value))
         progress.repaint()
     def load_finished(*_):
-        loading[0] = False
+        nonlocal loading
+        loading = False
         progress.setValue(0)
         progress.repaint()
     webview.loadStarted.connect(load_started)
     webview.loadProgress.connect(load_progress)
     webview.loadFinished.connect(load_finished)
     def reload(*_):
-        if loading[0]:
+        if loading:
             webview.stop()
             load_finished()
         else:

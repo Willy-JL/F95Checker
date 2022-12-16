@@ -624,7 +624,7 @@ async def check_updates():
     async def update_callback():
         progress = 0.0
         total = float(asset_size)
-        cancel = [False]
+        cancel = False
         status = f"(1/3) Downloading {asset_name}..."
         fmt = "{ratio:.0%}"
         def popup_content():
@@ -644,7 +644,8 @@ async def check_updates():
             imgui.text("(DON'T reopen manually after the update!)")
             imgui.text("(Allow it up to 3 minutes to finish up after)")
         def cancel_callback():
-            cancel[0] = True
+            nonlocal cancel
+            cancel = True
         buttons = {
             f"{icons.cancel} Cancel": cancel_callback
         }
@@ -652,7 +653,7 @@ async def check_updates():
         asset_data = io.BytesIO()
         async with request("GET", asset_url, timeout=3600, read=False) as (_, req):
             async for chunk in req.content.iter_any():
-                if cancel[0]:
+                if cancel:
                     return
                 if chunk:
                     progress += asset_data.write(chunk)
@@ -665,7 +666,7 @@ async def check_updates():
         with zipfile.ZipFile(asset_data) as z:
             total = float(len(z.filelist))
             for file in z.filelist:
-                if cancel[0]:
+                if cancel:
                     shutil.rmtree(asset_path, ignore_errors=True)
                     return
                 extracted = z.extract(file, asset_path)
@@ -677,7 +678,7 @@ async def check_updates():
         status = "(3/3) Installing update in..."
         fmt = "{progress:.0f}s"
         for _ in range(500):
-            if cancel[0]:
+            if cancel:
                 shutil.rmtree(asset_path, ignore_errors=True)
                 return
             await asyncio.sleep(0.01)
