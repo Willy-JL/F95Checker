@@ -71,6 +71,7 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
         ssl=False,
     )
     ddos_guard_cookies = {}
+    ddos_guard_first_challenge = False
     while retries:
         try:
             async with session.request(
@@ -80,12 +81,13 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                 **req_opts,
                 **kwargs
             ) as req:
-                if req.headers.get("server") == "ddos-guard" and req.status == 403:
+                res = b""
+                if req.headers.get("server") == "ddos-guard" and req.status == 403 and b"<title>DDOS-GUARD</title>" in (res := await req.read()):
                     # Attempt DDoS-Guard bypass (credits to https://git.gay/a/ddos-guard-bypass)
-                    did_first_challenge = bool(ddos_guard_cookies)
                     ddos_guard_cookies.update(cookiedict(req.cookies))
-                    if not did_first_challenge:
+                    if not ddos_guard_first_challenge:
                         # First challenge: repeat original request with new cookies
+                        ddos_guard_first_challenge = True
                         continue
                     # First challenge failed, attempt manual bypass and retry original request
                     referer = f"{req.url.scheme}://{req.url.host}"
@@ -107,9 +109,9 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                                 "Sec-Fetch-Site": "same-site" if "ddos-guard.net/" in script else "cross-site"
                             },
                             **req_opts
-                        ) as req:
-                            ddos_guard_cookies.update(cookiedict(req.cookies))
-                            for image in re.finditer(rb"\.src\s*=\s*'(.+?)'", await req.read()):
+                        ) as script_req:
+                            ddos_guard_cookies.update(cookiedict(script_req.cookies))
+                            for image in re.finditer(rb"\.src\s*=\s*'(.+?)'", await script_req.read()):
                                 image = str(image.group(1), encoding="utf-8")
                                 async with session.request(
                                     "GET",
@@ -120,8 +122,8 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                                         "Sec-Fetch-Site": "same-origin"
                                     },
                                     **req_opts
-                                ) as req:
-                                    ddos_guard_cookies.update(cookiedict(req.cookies))
+                                ) as image_req:
+                                    ddos_guard_cookies.update(cookiedict(image_req.cookies))
                     async with session.request(
                         "POST",
                         f"{referer}/.well-known/ddos-guard/mark/",
@@ -135,10 +137,9 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                             "Sec-Fetch-Site": "same-origin"
                         },
                         **req_opts
-                    ) as req:
-                        ddos_guard_cookies.update(cookiedict(req.cookies))
+                    ) as mark_req:
+                        ddos_guard_cookies.update(cookiedict(mark_req.cookies))
                     continue
-                res = b""
                 if read:
                     if until:
                         offset = 0
