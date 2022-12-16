@@ -75,8 +75,13 @@ class daemon:
 
     @staticmethod
     def kill(proc):
-        if getattr(proc, "returncode", False) is None:
+        # Multiprocessing
+        if getattr(proc, "exitcode", False) is None:
             proc.kill()
+        # Asyncio subprocess
+        elif getattr(proc, "returncode", False) is None:
+            proc.kill()
+        # Standard subprocess
         elif getattr(proc, "poll", lambda: False)() is None:
             proc.kill()
 
@@ -166,7 +171,7 @@ def close_weak_popup():
 
 def wrap_text(text: str, width: float, offset=0, func: typing.Callable = imgui.text_unformatted):
     for line in text.split("\n"):
-        while line:= line.strip():
+        while line := line.strip():
             if offset is not None:
                 avail = width - offset
             if avail < 0:
