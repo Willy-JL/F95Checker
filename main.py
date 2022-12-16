@@ -72,11 +72,6 @@ if __name__ == "__main__":
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
 
-    elif "login" in sys.argv:
-        from modules import login
-        import json
-        login.run(**json.loads(sys.argv[sys.argv.index("login") + 1]))
-
     else:
         try:
             if "main" in sys.argv:

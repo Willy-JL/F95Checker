@@ -20,7 +20,7 @@ import glfw
 import sys
 
 from modules.structs import Browser, Datestamp, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, Label, MsgBox, Os, SortSpec, Status, Tag, Timestamp, TrayMsg, Type
-from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils
+from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils, webview
 
 imgui.io = None
 imgui.style = None
@@ -269,6 +269,7 @@ class MainGUI():
         self.bg_mode_notifs_timer: float = None
 
         # Setup Qt objects
+        webview.config_qt_flags(globals.debug)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
 
@@ -653,7 +654,8 @@ class MainGUI():
                 self.prev_size = size
                 prev_cursor = cursor
                 self.tray.tick_msgs()
-                self.qt_app.processEvents()
+                self.qt_app.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+                glfw.make_context_current(self.window)
                 if self.repeat_chars:
                     for char in self.input_chars:
                         imgui.io.add_input_character(char)
@@ -698,7 +700,7 @@ class MainGUI():
                     draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                     draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                     if draw:
-                        draw_next = max(draw_next, imgui.io.delta_time + 0.5)  # Draw for at least next half second
+                        draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
                     if draw_next > 0.0:
                         draw_next -= imgui.io.delta_time
 

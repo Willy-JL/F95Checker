@@ -26,7 +26,7 @@ import io
 import re
 
 from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status
-from modules import globals, async_thread, callbacks, colors, db, error, icons, msgbox, parser, utils
+from modules import globals, async_thread, callbacks, db, error, icons, msgbox, parser, utils, webview
 
 updating = False
 session: aiohttp.ClientSession = None
@@ -199,27 +199,23 @@ async def is_logged_in():
 
 async def login():
     try:
-        proc = await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "login", json.dumps({
-                "debug": globals.debug,
-                "icon_path": str(globals.gui.icon_path),
-                "start_page": globals.login_page,
-                "parent_geometry": [
-                    globals.gui.screen_pos[0],
-                    globals.gui.screen_pos[1],
-                    imgui.io.display_size.x,
-                    imgui.io.display_size.y
-                ],
-                "col_bg": colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
-                "col_accent": colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
-                "col_text": colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
-            }),
-            stdout=subprocess.PIPE
-        )
+        pipe = multiprocessing.Queue()
+        proc = multiprocessing.Process(target=webview.cookies, args=(pipe, globals.login_page, "xf_user"), kwargs=webview.kwargs() | {
+            "size": (size := (500, 720)),
+            "pos": (
+                int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+                int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
+            )
+        })
+        proc.start()
         with utils.daemon(proc):
-            data = await proc.communicate()
-        new_cookies = json.loads(data[0])
-        await asyncio.shield(db.update_cookies(new_cookies))
+            while proc.is_alive():
+                try:
+                    new_cookies = pipe.get_nowait()
+                    await asyncio.shield(db.update_cookies(new_cookies))
+                    break
+                except queue.Empty:
+                    await asyncio.sleep(0.1)
     except Exception:
         raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n{error.text()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=error.traceback())
 
