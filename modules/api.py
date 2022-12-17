@@ -421,21 +421,21 @@ async def check(game: Game, full=False, login=False):
             pipe = multiprocessing.Queue()
             proc = multiprocessing.Process(target=parser.thread, args=(*args, pipe))
             proc.start()
-            try:
-                async with async_timeout.timeout(globals.settings.request_timeout):
-                    while True:
-                        try:
-                            ret = pipe.get_nowait()
-                            break
-                        except queue.Empty:
-                            await asyncio.sleep(0.1)
-            except TimeoutError:
+            with utils.daemon(proc):
                 try:
-                    proc.kill()
-                except Exception:
-                    pass
-                raise msgbox.Exc("Parser process timeout", "The thread parser process did not respond in time.", MsgBox.error)
-            proc.join()
+                    async with async_timeout.timeout(globals.settings.request_timeout):
+                        while True:
+                            try:
+                                ret = pipe.get_nowait()
+                                break
+                            except queue.Empty:
+                                await asyncio.sleep(0.1)
+                except TimeoutError:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+                    raise msgbox.Exc("Parser process timeout", "The thread parser process did not respond in time.", MsgBox.error)
         else:
             ret = parser.thread(*args)
         if isinstance(ret, parser.ParserException):
