@@ -1424,9 +1424,9 @@ class MainGUI():
 
             self.draw_game_play_button(game, f"{icons.play} Play")
             imgui.same_line()
-            self.draw_game_open_thread_button(game, f"{icons.open_in_new} Open Thread")
+            self.draw_game_open_thread_button(game, f"{icons.open_in_new} Thread")
             imgui.same_line()
-            self.draw_game_copy_link_button(game, f"{icons.content_copy} Copy Link")
+            self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
             imgui.same_line()
             if imgui.button(f"{icons.pound} ID"):
                 glfw.set_clipboard_string(self.window, str(game.id))
@@ -1443,6 +1443,8 @@ class MainGUI():
             imgui.same_line(spacing=_10)
             self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
             imgui.same_line(spacing=_10)
+            self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
+            imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
             imgui.text_disabled("Version:")
