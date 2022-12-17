@@ -170,16 +170,28 @@ async def fetch(method: str, url: str, **kwargs):
         return res
 
 
-def raise_f95zone_error(res: bytes, return_login=False):
-    if b"<title>Log in | F95zone</title>" in res:
-        if return_login:
-            return False
-        raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
-    if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
-        raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
-    if b"<title>DDOS-GUARD</title>" in res:
-        raise msgbox.Exc("DDoS-Guard bypass failure", "F95Zone requested a DDoS-Guard browser challenge and F95Checker\nwas unable to bypass it. Try waiting a few minutes, opening F95Zone\nin browser, rebooting your router, or connecting through a VPN.", MsgBox.warn)
-    return True
+def raise_f95zone_error(res: bytes | dict, return_login=False):
+    if isinstance(res, bytes):
+        if b"<title>Log in | F95zone</title>" in res:
+            if return_login:
+                return False
+            raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
+        if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
+            raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
+        if b"<title>DDOS-GUARD</title>" in res:
+            raise msgbox.Exc("DDoS-Guard bypass failure", "F95Zone requested a DDoS-Guard browser challenge and F95Checker\nwas unable to bypass it. Try waiting a few minutes, opening F95Zone\nin browser, rebooting your router, or connecting through a VPN.", MsgBox.error)
+        return True
+    elif isinstance(res, dict):
+        if res.get("status") == "error":
+            more = json.dumps(res, indent=4)
+            if errors := res.get("errors", []):
+                if "Cookies are required to use this site. You must accept them to continue using the site." in errors:
+                    if return_login:
+                        return False
+                    raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
+                raise msgbox.Exc("API error", "The F95Zone API returned an 'error' status with the following messages:\n - " + "\n - ".join(errors), MsgBox.error, more=more)
+            raise msgbox.Exc("API error", "The F95Zone API returned an 'error' status.", MsgBox.error, more=more)
+        return True
 
 
 async def is_logged_in():
@@ -547,9 +559,12 @@ async def check_notifs(login=False):
     try:
         res = await fetch("GET", globals.notif_endpoint, params={"_xfToken": xf_token, "_xfResponseType": "json"})
         res = json.loads(res)
+        raise_f95zone_error(res)
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
         inbox  = int(res["visitor"]["conversations_unread"].replace(",", "").replace(".", ""))
-    except Exception:
+    except Exception as exc:
+        if isinstance(exc, msgbox.Exc):
+            raise exc
         async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
             await f.write(res)
         raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n{error.text()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=error.traceback())
