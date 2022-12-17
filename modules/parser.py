@@ -12,14 +12,17 @@ from modules import error
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
 
-fix_spaces = lambda text: re.sub(r"\s+", " ", text).strip()
+# [^\S\r\n] = whitespace but not newlines
+sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
+fixed_newlines = lambda text: re.sub(r"(?: *\n){2}(?: *\n)+", r"\n\n", text).strip()
+fixed_spaces = lambda text: re.sub(r" +", r" ", text).strip()
 
 
 def is_text(text: str):
     def _is_text(elem: bs4.element.Tag):
         if not hasattr(elem, "text"):
             return False
-        val = fix_spaces(elem.text.lower())
+        val = fixed_spaces(fixed_newlines(sanitize_whitespace(elem.text.lower())))
         return val == text or val == text + ":"
     return _is_text
 
@@ -44,8 +47,8 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         return False
     def get_game_attr(*names: list[str]):
         for name in names:
-            if match := re.search(r"^\s*" + name + r"\s*(?:\s*\n?\s*:|:\s*\n?\s*)\s*(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
-                return fix_spaces(match.group(1))
+            if match := re.search(r"^ *" + name + r" *(?: *\n? *:|: *\n? *) *(.*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
+                return fixed_spaces(match.group(1))
         return ""
     def get_long_game_attr(*names: list[str]):
         for name in names:
@@ -98,14 +101,14 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 pass
         for div in post.find_all("div"):
             div.insert_after(html.new_string("\n"))
-        plain = post.find("article").get_text(separator="", strip=False)
+        plain = sanitize_whitespace(post.find("article").get_text(separator="", strip=False))
 
-        name = fix_spaces(re.search(r"(?:\[[^\]]+\] - )*([^\[\|]+)", html.title.text).group(1))
+        name = fixed_spaces(sanitize_whitespace(re.search(r"(?:\[.+?\] - )*([^\[\|]+)", html.title.text).group(1)))
 
         version = get_game_attr("version")
         if not version:
-            if match := re.search(r"(?:\[[^\]]+\] - )*[^\[]+\[([^\]]+)\]", html.title.text):
-                version = fix_spaces(match.group(1))
+            if match := re.search(r"(?:\[.+?\] - )*.+?\[(.+?)\]", html.title.text):
+                version = fixed_spaces(sanitize_whitespace(match.group(1)))
         if not version:
             version = "N/A"
 
@@ -120,7 +123,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 break
             if developer == prev_developer:
                 break
-        developer = fix_spaces(developer.strip(developer_strip_chars))
+        developer = fixed_spaces(developer.strip(developer_strip_chars))
 
         # Content Types
         if game_has_prefixes("Cheat Mod"):
@@ -253,9 +256,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         return ret
 
 
-whitespaces = "".join(re.findall(r"\s", "".join(chr(c) for c in range(sys.maxunicode+1))))
-
-developer_strip_chars = "-–|｜/':,([{" + whitespaces
+developer_strip_chars = "-–|｜/':,([{ "
 
 developer_chop_separators = [
     "is creating",
@@ -283,7 +284,7 @@ developer_remove_patterns = [
     r" blog",
     r" page",
     r" web",
-    r"linktr(\.|\s*)?ee",
+    r"linktr(\.| *)?ee",
     r"instagram",
     r"facebook",
     r"youtube",
@@ -291,11 +292,11 @@ developer_remove_patterns = [
     r"twitter",
     r"reddit",
     r"tumblr",
-    r"buy\s*me\s*a\s*coffee",
+    r"buy *me *a *coffee",
     r"( |-)itch(\.io)?",
     r"subscr?ibe?star",
     r"kickstarter",
-    r"tip\s*jar",
+    r"tip *jar",
     r"indiegogo",
     r"gumroad",
     r"patreon",
@@ -303,8 +304,8 @@ developer_remove_patterns = [
     r"fanbox",
     r"fantia",
     r"slushe",
-    r"naughty\s*machinima",
-    r"hypnopics\s*collective",
+    r"naughty *machinima",
+    r"hypnopics *collective",
     r"affect3d(store)?",
     r"rule34(video)?",
     r"picarto(\.tv)?",
