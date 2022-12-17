@@ -51,30 +51,35 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 return fixed_spaces(match.group(1))
         return ""
     def get_long_game_attr(*names: list[str]):
+        value_regex = ""
+        for name in names:
+            if match := re.search(r"^ *" + name + r" *:? *\n? *:? *((?:.|\n)*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
+                value_regex = re.sub(r"(?:(?: *\n){7}|(?:\n *[A-Z a-z]+:(?:.|\n)+?){2}|\n *(?:DOWNLOAD|Download) *(?:\n|:))(?:.|\n)*", r"", match.group(1), flags=re.RegexFlag.MULTILINE)
+                value_regex = fixed_newlines(value_regex)
+        value_html = ""
         for name in names:
             if elem := post.find(is_text(name)):
                 break
-        if not elem:
-            return ""
-        value = ""
-        while True:
-            if is_class("bbWrapper")(elem) or elem.parent.name == "article":
-                break
-            for sibling in elem.next_siblings:
-                if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
+        if elem:
+            while True:
+                if is_class("bbWrapper")(elem) or elem.parent.name == "article":
                     break
-                stripped = sibling.text.strip(whitespaces)
-                if stripped == ":" or stripped == "":
+                for sibling in elem.next_siblings:
+                    if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
+                        break
+                    text = sanitize_whitespace(sibling.text)
+                    if text.strip() in (":", ""):
+                        continue
+                    value_html += text
+                else:
+                    elem = elem.parent
                     continue
-                value += sibling.text
-            else:
-                elem = elem.parent
-                continue
-            break
-        value = value.strip(whitespaces)
-        while "\n\n\n" in value:
-            value = value.replace("\n\n\n", "\n\n")
-        return value
+                break
+            value_html = fixed_newlines(value_html)
+        if len(value_regex) > len(value_html):
+            return value_regex
+        else:
+            return value_html
 
     try:
 
