@@ -390,11 +390,10 @@ async def check(game: Game, full=False, login=False):
             break  # If field is bigger then its breaking
         return breaking_changes
     breaking_name_parsing = last_refresh_before("9.6.4")  # Skip name change in update popup
-    breaking_version_parsing = last_refresh_before("9.6.4")  # Keep installed and played checkboxes
+    breaking_version_parsing = last_refresh_before("9.6.4")  # Skip update popup and keep installed/played checkboxes
     breaking_keep_old_image = last_refresh_before("9.0")  # Keep existing image files
-    breaking_parsing_changes = last_refresh_before("9.6.4")  # Version and developer parsing
-    breaking_skip_update_popup = breaking_version_parsing  # Hide update notification for breaking backend changes
-    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_parsing_changes
+    breaking_require_full_check = last_refresh_before("9.6.5")  # Version and developer parsing
+    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_require_full_check
     if not full:
         async with request("HEAD", game.url, read=False) as (_, req):
             if (redirect := str(req.real_url)) != game.url:
@@ -452,17 +451,18 @@ async def check(game: Game, full=False, login=False):
             ret = parser.thread(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(**ret.kwargs)
-        (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url) = ret
+        (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
 
         last_full_refresh = int(time.time())
         last_refresh_version = globals.version
 
-        # Do not reset played and installed checkboxes if refreshing with braking changes
+        # Skip update popup and don't reset played/installed checkboxes if refreshing with braking changes
         played = game.played
         installed = game.installed
         if breaking_version_parsing:
             if old_version == installed:
                 installed = version  # Is breaking and was previously installed, mark again as installed
+            old_version = version  # Don't include version change in popup for simple parsing adjustments
         else:
             if version != old_version:
                 played = False  # Not breaking and version changed, remove played checkbox
@@ -532,9 +532,10 @@ async def check(game: Game, full=False, login=False):
             game.changelog = changelog
             game.tags = tags
             game.image_url = image_url
-            await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "score", "played", "installed", "description", "changelog", "tags", "image_url")
+            game.downloads = downloads
+            await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "score", "played", "installed", "description", "changelog", "tags", "image_url", "downloads")
 
-            if old_status is not Status.Unchecked and not breaking_skip_update_popup and (
+            if old_status is not Status.Unchecked and (
                 name != old_name or
                 version != old_version or
                 status != old_status

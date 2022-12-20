@@ -561,6 +561,7 @@ class Game:
     labels               : list[Label.get]
     notes                : str
     image_url            : str
+    downloads            : list[tuple[str, list[tuple[str, str]]]]
     image                : imagehelper.ImageHelper = None
     executables_valids   : list[bool] = None
     executables_valid    : bool = None

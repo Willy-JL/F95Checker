@@ -187,7 +187,8 @@ async def connect():
             "tags":                        f'TEXT    DEFAULT "[]"',
             "labels":                      f'TEXT    DEFAULT "[]"',
             "notes":                       f'TEXT    DEFAULT ""',
-            "image_url":                   f'TEXT    DEFAULT ""'
+            "image_url":                   f'TEXT    DEFAULT ""',
+            "downloads":                   f'TEXT    DEFAULT "[]"'
         },
         renames=[
             ("executable", "executables")

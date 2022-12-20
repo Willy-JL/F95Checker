@@ -81,6 +81,48 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             return value_regex
         else:
             return value_html
+    def get_game_downloads(*names: list[str]):
+        for name in names:
+            if elem := post.find(is_text(name)):
+                break
+        if not elem:
+            return []
+        downloads = []
+        download_name = ""
+        download_mirrors = []
+        def add_downloads():
+            nonlocal download_name, download_mirrors
+            download_name = clean_text(download_name)
+            lines = download_name.split("\n")
+            download_name = clean_text(lines.pop())
+            while lines:
+                if line := clean_text(lines.pop(0)):
+                    downloads.append((line, []))
+            if download_name or download_mirrors:
+                downloads.append((download_name, download_mirrors))
+                download_name = ""
+                download_mirrors = []
+        while not (is_class("bbWrapper")(elem) or elem.parent.name == "article"):
+            if elem.next_sibling:
+                elem = elem.next_sibling
+            else:
+                elem = elem.parent
+                continue
+            while not (is_link := is_class("link")(elem)) and (children := list(getattr(elem, "children", []))):
+                elem = children[0]
+            if is_link:
+                download_mirrors.append((clean_text(elem.text), elem.get("href")))
+            else:
+                if elem.name in ("img", "video"):
+                    break
+                text = sanitize_whitespace(elem.text)
+                if not text.strip("-,*:/ "):
+                    continue
+                if download_mirrors:
+                    add_downloads()
+                download_name += text
+        add_downloads()
+        return downloads
 
     try:
 
@@ -242,6 +284,8 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             image_url = "-"
 
+        downloads = get_game_downloads("download")
+
     except Exception:
         e = ParserException(
             title="Thread parsing error",
@@ -255,7 +299,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             return e
 
-    ret = (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url)
+    ret = (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads)
     if pipe:
         pipe.put_nowait(ret)
     else:
