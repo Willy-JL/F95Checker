@@ -252,7 +252,7 @@ async def download_webpage(url: str):
     for elem in html.find_all():
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
-                elem.attrs[key] = globals.domain + value
+                elem.attrs[key] = globals.host + value
     with tempfile.NamedTemporaryFile("wb", prefix=webpage_prefix, suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return f.name
@@ -482,12 +482,12 @@ async def check(game: Game, full=False, login=False):
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if re.search(f"^https?://[^/]*\.?{globals.host}/", image_url):
+                    if re.search(f"^https?://[^/]*\.?{globals.domain}/", image_url):
                         raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, globals.host)
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, globals.domain)
                     except Exception:
                         f95zone_ok = False
                     try:
