@@ -24,7 +24,7 @@ def is_text(text: str):
         if not hasattr(elem, "text"):
             return False
         val = clean_text(elem.text.lower())
-        return val == text or val == text + ":"
+        return val == text or val.startswith(text + ":")
     return _is_text
 
 
@@ -284,7 +284,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             image_url = "-"
 
-        downloads = get_game_downloads("download")
+        downloads = get_game_downloads("downloads", "download")
 
     except Exception:
         e = ParserException(
