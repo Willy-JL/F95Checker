@@ -94,9 +94,9 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             nonlocal download_name, download_mirrors
             download_name = clean_text(download_name)
             lines = download_name.split("\n")
-            download_name = clean_text(lines.pop())
+            download_name = clean_text(lines.pop()).strip(":")
             while lines:
-                if line := clean_text(lines.pop(0)):
+                if line := clean_text(lines.pop(0)).strip(":"):
                     downloads.append((line, []))
             if download_name or download_mirrors:
                 downloads.append((download_name, download_mirrors))
