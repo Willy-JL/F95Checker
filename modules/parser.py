@@ -16,20 +16,21 @@ _html = html
 sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
 fixed_newlines = lambda text: re.sub(r"(?: *\n){2}(?: *\n)+", r"\n\n", text).strip()
 fixed_spaces = lambda text: re.sub(r" +", r" ", text).strip()
+clean_text = lambda text: fixed_spaces(fixed_newlines(sanitize_whitespace(text)))
 
 
 def is_text(text: str):
     def _is_text(elem: bs4.element.Tag):
         if not hasattr(elem, "text"):
             return False
-        val = fixed_spaces(fixed_newlines(sanitize_whitespace(elem.text.lower())))
+        val = clean_text(elem.text.lower())
         return val == text or val == text + ":"
     return _is_text
 
 
 def is_class(name: str):
     def _is_class(elem: bs4.element.Tag):
-        return name in elem.get_attribute_list("class")
+        return hasattr(elem, "get_attribute_list") and name in elem.get_attribute_list("class")
     return _is_class
 
 
