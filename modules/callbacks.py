@@ -273,6 +273,22 @@ def clipboard_paste():
     return str(glfw.get_clipboard_string(globals.gui.window) or b"", encoding="utf-8")
 
 
+def copy_masked_link(masked_url: str):
+    pipe = multiprocessing.Queue()
+    proc = multiprocessing.Process(target=webview.redirect, args=(masked_url, pipe, "a.host_link"), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(520, 480)))
+    proc.start()
+    async def _unmask_and_copy():
+        with utils.daemon(proc):
+            while proc.is_alive():
+                try:
+                    real_url = pipe.get_nowait()
+                    clipboard_copy(real_url)
+                    break
+                except queue.Empty:
+                    await asyncio.sleep(0.1)
+    async_thread.run(_unmask_and_copy())
+
+
 def remove_game(game: Game, bypass_confirm=False):
     def remove_callback():
         id = game.id

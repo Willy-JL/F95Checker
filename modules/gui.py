@@ -1,7 +1,6 @@
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import concurrent.futures
-import multiprocessing
 import OpenGL.GL as gl
 import datetime as dt
 from PIL import Image
@@ -16,7 +15,6 @@ import pathlib
 import aiohttp
 import OpenGL
 import string
-import queue
 import imgui
 import time
 import glfw
@@ -1580,19 +1578,7 @@ class MainGUI():
                                     imgui.small_button(mirror)
                                     if imgui.is_item_clicked():
                                         if f"{globals.domain}/masked/" in link:
-                                            pipe = multiprocessing.Queue()
-                                            proc = multiprocessing.Process(target=webview.redirect, args=(link, pipe, "a.host_link"), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(520, 480)))
-                                            proc.start()
-                                            async def _unmask_and_copy():
-                                                with utils.daemon(proc):
-                                                    while proc.is_alive():
-                                                        try:
-                                                            real_link = pipe.get_nowait()
-                                                            callbacks.clipboard_copy(real_link)
-                                                            break
-                                                        except queue.Empty:
-                                                            await asyncio.sleep(0.1)
-                                            async_thread.run(_unmask_and_copy())
+                                            callbacks.copy_masked_link(link)
                                         elif f"{globals.domain}/" in link:
                                             callbacks.open_webpage(link)
                                         else:
