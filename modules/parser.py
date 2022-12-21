@@ -23,7 +23,7 @@ def is_text(text: str):
     def _is_text(elem: bs4.element.Tag):
         if not hasattr(elem, "text"):
             return False
-        val = clean_text(elem.text.lower())
+        val = sanitize_whitespace(elem.text.lower())
         return val == text or val.startswith(text + ":")
     return _is_text
 
@@ -62,20 +62,20 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             if elem := post.find(is_text(name)):
                 break
         if elem:
-            while True:
-                if is_class("bbWrapper")(elem) or elem.parent.name == "article":
-                    break
-                for sibling in elem.next_siblings:
-                    if sibling.name == "b" or (hasattr(sibling, "get") and "center" in sibling.get("style", "")):
-                        break
-                    text = sanitize_whitespace(sibling.text)
-                    if text.strip() in (":", ""):
-                        continue
-                    value_html += text
+            while children := list(getattr(elem, "children", [])):
+                elem = children[0]
+            while not (is_class("bbWrapper")(elem) or elem.parent.name == "article"):
+                if elem.next_sibling:
+                    elem = elem.next_sibling
                 else:
                     elem = elem.parent
                     continue
-                break
+                if elem.name == "b" or (hasattr(elem, "get") and "center" in elem.get("style", "")):
+                    break
+                text = sanitize_whitespace(elem.text)
+                if text.strip() in (":", ""):
+                    continue
+                value_html += text
             value_html = fixed_newlines(value_html)
         if len(value_regex) > len(value_html):
             return value_regex
@@ -87,6 +87,8 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 break
         if not elem:
             return []
+        while not is_class("link")(elem) and (children := list(getattr(elem, "children", []))):
+            elem = children[0]
         downloads = []
         download_name = ""
         download_mirrors = []
