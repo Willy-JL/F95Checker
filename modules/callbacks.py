@@ -10,6 +10,7 @@ import imgui
 import glfw
 import time
 import stat
+import re
 import os
 
 from modules.structs import Game, MsgBox, Os, SearchResult, ThreadMatch
@@ -274,8 +275,17 @@ def clipboard_paste():
 
 
 def copy_masked_link(masked_url: str):
+    host = (re.search(r"/masked/(.*?)/", masked_url) or ("", ""))[1]
     pipe = multiprocessing.Queue()
-    proc = multiprocessing.Process(target=webview.redirect, args=(masked_url, pipe, "a.host_link"), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(520, 480)))
+    proc = multiprocessing.Process(target=webview.redirect, args=(masked_url, pipe, "a.host_link"), kwargs=webview.kwargs() | dict(
+        cookies=globals.cookies,
+        title=f"Unmask link{f' for {host}' if host else ''}",
+        size=(size := (520, 480)),
+        pos=(
+            int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+            int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
+        )
+    ))
     proc.start()
     async def _unmask_and_copy():
         with utils.daemon(proc):
