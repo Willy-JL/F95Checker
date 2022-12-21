@@ -7,7 +7,7 @@ import glfw
 import sys
 import os
 
-from modules import globals, icons, utils  # added
+from modules import globals, callbacks, icons, utils  # added
 
 dir_icon     = f"{icons.folder}  "       # changed
 file_icon    = f"{icons.file}  "         # changed
@@ -127,9 +127,9 @@ class FilePicker:
             confirmed, dir = imgui.input_text("###location_bar", str(self.dir), flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
             if imgui.begin_popup_context_item(f"###location_context"):  # added
                 if imgui.selectable(f"{icons.content_copy} Copy", False)[0]:  # added
-                    glfw.set_clipboard_string(globals.gui.window, dir)  # added
-                if imgui.selectable(f"{icons.content_paste} Paste", False)[0] and (clip := glfw.get_clipboard_string(globals.gui.window)):  # added
-                    dir = str(clip, encoding="utf-8")  # added
+                    callbacks.clipboard_copy(dir)  # added
+                if imgui.selectable(f"{icons.content_paste} Paste", False)[0] and (clip := callbacks.clipboard_paste()):  # added
+                    dir = clip  # added
                     confirmed = True  # added
                 imgui.end_popup()  # added
             if confirmed:

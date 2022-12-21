@@ -1063,7 +1063,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id)
         if imgui.is_item_clicked(2):
-            glfw.set_clipboard_string(self.window, game.url)
+            callbacks.clipboard_copy(game.url)
         elif clicked:
             callbacks.open_webpage(game.url)
         return clicked
@@ -1075,7 +1075,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id)
         if clicked:
-            glfw.set_clipboard_string(self.window, game.url)
+            callbacks.clipboard_copy(game.url)
         return clicked
 
     def draw_game_remove_button(self, game: Game, label="", selectable=False):
@@ -1432,7 +1432,7 @@ class MainGUI():
             self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
             imgui.same_line()
             if imgui.button(f"{icons.pound} ID"):
-                glfw.set_clipboard_string(self.window, str(game.id))
+                callbacks.clipboard_copy(str(game.id))
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.text_unformatted(
@@ -1588,7 +1588,7 @@ class MainGUI():
                                                     while proc.is_alive():
                                                         try:
                                                             real_link = pipe.get_nowait()
-                                                            glfw.set_clipboard_string(self.window, real_link)
+                                                            callbacks.clipboard_copy(real_link)
                                                             break
                                                         except queue.Empty:
                                                             await asyncio.sleep(0.1)
@@ -1596,7 +1596,7 @@ class MainGUI():
                                         elif f"{globals.domain}/" in link:
                                             callbacks.open_webpage(link)
                                         else:
-                                            glfw.set_clipboard_string(self.window, link)
+                                            callbacks.clipboard_copy(link)
                                     if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE) or imgui.is_item_clicked(imgui.MOUSE_BUTTON_RIGHT):
                                         callbacks.open_webpage(link)
                             else:

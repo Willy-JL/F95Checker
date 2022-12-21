@@ -5,7 +5,9 @@ import plistlib
 import pathlib
 import asyncio
 import shlex
+import queue
 import imgui
+import glfw
 import time
 import stat
 import os
@@ -261,6 +263,14 @@ def open_webpage(url: str):
         async_thread.run(_fetch_open_page())
     else:
         async_thread.run(_open_webpage(url))
+
+
+def clipboard_copy(text: str):
+    glfw.set_clipboard_string(globals.gui.window, text)
+
+
+def clipboard_paste():
+    return str(glfw.get_clipboard_string(globals.gui.window) or b"", encoding="utf-8")
 
 
 def remove_game(game: Game, bypass_confirm=False):

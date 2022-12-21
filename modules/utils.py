@@ -13,7 +13,7 @@ import glfw
 import sys
 import re
 
-from modules import globals, async_thread, icons, msgbox
+from modules import globals, async_thread, callbacks, icons, msgbox
 
 
 def rand_num_str(len=8):
@@ -201,10 +201,10 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
     getter = lambda: getattr(obj, attr)
     setter = lambda val: [setattr(obj, attr, val), setter_extra(val)]
     if imgui.selectable(f"{icons.content_copy} Copy", False)[0]:
-        glfw.set_clipboard_string(globals.gui.window, getter())
+        callbacks.clipboard_copy(getter())
     if editable:
         if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
-            setter(getter() + str(glfw.get_clipboard_string(globals.gui.window) or b"", encoding="utf-8"))
+            setter(getter() + callbacks.clipboard_paste())
         if imgui.selectable(f"{icons.trash_can_outline} Clear", False)[0]:
             setter("")
         if no_icons:
