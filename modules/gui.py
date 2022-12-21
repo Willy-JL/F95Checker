@@ -1400,7 +1400,7 @@ class MainGUI():
                     elif globals.settings.zoom_enabled:
                         if diff := int(imgui.get_scroll_x() - 1.0):
                             if imgui.is_key_down(glfw.KEY_LEFT_ALT):
-                                globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 200)
+                                globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 500)
                             else:
                                 globals.settings.zoom_times = min(max(globals.settings.zoom_times * (-diff / 50.0 + 1.0), 1), 20)
                         zoom_popup = True
@@ -2779,8 +2779,8 @@ class MainGUI():
                 "The size of the zoom popup compared to the main window size (uses the shorter of the two window dimensions). "
                 "Default 50%."
             )
-            changed, value = imgui.drag_int("###zoom_area", set.zoom_area, change_speed=0.1, min_value=1, max_value=200, format="%d%%")
-            set.zoom_area = min(max(value, 1), 200)
+            changed, value = imgui.drag_int("###zoom_area", set.zoom_area, change_speed=0.2, min_value=1, max_value=500, format="%d%%")
+            set.zoom_area = min(max(value, 1), 500)
             if changed:
                 async_thread.run(db.update_settings("zoom_area"))
 
