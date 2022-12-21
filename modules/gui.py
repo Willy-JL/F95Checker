@@ -1559,12 +1559,12 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text("Regular Downloads:")
                     imgui.same_line()
-                    self.draw_hover_text(  # TODO: add link type icons
+                    self.draw_hover_text(
                         "There are 3 types of links:\n"
-                        " - Direct: left clicking copies the link\n"
-                        " - Masked: left clicking shows the captcha then copies the link\n"
-                        " - Forum: left clicking opens the F95Zone link in chosen browser\n"
-                        "Using right and middle clicks will always open the webpage in browser."
+                        f"{icons.link}Direct: middle clicking copies the link\n"
+                        f"{icons.domino_mask}Masked: middle clicking shows the captcha then copies the link\n"
+                        f"{icons.open_in_app}Forum: middle clicking opens the F95Zone link in chosen browser\n"
+                        "Left clicking always opens the webpage in your chosen browser."
                     )
                     imgui.spacing()
                     if game.downloads:
@@ -1575,15 +1575,19 @@ class MainGUI():
                                 imgui.text_unformatted(name + ":")
                                 for mirror, link in mirrors:
                                     imgui.same_line()  # FIXME: button wrapping
-                                    imgui.small_button(mirror)
-                                    if imgui.is_item_clicked():
-                                        if f"{globals.domain}/masked/" in link:
+                                    if f"{globals.domain}/masked/" in link:
+                                        imgui.small_button(icons.domino_mask + mirror)
+                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.copy_masked_link(link)
-                                        elif f"{globals.domain}/" in link:
+                                    elif f"{globals.domain}/" in link:
+                                        imgui.small_button(icons.open_in_app + mirror)
+                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.open_webpage(link)
-                                        else:
+                                    else:
+                                        imgui.small_button(icons.link + mirror)
+                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.clipboard_copy(link)
-                                    if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE) or imgui.is_item_clicked(imgui.MOUSE_BUTTON_RIGHT):
+                                    if imgui.is_item_clicked():
                                         callbacks.open_webpage(link)
                             else:
                                 if can_add_spacing:
