@@ -282,9 +282,7 @@ async def quick_search(query: str):
         if not id:
             continue
         id = id[0].id
-        title = title.text.replace("\n", " ").strip()
-        while "  " in title:
-            title = title.replace("  ", " ")
+        title = re.sub(r"\s+", r" ", title.text).strip()
         if not title:
             continue
         results.append(SearchResult(title=title, url=url, id=id))
