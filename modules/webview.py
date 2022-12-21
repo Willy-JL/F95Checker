@@ -125,3 +125,28 @@ def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
     app.window.webview.setUrl(url)
     app.window.show()
     app.exec()
+
+
+def redirect(url: str, pipe: multiprocessing.Queue, click_selector: str = None, *, cookies: dict[str, str] = {}, **kwargs):
+    app = create(**kwargs)
+    url = QtCore.QUrl(url)
+    cookie_store = app.window.profile.cookieStore()
+    for key, value in cookies.items():
+        cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
+    def url_changed(new: QtCore.QUrl):
+        if new != url:
+            pipe.put_nowait(new.url())
+    app.window.webview.urlChanged.connect(url_changed)
+    if click_selector:
+        def load_progress(value: int = None):
+            app.window.webview.page().runJavaScript(f"""
+                redirectClickElement = document.querySelector({click_selector!r});
+                if (redirectClickElement) {{
+                    redirectClickElement.click();
+                }}
+            """)
+        app.window.webview.loadProgress.connect(load_progress)
+    app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+    app.window.webview.setUrl(url)
+    app.window.show()
+    app.exec()

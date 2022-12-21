@@ -1,6 +1,7 @@
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import concurrent.futures
+import multiprocessing
 import OpenGL.GL as gl
 import datetime as dt
 from PIL import Image
@@ -14,6 +15,8 @@ import asyncio
 import pathlib
 import aiohttp
 import OpenGL
+import string
+import queue
 import imgui
 import time
 import glfw
@@ -1546,17 +1549,65 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item((icons.draw_pen if game.notes else icons.pen) + " Notes###notes")[0]:
+                if imgui.begin_tab_item((icons.download if game.downloads else icons.download_off) + " Downloads###downloads")[0]:
                     imgui.spacing()
-                    self.draw_game_notes_widget(game)
-                    imgui.end_tab_item()
-
-                if imgui.begin_tab_item((icons.tag_multiple_outline if len(game.tags) > 1 else icons.tag_outline if len(game.tags) == 1 else icons.tag_off_outline) + " Tags###tags")[0]:
+                    imgui.text("RPDL Torrents:")
+                    imgui.same_line()
+                    imgui.small_button("Search")  # TODO: proper rpdl integration
+                    if imgui.is_item_clicked():
+                        callbacks.open_webpage(f"https://dl.rpdl.net/torrents?search={''.join(char for char in game.name if char in string.ascii_letters)}" )
                     imgui.spacing()
-                    if game.tags:
-                        self.draw_game_tags_widget(game)
+                    imgui.spacing()
+                    imgui.spacing()
+                    imgui.text("Regular Downloads:")
+                    imgui.same_line()
+                    self.draw_hover_text(  # TODO: add link type icons
+                        "There are 3 types of links:\n"
+                        " - Direct: left clicking copies the link\n"
+                        " - Masked: left clicking shows the captcha then copies the link\n"
+                        " - Forum: left clicking opens the F95Zone link in chosen browser\n"
+                        "Using right and middle clicks will always open the webpage in browser."
+                    )
+                    imgui.spacing()
+                    if game.downloads:
+                        can_add_spacing = False
+                        for name, mirrors in game.downloads:
+                            if mirrors:
+                                can_add_spacing = True
+                                imgui.text_unformatted(name + ":")
+                                for mirror, link in mirrors:
+                                    imgui.same_line()  # FIXME: button wrapping
+                                    imgui.small_button(mirror)
+                                    if imgui.is_item_clicked():
+                                        if f"{globals.domain}/masked/" in link:
+                                            pipe = multiprocessing.Queue()
+                                            proc = multiprocessing.Process(target=webview.redirect, args=(link, pipe, "a.host_link"), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(520, 480)))
+                                            proc.start()
+                                            async def _unmask_and_copy():
+                                                with utils.daemon(proc):
+                                                    while proc.is_alive():
+                                                        try:
+                                                            real_link = pipe.get_nowait()
+                                                            glfw.set_clipboard_string(self.window, real_link)
+                                                            break
+                                                        except queue.Empty:
+                                                            await asyncio.sleep(0.1)
+                                            async_thread.run(_unmask_and_copy())
+                                        elif f"{globals.domain}/" in link:
+                                            callbacks.open_webpage(link)
+                                        else:
+                                            glfw.set_clipboard_string(self.window, link)
+                                    if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE) or imgui.is_item_clicked(imgui.MOUSE_BUTTON_RIGHT):
+                                        callbacks.open_webpage(link)
+                            else:
+                                if can_add_spacing:
+                                    imgui.text("")
+                                imgui.text_unformatted(name)
+                                imgui.spacing()
+                                imgui.spacing()
+                                can_add_spacing = False
                     else:
-                        imgui.text_disabled("This game has no tags!")
+                        imgui.text_disabled("Either this game doesn't have regular downloads, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((icons.label_multiple_outline if len(game.labels) > 1 else icons.label_outline if len(game.labels) == 1 else icons.label_off_outline) + " Labels###labels")[0]:
@@ -1570,6 +1621,19 @@ class MainGUI():
                         self.draw_game_labels_widget(game)
                     else:
                         imgui.text_disabled("This game has no labels!")
+                    imgui.end_tab_item()
+
+                if imgui.begin_tab_item((icons.draw_pen if game.notes else icons.pen) + " Notes###notes")[0]:
+                    imgui.spacing()
+                    self.draw_game_notes_widget(game)
+                    imgui.end_tab_item()
+
+                if imgui.begin_tab_item((icons.tag_multiple_outline if len(game.tags) > 1 else icons.tag_outline if len(game.tags) == 1 else icons.tag_off_outline) + " Tags###tags")[0]:
+                    imgui.spacing()
+                    if game.tags:
+                        self.draw_game_tags_widget(game)
+                    else:
+                        imgui.text_disabled("This game has no tags!")
                     imgui.end_tab_item()
 
                 imgui.end_tab_bar()
