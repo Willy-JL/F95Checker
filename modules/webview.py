@@ -42,24 +42,30 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
     app.window.layout().setContentsMargins(0, 0, 0, 0)
     app.window.layout().setSpacing(0)
 
-    app.window.buttons = QtWidgets.QWidget()
-    app.window.buttons.setLayout(QtWidgets.QHBoxLayout(app.window.buttons))
-    app.window.buttons.layout().setContentsMargins(0, 0, 0, 0)
-    app.window.buttons.layout().setSpacing(0)
-    app.window.buttons.back = QtWidgets.QPushButton("󰁍", app.window.buttons)
-    app.window.buttons.forward = QtWidgets.QPushButton("󰁔", app.window.buttons)
-    app.window.buttons.reload = QtWidgets.QPushButton("󰑐", app.window.buttons)
-    app.window.buttons.url = QtWidgets.QLineEdit(app.window.buttons)
+    app.window.controls = QtWidgets.QWidget()
+    app.window.controls.setObjectName("controls")
+    app.window.controls.setLayout(QtWidgets.QVBoxLayout(app.window.controls))
+    app.window.controls.layout().setContentsMargins(0, 0, 0, 0)
+    app.window.controls.layout().setSpacing(0)
+    app.window.controls.buttons = QtWidgets.QWidget()
+    app.window.controls.buttons.setLayout(QtWidgets.QHBoxLayout(app.window.controls.buttons))
+    app.window.controls.buttons.layout().setContentsMargins(0, 0, 0, 0)
+    app.window.controls.buttons.layout().setSpacing(0)
+    app.window.controls.buttons.back = QtWidgets.QPushButton("󰁍", app.window.controls.buttons)
+    app.window.controls.buttons.forward = QtWidgets.QPushButton("󰁔", app.window.controls.buttons)
+    app.window.controls.buttons.reload = QtWidgets.QPushButton("󰑐", app.window.controls.buttons)
+    app.window.controls.buttons.url = QtWidgets.QLineEdit(app.window.controls.buttons)
+    app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.back)
+    app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.forward)
+    app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.reload)
+    app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.url)
     if buttons:
-        app.window.buttons.layout().addWidget(app.window.buttons.back)
-        app.window.buttons.layout().addWidget(app.window.buttons.forward)
-        app.window.buttons.layout().addWidget(app.window.buttons.reload)
-        app.window.buttons.layout().addWidget(app.window.buttons.url)
-
-    app.window.progress = QtWidgets.QProgressBar(app.window)
-    app.window.progress.setTextVisible(False)
-    app.window.progress.setFixedHeight(2)
-    app.window.progress.setMaximum(100)
+        app.window.controls.layout().addWidget(app.window.controls.buttons)
+    app.window.controls.progress = QtWidgets.QProgressBar(app.window.controls)
+    app.window.controls.progress.setTextVisible(False)
+    app.window.controls.progress.setFixedHeight(2)
+    app.window.controls.progress.setMaximum(100)
+    app.window.controls.layout().addWidget(app.window.controls.progress)
 
     app.window.webview = QtWebEngineWidgets.QWebEngineView(QtWebEngineCore.QWebEngineProfile(app.window), app.window)
     app.window.webview.page = app.window.webview.page()
@@ -78,25 +84,25 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
     def load_started():
         nonlocal loading
         loading = True
-        app.window.buttons.back.setEnabled(app.window.webview.history.canGoBack())
-        app.window.buttons.forward.setEnabled(app.window.webview.history.canGoForward())
-        app.window.buttons.reload.setText("󰅖")
-        app.window.progress.setValue(1)
-        app.window.progress.repaint()
+        app.window.controls.buttons.back.setEnabled(app.window.webview.history.canGoBack())
+        app.window.controls.buttons.forward.setEnabled(app.window.webview.history.canGoForward())
+        app.window.controls.buttons.reload.setText("󰅖")
+        app.window.controls.progress.setValue(1)
+        app.window.controls.progress.repaint()
     def load_progress(value: int):
-        app.window.buttons.back.setEnabled(app.window.webview.history.canGoBack())
-        app.window.buttons.forward.setEnabled(app.window.webview.history.canGoForward())
-        app.window.buttons.reload.setText("󰅖")
-        app.window.progress.setValue(max(1, value))
-        app.window.progress.repaint()
+        app.window.controls.buttons.back.setEnabled(app.window.webview.history.canGoBack())
+        app.window.controls.buttons.forward.setEnabled(app.window.webview.history.canGoForward())
+        app.window.controls.buttons.reload.setText("󰅖")
+        app.window.controls.progress.setValue(max(1, value))
+        app.window.controls.progress.repaint()
     def load_finished(ok: bool = None):
         nonlocal loading
         loading = False
-        app.window.buttons.back.setEnabled(app.window.webview.history.canGoBack())
-        app.window.buttons.forward.setEnabled(app.window.webview.history.canGoForward())
-        app.window.buttons.reload.setText("󰑐")
-        app.window.progress.setValue(0)
-        app.window.progress.repaint()
+        app.window.controls.buttons.back.setEnabled(app.window.webview.history.canGoBack())
+        app.window.controls.buttons.forward.setEnabled(app.window.webview.history.canGoForward())
+        app.window.controls.buttons.reload.setText("󰑐")
+        app.window.controls.progress.setValue(0)
+        app.window.controls.progress.repaint()
     app.window.webview.loadStarted.connect(load_started)
     app.window.webview.loadProgress.connect(load_progress)
     app.window.webview.loadFinished.connect(load_finished)
@@ -107,16 +113,16 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
         else:
             app.window.webview.reload()
             load_started()
-    app.window.buttons.back.clicked.connect(lambda checked=None: app.window.webview.back())
-    app.window.buttons.forward.clicked.connect(lambda checked=None: app.window.webview.forward())
-    app.window.buttons.reload.clicked.connect(reload)
+    app.window.controls.buttons.back.clicked.connect(lambda checked=None: app.window.webview.back())
+    app.window.controls.buttons.forward.clicked.connect(lambda checked=None: app.window.webview.forward())
+    app.window.controls.buttons.reload.clicked.connect(reload)
     def url_changed(url: QtCore.QUrl):
-        app.window.buttons.url.setText(url.url())
-        app.window.buttons.url.setCursorPosition(0)
+        app.window.controls.buttons.url.setText(url.url())
+        app.window.controls.buttons.url.setCursorPosition(0)
     def return_pressed():
-        app.window.webview.setUrl(QtCore.QUrl(app.window.buttons.url.text()))
+        app.window.webview.setUrl(QtCore.QUrl(app.window.controls.buttons.url.text()))
     app.window.webview.urlChanged.connect(url_changed)
-    app.window.buttons.url.returnPressed.connect(return_pressed)
+    app.window.controls.buttons.url.returnPressed.connect(return_pressed)
 
     def download_requested(download: QtWebEngineCore.QWebEngineDownloadRequest):
         old_path = pathlib.Path(download.downloadDirectory()) / download.downloadFileName()
@@ -132,7 +138,7 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
     app.window.webview.page.newWindowRequested.connect(new_window_requested)
 
     app.window.setStyleSheet(f"""
-        * {{
+        #controls * {{
             background: {col_bg};
             color: {col_text};
             font-size: 14pt;
@@ -141,18 +147,18 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
             margin: 0px;
             padding: 0px;
         }}
-        QProgressBar::chunk {{
+        #controls QProgressBar::chunk {{
             background: {col_accent};
         }}
-        QPushButton {{
+        #controls QPushButton {{
             font-family: '{icon_font}';
             padding: 5px;
             padding-bottom: 3px;
         }}
-        QPushButton:disabled {{
+        #controls QPushButton:disabled {{
             color: #99{col_text[1:]};
         }}
-        QLineEdit {{
+        #controls QLineEdit {{
             font-size: 12px;
             padding: 5px;
             padding-bottom: 3px;
@@ -160,8 +166,7 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
     """)
     app.window.webview.page.setBackgroundColor(QtGui.QColor(col_bg))
 
-    app.window.layout().addWidget(app.window.buttons, stretch=0)
-    app.window.layout().addWidget(app.window.progress, stretch=0)
+    app.window.layout().addWidget(app.window.controls, stretch=0)
     app.window.layout().addWidget(app.window.webview, stretch=1)
     return app
 
