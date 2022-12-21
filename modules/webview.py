@@ -134,7 +134,7 @@ def redirect(url: str, pipe: multiprocessing.Queue, click_selector: str = None, 
     for key, value in cookies.items():
         cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
     def url_changed(new: QtCore.QUrl):
-        if new != url:
+        if new != url and not new.url().startswith(url.url()):
             pipe.put_nowait(new.url())
     app.window.webview.urlChanged.connect(url_changed)
     if click_selector:
