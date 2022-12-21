@@ -9,12 +9,12 @@ import os
 
 from modules import globals, callbacks, icons, utils  # added
 
-dir_icon     = f"{icons.folder}  "       # changed
-file_icon    = f"{icons.file}  "         # changed
-up_icon      = icons.arrow_up_thick      # changed
-refresh_icon = icons.refresh             # changed
-cancel_icon  = f"{icons.cancel} Cancel"  # changed
-ok_icon      = f"{icons.check} Ok"       # changed
+dir_icon     = f"{icons.folder_outline}  "  # changed
+file_icon    = f"{icons.file_outline}  "    # changed
+up_icon      = icons.arrow_up               # changed
+refresh_icon = icons.refresh                # changed
+cancel_icon  = f"{icons.cancel} Cancel"     # changed
+ok_icon      = f"{icons.check} Ok"          # changed
 
 
 class FilePicker:

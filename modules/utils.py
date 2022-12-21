@@ -209,7 +209,7 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
             setter("")
         if no_icons:
             return
-        if imgui.selectable(f"{icons.tooltip_image} Icons", False)[0]:
+        if imgui.selectable(f"{icons.tooltip_image_outline} Icons", False)[0]:
             search = type("_", (), dict(_=""))()
             def popup_content():
                 nonlocal search

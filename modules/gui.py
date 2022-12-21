@@ -117,7 +117,7 @@ class Columns:
             hideable=False,
         )
         self.developer = self.Column(
-            self, f"{icons.account_outline} Developer",
+            self, f"{icons.account} Developer",
             sortable=True,
         )
         self.last_updated = self.Column(
@@ -151,7 +151,7 @@ class Columns:
             short_header=True,
         )
         self.rating = self.Column(
-            self, f"{icons.star_outline} Rating",
+            self, f"{icons.star} Rating",
             sortable=True,
             resizable=False,
         )
@@ -1547,7 +1547,7 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item((icons.download if game.downloads else icons.download_off) + " Downloads###downloads")[0]:
+                if imgui.begin_tab_item(icons.tray_arrow_down + " Downloads###downloads")[0]:
                     imgui.spacing()
                     imgui.text("RPDL Torrents:")
                     imgui.same_line()
@@ -1613,7 +1613,7 @@ class MainGUI():
                         imgui.text_disabled("This game has no labels!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item((icons.draw_pen if game.notes else icons.pen) + " Notes###notes")[0]:
+                if imgui.begin_tab_item((icons.draw_pen if game.notes else icons.pencil_plus_outline) + " Notes###notes")[0]:
                     imgui.spacing()
                     self.draw_game_notes_widget(game)
                     imgui.end_tab_item()
