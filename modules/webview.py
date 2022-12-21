@@ -69,7 +69,7 @@ def create(*, title: str = None, size: tuple[int, int] = None, pos: tuple[int, i
             app.window.setWindowTitle(title)
         app.window.webview.titleChanged.connect(title_changed)
     loading = False
-    def load_started(*_):
+    def load_started():
         nonlocal loading
         loading = True
         app.window.progress.setValue(1)
@@ -77,7 +77,7 @@ def create(*, title: str = None, size: tuple[int, int] = None, pos: tuple[int, i
     def load_progress(value: int):
         app.window.progress.setValue(max(1, value))
         app.window.progress.repaint()
-    def load_finished(*_):
+    def load_finished(ok: bool = None):
         nonlocal loading
         loading = False
         app.window.progress.setValue(0)
@@ -103,8 +103,8 @@ def create(*, title: str = None, size: tuple[int, int] = None, pos: tuple[int, i
 
 def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
     app = create(**kwargs)
-    cookie_store = app.window.profile.cookieStore()
     url = QtCore.QUrl(url)
+    cookie_store = app.window.profile.cookieStore()
     for key, value in cookies.items():
         cookie_store.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
     app.window.webview.setUrl(url)
@@ -114,12 +114,14 @@ def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
 
 def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
     app = create(**kwargs)
-    app.window.webview.setUrl(QtCore.QUrl(url))
-    app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+    url = QtCore.QUrl(url)
+    cookie_store = app.window.profile.cookieStore()
     def on_cookie_add(cookie):
         name = cookie.name().data().decode('utf-8')
         value = cookie.value().data().decode('utf-8')
         pipe.put_nowait((name, value))
-    app.window.profile.cookieStore().cookieAdded.connect(on_cookie_add)
+    cookie_store.cookieAdded.connect(on_cookie_add)
+    app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+    app.window.webview.setUrl(url)
     app.window.show()
     app.exec()
