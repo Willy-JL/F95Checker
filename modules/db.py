@@ -430,7 +430,7 @@ def legacy_json_to_dict(path: pathlib.Path):  # Pre v9.0
             if not link:
                 continue
             if link.startswith("/"):
-                link = globals.domain + link
+                link = globals.host + link
             match = utils.extract_thread_matches(link)
             if not match:
                 continue
@@ -463,7 +463,7 @@ def legacy_ini_to_dict(path: pathlib.Path):  # Pre v7.0
         if not link:
             continue
         if link.startswith("/"):
-            link = globals.domain + link
+            link = globals.host + link
         match = utils.extract_thread_matches(link)
         if not match:
             continue
