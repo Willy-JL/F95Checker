@@ -28,10 +28,11 @@ platform_libs = {
     "darwin": ["intl"]
 }
 include_files = [
-    (path / "extension/chrome.zip",  "extension/chrome.zip"),
-    (path / "extension/firefox.zip", "extension/firefox.zip"),
-    (path / "resources/",            "resources/"),
-    (path / "LICENSE",               "LICENSE")
+    (path / "extension/chrome.zip",    "extension/chrome.zip"),
+    (path / "extension/firefox.zip",   "extension/firefox.zip"),
+    (path / "extension/integrated.js", "extension/integrated.js"),
+    (path / "resources/",              "resources/"),
+    (path / "LICENSE",                 "LICENSE")
 ]
 zip_include_files = []
 zip_include_packages = "*"

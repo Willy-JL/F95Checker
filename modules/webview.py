@@ -22,18 +22,20 @@ def kwargs():
         debug=globals.debug,
         icon=str(globals.gui.icon_path),
         icon_font=str(icons.font_path),
+        extension=str(globals.self_path / "extension/integrated.js"),
         col_bg=colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
         col_accent=colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
         col_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
     )
 
 
-def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: bool, icon: str, icon_font: str, col_bg: str, col_accent: str, col_text: str):
+def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: bool, icon: str, icon_font: str, extension: str, col_bg: str, col_accent: str, col_text: str):
     config_qt_flags(debug)
     app = QtWidgets.QApplication(sys.argv)
     icon_font = QtGui.QFontDatabase.applicationFontFamilies(QtGui.QFontDatabase.addApplicationFont(icon_font))[0]
     app.window = QtWidgets.QWidget()
-    app.window.setWindowIcon(QtGui.QIcon(icon))
+    icon = QtGui.QIcon(icon)
+    app.window.setWindowIcon(icon)
     if size:
         app.window.resize(*size)
     if pos:
@@ -55,10 +57,12 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
     app.window.controls.buttons.forward = QtWidgets.QPushButton("󰁔", app.window.controls.buttons)
     app.window.controls.buttons.reload = QtWidgets.QPushButton("󰑐", app.window.controls.buttons)
     app.window.controls.buttons.url = QtWidgets.QLineEdit(app.window.controls.buttons)
+    app.window.controls.buttons.extension = QtWidgets.QPushButton(icon, "", app.window.controls.buttons)
     app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.back)
     app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.forward)
     app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.reload)
     app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.url)
+    app.window.controls.buttons.layout().addWidget(app.window.controls.buttons.extension)
     if buttons:
         app.window.controls.layout().addWidget(app.window.controls.buttons)
     app.window.controls.progress = QtWidgets.QProgressBar(app.window.controls)
@@ -80,6 +84,27 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
             app.window.setWindowTitle(title)
         app.window.webview.titleChanged.connect(title_changed)
 
+    if extension:
+        extension = pathlib.Path(extension).read_text()
+        app.window.webview.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        def custom_context_menu_requested(pos: QtCore.QPoint):
+            menu = app.window.webview.createStandardContextMenu()
+            data = app.window.webview.lastContextMenuRequest()
+            if (url := data.linkUrl().url()):
+                if "f95zone.to/threads/" in url:
+                    add = QtGui.QAction(icon, "Add this link to F95Checker", menu)
+                    add.triggered.connect(lambda checked=None: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
+                    menu.addAction(add)
+            elif "f95zone.to/threads/" in (url := app.window.webview.url().url()):
+                add = QtGui.QAction(icon, "Add this page to F95Checker", menu)
+                add.triggered.connect(lambda checked=None: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
+                menu.addAction(add)
+            menu.exec(app.window.webview.mapToGlobal(pos))
+        app.window.webview.customContextMenuRequested.connect(custom_context_menu_requested)
+        app.window.controls.buttons.extension.clicked.connect(lambda checked=None: app.window.webview.page.runJavaScript(f"addGame({app.window.webview.url().url()!r});"))
+    else:
+        app.window.controls.buttons.extension.setVisible(False)
+
     loading = False
     def load_started():
         nonlocal loading
@@ -89,12 +114,16 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
         app.window.controls.buttons.reload.setText("󰅖")
         app.window.controls.progress.setValue(1)
         app.window.controls.progress.repaint()
+        if extension:
+            app.window.webview.page.runJavaScript(extension)
     def load_progress(value: int):
         app.window.controls.buttons.back.setEnabled(app.window.webview.history.canGoBack())
         app.window.controls.buttons.forward.setEnabled(app.window.webview.history.canGoForward())
         app.window.controls.buttons.reload.setText("󰅖")
         app.window.controls.progress.setValue(max(1, value))
         app.window.controls.progress.repaint()
+        if extension:
+            app.window.webview.page.runJavaScript(extension)
     def load_finished(ok: bool = None):
         nonlocal loading
         loading = False
@@ -103,6 +132,8 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
         app.window.controls.buttons.reload.setText("󰑐")
         app.window.controls.progress.setValue(0)
         app.window.controls.progress.repaint()
+        if extension:
+            app.window.webview.page.runJavaScript(extension + "\nupdateIcons();")
     app.window.webview.loadStarted.connect(load_started)
     app.window.webview.loadProgress.connect(load_progress)
     app.window.webview.loadFinished.connect(load_finished)
@@ -182,7 +213,7 @@ def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
 
 
 def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
-    app = create(**kwargs)
+    app = create(**kwargs | dict(buttons=False, extension=False))
     url = QtCore.QUrl(url)
     def on_cookie_add(cookie):
         name = cookie.name().data().decode('utf-8')
@@ -196,7 +227,7 @@ def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
 
 
 def redirect(url: str, pipe: multiprocessing.Queue, click_selector: str = None, *, cookies: dict[str, str] = {}, **kwargs):
-    app = create(**kwargs)
+    app = create(**kwargs | dict(buttons=False, extension=False))
     url = QtCore.QUrl(url)
     for key, value in cookies.items():
         app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
