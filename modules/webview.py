@@ -134,7 +134,7 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
             download.accept()
     app.window.webview.profile.downloadRequested.connect(download_requested)
     def new_window_requested(request: QtWebEngineCore.QWebEngineNewWindowRequest):
-        request.openIn(app.window.webview.page)
+        app.window.webview.setUrl(request.requestedUrl())
     app.window.webview.page.newWindowRequested.connect(new_window_requested)
 
     app.window.setStyleSheet(f"""
