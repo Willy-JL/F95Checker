@@ -1569,12 +1569,15 @@ class MainGUI():
                     imgui.spacing()
                     if game.downloads:
                         can_add_spacing = False
+                        _20 = self.scaled(20)
                         for name, mirrors in game.downloads:
                             if mirrors:
                                 can_add_spacing = True
                                 imgui.text_unformatted(name + ":")
                                 for mirror, link in mirrors:
-                                    imgui.same_line()  # FIXME: button wrapping
+                                    imgui.same_line()
+                                    if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.link + mirror).x + _20:
+                                        imgui.dummy(0, 0)
                                     if f"{globals.domain}/masked/" in link:
                                         imgui.small_button(icons.domino_mask + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
