@@ -77,26 +77,22 @@ class ProcessPipe(multiprocessing.queues.Queue):
         return self
 
     async def get_async(self, poll_rate=0.1):
-        ret = None
         while self.proc.is_alive():
             try:
-                ret = self.get_nowait()
-                break
+                return self.get_nowait()
             except queue.Empty:
                 await asyncio.sleep(poll_rate)
-        else:  # Didn't break
-            ret = self.get_nowait()
-        if ret is None:
-            raise multiprocessing.ProcessError("The process didn't respond!")
-        return ret
+        return self.get_nowait()
 
     def __enter__(self):
         self.proc.start()
         self.daemon.__enter__()
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.daemon.__exit__()
+        if exc_type is queue.Empty:
+            return True
 
 
 class Timestamp:
