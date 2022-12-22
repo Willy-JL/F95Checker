@@ -23,6 +23,10 @@ import sys
 from modules.structs import Browser, Datestamp, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, Label, MsgBox, Os, SortSpec, Status, Tag, Timestamp, TrayMsg, Type
 from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils, webview
 
+tool_page         = api.threads_page + "44173/"
+github_page       = "https://github.com/Willy-JL/F95Checker"
+developer_page    = "https://linktr.ee/WillyJL"
+
 imgui.io = None
 imgui.style = None
 
@@ -1578,11 +1582,11 @@ class MainGUI():
                                     imgui.same_line()
                                     if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.link + mirror).x + _20:
                                         imgui.dummy(0, 0)
-                                    if f"{globals.domain}/masked/" in link:
+                                    if f"{api.domain}/masked/" in link:
                                         imgui.small_button(icons.domino_mask + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.copy_masked_link(link)
-                                    elif f"{globals.domain}/" in link:
+                                    elif f"{api.domain}/" in link:
                                         imgui.small_button(icons.open_in_app + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.open_webpage(link)
@@ -1710,13 +1714,13 @@ class MainGUI():
             width = imgui.get_content_region_available_width()
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
             if imgui.button(f"{icons.open_in_new} F95Zone Thread", width=btn_width):
-                callbacks.open_webpage(globals.tool_page)
+                callbacks.open_webpage(tool_page)
             imgui.same_line()
             if imgui.button(f"{icons.github} GitHub Repo", width=btn_width):
-                callbacks.open_webpage(globals.github_page)
+                callbacks.open_webpage(github_page)
             imgui.same_line()
             if imgui.button(f"{icons.link_variant} Donate + Links", width=btn_width):
-                callbacks.open_webpage(globals.developer_page)
+                callbacks.open_webpage(developer_page)
             imgui.spacing()
             imgui.spacing()
             imgui.push_text_wrap_pos(width)
@@ -3335,7 +3339,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         super().__init__(self.idle_icon)
 
         self.watermark = QtGui.QAction(f"F95Checker {globals.version_name}")
-        self.watermark.triggered.connect(lambda *_: callbacks.open_webpage(globals.tool_page))
+        self.watermark.triggered.connect(lambda *_: self.main_gui.show())
 
         self.next_refresh = QtGui.QAction("Next Refresh: N/A")
         self.next_refresh.setEnabled(False)

@@ -11,7 +11,7 @@ import time
 import re
 
 from modules.structs import Browser, DefaultStyle, DisplayMode, Game, Label, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
-from modules import globals, async_thread, colors, error, msgbox, utils
+from modules import globals, api, async_thread, colors, error, msgbox, utils
 
 connection: aiosqlite.Connection = None
 
@@ -357,7 +357,7 @@ async def add_game(thread: ThreadMatch | SearchResult):
         (id, name, url, added_on)
         VALUES
         (?,  ?,    ?,   ?       )
-    """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{globals.threads_page}{thread.id}", time.time()))
+    """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", time.time()))
 
 
 async def update_label(label: Label, *keys: list[str]):
@@ -430,7 +430,7 @@ def legacy_json_to_dict(path: pathlib.Path):  # Pre v9.0
             if not link:
                 continue
             if link.startswith("/"):
-                link = globals.host + link
+                link = api.host + link
             match = utils.extract_thread_matches(link)
             if not match:
                 continue
@@ -463,7 +463,7 @@ def legacy_ini_to_dict(path: pathlib.Path):  # Pre v7.0
         if not link:
             continue
         if link.startswith("/"):
-            link = globals.host + link
+            link = api.host + link
         match = utils.extract_thread_matches(link)
         if not match:
             continue

@@ -27,6 +27,19 @@ import re
 from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, ProcessPipe, SearchResult, Status
 from modules import globals, async_thread, callbacks, db, error, icons, msgbox, parser, utils, webview
 
+domain = "f95zone.to"
+host = "https://" + domain
+check_login_page  = host + "/account/"
+login_page        = host + "/login/"
+notif_endpoint    = host + "/conversations/popup"
+alerts_page       = host + "/account/alerts/"
+inbox_page        = host + "/conversations/"
+threads_page      = host + "/threads/"
+bookmarks_page    = host + "/account/bookmarks/"
+watched_page      = host + "/watched/threads/"
+qsearch_endpoint  = host + "/quicksearch"
+update_endpoint   = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+
 updating = False
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
@@ -195,7 +208,7 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
 
 async def is_logged_in():
     global xf_token
-    async with request("GET", globals.check_login_page, until=[b"_xfToken", b">"]) as (res, req):
+    async with request("GET", check_login_page, until=[b"_xfToken", b">"]) as (res, req):
         if not 200 <= req.status < 300:
             res += await req.content.read()
             if not raise_f95zone_error(res, return_login=True):
@@ -211,7 +224,7 @@ async def is_logged_in():
 async def login():
     try:
         pipe = ProcessPipe()
-        proc = multiprocessing.Process(target=webview.cookies, args=(globals.login_page, pipe), kwargs=webview.kwargs() | dict(
+        proc = multiprocessing.Process(target=webview.cookies, args=(login_page, pipe), kwargs=webview.kwargs() | dict(
             title="F95Checker: Login to F95Zone",
             size=(size := (500, 720)),
             pos=(
@@ -247,7 +260,7 @@ async def download_webpage(url: str):
     for elem in html.find_all():
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
-                elem.attrs[key] = globals.host + value
+                elem.attrs[key] = host + value
     with tempfile.NamedTemporaryFile("wb", prefix=webpage_prefix, suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return f.name
@@ -264,7 +277,7 @@ def cleanup_webpages():
 async def quick_search(query: str):
     if not await assert_login():
         return
-    res = await fetch("POST", globals.qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
+    res = await fetch("POST", qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
     html = parser.html(res)
     results = []
     for row in html.find(parser.is_class("quicksearch-wrapper-wide")).find_all(parser.is_class("dataList-row")):
@@ -321,7 +334,7 @@ async def import_f95_bookmarks():
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        res = await fetch("GET", globals.bookmarks_page, params={"difference": diff})
+        res = await fetch("GET", bookmarks_page, params={"difference": diff})
         raise_f95zone_error(res)
         html = parser.html(res)
         bookmarks = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("listPlain"))
@@ -346,7 +359,7 @@ async def import_f95_watched_threads():
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        res = await fetch("GET", globals.watched_page, params={"unread": 0, "page": page})
+        res = await fetch("GET", watched_page, params={"unread": 0, "page": page})
         raise_f95zone_error(res)
         html = parser.html(res)
         watched = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("structItemContainer"))
@@ -390,7 +403,7 @@ async def check(game: Game, full=False, login=False):
     if not full:
         async with request("HEAD", game.url, read=False) as (_, req):
             if (redirect := str(req.real_url)) != game.url:
-                if str(game.id) in redirect and redirect.startswith(globals.threads_page):
+                if str(game.id) in redirect and redirect.startswith(threads_page):
                     full = True
                 else:
                     raise msgbox.Exc("Bad HEAD response", f"Something went wrong checking {game.id}, F95Zone responded with an unexpected redirect.\n\nThe quick check HEAD request redirected to:\n{redirect}", MsgBox.error)
@@ -465,12 +478,12 @@ async def check(game: Game, full=False, login=False):
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if re.search(f"^https?://[^/]*\.?{globals.domain}/", image_url):
+                    if re.search(f"^https?://[^/]*\.?{domain}/", image_url):
                         raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, globals.domain)
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
                     except Exception:
                         f95zone_ok = False
                     try:
@@ -541,7 +554,7 @@ async def check_notifs(login=False):
         globals.refresh_progress = 1
 
     try:
-        res = await fetch("GET", globals.notif_endpoint, params={"_xfToken": xf_token, "_xfResponseType": "json"})
+        res = await fetch("GET", notif_endpoint, params={"_xfToken": xf_token, "_xfResponseType": "json"})
         res = json.loads(res)
         raise_f95zone_error(res)
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
@@ -562,9 +575,9 @@ async def check_notifs(login=False):
         return
     def open_callback():
         if alerts > 0:
-            callbacks.open_webpage(globals.alerts_page)
+            callbacks.open_webpage(alerts_page)
         if inbox > 0:
-            callbacks.open_webpage(globals.inbox_page)
+            callbacks.open_webpage(inbox_page)
     buttons = {
         f"{icons.check} Yes": open_callback,
         f"{icons.cancel} No": None
@@ -581,7 +594,7 @@ async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
     try:
-        res = await fetch("GET", globals.update_endpoint, headers={"Accept": "application/vnd.github+json"})
+        res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(res)
         globals.last_update_check = time.time()
         if "tag_name" not in res:

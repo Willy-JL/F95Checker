@@ -39,24 +39,6 @@ def _():
         logging.basicConfig()
 _()
 
-domain = "f95zone.to"
-host = "https://" + domain
-check_login_page  = host + "/account/"
-login_page        = host + "/login/"
-login_endpoint    = host + "/login/login"
-two_step_endpoint = host + "/login/two-step"
-notif_endpoint    = host + "/conversations/popup"
-qsearch_endpoint  = host + "/quicksearch"
-alerts_page       = host + "/account/alerts/"
-inbox_page        = host + "/conversations/"
-bookmarks_page    = host + "/account/bookmarks/"
-watched_page      = host + "/watched/threads/"
-threads_page      = host + "/threads/"
-tool_page         = host + "/threads/44173/"
-github_page       = "https://github.com/Willy-JL/F95Checker"
-developer_page    = "https://linktr.ee/WillyJL"
-update_endpoint   = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
-
 from modules.structs import Browser, Game, OldGame, Os, Settings
 from modules.gui import MainGUI
 

@@ -12,7 +12,7 @@ import glfw
 import sys
 import re
 
-from modules import globals, async_thread, callbacks, icons, msgbox
+from modules import globals, api, async_thread, callbacks, icons, msgbox
 
 
 def rand_num_str(len=8):
@@ -206,7 +206,7 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
 @functools.cache
 def clean_thread_url(url: str):
     thread = re.search("threads/([^/]*)", url).group(1)
-    return f"{globals.threads_page}{thread}/"
+    return f"{api.threads_page}{thread}/"
 
 
 from modules.structs import MsgBox, ThreadMatch
