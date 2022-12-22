@@ -53,7 +53,7 @@ xf_token = ""
 def setup():
     global session
     session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
-    session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{'.'.join(str(num) for num in sys.version_info[:3])} aiohttp/{aiohttp.__version__}"
+    session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
     # Setup multiprocessing for parsing threads
     method = "spawn"  # Using fork defeats the purpose, with spawn the main ui does not hang
     if globals.os is not Os.Windows and globals.frozen:
@@ -494,7 +494,7 @@ async def check(game: Game, full=False, login=False):
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if re.search(f"^https?://[^/]*\.?{domain}/", image_url):
+                    if re.search(r"^https?://[^/]*\.?" + re.escape(domain) + r"/", image_url):
                         raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True
@@ -503,7 +503,7 @@ async def check(game: Game, full=False, login=False):
                     except Exception:
                         f95zone_ok = False
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search("^https?://([^/]+)", image_url).group(1))
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
                     except Exception:
                         foreign_ok = False
                     if f95zone_ok and not foreign_ok:
@@ -719,7 +719,7 @@ async def check_updates():
             dst = globals.self_path.parent.parent.absolute()  # F95Checker.app/Contents/MacOS
         ppid = os.getppid()  # main.py launches a subprocess for the main script, so we need the parent pid
         if globals.os is Os.Windows:
-            script = "\n".join([
+            script = "\n".join((
                 "try {"
                 'Write-Host "Waiting for F95Checker to quit..."',
                 f"Wait-Process -Id {ppid}",
@@ -736,7 +736,7 @@ async def check_updates():
                 "} catch {",
                 'Write-Host "An error occurred:`n" $_.InvocationInfo.PositionMessage "`n" $_',
                 "}",
-            ])
+            ))
             shell = [shutil.which("powershell")]
         else:
             for item in dst.iterdir():

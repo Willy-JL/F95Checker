@@ -93,15 +93,15 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
             if (url := data.linkUrl().url()):
                 if "f95zone.to/threads/" in url:
                     add = QtGui.QAction(icon, "Add this link to F95Checker", menu)
-                    add.triggered.connect(lambda checked=None: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
+                    add.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
                     menu.addAction(add)
             elif "f95zone.to/threads/" in (url := app.window.webview.url().url()):
                 add = QtGui.QAction(icon, "Add this page to F95Checker", menu)
-                add.triggered.connect(lambda checked=None: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
+                add.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
                 menu.addAction(add)
             menu.exec(app.window.webview.mapToGlobal(pos))
         app.window.webview.customContextMenuRequested.connect(custom_context_menu_requested)
-        app.window.controls.buttons.extension.clicked.connect(lambda checked=None: app.window.webview.page.runJavaScript(f"addGame({app.window.webview.url().url()!r});"))
+        app.window.controls.buttons.extension.clicked.connect(lambda _: app.window.webview.page.runJavaScript(f"addGame({app.window.webview.url().url()!r});"))
     else:
         app.window.controls.buttons.extension.setVisible(False)
 
@@ -124,7 +124,7 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
         app.window.controls.progress.repaint()
         if extension:
             app.window.webview.page.runJavaScript(extension)
-    def load_finished(ok: bool = None):
+    def load_finished(_=None):
         nonlocal loading
         loading = False
         app.window.controls.buttons.back.setEnabled(app.window.webview.history.canGoBack())
@@ -137,7 +137,7 @@ def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = N
     app.window.webview.loadStarted.connect(load_started)
     app.window.webview.loadProgress.connect(load_progress)
     app.window.webview.loadFinished.connect(load_finished)
-    def reload(checked: bool = None):
+    def reload(_):
         if loading:
             app.window.webview.stop()
             load_finished()
@@ -215,7 +215,7 @@ def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
 def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
     app = create(**kwargs | dict(buttons=False, extension=False))
     url = QtCore.QUrl(url)
-    def on_cookie_add(cookie):
+    def on_cookie_add(cookie: QtNetwork.QNetworkCookie):
         name = cookie.name().data().decode('utf-8')
         value = cookie.value().data().decode('utf-8')
         pipe.put_nowait((name, value))
@@ -236,7 +236,7 @@ def redirect(url: str, pipe: multiprocessing.Queue, click_selector: str = None, 
             pipe.put_nowait(new.url())
     app.window.webview.urlChanged.connect(url_changed)
     if click_selector:
-        def load_progress(value: int = None):
+        def load_progress(_):
             app.window.webview.page.runJavaScript(f"""
                 redirectClickElement = document.querySelector({click_selector!r});
                 if (redirectClickElement) {{

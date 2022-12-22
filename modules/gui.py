@@ -2424,10 +2424,11 @@ class MainGUI():
                     msgbox.msgbox, "About the bottom bar",
                     "This is the filter/add bar. By typing inside it you can search your game list.\n"
                     "Pressing enter will search F95Zone for a matching thread and ask if you wish to\n"
-                    "add it to your list.\n\n"
-                    "When you instead paste a link to a F95Zone thread, the \"Add!\" button will show\n"
+                    "add it to your list.\n"
+                    "\n"
+                    "When you instead paste a link to a F95Zone thread, the 'Add!' button will show\n"
                     "up, allowing you to add that thread to your list. When a link is detected you\n"
-                    "can also press enter on your keyboard to trigger the \"Add!\" button.",
+                    "can also press enter on your keyboard to trigger the 'Add!' button.",
                     MsgBox.info
                 )
             imgui.end_popup()
@@ -2572,10 +2573,12 @@ class MainGUI():
                         "Refreshing is the process by which F95Checker goes through your games and checks\n"
                         "if they have received updates. To keep it fast and smooth this is done by detecting\n"
                         "changes in the title of the thread (more precisely it checks for redirects, so it doesn't\n"
-                        "need to fetch the whole page).\n\n"
+                        "need to fetch the whole page).\n"
+                        "\n"
                         "This means that sometimes it might not be able to pick up some subtle changes and small\n"
                         "updates. To fix this it also runs a full refresh every week or so (each game has its own\n"
-                        "timer).\n\n"
+                        "timer).\n"
+                        "\n"
                         "So a full recheck of a game will happen every time the title changes, or every 7 days.\n"
                         "You can force full rechecks for single games or for the whole list with the right click\n"
                         "menu on the game and on the refresh button.",
