@@ -11,7 +11,16 @@ import os
 def config_qt_flags(debug: bool):
     # Linux had issues with blank login pages and broken contexts, these helped out
     # and might also prevent further problems on other platforms
-    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = f"--no-sandbox --disable-gpu {'--enable-logging --log-level=0' if debug else '--disable-logging'}"
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join((
+        "--no-sandbox",
+        "--disable-gpu",
+        *((
+            "--enable-logging",
+            "--log-level=0",
+        ) if debug else (
+            "--disable-logging",
+        )),
+    ))
     os.environ["QMLSCENE_DEVICE"] = "softwarecontext"
     QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
 
