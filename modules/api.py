@@ -174,7 +174,22 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                 continue
             retries -= 1
             if not retries:
-                raise
+                err = error.text(exc)
+                tb = error.traceback(exc)
+                raise msgbox.Exc(
+                    "Connection error",
+                    "A connection request to F95Zone has failed:\n"
+                    f"{err}\n"
+                    "\n"
+                    "Possible causes include:\n"
+                    " - You are refreshing with too many workers, try lowering them in settings\n"
+                    " - Your timeout value is too low, try increasing it in settings\n"
+                    " - F95Zone is experiencing difficulties, try waiting a bit and retrying\n"
+                    " - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n"
+                    " - Your retries value is too low, try increasing it in settings (last resort!)",
+                    MsgBox.warn,
+                    more=tb
+                )
 
 
 async def fetch(method: str, url: str, **kwargs):
