@@ -3,7 +3,6 @@ import OpenGL.GL as gl
 import concurrent
 import functools
 import asyncio
-import weakref
 import typing
 import random
 import imgui
@@ -67,29 +66,6 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
                     globals.last_update_check = 0.0
             update_check.add_done_callback(reset_timer)
     globals.refresh_task.add_done_callback(done_callback)
-
-
-class daemon:
-    def __init__(self, proc):
-        self.finalize = weakref.finalize(proc, self.kill, proc)
-
-    @staticmethod
-    def kill(proc):
-        # Multiprocessing
-        if getattr(proc, "exitcode", False) is None:
-            proc.kill()
-        # Asyncio subprocess
-        elif getattr(proc, "returncode", False) is None:
-            proc.kill()
-        # Standard subprocess
-        elif getattr(proc, "poll", lambda: False)() is None:
-            proc.kill()
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, *_):
-        self.finalize()
 
 
 # https://github.com/pyimgui/pyimgui/blob/24219a8d4338b6e197fa22af97f5f06d3b1fe9f7/doc/examples/integrations_glfw3.py

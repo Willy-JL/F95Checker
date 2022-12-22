@@ -15,7 +15,6 @@ import asyncio
 import zipfile
 import shutil
 import socket
-import queue
 import shlex
 import imgui
 import time
@@ -25,7 +24,7 @@ import os
 import io
 import re
 
-from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, SearchResult, Status
+from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, ProcessPipe, SearchResult, Status
 from modules import globals, async_thread, callbacks, db, error, icons, msgbox, parser, utils, webview
 
 updating = False
@@ -211,7 +210,7 @@ async def is_logged_in():
 
 async def login():
     try:
-        pipe = multiprocessing.Queue()
+        pipe = ProcessPipe()
         proc = multiprocessing.Process(target=webview.cookies, args=(globals.login_page, pipe), kwargs=webview.kwargs() | dict(
             title="F95Checker: Login to F95Zone",
             size=(size := (500, 720)),
@@ -220,17 +219,13 @@ async def login():
                 int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
             )
         ))
-        proc.start()
         new_cookies = {}
-        with utils.daemon(proc):
-            while proc.is_alive():
-                try:
-                    (key, value) = pipe.get_nowait()
-                    new_cookies[key] = value
-                    if "xf_user" in new_cookies:
-                        break
-                except queue.Empty:
-                    await asyncio.sleep(0.1)
+        with pipe(proc):
+            while True:
+                (key, value) = await pipe.get_async()
+                new_cookies[key] = value
+                if "xf_user" in new_cookies:
+                    break
         await asyncio.shield(db.update_cookies(new_cookies))
     except Exception:
         raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n{error.text()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=error.traceback())
@@ -427,23 +422,13 @@ async def check(game: Game, full=False, login=False):
         args = (game.id, res)
         if globals.settings.use_parser_processes:
             # Using multiprocessing can help with interface stutters
-            pipe = multiprocessing.Queue()
+            pipe = ProcessPipe()
             proc = multiprocessing.Process(target=parser.thread, args=(*args, pipe))
-            proc.start()
-            with utils.daemon(proc):
+            with pipe(proc):
                 try:
                     async with async_timeout.timeout(globals.settings.request_timeout):
-                        while True:
-                            try:
-                                ret = pipe.get_nowait()
-                                break
-                            except queue.Empty:
-                                await asyncio.sleep(0.1)
+                        ret = await pipe.get_async()
                 except TimeoutError:
-                    try:
-                        proc.kill()
-                    except Exception:
-                        pass
                     raise msgbox.Exc("Parser process timeout", "The thread parser process did not respond in time.", MsgBox.error)
         else:
             ret = parser.thread(*args)

@@ -1,8 +1,12 @@
+import multiprocessing.queues
+import multiprocessing
 import datetime as dt
 import dataclasses
 import asyncio
+import weakref
 import hashlib
 import typing
+import queue
 import enum
 import os
 
@@ -38,6 +42,61 @@ class CounterContext:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.__exit__(exc_type, exc_val, exc_tb)
+
+
+class DaemonProcess:
+    def __init__(self, proc):
+        self.finalize = weakref.finalize(proc, self.kill, proc)
+
+    @staticmethod
+    def kill(proc):
+        # Multiprocessing
+        if getattr(proc, "exitcode", False) is None:
+            proc.kill()
+        # Asyncio subprocess
+        elif getattr(proc, "returncode", False) is None:
+            proc.kill()
+        # Standard subprocess
+        elif getattr(proc, "poll", lambda: False)() is None:
+            proc.kill()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.finalize()
+
+
+class ProcessPipe(multiprocessing.queues.Queue):
+    def __init__(self):
+        super().__init__(0, ctx=multiprocessing.get_context())
+
+    def __call__(self, proc: multiprocessing.Process):
+        self.proc = proc
+        self.daemon = DaemonProcess(proc)
+        return self
+
+    async def get_async(self, poll_rate=0.1):
+        ret = None
+        while self.proc.is_alive():
+            try:
+                ret = self.get_nowait()
+                break
+            except queue.Empty:
+                await asyncio.sleep(poll_rate)
+        else:  # Didn't break
+            ret = self.get_nowait()
+        if ret is None:
+            raise multiprocessing.ProcessError("The process didn't respond!")
+        return ret
+
+    def __enter__(self):
+        self.proc.start()
+        self.daemon.__enter__()
+        return self
+
+    def __exit__(self, *_):
+        self.daemon.__exit__()
 
 
 class Timestamp:

@@ -5,7 +5,6 @@ import plistlib
 import pathlib
 import asyncio
 import shlex
-import queue
 import imgui
 import glfw
 import time
@@ -13,7 +12,7 @@ import stat
 import re
 import os
 
-from modules.structs import Game, MsgBox, Os, SearchResult, ThreadMatch
+from modules.structs import DaemonProcess, Game, MsgBox, Os, ProcessPipe, SearchResult, ThreadMatch
 from modules import globals, api, async_thread, db, error, filepicker, icons, msgbox, utils, webview
 
 
@@ -246,7 +245,7 @@ def open_webpage(url: str):
             if set.browser.integrated:
                 proc = multiprocessing.Process(target=webview.open, args=(url,), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(1269, 969)))
                 proc.start()
-                utils.daemon(proc)
+                DaemonProcess(proc)
             else:
                 await asyncio.create_subprocess_exec(
                     *args, url,
@@ -276,7 +275,7 @@ def clipboard_paste():
 
 def copy_masked_link(masked_url: str):
     host = (re.search(r"/masked/(.*?)/", masked_url) or ("", ""))[1]
-    pipe = multiprocessing.Queue()
+    pipe = ProcessPipe()
     proc = multiprocessing.Process(target=webview.redirect, args=(masked_url, pipe, "a.host_link"), kwargs=webview.kwargs() | dict(
         cookies=globals.cookies,
         title=f"Unmask link{f' for {host}' if host else ''}",
@@ -286,16 +285,9 @@ def copy_masked_link(masked_url: str):
             int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
         )
     ))
-    proc.start()
     async def _unmask_and_copy():
-        with utils.daemon(proc):
-            while proc.is_alive():
-                try:
-                    real_url = pipe.get_nowait()
-                    clipboard_copy(real_url)
-                    break
-                except queue.Empty:
-                    await asyncio.sleep(0.1)
+        with pipe(proc):
+            clipboard_copy(await pipe.get_async())
     async_thread.run(_unmask_and_copy())
 
 
