@@ -2443,13 +2443,23 @@ class MainGUI():
                 self.require_sort = True
         elif activated:
             async def _search_and_add(query: str):
-                if not await api.assert_login():
-                    return
-                results = await api.quick_search(query)
-                if not results:
-                    utils.push_popup(msgbox.msgbox, "No results", f"The search query \"{query}\" returned no results.", MsgBox.warn)
-                    return
+                login = None
+                results = None
                 def popup_content():
+                    nonlocal login, results
+                    if not results:
+                        imgui.text(f"Running F95Zone search for query '{query}'.")
+                        imgui.text("Status:")
+                        imgui.same_line()
+                        if login is None:
+                            imgui.text("Logging in...")
+                        elif not login:
+                            return True
+                        elif results is None:
+                            imgui.text("Searching...")
+                        else:
+                            imgui.text("No results!")
+                        return
                     imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
                     for result in results:
                         if result.id in globals.games:
@@ -2459,8 +2469,10 @@ class MainGUI():
                             imgui.pop_disabled()
                         if clicked:
                             async_thread.run(callbacks.add_games(result))
-                utils.push_popup(utils.popup, "Search results", popup_content, buttons=True, closable=True, outside=False)
-            async_thread.run(_search_and_add(self.add_box_text))
+                utils.push_popup(utils.popup, "Quick search", popup_content, buttons=True, closable=True, outside=False)
+                if login := await api.assert_login():
+                    results = await api.quick_search(query)
+            utils.start_refresh_task(_search_and_add(self.add_box_text), reset_bg_timers=False)
             self.add_box_text = ""
             self.add_box_valid = False
             self.require_sort = True

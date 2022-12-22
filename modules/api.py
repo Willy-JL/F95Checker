@@ -274,9 +274,10 @@ def cleanup_webpages():
             pass
 
 
-async def quick_search(query: str):
-    if not await assert_login():
-        return
+async def quick_search(query: str, login=False):
+    if login:
+        if not await assert_login():
+            return
     res = await fetch("POST", qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
     html = parser.html(res)
     results = []
