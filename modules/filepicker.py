@@ -7,7 +7,12 @@ import glfw
 import sys
 import os
 
-from modules import globals, callbacks, icons, utils  # added
+from modules import (  # added
+    globals,           # added
+    callbacks,         # added
+    icons,             # added
+    utils,             # added
+)                      # added
 
 dir_icon     = f"{icons.folder_outline}  "  # changed
 file_icon    = f"{icons.file_outline}  "    # changed

@@ -1,8 +1,14 @@
 import typing
 import imgui
 
-from modules.structs import MsgBox
-from modules import globals, icons, utils
+from modules.structs import (
+    MsgBox,
+)
+from modules import (
+    globals,
+    icons,
+    utils,
+)
 
 popup_flags: int = (
     imgui.WINDOW_NO_MOVE |

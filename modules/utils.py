@@ -12,7 +12,14 @@ import glfw
 import sys
 import re
 
-from modules import globals, api, async_thread, callbacks, icons, msgbox
+from modules import (
+    globals,
+    async_thread,
+    callbacks,
+    msgbox,
+    icons,
+    api,
+)
 
 
 def rand_num_str(len=8):

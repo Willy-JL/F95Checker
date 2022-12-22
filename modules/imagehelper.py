@@ -5,7 +5,9 @@ import functools
 import pathlib
 import imgui
 
-from modules import sync_thread  # added
+from modules import (  # added
+    sync_thread,       # added
+)                      # added
 
 redraw = False  # added
 _dummy_texture_id = None

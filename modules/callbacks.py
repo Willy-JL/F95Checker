@@ -13,8 +13,27 @@ import stat
 import re
 import os
 
-from modules.structs import DaemonProcess, Game, MsgBox, Os, ProcessPipe, SearchResult, ThreadMatch
-from modules import globals, api, async_thread, db, error, filepicker, icons, msgbox, utils, webview
+from modules.structs import (
+    DaemonProcess,
+    SearchResult,
+    ThreadMatch,
+    ProcessPipe,
+    MsgBox,
+    Game,
+    Os,
+)
+from modules import (
+    globals,
+    async_thread,
+    filepicker,
+    webview,
+    msgbox,
+    utils,
+    icons,
+    error,
+    api,
+    db,
+)
 
 
 def update_start_with_system(toggle: bool):

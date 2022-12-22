@@ -5,8 +5,17 @@ import threading
 import asyncio
 import json
 
-from modules.structs import MsgBox
-from modules import globals, async_thread, callbacks, error, msgbox, utils
+from modules.structs import (
+    MsgBox,
+)
+from modules import (
+    globals,
+    async_thread,
+    callbacks,
+    msgbox,
+    utils,
+    error,
+)
 
 server: socketserver.TCPServer = None
 thread: threading.Thread = None

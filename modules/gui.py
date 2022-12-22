@@ -12,7 +12,6 @@ import platform
 import builtins
 import asyncio
 import pathlib
-import aiohttp
 import OpenGL
 import string
 import imgui
@@ -20,8 +19,42 @@ import time
 import glfw
 import sys
 
-from modules.structs import Browser, Datestamp, DefaultStyle, DisplayMode, ExeState, Filter, FilterMode, Game, Label, MsgBox, Os, SortSpec, Status, Tag, Timestamp, TrayMsg, Type
-from modules import globals, api, async_thread, callbacks, colors, db, error, filepicker, icons, imagehelper, msgbox, ratingwidget, rpc_thread, utils, webview
+from modules.structs import (
+    DefaultStyle,
+    DisplayMode,
+    FilterMode,
+    Datestamp,
+    Timestamp,
+    ExeState,
+    SortSpec,
+    TrayMsg,
+    Browser,
+    Filter,
+    MsgBox,
+    Status,
+    Label,
+    Type,
+    Game,
+    Tag,
+    Os,
+)
+from modules import (
+    globals,
+    async_thread,
+    ratingwidget,
+    imagehelper,
+    rpc_thread,
+    filepicker,
+    callbacks,
+    webview,
+    msgbox,
+    colors,
+    icons,
+    utils,
+    error,
+    api,
+    db,
+)
 
 tool_page         = api.threads_page + "44173/"
 github_page       = "https://github.com/Willy-JL/F95Checker"

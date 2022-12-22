@@ -24,8 +24,29 @@ import os
 import io
 import re
 
-from modules.structs import ContextLimiter, CounterContext, Game, MsgBox, OldGame, Os, ProcessPipe, SearchResult, Status
-from modules import globals, async_thread, callbacks, db, error, icons, msgbox, parser, utils, webview
+from modules.structs import (
+    CounterContext,
+    ContextLimiter,
+    SearchResult,
+    ProcessPipe,
+    OldGame,
+    MsgBox,
+    Status,
+    Game,
+    Os,
+)
+from modules import (
+    globals,
+    async_thread,
+    callbacks,
+    webview,
+    msgbox,
+    parser,
+    utils,
+    icons,
+    error,
+    db,
+)
 
 domain = "f95zone.to"
 host = "https://" + domain

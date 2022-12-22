@@ -555,7 +555,10 @@ class Settings:
     zoom_enabled                : bool
 
 
-from modules import colors, imagehelper
+from modules import (
+    imagehelper,
+    colors,
+)
 
 Type = IntEnumHack("Type", [
     ("ADRIFT",     (2,  {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Games})),

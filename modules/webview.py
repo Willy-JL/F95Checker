@@ -17,7 +17,11 @@ def config_qt_flags(debug: bool):
 
 
 def kwargs():
-    from modules import globals, colors, icons
+    from modules import (
+        globals,
+        colors,
+        icons,
+    )
     return dict(
         debug=globals.debug,
         icon=str(globals.gui.icon_path),

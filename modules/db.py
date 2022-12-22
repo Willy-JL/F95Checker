@@ -10,8 +10,29 @@ import json
 import time
 import re
 
-from modules.structs import Browser, DefaultStyle, DisplayMode, Game, Label, MsgBox, SearchResult, Settings, Status, ThreadMatch, Timestamp, Type
-from modules import globals, api, async_thread, colors, error, msgbox, utils
+from modules.structs import (
+    SearchResult,
+    DefaultStyle,
+    ThreadMatch,
+    DisplayMode,
+    Timestamp,
+    Settings,
+    Browser,
+    MsgBox,
+    Status,
+    Label,
+    Type,
+    Game,
+)
+from modules import (
+    globals,
+    async_thread,
+    colors,
+    msgbox,
+    utils,
+    error,
+    api,
+)
 
 connection: aiosqlite.Connection = None
 

@@ -2,12 +2,18 @@ import multiprocessing
 import datetime as dt
 import functools
 import bs4
-import sys
 import re
 import os
 
-from modules.structs import MsgBox, Status, Tag, Type
-from modules import error
+from modules.structs import (
+    MsgBox,
+    Status,
+    Type,
+    Tag,
+)
+from modules import (
+    error,
+)
 
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
