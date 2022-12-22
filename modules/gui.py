@@ -335,7 +335,13 @@ class MainGUI():
             if args.exc_type is not msgbox.Exc:
                 err = error.text(args.exc_value)
                 tb = error.traceback(args.exc_value)
-                utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in a parallel task of a separate thread:\n{err}", MsgBox.error, more=tb)
+                utils.push_popup(
+                    msgbox.msgbox, "Oops!",
+                    "Something went wrong in a parallel task of a separate thread:\n"
+                    f"{err}",
+                    MsgBox.error,
+                    more=tb
+                )
         threading.excepthook = syncexcepthook
         def asyncexcepthook(future: asyncio.Future):
             try:
@@ -346,7 +352,13 @@ class MainGUI():
                 return
             err = error.text(exc)
             tb = error.traceback(exc)
-            utils.push_popup(msgbox.msgbox, "Oops!", f"Something went wrong in an asynchronous task of a separate thread:\n{err}", MsgBox.error, more=tb)
+            utils.push_popup(
+                msgbox.msgbox, "Oops!",
+                "Something went wrong in an asynchronous task of a separate thread:\n"
+                f"{err}",
+                MsgBox.error,
+                more=tb
+            )
         async_thread.done_callback = asyncexcepthook
 
         # Load style configuration
@@ -1274,7 +1286,14 @@ class MainGUI():
                     category = game.type.category
                     imgui.push_font(imgui.fonts.big)
                     imgui.set_cursor_pos_x(img_pos_x - self.scaled(8))
-                    category_open = imgui.tree_node(category.name, flags=imgui.TREE_NODE_SPAN_FULL_WIDTH | imgui.TREE_NODE_DEFAULT_OPEN | imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN)
+                    category_open = imgui.tree_node(
+                        category.name,
+                        flags=(
+                            imgui.TREE_NODE_NO_TREE_PUSH_ON_OPEN |
+                            imgui.TREE_NODE_SPAN_FULL_WIDTH |
+                            imgui.TREE_NODE_DEFAULT_OPEN
+                        )
+                    )
                     imgui.pop_font()
                 if not category_open:
                     continue
@@ -1338,7 +1357,14 @@ class MainGUI():
                     imgui.text("\n")
             imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
-        return utils.popup(f"{len(sorted_ids)} update{'' if len(sorted_ids) == 1 else 's'}", popup_content, buttons=True, closable=True, outside=False, popup_uuid=popup_uuid)
+        return utils.popup(
+            f"{len(sorted_ids)} update{'' if len(sorted_ids) == 1 else 's'}",
+            popup_content,
+            buttons=True,
+            closable=True,
+            outside=False,
+            popup_uuid=popup_uuid
+        )
 
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         popup_pos = None
@@ -1532,7 +1558,10 @@ class MainGUI():
 
             if imgui.begin_tab_bar("Details"):
 
-                if imgui.begin_tab_item((icons.clipboard_text_outline if game.changelog else icons.clipboard_text_off_outline) + " Changelog###changelog")[0]:
+                if imgui.begin_tab_item((
+                    icons.clipboard_text_outline if game.changelog else
+                    icons.clipboard_text_off_outline
+                ) + " Changelog###changelog")[0]:
                     imgui.spacing()
                     if game.changelog:
                         imgui.text_unformatted(game.changelog)
@@ -1540,7 +1569,10 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a changelog, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item((icons.information_outline if game.description else icons.information_off_outline) + " Description###description")[0]:
+                if imgui.begin_tab_item((
+                    icons.information_outline if game.description else
+                    icons.information_off_outline
+                ) + " Description###description")[0]:
                     imgui.spacing()
                     if game.description:
                         imgui.text_unformatted(game.description)
@@ -1604,7 +1636,11 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have regular downloads, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item((icons.label_multiple_outline if len(game.labels) > 1 else icons.label_outline if len(game.labels) == 1 else icons.label_off_outline) + " Labels###labels")[0]:
+                if imgui.begin_tab_item((
+                    icons.label_multiple_outline if len(game.labels) > 1 else
+                    icons.label_outline if len(game.labels) == 1 else
+                    icons.label_off_outline
+                ) + " Labels###labels")[0]:
                     imgui.spacing()
                     imgui.button("Right click to edit")
                     if imgui.begin_popup_context_item(f"###{game.id}_context_labels"):
@@ -1617,12 +1653,19 @@ class MainGUI():
                         imgui.text_disabled("This game has no labels!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item((icons.draw_pen if game.notes else icons.pencil_plus_outline) + " Notes###notes")[0]:
+                if imgui.begin_tab_item((
+                    icons.draw_pen if game.notes else
+                    icons.pencil_plus_outline
+                ) + " Notes###notes")[0]:
                     imgui.spacing()
                     self.draw_game_notes_widget(game)
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item((icons.tag_multiple_outline if len(game.tags) > 1 else icons.tag_outline if len(game.tags) == 1 else icons.tag_off_outline) + " Tags###tags")[0]:
+                if imgui.begin_tab_item((
+                    icons.tag_multiple_outline if len(game.tags) > 1 else
+                    icons.tag_outline if len(game.tags) == 1 else
+                    icons.tag_off_outline
+                ) + " Tags###tags")[0]:
                     imgui.spacing()
                     if game.tags:
                         self.draw_game_tags_widget(game)
@@ -1858,9 +1901,15 @@ class MainGUI():
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
-                        key = lambda id: flt.invert != ((not globals.games[id].executables) if flt.match is ExeState.Unset else (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid))))
+                        key = lambda id: flt.invert != (
+                            (not globals.games[id].executables) if flt.match is ExeState.Unset else
+                            (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid)))
+                        )
                     case FilterMode.Installed.value:
-                        key = lambda id: flt.invert != ((globals.games[id].installed != "") if flt.match else (globals.games[id].installed == globals.games[id].version))
+                        key = lambda id: flt.invert != (
+                            (globals.games[id].installed != "") if flt.match else
+                            (globals.games[id].installed == globals.games[id].version)
+                        )
                     case FilterMode.Label.value:
                         key = lambda id: flt.invert != (flt.match in globals.games[id].labels)
                     case FilterMode.Played.value:
@@ -2078,17 +2127,32 @@ class MainGUI():
         checkboxes = cols.played.enabled + cols.installed.enabled
         buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
         action_items = checkboxes + buttons
-        data_rows = cols.developer.enabled + cols.score.enabled + cols.last_updated.enabled + cols.last_played.enabled + cols.added_on.enabled + cols.rating.enabled + cols.notes.enabled
+        data_rows = (
+            cols.developer.enabled +
+            cols.score.enabled +
+            cols.last_updated.enabled +
+            cols.last_played.enabled +
+            cols.added_on.enabled +
+            cols.rating.enabled +
+            cols.notes.enabled
+        )
         bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
 
         min_width = (
             side_indent * 2 +  # Side indent * 2 sides
             max((
-                imgui.style.item_spacing.x * action_items +  # Spacing * 6 action items
-                imgui.style.frame_padding.x * 2 * buttons +  # Button padding * 2 sides * 4 buttons
+                imgui.style.item_spacing.x * action_items +      # Spacing * 6 action items
+                imgui.style.frame_padding.x * 2 * buttons +      # Button padding * 2 sides * 4 buttons
                 imgui.style.item_inner_spacing.x * checkboxes +  # Checkbox to label spacing * 2 checkboxes
-                imgui.get_frame_height() * checkboxes +  # (Checkbox height = width) * 2 checkboxes
-                imgui.calc_text_size(f"{icons.play} Play" * cols.play_button.enabled + f"{icons.folder_open_outline} Folder" * cols.open_folder.enabled + f"{icons.open_in_new} Thread" * cols.open_thread.enabled + f"{icons.content_copy} Link" * cols.copy_link.enabled + icons.flag_checkered * cols.played.enabled + icons.cloud_download * cols.installed.enabled).x  # Text
+                imgui.get_frame_height() * checkboxes +          # (Checkbox height = width) * 2 checkboxes
+                imgui.calc_text_size(                            # Text
+                    f"{icons.play} Play" * cols.play_button.enabled +
+                    f"{icons.folder_open_outline} Folder" * cols.open_folder.enabled +
+                    f"{icons.open_in_new} Thread" * cols.open_thread.enabled +
+                    f"{icons.content_copy} Link" * cols.copy_link.enabled +
+                    icons.flag_checkered * cols.played.enabled +
+                    icons.cloud_download * cols.installed.enabled
+                ).x
             ),
             (
                 imgui.style.item_spacing.x * 2 +  # Between text * 2
@@ -2401,7 +2465,12 @@ class MainGUI():
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
             any_active = True
-        activated, value = imgui.input_text_with_hint("###bottombar", "Start typing to filter the list, press enter to add a game (thread link / search term)", self.add_box_text, flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+        activated, value = imgui.input_text_with_hint(
+            "###bottombar",
+            "Type to filter the list, press enter to add a game (link/search)",
+            self.add_box_text,
+            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
+        )
         changed = value != self.add_box_text
         self.add_box_text = value
         activated = bool(activated and self.add_box_text)
@@ -2467,7 +2536,13 @@ class MainGUI():
                             imgui.pop_disabled()
                         if clicked:
                             async_thread.run(callbacks.add_games(result))
-                utils.push_popup(utils.popup, "Quick search", popup_content, buttons=True, closable=True, outside=False)
+                utils.push_popup(
+                    utils.popup, "Quick search",
+                    popup_content,
+                    buttons=True,
+                    closable=True,
+                    outside=False
+                )
                 if login := await api.assert_login():
                     results = await api.quick_search(query)
             utils.start_refresh_task(_search_and_add(self.add_box_text), reset_bg_timers=False)
@@ -2779,7 +2854,11 @@ class MainGUI():
                                 if selected:
                                     set.browser_custom_executable = selected
                                     async_thread.run(db.update_settings("browser_custom_executable"))
-                            utils.push_popup(filepicker.FilePicker(title="Select or drop browser executable", start_dir=set.browser_custom_executable, callback=callback).tick)
+                            utils.push_popup(filepicker.FilePicker(
+                                title="Select or drop browser executable",
+                                start_dir=set.browser_custom_executable,
+                                callback=callback
+                            ).tick)
                         imgui.text("Arguments: ")
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
@@ -2791,7 +2870,13 @@ class MainGUI():
                         if imgui.begin_popup_context_item(f"###browser_custom_arguments_context"):
                             utils.text_context(set, "browser_custom_arguments", setter_extra, no_icons=True)
                             imgui.end_popup()
-                    utils.push_popup(utils.popup, "Configure custom browser", popup_content, buttons=True, closable=True, outside=False)
+                    utils.push_popup(
+                        utils.popup, "Configure custom browser",
+                        popup_content,
+                        buttons=True,
+                        closable=True,
+                        outside=False
+                    )
             else:
                 draw_settings_label("Use private mode:")
                 draw_settings_checkbox("browser_private")
@@ -3054,7 +3139,10 @@ class MainGUI():
                     thread_links = builtins.type("_", (), dict(_=""))()
                     def popup_content():
                         nonlocal thread_links
-                        imgui.text("Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\nso don't worry about tidiness and paste like it's anarchy!")
+                        imgui.text(
+                            "Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\n"
+                            "so don't worry about tidiness and paste like it's anarchy!"
+                        )
                         _, thread_links._ = imgui.input_text_multiline(
                             f"###import_links",
                             value=thread_links._,
@@ -3068,7 +3156,13 @@ class MainGUI():
                         f"{icons.check} Import": lambda: async_thread.run(callbacks.add_games(*utils.extract_thread_matches(thread_links._))),
                         f"{icons.cancel} Cancel": None
                     }
-                    utils.push_popup(utils.popup, "Import thread links", popup_content, buttons, closable=True, outside=False)
+                    utils.push_popup(
+                        utils.popup, "Import thread links",
+                        popup_content,
+                        buttons,
+                        closable=True,
+                        outside=False
+                    )
                 if imgui.button("F95 bookmarks", width=-offset):
                     utils.start_refresh_task(api.import_f95_bookmarks())
                 if imgui.button("F95 watched threads", width=-offset):
@@ -3078,16 +3172,34 @@ class MainGUI():
                         if selected:
                             async_thread.run(api.import_browser_bookmarks(selected))
                     buttons={
-                        f"{icons.check} Ok": lambda: utils.push_popup(filepicker.FilePicker("Select or drop bookmark file", callback=callback).tick),
+                        f"{icons.check} Ok": lambda: utils.push_popup(filepicker.FilePicker(
+                                                         title="Select or drop bookmark file",
+                                                         callback=callback
+                                                     ).tick),
                         f"{icons.cancel} Cancel": None
                     }
-                    utils.push_popup(msgbox.msgbox, "Bookmark file", "F95Checker can import your browser bookmarks using an exported bookmark HTML.\nExporting such a file may vary between browsers, but generally speaking you need to:\n - Open your browser's bookmark manager\n - Find an import / export section, menu or dropdown\n - Click export as HTML\n - Save the file in some place you can find easily\n\nOnce you have done this click Ok and select this file.", MsgBox.info, buttons)
+                    utils.push_popup(
+                        msgbox.msgbox, "Bookmark file",
+                        "F95Checker can import your browser bookmarks using an exported bookmark HTML.\n"
+                        "Exporting such a file may vary between browsers, but generally speaking you need to:\n"
+                        " - Open your browser's bookmark manager\n"
+                        " - Find an import / export section, menu or dropdown\n"
+                        " - Click export as HTML\n"
+                        " - Save the file in some place you can find easily\n"
+                        "\n"
+                        "Once you have done this click Ok and select this file.",
+                        MsgBox.info,
+                        buttons
+                    )
                 file_hover = imgui.is_item_hovered()
                 if imgui.button("URL Shortcut file", width=-offset):
                     def callback(selected):
                         if selected:
                             async_thread.run(api.import_url_shortcut(selected))
-                    utils.push_popup(filepicker.FilePicker("Select or drop shortcut file", callback=callback).tick),
+                    utils.push_popup(filepicker.FilePicker(
+                        title="Select or drop shortcut file",
+                        callback=callback
+                    ).tick),
                 file_hover = file_hover or imgui.is_item_hovered()
                 if file_hover:
                     self.draw_hover_text("You can also drag and drop .html and .url files into the window for this!", text=None, force=True)
@@ -3107,7 +3219,13 @@ class MainGUI():
                         if imgui.begin_popup_context_item(f"###export_links_context"):
                             utils.text_context(thread_links, "_", editable=False)
                             imgui.end_popup()
-                    utils.push_popup(utils.popup, "Export thread links", popup_content, buttons=True, closable=True, outside=False)
+                    utils.push_popup(
+                        utils.popup, "Export thread links",
+                        popup_content,
+                        buttons=True,
+                        closable=True,
+                        outside=False
+                    )
                 imgui.tree_pop()
             if imgui.tree_node("Clear", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 offset = imgui.get_cursor_pos_x() - pos.x
@@ -3116,7 +3234,14 @@ class MainGUI():
                         f"{icons.check} Yes": lambda: async_thread.run(db.update_cookies({})),
                         f"{icons.cancel} No": None
                     }
-                    utils.push_popup(msgbox.msgbox, "Clear cookies", "Are you sure you want to clear your session cookies?\nThis will invalidate your login session, but might help\nif you are having issues.", MsgBox.warn, buttons)
+                    utils.push_popup(
+                        msgbox.msgbox, "Clear cookies",
+                        "Are you sure you want to clear your session cookies?\n"
+                        "This will invalidate your login session, but might help\n"
+                        "if you are having issues.",
+                        MsgBox.warn,
+                        buttons
+                    )
                 imgui.tree_pop()
             imgui.end_group()
             imgui.spacing()
@@ -3136,7 +3261,11 @@ class MainGUI():
                 def select_callback(selected):
                     set.default_exe_dir = selected or ""
                     async_thread.run(db.update_settings("default_exe_dir"))
-                utils.push_popup(filepicker.DirPicker("Selecte or drop default exe dir", start_dir=set.default_exe_dir, callback=select_callback).tick)
+                utils.push_popup(filepicker.DirPicker(
+                    title="Select or drop default exe dir",
+                    start_dir=set.default_exe_dir,
+                    callback=select_callback
+                ).tick)
 
             draw_settings_label("Show remove button:")
             draw_settings_checkbox("show_remove_btn")
@@ -3411,7 +3540,12 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             if self.main_gui.bg_mode_paused:
                 next_refresh = "Paused"
             elif self.main_gui.bg_mode_timer or self.main_gui.bg_mode_notifs_timer:
-                next_refresh = dt.datetime.fromtimestamp(min(self.main_gui.bg_mode_timer or globals.settings.bg_refresh_interval, self.main_gui.bg_mode_notifs_timer or globals.settings.bg_notifs_interval)).strftime("%H:%M")
+                next_refresh = dt.datetime.fromtimestamp(
+                    min(
+                        self.main_gui.bg_mode_timer or globals.settings.bg_refresh_interval,
+                        self.main_gui.bg_mode_notifs_timer or globals.settings.bg_notifs_interval
+                    )
+                ).strftime("%H:%M")
             elif utils.is_refreshing():
                 next_refresh = "Now"
             else:

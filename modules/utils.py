@@ -51,7 +51,12 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
         globals.gui.tray.update_status()
         globals.gui.require_sort = True
         if (globals.gui.hidden or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
-            globals.gui.tray.push_msg(title="Updates", msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates, click here to view {'it' if count == 1 else 'them'}.", icon=QSystemTrayIcon.MessageIcon.Information)
+            globals.gui.tray.push_msg(
+                title="Updates",
+                msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates, "
+                    f"click here to view {'it' if count == 1 else 'them'}.",
+                icon=QSystemTrayIcon.MessageIcon.Information
+            )
         # Continues after this only if the task was not cancelled
         try:
             future.exception()
@@ -200,7 +205,13 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
                         if imgui.selectable(f"{icon}  {name}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]:
                             setter(getter() + icon)
                 imgui.end_child()
-            push_popup(popup, "Select icon", popup_content, buttons=True, closable=True, outside=True)
+            push_popup(
+                popup, "Select icon",
+                popup_content,
+                buttons=True,
+                closable=True,
+                outside=True
+            )
 
 
 @functools.cache
@@ -248,7 +259,11 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
         imgui.end_group()
         imgui.spacing()
         if buttons:
-            btns_width = sum(imgui.calc_text_size(name).x for name in buttons) + (2 * len(buttons) * imgui.style.frame_padding.x) + (imgui.style.item_spacing.x * (len(buttons) - 1))
+            btns_width = (
+                sum(imgui.calc_text_size(name).x for name in buttons) +
+                (2 * len(buttons) * imgui.style.frame_padding.x) +
+                (imgui.style.item_spacing.x * (len(buttons) - 1))
+            )
             cur_pos_x = imgui.get_cursor_pos_x()
             new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btns_width
             if new_pos_x > cur_pos_x:
@@ -272,7 +287,11 @@ def push_popup(*args, bottom=False, **kwargs):
         if (globals.gui.hidden or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
             if globals.gui.hidden and args[1] == "Daily backups":
                 return
-            globals.gui.tray.push_msg(title="Oops", msg="Something went wrong, click here to view the error.", icon=QSystemTrayIcon.MessageIcon.Critical)
+            globals.gui.tray.push_msg(
+                title="Oops",
+                msg="Something went wrong, click here to view the error.",
+                icon=QSystemTrayIcon.MessageIcon.Critical
+            )
     if bottom:
         globals.popup_stack.insert(0, popup_func)
     else:

@@ -62,7 +62,10 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
         else:
             has_column_def = has_column_defs[has_column_names.index(column_name)]  # (type, default)
             if not column_def.strip().lower().startswith(has_column_def[0].lower()):
-                raise Exception(f"Existing database column '{column_name}' has incorrect type ({column_def.strip()[:column_def.strip().find(' ')]} != {has_column_def[0]})")
+                raise Exception(
+                    f"Existing database column '{column_name}' has incorrect "
+                    f"type ({column_def.strip()[:column_def.strip().find(' ')]} != {has_column_def[0]})"
+                )
             if " default " in column_def.lower() and not re.search(r"[Dd][Ee][Ff][Aa][Uu][Ll][Tt]\s+?" + re.escape(str(has_column_def[1])), column_def):
                 # Default is different, recreate table and transfer values
                 recreate = True
@@ -490,7 +493,14 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
             elif path.suffix == ".ini":
                 config = legacy_ini_to_dict(path)
             else:
-                utils.push_popup(msgbox.msgbox, "Unsupported format", f"Could not migrate {str(path)}\nThe only supported formats are .json and .ini.", MsgBox.warn)
+                utils.push_popup(
+                    msgbox.msgbox, "Unsupported format",
+                    "Could not migrate this file:\n"
+                    f"{str(path)}\n"
+                    "\n"
+                    "The only supported formats are .json and .ini.",
+                    MsgBox.warn
+                )
                 return
         keys = []
         values = []
@@ -640,4 +650,10 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
 
         await save()
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Config migration error", f"Something went wrong transferring data from the previous version:\n{error.text()}", MsgBox.error, more=error.traceback())
+        utils.push_popup(
+            msgbox.msgbox, "Config migration error",
+            "Something went wrong transferring data from the previous version:\n"
+            f"{error.text()}",
+            MsgBox.error,
+            more=error.traceback()
+        )

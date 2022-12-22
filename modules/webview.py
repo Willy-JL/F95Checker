@@ -29,7 +29,20 @@ def kwargs():
     )
 
 
-def create(*, title: str = None, buttons: bool = True, size: tuple[int, int] = None, pos: tuple[int, int] = None, debug: bool, icon: str, icon_font: str, extension: str, col_bg: str, col_accent: str, col_text: str):
+def create(
+    *,
+    title: str = None,
+    buttons: bool = True,
+    size: tuple[int, int] = None,
+    pos: tuple[int, int] = None,
+    debug: bool,
+    icon: str,
+    icon_font: str,
+    extension: str,
+    col_bg: str,
+    col_accent: str,
+    col_text: str
+):
     config_qt_flags(debug)
     app = QtWidgets.QApplication(sys.argv)
     icon_font = QtGui.QFontDatabase.applicationFontFamilies(QtGui.QFontDatabase.addApplicationFont(icon_font))[0]

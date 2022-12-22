@@ -202,11 +202,27 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
         if b"<title>Log in | F95zone</title>" in res:
             if return_login:
                 return False
-            raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
+            raise msgbox.Exc(
+                "Login expired",
+                "Your F95Zone login session has expired,\n"
+                "press refresh to login again.",
+                MsgBox.warn
+            )
         if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
-            raise msgbox.Exc("Daily backups", "F95Zone daily backups are currently running,\nplease retry in a few minutes.", MsgBox.warn)
+            raise msgbox.Exc(
+                "Daily backups",
+                "F95Zone daily backups are currently running,\n"
+                "please retry in a few minutes.",
+                MsgBox.warn
+            )
         if b"<title>DDOS-GUARD</title>" in res:
-            raise msgbox.Exc("DDoS-Guard bypass failure", "F95Zone requested a DDoS-Guard browser challenge and F95Checker\nwas unable to bypass it. Try waiting a few minutes, opening F95Zone\nin browser, rebooting your router, or connecting through a VPN.", MsgBox.error)
+            raise msgbox.Exc(
+                "DDoS-Guard bypass failure",
+                "F95Zone requested a DDoS-Guard browser challenge and F95Checker\n"
+                "was unable to bypass it. Try waiting a few minutes, opening F95Zone\n"
+                "in browser, rebooting your router, or connecting through a VPN.",
+                MsgBox.error
+            )
         return True
     elif isinstance(res, dict):
         if res.get("status") == "error":
@@ -215,9 +231,25 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                 if "Cookies are required to use this site. You must accept them to continue using the site." in errors:
                     if return_login:
                         return False
-                    raise msgbox.Exc("Login expired", "Your F95Zone login session has expired, press refresh to login again.", MsgBox.warn)
-                raise msgbox.Exc("API error", "The F95Zone API returned an 'error' status with the following messages:\n - " + "\n - ".join(errors), MsgBox.error, more=more)
-            raise msgbox.Exc("API error", "The F95Zone API returned an 'error' status.", MsgBox.error, more=more)
+                    raise msgbox.Exc(
+                        "Login expired",
+                        "Your F95Zone login session has expired,\n"
+                        "press refresh to login again.",
+                        MsgBox.warn
+                    )
+                raise msgbox.Exc(
+                    "API error",
+                    "The F95Zone API returned an 'error' status with the following messages:\n"
+                    " - " + "\n - ".join(errors),
+                    MsgBox.error,
+                    more=more
+                )
+            raise msgbox.Exc(
+                "API error",
+                "The F95Zone API returned an 'error' status.",
+                MsgBox.error,
+                more=more
+            )
         return True
 
 
@@ -231,7 +263,18 @@ async def is_logged_in():
             # Check login page was not in 200 range, but error is not a login issue
             async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
                 await f.write(res)
-            raise msgbox.Exc("Login assertion failure", f"Something went wrong checking the validity of your login session.\n\nF95Zone replied with a status code of {req.status} at this URL:\n{str(req.real_url)}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}login_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error)
+            raise msgbox.Exc(
+                "Login assertion failure",
+                "Something went wrong checking the validity of your login session.\n"
+                "\n"
+                f"F95Zone replied with a status code of {req.status} at this URL:\n"
+                f"{str(req.real_url)}\n"
+                "\n"
+                "The response body has been saved to:\n"
+                f"{globals.self_path / 'login_broken.bin'}\n"
+                "Please submit a bug report on F95Zone or GitHub including this file.",
+                MsgBox.error
+            )
         xf_token = str(re.search(rb'<\s*input.*?name\s*=\s*"_xfToken"\s*value\s*=\s*"(.+)"', res).group(1), encoding="utf-8")
         return True
 
@@ -256,7 +299,16 @@ async def login():
                     break
         await asyncio.shield(db.update_cookies(new_cookies))
     except Exception:
-        raise msgbox.Exc("Login window failure", f"Something went wrong with the login window subprocess:\n{error.text()}\n\nThe \"log.txt\" file might contain more information.\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=error.traceback())
+        raise msgbox.Exc(
+            "Login window failure",
+            "Something went wrong with the login window subprocess:\n"
+            f"{error.text()}\n"
+            "\n"
+            "The 'log.txt' file might contain more information.\n"
+            "Please submit a bug report on F95Zone or GitHub including this file.",
+            MsgBox.error,
+            more=error.traceback()
+        )
 
 
 async def assert_login():
@@ -324,7 +376,11 @@ async def import_url_shortcut(file: str | pathlib.Path):
     if threads:
         await callbacks.add_games(*threads)
     else:
-        utils.push_popup(msgbox.msgbox, "Invalid shortcut", "This shortcut file does not point to a valid thread to import!", MsgBox.warn)
+        utils.push_popup(
+            msgbox.msgbox, "Invalid shortcut",
+            "This shortcut file does not point to a valid thread to import!",
+            MsgBox.warn
+        )
 
 
 async def import_browser_bookmarks(file: str | pathlib.Path):
@@ -337,7 +393,11 @@ async def import_browser_bookmarks(file: str | pathlib.Path):
     if threads:
         await callbacks.add_games(*threads)
     else:
-        utils.push_popup(msgbox.msgbox, "No threads", "This bookmark file contains no valid threads to import!", MsgBox.warn)
+        utils.push_popup(
+            msgbox.msgbox, "No threads",
+            "This bookmark file contains no valid threads to import!",
+            MsgBox.warn
+        )
 
 
 async def import_f95_bookmarks():
@@ -362,7 +422,11 @@ async def import_f95_bookmarks():
     if threads:
         await callbacks.add_games(*threads)
     else:
-        utils.push_popup(msgbox.msgbox, "No threads", "Your F95Zone bookmarks contains no valid threads to import!", MsgBox.warn)
+        utils.push_popup(
+            msgbox.msgbox, "No threads",
+            "Your F95Zone bookmarks contains no valid threads to import!",
+            MsgBox.warn
+        )
 
 
 async def import_f95_watched_threads():
@@ -387,7 +451,11 @@ async def import_f95_watched_threads():
     if threads:
         await callbacks.add_games(*threads)
     else:
-        utils.push_popup(msgbox.msgbox, "No threads", "Your F95Zone watched threads contains no valid threads to import!", MsgBox.warn)
+        utils.push_popup(
+            msgbox.msgbox, "No threads",
+            "Your F95Zone watched threads contains no valid threads to import!",
+            MsgBox.warn
+        )
 
 
 async def check(game: Game, full=False, login=False):
@@ -422,7 +490,14 @@ async def check(game: Game, full=False, login=False):
                 if str(game.id) in redirect and redirect.startswith(threads_page):
                     full = True
                 else:
-                    raise msgbox.Exc("Bad HEAD response", f"Something went wrong checking {game.id}, F95Zone responded with an unexpected redirect.\n\nThe quick check HEAD request redirected to:\n{redirect}", MsgBox.error)
+                    raise msgbox.Exc(
+                        "Bad HEAD response",
+                        f"Something went wrong checking thread {game.id}, F95Zone responded with an unexpected redirect.\n"
+                        "\n"
+                        "The quick check HEAD request redirected to:\n"
+                        f"{redirect}",
+                        MsgBox.error
+                    )
     if not full:
         return
 
@@ -441,7 +516,15 @@ async def check(game: Game, full=False, login=False):
                 elif req.status == 403:
                     title = "No permission"
                     msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
-                raise msgbox.Exc(title, msg + f"\n\nDo you want to remove {game.name} from your list?", MsgBox.error, buttons=buttons)
+                raise msgbox.Exc(
+                    title,
+                    msg +
+                    "\n"
+                    "\n"
+                    f"Do you want to remove {game.name} from your list?",
+                    MsgBox.error,
+                    buttons=buttons
+                )
             url = utils.clean_thread_url(str(req.real_url))
 
         old_name = game.name
@@ -458,7 +541,11 @@ async def check(game: Game, full=False, login=False):
                     async with async_timeout.timeout(globals.settings.request_timeout):
                         ret = await pipe.get_async()
                 except TimeoutError:
-                    raise msgbox.Exc("Parser process timeout", "The thread parser process did not respond in time.", MsgBox.error)
+                    raise msgbox.Exc(
+                        "Parser process timeout",
+                        "The thread parser process did not respond in time.",
+                        MsgBox.error
+                    )
         else:
             ret = parser.thread(*args)
         if isinstance(ret, parser.ParserException):
@@ -545,7 +632,26 @@ async def check(game: Game, full=False, login=False):
             game.tags = tags
             game.image_url = image_url
             game.downloads = downloads
-            await db.update_game(game, "name", "version", "developer", "type", "status", "url", "last_updated", "last_full_refresh", "last_refresh_version", "score", "played", "installed", "description", "changelog", "tags", "image_url", "downloads")
+            await db.update_game(
+                game,
+                "name",
+                "version",
+                "developer",
+                "type",
+                "status",
+                "url",
+                "last_updated",
+                "last_full_refresh",
+                "last_refresh_version",
+                "score",
+                "played",
+                "installed",
+                "description",
+                "changelog",
+                "tags",
+                "image_url",
+                "downloads"
+            )
 
             if old_status is not Status.Unchecked and (
                 name != old_name or
@@ -580,13 +686,26 @@ async def check_notifs(login=False):
             raise exc
         async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
             await f.write(res)
-        raise msgbox.Exc("Notifs check error", f"Something went wrong checking your unread notifications:\n{error.text()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}notifs_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=error.traceback())
+        raise msgbox.Exc(
+            "Notifs check error",
+            "Something went wrong checking your unread notifications:\n"
+            f"{error.text()}\n"
+            "\n"
+            "The response body has been saved to:\n"
+            f"{globals.self_path / 'notifs_broken.bin'}\n"
+            "Please submit a bug report on F95Zone or GitHub including this file.",
+            MsgBox.error,
+            more=error.traceback()
+        )
     if alerts != 0 and inbox != 0:
-        msg = f"You have {alerts + inbox} unread notifications.\n({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})"
+        msg = (
+            f"You have {alerts + inbox} unread notifications.\n"
+            f"({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})\n"
+        )
     elif alerts != 0 and inbox == 0:
-        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}."
+        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}.\n"
     elif alerts == 0 and inbox != 0:
-        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}."
+        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}.\n"
     else:
         return
     def open_callback():
@@ -601,9 +720,19 @@ async def check_notifs(login=False):
     for popup in globals.popup_stack:
         if popup.func is msgbox.msgbox and popup.args[0] == "Notifications":
             globals.popup_stack.remove(popup)
-    utils.push_popup(msgbox.msgbox, "Notifications", msg + f"\n\nDo you want to view {'them' if (alerts + inbox) > 1 else 'it'}?", MsgBox.info, buttons)
+    utils.push_popup(
+        msgbox.msgbox, "Notifications",
+        msg +
+        "\n"
+        f"Do you want to view {'them' if (alerts + inbox) > 1 else 'it'}?",
+        MsgBox.info, buttons
+    )
     if globals.gui.hidden or not globals.gui.focused:
-        globals.gui.tray.push_msg(title="Notifications", msg=msg + ".\nClick here to view them.", icon=QSystemTrayIcon.MessageIcon.Information)
+        globals.gui.tray.push_msg(
+            title="Notifications",
+            msg=msg +
+                "Click here to view them.",
+            icon=QSystemTrayIcon.MessageIcon.Information)
 
 
 async def check_updates():
@@ -614,7 +743,12 @@ async def check_updates():
         res = json.loads(res)
         globals.last_update_check = time.time()
         if "tag_name" not in res:
-            utils.push_popup(msgbox.msgbox, "Update check error", "Failed to fetch latest F95Checker release information.\nThis might be a temporary issue.", MsgBox.warn)
+            utils.push_popup(
+                msgbox.msgbox, "Update check error",
+                "Failed to fetch latest F95Checker release information.\n"
+                "This might be a temporary issue.",
+                MsgBox.warn
+            )
             return
         if res["prerelease"]:
             return  # Release is not ready yet
@@ -649,7 +783,17 @@ async def check_updates():
     except Exception:
         async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
             await f.write(res)
-        raise msgbox.Exc("Update check error", f"Something went wrong checking for F95Checker updates:\n{error.text()}\n\nThe response body has been saved to:\n{globals.self_path}{os.sep}update_broken.bin\nPlease submit a bug report on F95Zone or GitHub including this file.", MsgBox.error, more=error.traceback())
+        raise msgbox.Exc(
+            "Update check error",
+            "Something went wrong checking for F95Checker updates:\n"
+            f"{error.text()}\n"
+            "\n"
+            "The response body has been saved to:\n"
+            f"{globals.self_path / 'update_broken.bin'}\n"
+            "Please submit a bug report on F95Zone or GitHub including this file.",
+            MsgBox.error,
+            more=error.traceback()
+        )
     async def update_callback():
         progress = 0.0
         total = float(asset_size)
@@ -678,7 +822,13 @@ async def check_updates():
         buttons = {
             f"{icons.cancel} Cancel": cancel_callback
         }
-        utils.push_popup(utils.popup, "Updating F95Checker", popup_content, buttons=buttons, closable=False, outside=False)
+        utils.push_popup(
+            utils.popup, "Updating F95Checker",
+            popup_content,
+            buttons=buttons,
+            closable=False,
+            outside=False
+        )
         asset_data = io.BytesIO()
         async with request("GET", asset_url, timeout=3600, read=False) as (_, req):
             async for chunk in req.content.iter_any():
@@ -726,7 +876,12 @@ async def check_updates():
                 'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
                 'Write-Host "Deleting old version files..."',
-                f"Get-ChildItem -Force -Recurse -Path {shlex.quote(str(dst))} | Select-Object -ExpandProperty FullName | Sort-Object -Property Length -Descending | Remove-Item -Force -Recurse",
+                " | ".join((
+                    f"Get-ChildItem -Force -Recurse -Path {shlex.quote(str(dst))}",
+                    "Select-Object -ExpandProperty FullName",
+                    "Sort-Object -Property Length -Descending",
+                    "Remove-Item -Force -Recurse",
+                )),
                 'Write-Host "Moving new version files..."',
                 f"Get-ChildItem -Force -Path {shlex.quote(str(src))} | Select-Object -ExpandProperty FullName | Move-Item -Force -Destination {shlex.quote(str(dst))}",
                 'Write-Host "Sleeping 3 seconds..."',
@@ -790,9 +945,27 @@ async def check_updates():
         path = globals.self_path.parent.parent
     else:
         path = globals.self_path
-    utils.push_popup(msgbox.msgbox, "F95Checker update", f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\nUPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n{path}\nYour user data (games, settings, login, ...) will not be affected.\n\nDo you want to update?\n(The app will restart automatically, DON'T reopen manually!)", MsgBox.info, buttons=buttons, more=changelog, bottom=True)
+    utils.push_popup(
+        msgbox.msgbox, "F95Checker update",
+        f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\n"
+        "UPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n"
+        f"{path}\n"
+        "Your user data (games, settings, login, ...) will not be affected.\n"
+        "\n"
+        "Do you want to update?\n"
+        "(The app will restart automatically, DON'T reopen manually!)",
+        MsgBox.info,
+        buttons=buttons,
+        more=changelog,
+        bottom=True
+    )
     if globals.gui.hidden or not globals.gui.focused:
-        globals.gui.tray.push_msg(title="F95Checker update", msg="F95Checker has received an update.\nClick here to view it.", icon=QSystemTrayIcon.MessageIcon.Information)
+        globals.gui.tray.push_msg(
+            title="F95Checker update",
+            msg="F95Checker has received an update.\n"
+                "Click here to view it.",
+            icon=QSystemTrayIcon.MessageIcon.Information
+        )
 
 
 async def refresh(full=False, notifs=True):

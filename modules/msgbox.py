@@ -55,4 +55,10 @@ class Exc(Exception):
     def __init__(self, title:str, msg: str, level: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None):
         self.title = title
         self.msg = msg
-        self.popup = utils.push_popup(msgbox, title, msg, level, buttons, more)
+        self.popup = utils.push_popup(
+            msgbox, title,
+            msg,
+            level,
+            buttons,
+            more
+        )

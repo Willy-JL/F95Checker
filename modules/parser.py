@@ -55,7 +55,10 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         value_regex = ""
         for name in names:
             if match := re.search(r"^ *" + name + r" *:? *\n? *:? *((?:.|\n)*)", plain, flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE):
-                value_regex = re.sub(r"(?:(?: *\n){7}|(?:\n *[A-Z a-z]+:(?:.|\n)+?){2}|\n *(?:DOWNLOAD|Download) *(?:\n|:))(?:.|\n)*", r"", match.group(1), flags=re.RegexFlag.MULTILINE)
+                value_regex = re.sub(
+                    r"(?:(?: *\n){7}|(?:\n *[A-Z a-z]+:(?:.|\n)+?){2}|\n *(?:DOWNLOAD|Download) *(?:\n|:))(?:.|\n)*", r"", match.group(1),
+                    flags=re.RegexFlag.MULTILINE
+                )
                 value_regex = fixed_newlines(value_regex)
         value_html = ""
         for name in names:
@@ -136,7 +139,10 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             (self_path / f"{game_id}_broken.html").write_bytes(res)
             e = ParserException(
                 title="Thread parsing error",
-                msg=f"Failed to parse necessary sections in thread response, the html file has\nbeen saved to:\n{self_path}{os.sep}{game_id}_broken.html\n\nPlease submit a bug report on F95Zone or GitHub including this file.",
+                msg="Failed to parse necessary sections in thread response, the html file has\n"
+                    f"been saved to:\n{self_path}{os.sep}{game_id}_broken.html\n"
+                    "\n"
+                    "Please submit a bug report on F95Zone or GitHub including this file.",
                 level=MsgBox.error
             )
             if pipe:
@@ -162,7 +168,22 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         if not version:
             version = "N/A"
 
-        developer = get_game_attr("developer/publisher", "developer & publisher", "developer / publisher", "original developer", "developers", "developer", "publisher", "artist", "animator", "producer", "modder", "remake by", "game by", "posted by")
+        developer = get_game_attr(
+            "developer/publisher",
+            "developer & publisher",
+            "developer / publisher",
+            "original developer",
+            "developers",
+            "developer",
+            "publisher",
+            "artist",
+            "animator",
+            "producer",
+            "modder",
+            "remake by",
+            "game by",
+            "posted by"
+        )
         for separator in developer_chop_separators:
             developer = developer.split(separator)[0]
         while True:

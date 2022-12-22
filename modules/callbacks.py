@@ -50,7 +50,13 @@ def update_start_with_system(toggle: bool):
                 globals.autostart.unlink()
         globals.start_with_system = toggle
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Start with system error", f"Something went wrong changing the start with system setting:\n{error.text()}", MsgBox.error, more=error.traceback())
+        utils.push_popup(
+            msgbox.msgbox, "Start with system error",
+            "Something went wrong changing the start with system setting:\n"
+            f"{error.text()}",
+            MsgBox.error,
+            more=error.traceback()
+        )
 
 
 async def _launch_exe(path: str):
@@ -121,9 +127,22 @@ async def _launch_game_exe(game: Game, executable: str):
             f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
             f"{icons.cancel} No": None
         }
-        utils.push_popup(msgbox.msgbox, "File not found", "The selected executable could not be found.\n\nDo you want to select another one?", MsgBox.warn, buttons)
+        utils.push_popup(
+            msgbox.msgbox, "File not found",
+            "The selected executable could not be found.\n"
+            "\n"
+            "Do you want to select another one?",
+            MsgBox.warn,
+            buttons
+        )
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Game launch error", f"Something went wrong launching {executable}:\n{error.text()}", MsgBox.error, more=error.traceback())
+        utils.push_popup(
+            msgbox.msgbox, "Game launch error",
+            f"Something went wrong launching {executable}:\n"
+            f"{error.text()}",
+            MsgBox.error,
+            more=error.traceback()
+        )
 
 
 def launch_game(game: Game, executable: str = None):
@@ -152,7 +171,13 @@ def launch_game(game: Game, executable: str = None):
     buttons = {
         f"{icons.cancel} Cancel": None
     }
-    utils.push_popup(utils.popup, f"Choose Exe for {game.name}", popup_content, buttons=buttons, closable=True, outside=True)
+    utils.push_popup(
+        utils.popup, f"Choose Exe for {game.name}",
+        popup_content,
+        buttons=buttons,
+        closable=True,
+        outside=True
+    )
 
 
 async def _open_folder(path: str):
@@ -190,9 +215,22 @@ async def _open_game_folder_exe(game: Game, executable: str):
             f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
             f"{icons.cancel} No": None
         }
-        utils.push_popup(msgbox.msgbox, "Folder not found", "The parent folder for the game executable could not be found.\n\nDo you want to select another executable?", MsgBox.warn, buttons)
+        utils.push_popup(
+            msgbox.msgbox, "Folder not found",
+            "The parent folder for the game executable could not be found.\n"
+            "\n"
+            "Do you want to select another executable?",
+            MsgBox.warn,
+            buttons
+        )
     except Exception:
-        utils.push_popup(msgbox.msgbox, "Open folder error", f"Something went wrong opening the folder for {executable}:\n{error.text()}", MsgBox.error, more=error.traceback())
+        utils.push_popup(
+            msgbox.msgbox, "Open folder error",
+            f"Something went wrong opening the folder for {executable}:\n"
+            f"{error.text()}",
+            MsgBox.error,
+            more=error.traceback()
+        )
 
 
 def open_game_folder(game: Game, executable: str = None):
@@ -213,7 +251,15 @@ def open_game_folder(game: Game, executable: str = None):
             f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
             f"{icons.cancel} No": None
         }
-        utils.push_popup(msgbox.msgbox, "Exe not selected", "You did not select an executable for this game, so\nopening its folder is not possible.\n\nDo you want to select it now?", MsgBox.warn, buttons)
+        utils.push_popup(
+            msgbox.msgbox, "Exe not selected",
+            "You did not select an executable for this game, so\n"
+            "opening its folder is not possible.\n"
+            "\n"
+            "Do you want to select it now?",
+            MsgBox.warn,
+            buttons
+        )
         return
 
     def popup_content():
@@ -225,7 +271,13 @@ def open_game_folder(game: Game, executable: str = None):
     buttons = {
         f"{icons.cancel} Cancel": None
     }
-    utils.push_popup(utils.popup, f"Choose Folder for {game.name}", popup_content, buttons=buttons, closable=True, outside=True)
+    utils.push_popup(
+        utils.popup, f"Choose Folder for {game.name}",
+        popup_content,
+        buttons=buttons,
+        closable=True,
+        outside=True
+    )
 
 
 def open_webpage(url: str):
@@ -254,7 +306,13 @@ def open_webpage(url: str):
                     stderr=subprocess.DEVNULL
                 )
         except Exception:
-            utils.push_popup(msgbox.msgbox, "Open webpage error", f"Something went wrong opening {name}:\n{error.text()}", MsgBox.error, more=error.traceback())
+            utils.push_popup(
+                msgbox.msgbox, "Open webpage error",
+                f"Something went wrong opening {name}:\n"
+                f"{error.text()}",
+                MsgBox.error,
+                more=error.traceback()
+            )
     if globals.settings.browser_html:
         async def _fetch_open_page():
             html = await api.download_webpage(url)
@@ -309,7 +367,15 @@ def remove_game(game: Game, bypass_confirm=False):
             f"{icons.check} Yes": remove_callback,
             f"{icons.cancel} No": None
         }
-        utils.push_popup(msgbox.msgbox, "Remove game", f"Are you sure you want to remove {game.name} from your list?", MsgBox.warn, buttons)
+        utils.push_popup(
+            msgbox.msgbox, "Remove game",
+            "You are removing this game from your list:\n"
+            f"{game.name}\n"
+            "\n"
+            "Are you sure you want to remove it?",
+            MsgBox.warn,
+            buttons
+        )
     else:
         remove_callback()
 
@@ -336,7 +402,23 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
         dupe_count = len(dupes)
         added_count = len(added)
         if dupe_count > 0 or added_count > 1:
-            utils.push_popup(msgbox.msgbox, ("Duplicate" if dupe_count > 0 else "Added") + " games", ((f"{added_count} new game{' has' if added_count == 1 else 's have'} been added to your library.\nMake sure to refresh to grab all the game details.") if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + ((f"{dupe_count} duplicate game{' has' if dupe_count == 1 else 's have'} not been re-added.") if dupe_count > 0 else ""), MsgBox.warn if dupe_count > 0 else MsgBox.info, more=(("Added:\n - " + "\n - ".join(added)) if added_count > 0 else "") + ("\n\n" if dupe_count > 0 and added_count > 0 else "") + (("Duplicates:\n - " + "\n - ".join(dupes)) if dupe_count > 0 else ""))
+            utils.push_popup(
+                msgbox.msgbox, f"{'Duplicate' if dupe_count > 0 else 'Added'} games",
+                (
+                    (f"{added_count} new game{' has' if added_count == 1 else 's have'} been added to your library.\n"
+                    "Make sure to refresh to grab all the game details.")
+                    if added_count > 0 else ""
+                ) +
+                ("\n\n" if dupe_count > 0 and added_count > 0 else "") +
+                (
+                    f"{dupe_count} duplicate game{' has' if dupe_count == 1 else 's have'} not been re-added."
+                    if dupe_count > 0 else ""
+                ),
+                MsgBox.warn if dupe_count > 0 else MsgBox.info,
+                more=(("Added:\n - " + "\n - ".join(added)) if added_count > 0 else "") +
+                     ("\n\n" if dupe_count > 0 and added_count > 0 else "") +
+                     (("Duplicates:\n - " + "\n - ".join(dupes)) if dupe_count > 0 else "")
+            )
         globals.gui.require_sort = True
     count = len(threads)
     if globals.settings.select_executable_after_add and count > 1:
@@ -344,6 +426,14 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
             f"{icons.check} Yes": lambda: async_thread.run(_add_games()),
             f"{icons.cancel} No": None
         }
-        utils.push_popup(msgbox.msgbox, "Are you sure?", f"You are about to add {count} games and you have enabled the \"Ask path on add\" setting enabled.\nThis means that you will be asked to select the executable for all {count} games.\n\nDo you wish to continue?", MsgBox.warn, buttons)
+        utils.push_popup(
+            msgbox.msgbox, "Are you sure?",
+            f"You are about to add {count} games and you have enabled the 'Ask path on add' setting enabled.\n"
+            f"This means that you will be asked to select the executable for all {count} games.\n"
+            "\n"
+            "Do you wish to continue?",
+            MsgBox.warn,
+            buttons
+        )
     else:
         await _add_games()
