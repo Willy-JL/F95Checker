@@ -4,6 +4,7 @@ import subprocess
 import plistlib
 import pathlib
 import asyncio
+import typing
 import shlex
 import imgui
 import glfw
@@ -57,6 +58,20 @@ def update_start_with_system(toggle: bool):
             MsgBox.error,
             more=error.traceback()
         )
+
+
+def add_game_exe(game: Game, callback: typing.Callable = None):
+    def select_callback(selected):
+        if selected:
+            game.add_executable(selected)
+            async_thread.run(db.update_game(game, "executables"))
+        if callback:
+            callback(selected)
+    utils.push_popup(filepicker.FilePicker(
+        title=f"Select or drop executable for {game.name}",
+        start_dir=globals.settings.default_exe_dir,
+        callback=select_callback
+    ).tick)
 
 
 async def _launch_exe(path: str):
@@ -120,11 +135,9 @@ async def _launch_game_exe(game: Game, executable: str):
         def select_callback(selected):
             if selected:
                 game.remove_executable(executable)
-                game.add_executable(selected)
-                async_thread.run(db.update_game(game, "executables"))
                 async_thread.run(_launch_game_exe(game, selected))
         buttons = {
-            f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+            f"{icons.check} Yes": lambda: add_game_exe(game, select_callback),
             f"{icons.cancel} No": None
         }
         utils.push_popup(
@@ -156,10 +169,8 @@ def launch_game(game: Game, executable: str = None):
     if not game.executables:
         def select_callback(selected):
             if selected:
-                game.add_executable(selected)
-                async_thread.run(db.update_game(game, "executables"))
                 async_thread.run(_launch_game_exe(game, selected))
-        utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+        add_game_exe(game, select_callback)
         return
 
     def popup_content():
@@ -208,11 +219,9 @@ async def _open_game_folder_exe(game: Game, executable: str):
         def select_callback(selected):
             if selected:
                 game.remove_executable(executable)
-                game.add_executable(selected)
-                async_thread.run(db.update_game(game, "executables"))
                 async_thread.run(_open_game_folder_exe(game, selected))
         buttons = {
-            f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+            f"{icons.check} Yes": lambda: add_game_exe(game, select_callback),
             f"{icons.cancel} No": None
         }
         utils.push_popup(
@@ -244,11 +253,9 @@ def open_game_folder(game: Game, executable: str = None):
     if not game.executables:
         def select_callback(selected):
             if selected:
-                game.add_executable(selected)
-                async_thread.run(db.update_game(game, "executables"))
                 async_thread.run(_open_game_folder_exe(game, selected))
         buttons = {
-            f"{icons.check} Yes": lambda: utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick),
+            f"{icons.check} Yes": lambda: add_game_exe(game, select_callback),
             f"{icons.cancel} No": None
         }
         utils.push_popup(
@@ -394,11 +401,7 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
             game = globals.games[thread.id]
             added.append(game.name)
             if globals.settings.select_executable_after_add:
-                def select_callback(selected):
-                    if selected:
-                        game.add_executable(selected)
-                        async_thread.run(db.update_game(game, "executables"))
-                utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+                add_game_exe(game)
         dupe_count = len(dupes)
         added_count = len(added)
         if dupe_count > 0 or added_count > 1:

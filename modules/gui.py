@@ -1106,11 +1106,7 @@ class MainGUI():
         else:
             clicked = imgui.button(id)
         if clicked:
-            def select_callback(selected):
-                if selected:
-                    game.add_executable(selected)
-                    async_thread.run(db.update_game(game, "executables"))
-            utils.push_popup(filepicker.FilePicker(f"Select or drop executable for {game.name}", start_dir=globals.settings.default_exe_dir, callback=select_callback).tick)
+            callbacks.add_game_exe(game)
         return clicked
 
     def draw_game_clear_exes_button(self, game: Game, label="", selectable=False):
