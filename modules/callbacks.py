@@ -93,6 +93,23 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     ).tick)
 
 
+async def default_open(what: str, cwd=None):
+    if globals.os is Os.Windows:
+        os.startfile(what)
+    else:
+        if globals.os is Os.Linux:
+            open_util = "xdg-open"
+        elif globals.os is Os.MacOS:
+            open_util = "open"
+        await asyncio.create_subprocess_exec(
+            open_util, what,
+            cwd=cwd or os.getcwd(),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+
 async def _launch_exe(path: str):
     exe = pathlib.Path(path).absolute()
     if not exe.is_file():
@@ -100,7 +117,7 @@ async def _launch_exe(path: str):
 
     if globals.os is Os.Windows:
         # Open with default app
-        os.startfile(str(exe))
+        await default_open(str(exe))
     else:
         mode = exe.stat().st_mode
         executable = not (mode & stat.S_IEXEC < stat.S_IEXEC)
@@ -132,17 +149,7 @@ async def _launch_exe(path: str):
             )
         else:
             # Open with default app
-            if globals.os is Os.Linux:
-                open_util = "xdg-open"
-            elif globals.os is Os.MacOS:
-                open_util = "open"
-            await asyncio.create_subprocess_exec(
-                open_util, str(exe),
-                cwd=str(exe.parent),
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
+            await default_open(str(exe), cwd=str(exe.parent))
 
 
 async def _launch_game_exe(game: Game, executable: str):
@@ -215,20 +222,7 @@ async def _open_folder(path: str):
     if not folder.is_dir():
         raise FileNotFoundError()
 
-    if globals.os is Os.Windows:
-        os.startfile(str(folder))
-    else:
-        if globals.os is Os.Linux:
-            open_util = "xdg-open"
-        elif globals.os is Os.MacOS:
-            open_util = "open"
-        await asyncio.create_subprocess_exec(
-            open_util, str(folder),
-            cwd=str(folder),
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+    await default_open(str(folder), cwd=str(folder))
 
 
 async def _open_game_folder_exe(game: Game, executable: str):

@@ -10,6 +10,7 @@ from modules.api import (
 )
 from modules import (
     globals,
+    callbacks,
 )
 
 domain = "dl.rpdl.net"
@@ -73,6 +74,7 @@ async def open_torrent_file(torrent_id: int):
     torrent = (pathlib.Path.home() / "Downloads") / f"{name}.torrent"
     torrent.parent.mkdir(parents=True, exist_ok=True)
     torrent.write_bytes(res)
+    await callbacks.default_open(str(torrent))
 
 
 async def open_magnet_link(torrent_id: int):
@@ -88,3 +90,4 @@ async def open_magnet_link(torrent_id: int):
     else:  # Didn't break
         return
     magnet = res["data"]["magnet_link"]
+    await callbacks.default_open(magnet)
