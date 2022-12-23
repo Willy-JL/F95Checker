@@ -552,6 +552,9 @@ class Settings:
     render_when_unfocused       : bool
     request_timeout             : int
     rpc_enabled                 : bool
+    rpdl_username               : str
+    rpdl_password               : str
+    rpdl_token                  : str
     scroll_amount               : float
     scroll_smooth               : bool
     scroll_smooth_speed         : float

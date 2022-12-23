@@ -1679,11 +1679,11 @@ class MainGUI():
                                         imgui.table_next_column()
                                         imgui.button(icons.download_multiple)
                                         if imgui.is_item_clicked():
-                                            pass  # TODO: download torrent
+                                            async_thread.run(rpdl.open_torrent_file(result.id))
                                         imgui.same_line()
                                         imgui.button(icons.magnet)
                                         if imgui.is_item_clicked():
-                                            pass  # TODO: open magnet link
+                                            async_thread.run(rpdl.open_magnet_link(result.id))
                                         imgui.same_line()
                                         imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
                                         imgui.selectable("", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS, height=imgui.get_frame_height())
