@@ -52,12 +52,12 @@ domain = "f95zone.to"
 host = "https://" + domain
 check_login_page  = host + "/account/"
 login_page        = host + "/login/"
-notif_endpoint    = host + "/conversations/popup"
+notif_endpoint    = host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
 alerts_page       = host + "/account/alerts/"
 inbox_page        = host + "/conversations/"
 threads_page      = host + "/threads/"
-bookmarks_page    = host + "/account/bookmarks/"
-watched_page      = host + "/watched/threads/"
+bookmarks_page    = host + "/account/bookmarks?difference={offset}"
+watched_page      = host + "/watched/threads?unread=0&page={page}"
 qsearch_endpoint  = host + "/quicksearch"
 update_endpoint   = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
 
@@ -426,19 +426,19 @@ async def import_f95_bookmarks():
     if not await assert_login():
         return
     globals.refresh_progress = 1
-    diff = 0
+    offset = 0
     threads = []
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        res = await fetch("GET", bookmarks_page, params={"difference": diff})
+        res = await fetch("GET", bookmarks_page.format(offset=offset))
         raise_f95zone_error(res)
         html = parser.html(res)
         bookmarks = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("listPlain"))
         if not bookmarks:
             break
         for title in bookmarks.find_all(parser.is_class("contentRow-title")):
-            diff += 1
+            offset += 1
             threads += utils.extract_thread_matches(title.find("a").get("href"))
     if threads:
         await callbacks.add_games(*threads)
@@ -460,7 +460,7 @@ async def import_f95_watched_threads():
     while True:
         globals.refresh_total += 1
         globals.refresh_progress += 1
-        res = await fetch("GET", watched_page, params={"unread": 0, "page": page})
+        res = await fetch("GET", watched_page.format(page=page))
         raise_f95zone_error(res)
         html = parser.html(res)
         watched = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("structItemContainer"))
@@ -697,7 +697,7 @@ async def check_notifs(login=False):
         globals.refresh_progress = 1
 
     try:
-        res = await fetch("GET", notif_endpoint, params={"_xfToken": xf_token, "_xfResponseType": "json"})
+        res = await fetch("GET", notif_endpoint.format(xf_token=xf_token))
         res = json.loads(res)
         raise_f95zone_error(res)
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
