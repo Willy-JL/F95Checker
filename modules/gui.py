@@ -52,6 +52,7 @@ from modules import (
     icons,
     utils,
     error,
+    rpdl,
     api,
     db,
 )
@@ -1613,9 +1614,88 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text("RPDL Torrents:")
                     imgui.same_line()
-                    imgui.small_button("Search")  # TODO: proper rpdl integration
+                    imgui.small_button("Search")
                     if imgui.is_item_clicked():
-                        callbacks.open_webpage(f"https://dl.rpdl.net/torrents?search={''.join(char for char in game.name if char in string.ascii_letters)}" )
+                        async def _rpdl_search_popup(query: str):
+                            results = None
+                            def popup_content():
+                                nonlocal results
+                                if not results:
+                                    imgui.text(f"Running RPDL search for query '{query}'.")
+                                    imgui.text("Status:")
+                                    imgui.same_line()
+                                    if results is None:
+                                        imgui.text("Searching...")
+                                    else:
+                                        imgui.text("No results!")
+                                    return
+                                if imgui.begin_table(
+                                    "###rpdl_results",
+                                    column=7,
+                                    flags=imgui.TABLE_NO_SAVED_SETTINGS
+                                ):
+                                    imgui.table_setup_scroll_freeze(0, 1)
+                                    imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
+                                    imgui.table_next_column()
+                                    imgui.table_header("View")
+                                    imgui.table_next_column()
+                                    imgui.table_header("Title")
+                                    imgui.table_next_column()
+                                    imgui.table_header("Seed")
+                                    imgui.table_next_column()
+                                    imgui.table_header("Leech")
+                                    imgui.table_next_column()
+                                    imgui.table_header("Size")
+                                    imgui.table_next_column()
+                                    imgui.table_header("Date")
+                                    imgui.table_next_column()
+                                    imgui.table_header("Actions")
+                                    self.draw_hover_text(
+                                        f"The {icons.download_multiple} download button will save the torrent file\n"
+                                        "to your user's download folder.\n"
+                                        f"The {icons.magnet} magnet button will open the magnet link\n"
+                                        "with the default torrenting application.",
+                                        text=None
+                                    )
+                                    for result in results:
+                                        imgui.table_next_row()
+                                        imgui.table_next_column()
+                                        imgui.dummy(0, 0)
+                                        imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
+                                        imgui.button(icons.open_in_new)
+                                        if imgui.is_item_clicked():
+                                            callbacks.open_webpage(rpdl.torrent_page.format(id=result.id))
+                                        imgui.table_next_column()
+                                        imgui.text(result.title)
+                                        imgui.table_next_column()
+                                        imgui.text(result.seeders)
+                                        imgui.table_next_column()
+                                        imgui.text(result.leechers)
+                                        imgui.table_next_column()
+                                        imgui.text(result.size)
+                                        imgui.table_next_column()
+                                        imgui.text(result.date)
+                                        imgui.table_next_column()
+                                        imgui.button(icons.download_multiple)
+                                        if imgui.is_item_clicked():
+                                            pass  # TODO: download torrent
+                                        imgui.same_line()
+                                        imgui.button(icons.magnet)
+                                        if imgui.is_item_clicked():
+                                            pass  # TODO: open magnet link
+                                        imgui.same_line()
+                                        imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
+                                        imgui.selectable("", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS, height=imgui.get_frame_height())
+                                    imgui.end_table()
+                            utils.push_popup(
+                                utils.popup, "Torrent search",
+                                popup_content,
+                                buttons=True,
+                                closable=True,
+                                outside=False
+                            )
+                            results = await rpdl.torrent_search(query)
+                        utils.start_refresh_task(_rpdl_search_popup("".join(char for char in game.name if char in string.ascii_letters)), reset_bg_timers=False)
                     imgui.spacing()
                     imgui.spacing()
                     imgui.spacing()

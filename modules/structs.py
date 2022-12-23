@@ -160,6 +160,26 @@ class SearchResult:
 
 
 @dataclasses.dataclass
+class TorrentResult:
+    id: int
+    title: str
+    size: int | str
+    seeders: int | str
+    leechers:int | str
+    date: int | str
+
+    def __post_init__(self):
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
+            if self.size < 1024:
+                break
+            self.size /= 1024
+        self.size = f"{self.size:.1f}{unit}"
+        self.seeders = str(self.seeders)
+        self.leechers = str(self.leechers)
+        self.date = Timestamp(self.date).display
+
+
+@dataclasses.dataclass
 class SortSpec:
     index: int
     reverse: bool
