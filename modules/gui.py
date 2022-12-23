@@ -1614,7 +1614,7 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text("RPDL Torrents:")
                     imgui.same_line()
-                    imgui.small_button("Search")
+                    imgui.small_button(f"{icons.magnify}Search")
                     if imgui.is_item_clicked():
                         async def _rpdl_search_popup(query: str):
                             results = None
@@ -1651,10 +1651,11 @@ class MainGUI():
                                     imgui.table_next_column()
                                     imgui.table_header("Actions")
                                     self.draw_hover_text(
-                                        f"The {icons.download_multiple} download button will save the torrent file\n"
-                                        "to your user's download folder.\n"
-                                        f"The {icons.magnet} magnet button will open the magnet link\n"
-                                        "with the default torrenting application.",
+                                        f"The {icons.download_multiple} download button will save the torrent file to your user's downloads\n"
+                                        "folder and open it with the default torrenting application.\n"
+                                        f"The {icons.magnet} magnet button will open the magnet link with the default torrenting\n"
+                                        " application. Please note that magnets can be unreliable at times, use\n"
+                                        "torrent files if magnets don't work.",
                                         text=None
                                     )
                                     for result in results:
@@ -1688,7 +1689,7 @@ class MainGUI():
                                         imgui.selectable("", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS, height=imgui.get_frame_height())
                                     imgui.end_table()
                             utils.push_popup(
-                                utils.popup, "Torrent search",
+                                utils.popup, "RPDL torrent search",
                                 popup_content,
                                 buttons=True,
                                 closable=True,
