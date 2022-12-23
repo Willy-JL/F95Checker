@@ -9,7 +9,7 @@ from modules.api import (
 
 domain = "dl.rpdl.net"
 host = "https://" + domain
-search_endpoint   = host + "/api/torrents/"
+search_endpoint   = host + "/api/torrents"
 torrent_page      = host + "/torrent/{id}"
 
 
