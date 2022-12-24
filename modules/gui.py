@@ -84,7 +84,7 @@ class Columns:
         def __post_init__(self):
             # Header
             if self.ghost or self.no_header:
-                self.header = "###" + self.name[2:]
+                self.header = "##" + self.name[2:]
             elif self.short_header:
                 self.header = self.name[:1]
             else:
@@ -1626,8 +1626,7 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text("RPDL Torrents:")
                     imgui.same_line()
-                    imgui.small_button(f"{icons.magnify}Search")
-                    if imgui.is_item_clicked():
+                    if imgui.small_button(f"{icons.magnify}Search"):
                         async def _rpdl_search_popup(query: str):
                             results = None
                             def popup_content():
@@ -2452,7 +2451,7 @@ class MainGUI():
         cell_height = imgui.get_item_rect_size().y
         if imgui.is_rect_visible(cell_width, cell_height):
             # Skip if outside view
-            imgui.invisible_button(f"###{game.id}_kanban_hitbox", cell_width, cell_height)
+            imgui.invisible_button(f"###{game.id}_hitbox", cell_width, cell_height)
             self.handle_game_hitbox_events(game, game_i)
             pos = imgui.get_item_rect_min()
             pos2 = imgui.get_item_rect_max()
@@ -2479,8 +2478,8 @@ class MainGUI():
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
         ):
             # Setup
-            for i in range(column_count):
-                imgui.table_setup_column(f"###game_grid_{i}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            for _ in range(column_count):
+                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
 
             # Loop cells
             self.sync_scroll()
@@ -2518,8 +2517,8 @@ class MainGUI():
             # Setup columns
             not_labelled = len(Label.instances)
             for label in Label.instances:
-                imgui.table_setup_column(f"{label.name}###game_kanban_{label.id}", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-            imgui.table_setup_column(f"Not Labelled###game_kanban_-1", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+                imgui.table_setup_column(label.name, imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            imgui.table_setup_column("Not Labelled", imgui.TABLE_COLUMN_WIDTH_STRETCH)
 
             # Column headers
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
@@ -2686,8 +2685,8 @@ class MainGUI():
                 header = True
             opened = header and imgui.begin_table(f"###settings_{name}", column=2, flags=imgui.TABLE_NO_CLIP)
             if opened:
-                imgui.table_setup_column(f"###settings_{name}_left", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-                imgui.table_setup_column(f"###settings_{name}_right", imgui.TABLE_COLUMN_WIDTH_FIXED)
+                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_FIXED)
                 imgui.table_next_row()
                 imgui.table_set_column_index(1)  # Right
                 imgui.dummy(right_width, 1)
