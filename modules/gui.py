@@ -760,11 +760,11 @@ class MainGUI():
                     draw = draw or api.updating
                     draw = draw or self.require_sort
                     draw = draw or imagehelper.redraw
-                    draw = draw or utils.is_refreshing()
                     draw = draw or size != self.prev_size
                     draw = draw or prev_hidden != self.hidden
                     draw = draw or prev_focused != self.focused
                     draw = draw or prev_minimized != self.minimized
+                    draw = draw or bool(api.session.connector._acquired)
                     draw = draw or prev_scaling != globals.settings.interface_scaling
                     draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                     draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
@@ -1693,7 +1693,7 @@ class MainGUI():
                                 outside=False
                             )
                             results = await rpdl.torrent_search(query)
-                        utils.start_refresh_task(_rpdl_search_popup("".join(char for char in game.name if char in string.ascii_letters)), reset_bg_timers=False)
+                        async_thread.run(_rpdl_search_popup("".join(char for char in game.name if char in string.ascii_letters)))
                     imgui.spacing()
                     imgui.spacing()
                     imgui.spacing()
@@ -2652,7 +2652,7 @@ class MainGUI():
                 )
                 if login := await api.assert_login():
                     results = await api.quick_search(query)
-            utils.start_refresh_task(_search_and_add(self.add_box_text), reset_bg_timers=False)
+            async_thread.run(_search_and_add(self.add_box_text))
             self.add_box_text = ""
             self.add_box_valid = False
             self.require_sort = True
