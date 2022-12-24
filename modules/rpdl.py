@@ -127,12 +127,10 @@ async def login():
                     imgui.text(login)
                     imgui.pop_text_wrap_pos()
 
-                imgui.button(f"{icons.cancel} Cancel", width=width)
-                if imgui.is_item_clicked():
+                if imgui.button(f"{icons.cancel} Cancel", width=width):
                     ret = True
                 imgui.same_line()
-                imgui.button(f"{icons.login} Login", width=width)
-                if imgui.is_item_clicked():
+                if imgui.button(f"{icons.login} Login", width=width):
                     login = False
                 imgui.end_tab_item()
 
@@ -169,12 +167,10 @@ async def login():
                     imgui.text(register)
                     imgui.pop_text_wrap_pos()
 
-                imgui.button(f"{icons.cancel} Cancel", width=width)
-                if imgui.is_item_clicked():
+                if imgui.button(f"{icons.cancel} Cancel", width=width):
                     ret = True
                 imgui.same_line()
-                imgui.button(f"{icons.account_plus} Register", width=width)
-                if imgui.is_item_clicked():
+                if imgui.button(f"{icons.account_plus} Register", width=width):
                     register = False
                 imgui.end_tab_item()
             imgui.end_tab_bar()

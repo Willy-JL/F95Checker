@@ -438,6 +438,22 @@ class MainGUI():
             imgui.pop_style_color()
             return imgui._end_combo(*args, **kwargs)
         imgui.end_combo = end_combo
+        # Fix some ID hell
+        imgui._button = imgui.button
+        def button(*args, **kwargs):
+            imgui._button(*args, **kwargs)
+            return imgui.is_item_clicked()
+        imgui.button = button
+        imgui._small_button = imgui.small_button
+        def small_button(*args, **kwargs):
+            imgui._small_button(*args, **kwargs)
+            return imgui.is_item_clicked()
+        imgui.small_button = small_button
+        imgui._invisible_button = imgui.invisible_button
+        def invisible_button(*args, **kwargs):
+            imgui._invisible_button(*args, **kwargs)
+            return imgui.is_item_clicked()
+        imgui.invisible_button = invisible_button
         # Utils
         def push_y(offset: float):
             imgui.begin_group()
@@ -822,7 +838,7 @@ class MainGUI():
 
                         # Status / watermark text
                         imgui.set_cursor_screen_pos((text_x - _3, text_y))
-                        if imgui.invisible_button("###watermark_btn", width=text_size.x + _6, height=text_size.y + _3):
+                        if imgui.invisible_button("", width=text_size.x + _6, height=text_size.y + _3):
                             utils.push_popup(self.draw_about_popup)
                         imgui.set_cursor_screen_pos((text_x, text_y))
                         imgui.text(text)
@@ -942,13 +958,13 @@ class MainGUI():
                 self.type_label_width += 2 * x_padding
             if align:
                 imgui.push_y(backup_y_padding)
-            imgui.button(f"{type.name}###type_{type.value}", width=self.type_label_width)
+            clicked = imgui.button(type.name, width=self.type_label_width)
             if align:
                 imgui.pop_y()
             imgui.pop_style_var()
         else:
-            imgui.small_button(f"{type.name}###type_{type.value}")
-        if quick_filter and imgui.is_item_clicked():
+            clicked = imgui.small_button(type.name)
+        if clicked and quick_filter:
             flt = Filter(FilterMode.Type)
             flt.match = type
             self.filters.append(flt)
@@ -959,8 +975,7 @@ class MainGUI():
         quick_filter = globals.settings.quick_filters
         if setup:
             self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
-        imgui.small_button(f"{tag.name}###tag_{tag.value}")
-        if quick_filter and imgui.is_item_clicked():
+        if imgui.small_button(tag.name) and quick_filter:
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
@@ -971,8 +986,7 @@ class MainGUI():
     def draw_label_widget(self, label: Label, short=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(label.color, interaction=quick_filter)
-        imgui.small_button(f"{label.short_name if short else label.name}###label_{label.id}")
-        if quick_filter and imgui.is_item_clicked():
+        if imgui.small_button(label.short_name if short else label.name) and quick_filter:
             flt = Filter(FilterMode.Label)
             flt.match = label
             self.filters.append(flt)
@@ -993,8 +1007,7 @@ class MainGUI():
         imgui.text_colored(getattr(icons, status.icon), *status.color)
         if quick_filter:
             imgui.set_cursor_pos(pos)
-            imgui.invisible_button("", *imgui.get_item_rect_size())
-            if imgui.is_item_clicked():
+            if imgui.invisible_button("", *imgui.get_item_rect_size()):
                 flt = Filter(FilterMode.Status)
                 flt.match = status
                 self.filters.append(flt)
@@ -1009,8 +1022,7 @@ class MainGUI():
         imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00)
         if quick_filter:
             imgui.set_cursor_pos(pos)
-            imgui.invisible_button("", *imgui.get_item_rect_size())
-            if imgui.is_item_clicked():
+            if imgui.invisible_button("", *imgui.get_item_rect_size()):
                 flt = Filter(FilterMode.Updated)
                 self.filters.append(flt)
                 self.require_sort = True
@@ -1095,7 +1107,7 @@ class MainGUI():
             self.require_sort = True
 
     def draw_game_rating_widget(self, game: Game):
-        changed, value = ratingwidget.ratingwidget(f"{game.id}_rating", game.rating)
+        changed, value = ratingwidget.ratingwidget("", game.rating)
         if changed:
             game.rating = value
             async_thread.run(db.update_game(game, "rating"))
@@ -1543,13 +1555,13 @@ class MainGUI():
             imgui.text_disabled("Last Played:")
             imgui.same_line()
             imgui.text(game.last_played.display or "Never")
+            if imgui.is_item_clicked():
+                game.last_played.update(time.time())
+                async_thread.run(db.update_game(game, "last_played"))
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.text_unformatted("Click to set as played right now!")
                 imgui.end_tooltip()
-            if imgui.is_item_clicked():
-                game.last_played.update(time.time())
-                async_thread.run(db.update_game(game, "last_played"))
 
             imgui.text_disabled("Added On:")
             imgui.same_line()
@@ -1570,7 +1582,7 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_game_open_folder_button(game, icons.folder_open_outline, executable=executable, i=i)
                     imgui.same_line()
-                    if imgui.button(f"{icons.folder_remove_outline}###{game.id}_remove_exe_{i}"):
+                    if imgui.button(icons.folder_remove_outline):
                         game.remove_executable(executable)
                         async_thread.run(db.update_game(game, "executables"))
                     imgui.same_line()
@@ -1663,8 +1675,7 @@ class MainGUI():
                                         imgui.table_next_column()
                                         imgui.dummy(0, 0)
                                         imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
-                                        imgui.button(icons.open_in_new)
-                                        if imgui.is_item_clicked():
+                                        if imgui.button(icons.open_in_new):
                                             callbacks.open_webpage(rpdl.torrent_page.format(id=result.id))
                                         imgui.table_next_column()
                                         imgui.text(result.title)
@@ -1677,12 +1688,10 @@ class MainGUI():
                                         imgui.table_next_column()
                                         imgui.text(result.date)
                                         imgui.table_next_column()
-                                        imgui.button(icons.download_multiple)
-                                        if imgui.is_item_clicked():
+                                        if imgui.button(icons.download_multiple):
                                             async_thread.run(rpdl.open_torrent_file(result.id))
                                         imgui.same_line()
-                                        imgui.button(icons.magnet)
-                                        if imgui.is_item_clicked():
+                                        if imgui.button(icons.magnet):
                                             async_thread.run(rpdl.open_magnet_link(result.id))
                                         imgui.same_line()
                                         imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -1726,18 +1735,18 @@ class MainGUI():
                                     if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.link + mirror).x + _20:
                                         imgui.dummy(0, 0)
                                     if f"{api.domain}/masked/" in link:
-                                        imgui.small_button(icons.domino_mask + mirror)
+                                        clicked = imgui.small_button(icons.domino_mask + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.copy_masked_link(link)
                                     elif f"{api.domain}/" in link:
-                                        imgui.small_button(icons.open_in_app + mirror)
+                                        clicked = imgui.small_button(icons.open_in_app + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.open_webpage(link)
                                     else:
-                                        imgui.small_button(icons.link + mirror)
+                                        clicked = imgui.small_button(icons.link + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.clipboard_copy(link)
-                                    if imgui.is_item_clicked():
+                                    if clicked:
                                         callbacks.open_webpage(link)
                             else:
                                 if can_add_spacing:
@@ -2146,7 +2155,7 @@ class MainGUI():
                     imgui.dummy(0, frame_height)
                     continue
                 # Base row height with a buttom to align the following text calls to center vertically
-                imgui.button(f"###{game.id}_id", width=imgui.FLOAT_MIN)
+                imgui.button("", width=imgui.FLOAT_MIN)
                 # Loop columns
                 for column in cols.items:
                     if not column.enabled or column.ghost:
@@ -2816,7 +2825,7 @@ class MainGUI():
                 imgui.spacing()
                 imgui.spacing()
                 draw_settings_label(f"Filter by {flt.mode.name}:")
-                if imgui.button(f"Remove###filter_{flt.id}_remove", width=right_width):
+                if imgui.button("Remove", width=right_width):
                     for i, search in enumerate(self.filters):
                         if search.id == flt.id:
                             self.filters.pop(i)
@@ -3224,13 +3233,13 @@ class MainGUI():
                     label.color = (*value, 1.0)
                     async_thread.run(db.update_label(label, "color"))
                 imgui.same_line()
-                if imgui.button(f"{icons.filter_plus_outline}###label_filter_{label.id}", width=frame_height):
+                if imgui.button(icons.filter_plus_outline, width=frame_height):
                     flt = Filter(FilterMode.Label)
                     flt.match = label
                     self.filters.append(flt)
                     self.require_sort = True
                 imgui.same_line()
-                if imgui.button(f"{icons.trash_can_outline}###label_remove_{label.id}", width=frame_height):
+                if imgui.button(icons.trash_can_outline, width=frame_height):
                     async_thread.run(db.remove_label(label))
 
             draw_settings_label("New label:")
