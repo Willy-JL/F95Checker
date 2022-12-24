@@ -50,7 +50,7 @@ async def torrent_search(query: str):
 
 async def do_login(reset=False):
     if not globals.settings.rpdl_username or not globals.settings.rpdl_password:
-        return "Missing credentials!"
+        return "Missing credentials"
     async with request("POST", login_endpoint, json={
         "login": globals.settings.rpdl_username,
         "password": globals.settings.rpdl_password
@@ -72,7 +72,7 @@ async def do_login(reset=False):
 
 async def do_register(confirm_password: str):
     if not globals.settings.rpdl_username or not globals.settings.rpdl_password or not confirm_password:
-        return "Missing credentials!"
+        return "Missing credentials"
     async with request("POST", register_endpoint, json={
         "username": globals.settings.rpdl_username,
         "password": globals.settings.rpdl_password,
@@ -99,6 +99,8 @@ async def login():
         if imgui.begin_tab_bar("RPDL account"):
 
             if imgui.begin_tab_item(f"{icons.login} Login", flags=imgui.TAB_ITEM_SET_SELECTED if register is True else 0)[0]:
+                if register is True:
+                    register = None
                 imgui.spacing()
                 _320 = globals.gui.scaled(320)
 
