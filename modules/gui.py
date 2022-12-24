@@ -454,6 +454,11 @@ class MainGUI():
             imgui._invisible_button(*args, **kwargs)
             return imgui.is_item_clicked()
         imgui.invisible_button = invisible_button
+        imgui._selectable = imgui.selectable
+        def selectable(*args, **kwargs):
+            _, selected = imgui._selectable(*args, **kwargs)
+            return imgui.is_item_clicked(), selected
+        imgui.selectable = selectable
         # Utils
         def push_y(offset: float):
             imgui.begin_group()
@@ -924,8 +929,6 @@ class MainGUI():
             imgui.text_unformatted(hover_text)
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
-            return True
-        return False
 
     def begin_framed_text(self, color: tuple[float], interaction=True):
         if interaction:
@@ -1039,17 +1042,14 @@ class MainGUI():
             imgui.end_tooltip()
 
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None):
-        id = f"{label}###{game.id}_more_info"
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if clicked:
             utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
-        return clicked
 
-    def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1):
-        id = f"{label}###{game.id}_play_button_{i}"
+    def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None):
         if not game.executables:
             imgui.push_style_color(imgui.COLOR_TEXT, *imgui.style.colors[imgui.COLOR_TEXT_DISABLED][:3], 0.75)
         else:
@@ -1063,16 +1063,15 @@ class MainGUI():
             if not valid:
                 imgui.push_style_color(imgui.COLOR_TEXT, 0.87, 0.20, 0.20)
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if not game.executables or not valid:
             imgui.pop_style_color()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             callbacks.open_game_folder(game)
         elif clicked:
             callbacks.launch_game(game, executable=executable)
-        return clicked
 
     def draw_game_name_text(self, game: Game):
         if game.played:
@@ -1114,85 +1113,71 @@ class MainGUI():
             self.require_sort = True
 
     def draw_game_open_thread_button(self, game: Game, label="", selectable=False):
-        id = f"{label}###{game.id}_open_thread"
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             callbacks.clipboard_copy(game.url)
         elif clicked:
             callbacks.open_webpage(game.url)
-        return clicked
 
     def draw_game_copy_link_button(self, game: Game, label="", selectable=False):
-        id = f"{label}###{game.id}_copy_link"
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if clicked:
             callbacks.clipboard_copy(game.url)
-        return clicked
 
     def draw_game_remove_button(self, game: Game, label="", selectable=False):
-        id = f"{label}###{game.id}_remove"
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if clicked:
             callbacks.remove_game(game)
-        return clicked
 
     def draw_game_add_exe_button(self, game: Game, label="", selectable=False):
-        id = f"{label}###{game.id}_add_exe"
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if clicked:
             callbacks.add_game_exe(game)
-        return clicked
 
     def draw_game_clear_exes_button(self, game: Game, label="", selectable=False):
-        id = f"{label}###{game.id}_clear_exes"
         if not game.executables:
             imgui.push_disabled()
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if not game.executables:
             imgui.pop_disabled()
         if clicked:
             game.clear_executables()
             async_thread.run(db.update_game(game, "executables"))
-        return clicked
 
-    def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None, i=-1):
-        id = f"{label}###{game.id}_open_folder_{i}"
+    def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None):
         if not game.executables:
             imgui.push_alpha()
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if not game.executables:
             imgui.pop_alpha()
         if clicked:
             callbacks.open_game_folder(game, executable=executable)
-        return clicked
 
     def draw_game_recheck_button(self, game: Game, label="", selectable=False):
-        id = f"{label}###{game.id}_recheck"
         if selectable:
-            clicked = imgui.selectable(id, False)[0]
+            clicked = imgui.selectable(label, False)[0]
         else:
-            clicked = imgui.button(id)
+            clicked = imgui.button(label)
         if clicked:
             utils.start_refresh_task(api.check(game, full=True, login=True))
-        return clicked
 
     def draw_game_labels_select_widget(self, game: Game):
         if Label.instances:
@@ -1318,7 +1303,7 @@ class MainGUI():
             category_open = False
             imgui.push_text_wrap_pos(full_width)
             imgui.indent(indent)
-            for i, id in enumerate(sorted_ids):
+            for game_i, id in enumerate(sorted_ids):
                 if id not in globals.games:
                     sorted_ids.remove(id)
                     continue
@@ -1395,7 +1380,7 @@ class MainGUI():
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
 
-                if i != len(sorted_ids) - 1:
+                if game_i != len(sorted_ids) - 1:
                     imgui.text("\n")
             imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
@@ -1577,10 +1562,10 @@ class MainGUI():
                     imgui.text("Not set")
             else:
                 imgui.text_disabled("Executables:")
-                for i, executable in enumerate(game.executables):
-                    self.draw_game_play_button(game, icons.play, executable=executable, i=i)
+                for executable in game.executables:
+                    self.draw_game_play_button(game, icons.play, executable=executable)
                     imgui.same_line()
-                    self.draw_game_open_folder_button(game, icons.folder_open_outline, executable=executable, i=i)
+                    self.draw_game_open_folder_button(game, icons.folder_open_outline, executable=executable)
                     imgui.same_line()
                     if imgui.button(icons.folder_remove_outline):
                         game.remove_executable(executable)
@@ -2653,7 +2638,7 @@ class MainGUI():
                     for result in results:
                         if result.id in globals.games:
                             imgui.push_disabled()
-                        clicked = imgui.selectable(f"{result.title}###result_{result.id}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
+                        clicked = imgui.selectable(result.title, False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
                         if result.id in globals.games:
                             imgui.pop_disabled()
                         if clicked:
@@ -2825,9 +2810,7 @@ class MainGUI():
                 imgui.spacing()
                 draw_settings_label(f"Filter by {flt.mode.name}:")
                 if imgui.button("Remove", width=right_width):
-                    for i, search in enumerate(self.filters):
-                        if search.id == flt.id:
-                            self.filters.pop(i)
+                    self.filters.remove(flt)
                     self.require_sort = True
 
                 match flt.mode.value:

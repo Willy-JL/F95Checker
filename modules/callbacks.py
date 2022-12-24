@@ -201,8 +201,8 @@ def launch_game(game: Game, executable: str = None):
 
     def popup_content():
         imgui.text("Click one of the executables to launch it, or Cancel to not do anything.\n\n")
-        for i, executable in enumerate(game.executables):
-            if imgui.selectable(f"{executable}###{game.id}_launch_exe_{i}", False)[0]:
+        for executable in game.executables:
+            if imgui.selectable(executable, False)[0]:
                 async_thread.run(_launch_game_exe(game, executable))
                 return True
     buttons = {
@@ -284,8 +284,8 @@ def open_game_folder(game: Game, executable: str = None):
 
     def popup_content():
         imgui.text("Click one of the executables to open its folder, or Cancel to not do anything.\n\n")
-        for i, executable in enumerate(game.executables):
-            if imgui.selectable(f"{executable}###{game.id}_open_folder_{i}", False)[0]:
+        for executable in game.executables:
+            if imgui.selectable(executable, False)[0]:
                 async_thread.run(_open_game_folder_exe(game, executable))
                 return True
     buttons = {
