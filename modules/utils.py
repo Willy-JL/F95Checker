@@ -153,10 +153,12 @@ def close_weak_popup():
             # Mouse was just clicked
             pos = imgui.get_window_position()
             size = imgui.get_window_size()
-            if not imgui.is_mouse_hovering_rect(pos.x, pos.y, pos.x + size.x, pos.y + size.y, clip=False):
-                # Popup is not hovered
-                imgui.close_current_popup()
-                return True
+            if size.x > 50 and size.y > 50:
+                # Valid geometry
+                if not imgui.is_mouse_hovering_rect(pos.x, pos.y, pos.x + size.x, pos.y + size.y, clip=False):
+                    # Popup is not hovered
+                    imgui.close_current_popup()
+                    return True
     return False
 
 
@@ -262,8 +264,6 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
     constrain_next_window()
     center_next_window()
     if imgui.begin_popup_modal(label, closable or None, flags=popup_flags)[0]:
-        if outside:
-             closed = closed or close_weak_popup()
         imgui.begin_group()
         closed = (popup_content() is True) or closed  # Close if content returns True
         imgui.end_group()
@@ -285,6 +285,8 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
                     imgui.close_current_popup()
                     closed = True
                 imgui.same_line()
+        if outside:
+             closed = closed or close_weak_popup()
     else:
         opened = 0
         closed = True
