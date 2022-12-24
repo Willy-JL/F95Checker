@@ -1068,7 +1068,7 @@ class MainGUI():
             clicked = imgui.button(id)
         if not game.executables or not valid:
             imgui.pop_style_color()
-        if imgui.is_item_clicked(2):
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             callbacks.open_game_folder(game)
         elif clicked:
             callbacks.launch_game(game, executable=executable)
@@ -1119,7 +1119,7 @@ class MainGUI():
             clicked = imgui.selectable(id, False)[0]
         else:
             clicked = imgui.button(id)
-        if imgui.is_item_clicked(2):
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             callbacks.clipboard_copy(game.url)
         elif clicked:
             callbacks.open_webpage(game.url)
