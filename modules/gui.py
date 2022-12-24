@@ -829,10 +829,10 @@ class MainGUI():
 
                         # Popups
                         open_popup_count = 0
-                        for popup_func in globals.popup_stack:
-                            opened, closed =  popup_func()
+                        for popup in globals.popup_stack:
+                            opened, closed =  popup()
                             if closed:
-                                globals.popup_stack.remove(popup_func)
+                                globals.popup_stack.remove(popup)
                             open_popup_count += opened
                         # Popups are closed all at the end to allow stacking
                         for _ in range(open_popup_count):

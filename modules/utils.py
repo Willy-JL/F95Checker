@@ -12,6 +12,9 @@ import glfw
 import sys
 import re
 
+from modules.structs import (
+    Popup,
+)
 from modules import (
     globals,
     async_thread,
@@ -289,7 +292,7 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
 
 
 def push_popup(*args, bottom=False, **kwargs):
-    popup_func = functools.partial(*args, **kwargs, popup_uuid=f"{time.time()}{rand_num_str()}")
+    popup = Popup(*args, **kwargs)
     if globals.gui:
         if (globals.gui.hidden or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
             if globals.gui.hidden and args[1] == "Daily backups":
@@ -300,7 +303,7 @@ def push_popup(*args, bottom=False, **kwargs):
                 icon=QSystemTrayIcon.MessageIcon.Critical
             )
     if bottom:
-        globals.popup_stack.insert(0, popup_func)
+        globals.popup_stack.insert(0, popup)
     else:
-        globals.popup_stack.append(popup_func)
-    return popup_func
+        globals.popup_stack.append(popup)
+    return popup

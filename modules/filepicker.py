@@ -106,7 +106,7 @@ class FilePicker:
             self.elapsed = 0.0
             self.refresh()
         # Setup popup
-        label = self.title + "###picker_" + popup_uuid  # changed
+        label = self.title + "###popup_" + popup_uuid  # changed
         if not imgui.is_popup_open(label):
             imgui.open_popup(label)
         closed = False  # added

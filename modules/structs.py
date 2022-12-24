@@ -2,6 +2,7 @@ import multiprocessing.queues
 import multiprocessing
 import datetime as dt
 import dataclasses
+import functools
 import asyncio
 import weakref
 import hashlib
@@ -42,6 +43,22 @@ class CounterContext:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.__exit__(exc_type, exc_val, exc_tb)
+
+
+class Popup(functools.partial):
+    next_uuid = 0
+    def __init__(self, *_, **__):
+        self.open = True
+        self.uuid = str(type(self).next_uuid)
+        type(self).next_uuid += 1
+
+    def __call__(self, *args, **kwargs):
+        if not self.open:
+            return 0, True
+        opened, closed = super().__call__(*args, popup_uuid=self.uuid, **kwargs)
+        if closed:
+            self.open = False
+        return opened, closed
 
 
 class DaemonProcess:
