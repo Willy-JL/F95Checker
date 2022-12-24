@@ -1686,7 +1686,11 @@ class MainGUI():
                                             async_thread.run(rpdl.open_magnet_link(result.id))
                                         imgui.same_line()
                                         imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
-                                        imgui.selectable("", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS, height=imgui.get_frame_height())
+                                        imgui.selectable(
+                                            "", False,
+                                            flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS,
+                                            height=imgui.get_frame_height()
+                                        )
                                     imgui.end_table()
                             utils.push_popup(
                                 utils.popup, "RPDL torrent search",
@@ -3349,6 +3353,23 @@ class MainGUI():
                         "Are you sure you want to clear your session cookies?\n"
                         "This will invalidate your login session, but might help\n"
                         "if you are having issues.",
+                        MsgBox.warn,
+                        buttons
+                    )
+                if imgui.button("RPDL session", width=-offset):
+                    def clear_callback():
+                        globals.settings.rpdl_username = ""
+                        globals.settings.rpdl_password = ""
+                        globals.settings.rpdl_token = ""
+                        async_thread.run(db.update_settings("rpdl_username", "rpdl_password", "rpdl_token"))
+                    buttons = {
+                        f"{icons.check} Yes": clear_callback,
+                        f"{icons.cancel} No": None
+                    }
+                    utils.push_popup(
+                        msgbox.msgbox, "Clear RPDL session",
+                        "Are you sure you want to clear your RPDL session?\n"
+                        "You will need to sign in to RPDL again to use torrents.",
                         MsgBox.warn,
                         buttons
                     )
