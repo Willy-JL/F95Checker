@@ -2805,11 +2805,17 @@ class MainGUI():
                 self.filters.append(flt)
                 self.require_sort = True
 
+            text_width = imgui.calc_text_size("Invrt ").x
+            buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
             for flt in self.filters:
-                imgui.spacing()
-                imgui.spacing()
+                imgui.text("")
                 draw_settings_label(f"Filter by {flt.mode.name}:")
-                if imgui.button("Remove", width=right_width):
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
+                if imgui.button((icons.invert_colors if flt.invert else icons.invert_colors_off) + "Invrt", width=frame_height + text_width):
+                    flt.invert = not flt.invert
+                    self.require_sort = True
+                imgui.same_line()
+                if imgui.button(icons.trash_can_outline, width=frame_height):
                     self.filters.remove(flt)
                     self.require_sort = True
 
@@ -2909,13 +2915,6 @@ class MainGUI():
                                 imgui.set_cursor_pos(pos)
                                 self.draw_type_widget(type)
                             imgui.end_combo()
-
-                draw_settings_label("Invert filter:")
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                changed, value = imgui.checkbox(f"###filter_{flt.id}_invert", flt.invert)
-                if changed:
-                    flt.invert = value
-                    self.require_sort = True
 
             imgui.end_table()
             imgui.spacing()
