@@ -41,8 +41,9 @@ def is_class(name: str):
 
 
 class ParserException(Exception):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__()
+        self.args = args
         self.kwargs = kwargs
 
 
@@ -144,12 +145,12 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             from main import self_path
             (self_path / f"{game_id}_broken.html").write_bytes(res)
             e = ParserException(
-                title="Thread parsing error",
-                msg="Failed to parse necessary sections in thread response, the html file has\n"
-                    f"been saved to:\n{self_path}{os.sep}{game_id}_broken.html\n"
-                    "\n"
-                    "Please submit a bug report on F95Zone or GitHub including this file.",
-                level=MsgBox.error
+                "Thread parsing error",
+                "Failed to parse necessary sections in thread response, the html file has\n"
+                f"been saved to:\n{self_path}{os.sep}{game_id}_broken.html\n"
+                "\n"
+                "Please submit a bug report on F95Zone or GitHub including this file.",
+                MsgBox.error
             )
             if pipe:
                 pipe.put_nowait(e)
@@ -317,9 +318,9 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
 
     except Exception:
         e = ParserException(
-            title="Thread parsing error",
-            msg=f"Something went wrong while parsing thread {game_id}:\n{error.text()}",
-            level=MsgBox.error,
+            "Thread parsing error",
+            f"Something went wrong while parsing thread {game_id}:\n{error.text()}",
+            MsgBox.error,
             more=error.traceback()
         )
         if pipe:

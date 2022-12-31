@@ -555,7 +555,7 @@ async def check(game: Game, full=False, login=False):
         else:
             ret = parser.thread(*args)
         if isinstance(ret, parser.ParserException):
-            raise msgbox.Exc(**ret.kwargs)
+            raise msgbox.Exc(*ret.args, **ret.kwargs)
         (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
 
         last_full_refresh = int(time.time())
