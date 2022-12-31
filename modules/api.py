@@ -511,19 +511,19 @@ async def check(game: Game, full=False, login=False):
 
         async with request("GET", game.url, until=[b"</article>"], timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
-            if req.status == 404 or req.status == 403:
+            if req.status in (403, 404):
                 buttons = {
                     f"{icons.check} Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
                     f"{icons.cancel} No": None
                 }
-                if req.status == 404:
-                    title = "Thread not found"
-                    msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
-                elif req.status == 403:
+                if req.status == 403:
                     title = "No permission"
                     msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
-                raise msgbox.Exc(
-                    title,
+                elif req.status == 404:
+                    title = "Thread not found"
+                    msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
+                utils.push_popup(
+                    msgbox.msgbox, title,
                     msg +
                     "\n"
                     "\n"
@@ -531,6 +531,7 @@ async def check(game: Game, full=False, login=False):
                     MsgBox.error,
                     buttons=buttons
                 )
+                return
             url = utils.clean_thread_url(str(req.real_url))
 
         old_name = game.name
