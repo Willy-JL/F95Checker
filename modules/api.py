@@ -744,8 +744,8 @@ async def check_notifs(login=False):
 async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
+    res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
     try:
-        res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(res)
         globals.last_update_check = time.time()
         if "tag_name" not in res:
