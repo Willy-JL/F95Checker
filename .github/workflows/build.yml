@@ -13,16 +13,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - "windows-2019"
-          - "ubuntu-20.04"
-          - "macos-11"
-        python:
-          - "3.11.1"
-        cx-freeze:
-          - "6.13.1"  # Windows ignores this since it needs newer versions for Python 3.11+
-    name: "${{ matrix.os }}"
-    runs-on: "${{ matrix.os }}"
+        config:
+          - { os: "windows-2019", python: "3.11.1", cx-freeze: "latest" }  # 3.11 cx_Freeze not yet stable, requires latest betas
+          - { os: "ubuntu-20.04", python: "3.11.1", cx-freeze: "6.13.1" }
+          - { os: "macos-11",     python: "3.10.9", cx-freeze: "6.13.1" }  # cx_Freeze breaks runtime on 3.11, latest betas don't help
+    name: "${{ matrix.config.os }}"
+    runs-on: "${{ matrix.config.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
     steps:
 
@@ -36,19 +32,18 @@ jobs:
       - name: "Setup Python"
         uses: "actions/setup-python@v4"
         with:
-          python-version: "${{ matrix.python }}"
+          python-version: "${{ matrix.config.python }}"
 
-      - name: "Setup cx_Freeze (Windows)"
-        if: "runner.os == 'Windows'"
+      - name: "Setup cx_Freeze"
+        shell: "bash"
         run: |
-          python -m pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief
-          python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging
-          python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
-
-      - name: "Setup cx_Freeze (Linux, macOS)"
-        if: "runner.os != 'Windows'"
-        run: |
-          python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.cx-freeze }}'
+          if [[ "${{ matrix.config.cx-freeze }}" = "latest" ]]; then
+            python -m pip install --pre -f https://lief.s3-website.fr-par.scw.cloud/latest/lief/ lief || true
+            python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Logging || true
+            python -m pip install --pre --extra-index-url https://marcelotduarte.github.io/packages/ cx_Freeze
+          else
+            python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.config.cx-freeze }}'
+          fi
 
       # === BUILD ===
 
