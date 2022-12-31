@@ -12,6 +12,7 @@ import platform
 import builtins
 import asyncio
 import pathlib
+import aiohttp
 import OpenGL
 import string
 import imgui
@@ -386,6 +387,22 @@ class MainGUI():
                 return
             err = error.text(exc)
             tb = error.traceback(exc)
+            if isinstance(exc, (aiohttp.ClientError, asyncio.TimeoutError)):
+                utils.push_popup(
+                    msgbox.msgbox, "Connection error",
+                    "A connection request to F95Zone has failed:\n"
+                    f"{err}\n"
+                    "\n"
+                    "Possible causes include:\n"
+                    " - You are refreshing with too many workers, try lowering them in settings\n"
+                    " - Your timeout value is too low, try increasing it in settings\n"
+                    " - F95Zone is experiencing difficulties, try waiting a bit and retrying\n"
+                    " - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n"
+                    " - Your retries value is too low, try increasing it in settings (last resort!)",
+                    MsgBox.warn,
+                    more=tb
+                )
+                return
             utils.push_popup(
                 msgbox.msgbox, "Oops!",
                 "Something went wrong in an asynchronous task of a separate thread:\n"
