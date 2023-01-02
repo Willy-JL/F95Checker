@@ -927,10 +927,7 @@ async def check_updates():
             shutil.rmtree(asset_path, ignore_errors=True)
         await asyncio.create_subprocess_exec(
             *shell, script,
-            cwd=globals.self_path,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            cwd=globals.self_path
         )
         globals.gui.close()
     def update_callback_wrapper():
