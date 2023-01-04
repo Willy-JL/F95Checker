@@ -653,6 +653,7 @@ class Game:
     rating               : int
     played               : bool
     installed            : str
+    updated              : bool | None
     executables          : list[str]
     description          : str
     changelog            : str
@@ -666,6 +667,10 @@ class Game:
     executables_valid    : bool = None
 
     def __post_init__(self):
+        if self.updated is None:
+            self.updated = bool(self.installed) and self.installed != self.version
+            from modules import async_thread, db
+            async_thread.run(db.update_game(self, "updated"))
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executables()

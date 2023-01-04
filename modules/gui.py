@@ -1051,12 +1051,17 @@ class MainGUI():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
             imgui.text_unformatted(
-                "This game has an update available!\n"
-                f"Installed version: {game.installed}\n"
-                f"Latest version: {game.version}"
+                "This game has been updated!\n"
+                f"Installed version: {game.installed or 'N/A'}\n"
+                f"Latest version: {game.version}\n"
+                "Middle click to remove the update marker,\n"
+                "alternatively mark as installed to do the same."
             )
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            game.updated = False
+            async_thread.run(db.update_game(game, "updated"))
 
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None):
         if selectable:
@@ -1119,7 +1124,8 @@ class MainGUI():
                 game.installed = ""  # Latest installed -> Not installed
             else:
                 game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
-            async_thread.run(db.update_game(game, "installed"))
+                game.updated = False
+            async_thread.run(db.update_game(game, "installed", "updated"))
             self.require_sort = True
 
     def draw_game_rating_widget(self, game: Game):
@@ -1521,7 +1527,7 @@ class MainGUI():
 
             imgui.text_disabled("Version:")
             imgui.same_line()
-            if game.installed and game.installed != game.version:
+            if game.updated:
                 self.draw_game_update_icon(game)
                 imgui.same_line()
             offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
@@ -2049,7 +2055,7 @@ class MainGUI():
                     case FilterMode.Type.value:
                         key = lambda id: flt.invert != (globals.games[id].type is flt.match)
                     case FilterMode.Updated.value:
-                        key = lambda id: flt.invert != (globals.games[id].installed != "" and globals.games[id].installed != globals.games[id].version)
+                        key = lambda id: flt.invert != (globals.games[id].updated is True)
                     case _:
                         key = None
                 if key is not None:
@@ -2171,7 +2177,7 @@ class MainGUI():
                             if globals.settings.show_remove_btn:
                                 self.draw_game_remove_button(game, icons.trash_can_outline)
                                 imgui.same_line()
-                            if game.installed and game.installed != game.version:
+                            if game.updated:
                                 self.draw_game_update_icon(game)
                                 imgui.same_line()
                             self.draw_game_name_text(game)
@@ -2344,7 +2350,7 @@ class MainGUI():
             self.draw_type_widget(game.type, wide=False)
             imgui.set_cursor_pos(old_pos)
         # Name
-        if game.installed and game.installed != game.version:
+        if game.updated:
             self.draw_game_update_icon(game)
             imgui.same_line()
         self.draw_game_name_text(game)

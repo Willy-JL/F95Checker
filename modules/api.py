@@ -565,6 +565,7 @@ async def check(game: Game, full=False, login=False):
         # Skip update popup and don't reset played/installed checkboxes if refreshing with braking changes
         played = game.played
         installed = game.installed
+        updated = game.updated
         if breaking_version_parsing or old_status is Status.Unchecked:
             if old_version == installed:
                 installed = version  # Is breaking and was previously installed, mark again as installed
@@ -572,6 +573,7 @@ async def check(game: Game, full=False, login=False):
         else:
             if version != old_version:
                 played = False  # Not breaking and version changed, remove played checkbox
+                updated = True
 
         # Don't include name change in popup for simple parsing adjustments
         if breaking_name_parsing:
@@ -634,6 +636,7 @@ async def check(game: Game, full=False, login=False):
             game.score = score
             game.played = played
             game.installed = installed
+            game.updated = updated
             game.description = description
             game.changelog = changelog
             game.tags = tags
@@ -653,6 +656,7 @@ async def check(game: Game, full=False, login=False):
                 "score",
                 "played",
                 "installed",
+                "updated",
                 "description",
                 "changelog",
                 "tags",

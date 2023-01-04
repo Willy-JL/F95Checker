@@ -210,6 +210,7 @@ async def connect():
             "rating":                      f'INTEGER DEFAULT 0',
             "played":                      f'INTEGER DEFAULT {int(False)}',
             "installed":                   f'TEXT    DEFAULT ""',
+            "updated":                     f'INTEGER DEFAULT NULL',
             "executables":                 f'TEXT    DEFAULT "[]"',
             "description":                 f'TEXT    DEFAULT ""',
             "changelog":                   f'TEXT    DEFAULT ""',
