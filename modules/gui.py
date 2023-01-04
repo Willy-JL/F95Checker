@@ -3385,7 +3385,7 @@ class MainGUI():
             imgui.spacing()
 
             draw_settings_label(
-                "Ask path on add:",
+                "Ask exe on add:",
                 "When this is enabled you will be asked to select a game executable right after adding the game to F95Checker."
             )
             draw_settings_checkbox("select_executable_after_add")

@@ -663,7 +663,6 @@ class Game:
     image                : imagehelper.ImageHelper = None
     executables_valids   : list[bool] = None
     executables_valid    : bool = None
-    _init_done           : bool = False
 
     def __post_init__(self):
         from modules import globals

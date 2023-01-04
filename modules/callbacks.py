@@ -373,8 +373,6 @@ def remove_game(game: Game, bypass_confirm=False):
     def remove_callback():
         id = game.id
         del globals.games[id]
-        if id in globals.updated_games:
-            del globals.updated_games[id]
         globals.gui.require_sort = True
         async_thread.run(db.remove_game(id))
         for img in globals.images_path.glob(f"{id}.*"):
@@ -444,7 +442,7 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
         }
         utils.push_popup(
             msgbox.msgbox, "Are you sure?",
-            f"You are about to add {count} games and you have enabled the 'Ask path on add' setting enabled.\n"
+            f"You are about to add {count} games and you have enabled the 'Ask exe on add' setting enabled.\n"
             f"This means that you will be asked to select the executable for all {count} games.\n"
             "\n"
             "Do you wish to continue?",
