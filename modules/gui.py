@@ -3391,6 +3391,12 @@ class MainGUI():
             draw_settings_checkbox("select_executable_after_add")
 
             draw_settings_label(
+                "Installed on add:",
+                "When this is enabled games will be marked as installed by default when first added to F95Checker."
+            )
+            draw_settings_checkbox("mark_installed_after_add")
+
+            draw_settings_label(
                 "Set exe dir:",
                 "This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all "
                 f"your games in the same folder (as you should).\n\nCurrent value: {set.default_exe_dir or 'Unset'}"

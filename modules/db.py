@@ -142,6 +142,7 @@ async def connect():
             "interface_scaling":           f'REAL    DEFAULT 1.0',
             "last_successful_refresh":     f'INTEGER DEFAULT 0',
             "manual_sort_list":            f'TEXT    DEFAULT "[]"',
+            "mark_installed_after_add":    f'INTEGER DEFAULT {int(False)}',
             "max_retries":                 f'INTEGER DEFAULT 2',
             "quick_filters":               f'INTEGER DEFAULT {int(True)}',
             "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',

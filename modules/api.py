@@ -565,7 +565,7 @@ async def check(game: Game, full=False, login=False):
         # Skip update popup and don't reset played/installed checkboxes if refreshing with braking changes
         played = game.played
         installed = game.installed
-        if breaking_version_parsing:
+        if breaking_version_parsing or old_status is Status.Unchecked:
             if old_version == installed:
                 installed = version  # Is breaking and was previously installed, mark again as installed
             old_version = version  # Don't include version change in popup for simple parsing adjustments

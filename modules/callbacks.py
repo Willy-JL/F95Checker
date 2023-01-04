@@ -411,6 +411,9 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
             await db.load_games(thread.id)
             game = globals.games[thread.id]
             added.append(game.name)
+            if globals.settings.mark_installed_after_add:
+                game.installed = game.version
+                await db.update_game(game, "installed")
             if globals.settings.select_executable_after_add:
                 add_game_exe(game)
         dupe_count = len(dupes)

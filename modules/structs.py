@@ -562,6 +562,7 @@ class Settings:
     interface_scaling           : float
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]
+    mark_installed_after_add    : bool
     max_retries                 : int
     quick_filters               : bool
     refresh_completed_games     : bool
