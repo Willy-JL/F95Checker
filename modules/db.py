@@ -5,6 +5,7 @@ import sqlite3
 import asyncio
 import pathlib
 import typing
+import types
 import enum
 import json
 import time
@@ -277,7 +278,13 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
                     value = [x for x in (content_type(x) for x in value) if x is not None]
                 value = tuple(value)
         case _:
-            value = data_type(value)
+            if isinstance(data_type, types.UnionType):
+                if not (getattr(data_type, "__args__", [None])[-1] is types.NoneType and value is None):
+                    value = data_type.__args__[0](value)
+                else:
+                    value = None
+            else:
+                value = data_type(value)
     return value
 
 
