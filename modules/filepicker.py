@@ -85,7 +85,11 @@ class FilePicker:
             i = -1
             for letter in string.ascii_uppercase:
                 drive = f"{letter}:\\"
-                if pathlib.Path(drive).exists():
+                try:
+                    drive_exists = pathlib.Path(drive).exists()
+                except PermissionError:
+                    drive_exists = True
+                if drive_exists:
                     i += 1
                     self.drives.append(drive)
                     if str(self.dir).startswith(drive):
