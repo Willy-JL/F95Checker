@@ -754,7 +754,6 @@ class Game:
             else:
                 super().__setattr__(name, value)
             if attr != value:
-                print(f"{name} = {value}")
                 from modules import globals, async_thread, db
                 async_thread.run(db.update_game(self, name))
                 if globals.gui:
