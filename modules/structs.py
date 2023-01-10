@@ -9,6 +9,7 @@ import hashlib
 import typing
 import queue
 import enum
+import time
 import os
 
 
@@ -48,9 +49,12 @@ class CounterContext:
 class Popup(functools.partial):
     next_uuid = 0
     def __init__(self, *_, **__):
+        from modules import utils
         self.open = True
-        self.uuid = str(type(self).next_uuid)
-        type(self).next_uuid += 1
+        cls = type(self)
+        uuid = cls.next_uuid
+        cls.next_uuid += 1
+        self.uuid = f"{uuid}_{str(time.time()).split('.')[-1]}_{utils.rand_num_str()}"
 
     def __call__(self, *args, **kwargs):
         if not self.open:
