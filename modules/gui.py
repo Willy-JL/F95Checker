@@ -1057,7 +1057,33 @@ class MainGUI():
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             game.updated = False
-            async_thread.run(db.update_game(game, "updated"))
+
+    def draw_game_archive_icon(self, game: Game):
+        quick_filter = globals.settings.quick_filters
+        if quick_filter:
+            imgui.begin_group()
+            pos = imgui.get_cursor_pos()
+        imgui.text_disabled(icons.archive)
+        if quick_filter:
+            imgui.set_cursor_pos(pos)
+            if imgui.invisible_button("", *imgui.get_item_rect_size()):
+                flt = Filter(FilterMode.Archived)
+                self.filters.append(flt)
+            imgui.end_group()
+        if imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+            imgui.text_unformatted(
+                "This game is archived!\n"
+                "In this state you won't receive update notifications for\n"
+                "this game and it will stay at the bottom of the list.\n"
+                "Middle click to remove it from the archive, alternatively\n"
+                "use the right click menu to do the same."
+            )
+            imgui.pop_text_wrap_pos()
+            imgui.end_tooltip()
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            game.archived = False
 
     def draw_game_more_info_button(self, game: Game, label="", selectable=False, carousel_ids: list = None):
         if selectable:
@@ -1092,7 +1118,11 @@ class MainGUI():
             callbacks.launch_game(game, executable=executable)
 
     def draw_game_name_text(self, game: Game):
-        if game.played:
+        if game.archived:
+            self.draw_game_archive_icon(game)
+            imgui.same_line()
+            imgui.text_disabled(game.name)
+        elif game.played:
             imgui.text(game.name)
         else:
             imgui.text_colored(game.name, *globals.settings.style_accent)
@@ -1143,6 +1173,16 @@ class MainGUI():
             clicked = imgui.button(label)
         if clicked:
             callbacks.clipboard_copy(game.url)
+
+    def draw_game_archive_button(self, game: Game, label_off="", label_on="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label_on if game.archived else label_off, False)[0]
+        else:
+            clicked = imgui.button(label_on if game.archived else label_off)
+        if clicked:
+            game.archived = not game.archived
+            if game.archived:
+                game.updated = False
 
     def draw_game_remove_button(self, game: Game, label="", selectable=False):
         if selectable:
@@ -1226,6 +1266,7 @@ class MainGUI():
             self.draw_game_labels_select_widget(game)
             imgui.end_menu()
         imgui.separator()
+        self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive", selectable=True)
         self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove", selectable=True)
 
     def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None):
@@ -2009,9 +2050,12 @@ class MainGUI():
                             key = lambda id: globals.games[id].name.lower()
                     ids.sort(key=key, reverse=sort_spec.reverse)
                 self.sorted_games_ids = ids
+                self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Unchecked)
             for flt in self.filters:
                 match flt.mode.value:
+                    case FilterMode.Archived.value:
+                        key = lambda id: flt.invert != (globals.games[id].archived is True)
                     case FilterMode.Exe_State.value:
                         key = lambda id: flt.invert != (
                             (not globals.games[id].executables) if flt.match is ExeState.Unset else

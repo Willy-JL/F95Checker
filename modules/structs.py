@@ -419,6 +419,7 @@ MsgBox = IntEnumHack("MsgBox", [
 
 FilterMode = IntEnumHack("FilterMode", [
     "Choose",
+    "Archived",
     "Exe State",
     "Installed",
     "Label",
@@ -655,6 +656,7 @@ class Game:
     played               : bool
     installed            : str
     updated              : bool | None
+    archived             : bool
     executables          : list[str]
     description          : str
     changelog            : str

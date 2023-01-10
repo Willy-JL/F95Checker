@@ -512,25 +512,26 @@ async def check(game: Game, full=False, login=False):
         async with request("GET", game.url, until=[b"</article>"], timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
             if req.status in (403, 404):
-                buttons = {
-                    f"{icons.check} Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
-                    f"{icons.cancel} No": None
-                }
-                if req.status == 403:
-                    title = "No permission"
-                    msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
-                elif req.status == 404:
-                    title = "Thread not found"
-                    msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
-                utils.push_popup(
-                    msgbox.msgbox, title,
-                    msg +
-                    "\n"
-                    "\n"
-                    f"Do you want to remove {game.name} from your list?",
-                    MsgBox.error,
-                    buttons=buttons
-                )
+                if not game.archived:
+                    buttons = {
+                        f"{icons.check} Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                        f"{icons.cancel} No": None
+                    }
+                    if req.status == 403:
+                        title = "No permission"
+                        msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
+                    elif req.status == 404:
+                        title = "Thread not found"
+                        msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
+                    utils.push_popup(
+                        msgbox.msgbox, title,
+                        msg +
+                        "\n"
+                        "\n"
+                        f"Do you want to remove {game.name} from your list?",
+                        MsgBox.error,
+                        buttons=buttons
+                    )
                 return
             url = utils.clean_thread_url(str(req.real_url))
 
@@ -573,7 +574,8 @@ async def check(game: Game, full=False, login=False):
         else:
             if version != old_version:
                 played = False  # Not breaking and version changed, remove played checkbox
-                updated = True
+                if not game.archived:
+                    updated = True
 
         # Don't include name change in popup for simple parsing adjustments
         if breaking_name_parsing:
@@ -583,7 +585,7 @@ async def check(game: Game, full=False, login=False):
         if not globals.settings.update_keep_image and not breaking_keep_old_image:
             fetch_image = fetch_image or (image_url != game.image_url)
 
-        async def update_game():  # FIXME shield
+        async def update_game():
             game.name = name
             game.version = version
             game.developer = developer
