@@ -658,20 +658,20 @@ class Game:
     executables          : list[str]
     description          : str
     changelog            : str
-    tags                 : list[Tag]
+    tags                 : tuple[Tag]
     labels               : list[Label.get]
     notes                : str
     image_url            : str
-    downloads            : list[tuple[str, list[tuple[str, str]]]]
+    downloads            : tuple[tuple[str, list[tuple[str, str]]]]
     image                : imagehelper.ImageHelper = None
     executables_valids   : list[bool] = None
     executables_valid    : bool = None
+    _did_init            : bool = False
 
     def __post_init__(self):
+        self._did_init = True
         if self.updated is None:
             self.updated = bool(self.installed) and self.installed != self.version
-            from modules import async_thread, db
-            async_thread.run(db.update_game(self, "updated"))
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executables()
@@ -687,15 +687,78 @@ class Game:
         if executable in self.executables:
             return
         self.executables.append(executable)
+        from modules import async_thread, db
+        async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
 
     def remove_executable(self, executable: str):
         self.executables.remove(executable)
+        from modules import async_thread, db
+        async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
 
     def clear_executables(self):
         self.executables.clear()
+        from modules import async_thread, db
+        async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
+
+    def add_label(self, label: Label):
+        self.labels.append(label)
+        from modules import globals, async_thread, db
+        async_thread.run(db.update_game(self, "labels"))
+        if globals.gui:
+            globals.gui.require_sort = True
+
+    def remove_label(self, label: Label):
+        self.labels.remove(label)
+        from modules import globals, async_thread, db
+        async_thread.run(db.update_game(self, "labels"))
+        if globals.gui:
+            globals.gui.require_sort = True
+
+    def __setattr__(self, name: str, value: typing.Any):
+        if self._did_init and name in [
+            "id",
+            "name",
+            "version",
+            "developer",
+            "type",
+            "status",
+            "url",
+            "added_on",
+            "last_updated",
+            "last_full_refresh",
+            "last_refresh_version",
+            "last_played",
+            "score",
+            "rating",
+            "played",
+            "installed",
+            "updated",
+            "archived",
+            "executables",
+            "description",
+            "changelog",
+            "tags",
+            "labels",
+            "notes",
+            "image_url",
+            "downloads"
+        ]:
+            if isinstance(attr := getattr(self, name), Timestamp):
+                attr.update(value)
+                attr = attr.value
+            else:
+                super().__setattr__(name, value)
+            if attr != value:
+                print(f"{name} = {value}")
+                from modules import globals, async_thread, db
+                async_thread.run(db.update_game(self, name))
+                if globals.gui:
+                    globals.gui.require_sort = True
+            return
+        super().__setattr__(name, value)
 
 
 @dataclasses.dataclass

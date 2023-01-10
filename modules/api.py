@@ -630,7 +630,7 @@ async def check(game: Game, full=False, login=False):
             game.type = type
             game.status = status
             game.url = url
-            game.last_updated.update(last_updated)
+            game.last_updated = last_updated
             game.last_full_refresh = last_full_refresh
             game.last_refresh_version = last_refresh_version
             game.score = score
@@ -642,27 +642,6 @@ async def check(game: Game, full=False, login=False):
             game.tags = tags
             game.image_url = image_url
             game.downloads = downloads
-            await db.update_game(
-                game,
-                "name",
-                "version",
-                "developer",
-                "type",
-                "status",
-                "url",
-                "last_updated",
-                "last_full_refresh",
-                "last_refresh_version",
-                "score",
-                "played",
-                "installed",
-                "updated",
-                "description",
-                "changelog",
-                "tags",
-                "image_url",
-                "downloads"
-            )
 
             if old_status is not Status.Unchecked and (
                 name != old_name or

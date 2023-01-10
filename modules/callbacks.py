@@ -83,7 +83,6 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     def select_callback(selected):
         if selected:
             game.add_executable(selected)
-            async_thread.run(db.update_game(game, "executables"))
         if callback:
             callback(selected)
     utils.push_popup(filepicker.FilePicker(
@@ -155,8 +154,7 @@ async def _launch_exe(path: str):
 async def _launch_game_exe(game: Game, executable: str):
     try:
         await _launch_exe(executable)
-        game.last_played.update(time.time())
-        await db.update_game(game, "last_played")
+        game.last_played = time.time()
     except FileNotFoundError:
         def select_callback(selected):
             if selected:
@@ -413,7 +411,6 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
             added.append(game.name)
             if globals.settings.mark_installed_after_add:
                 game.installed = game.version
-                await db.update_game(game, "installed")
             if globals.settings.select_executable_after_add:
                 add_game_exe(game)
         dupe_count = len(dupes)

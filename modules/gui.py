@@ -297,13 +297,14 @@ class MainGUI():
         self.bg_mode_paused = False
         self.game_hitbox_click = False
         self.hovered_game: Game = None
+        self.sorts: list[SortSpec] = []
         self.filters: list[Filter] = []
         self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
         self.switched_display_mode = False
         self.type_label_width: float = None
-        self.sort_specs: list[SortSpec] = []
+        self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
         self.bg_mode_notifs_timer: float = None
@@ -988,7 +989,6 @@ class MainGUI():
             flt = Filter(FilterMode.Type)
             flt.match = type
             self.filters.append(flt)
-            self.require_sort = True
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, setup=True):
@@ -999,7 +999,6 @@ class MainGUI():
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
-            self.require_sort = True
         if setup:
             self.end_framed_text(interaction=quick_filter)
 
@@ -1010,7 +1009,6 @@ class MainGUI():
             flt = Filter(FilterMode.Label)
             flt.match = label
             self.filters.append(flt)
-            self.require_sort = True
         if short and imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_font(imgui.fonts.default)
@@ -1031,7 +1029,6 @@ class MainGUI():
                 flt = Filter(FilterMode.Status)
                 flt.match = status
                 self.filters.append(flt)
-                self.require_sort = True
             imgui.end_group()
 
     def draw_game_update_icon(self, game: Game):
@@ -1045,7 +1042,6 @@ class MainGUI():
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
                 flt = Filter(FilterMode.Updated)
                 self.filters.append(flt)
-                self.require_sort = True
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -1108,10 +1104,9 @@ class MainGUI():
             return game.version
 
     def draw_game_played_checkbox(self, game: Game, label=""):
-        changed, game.played = imgui.checkbox(f"{label}###{game.id}_played", game.played)
+        changed, value = imgui.checkbox(f"{label}###{game.id}_played", game.played)
         if changed:
-            async_thread.run(db.update_game(game, "played"))
-            self.require_sort = True
+            game.played = value
 
     def draw_game_installed_checkbox(self, game: Game, label=""):
         if game.installed and game.installed == game.version:
@@ -1125,15 +1120,11 @@ class MainGUI():
             else:
                 game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
                 game.updated = False
-            async_thread.run(db.update_game(game, "installed", "updated"))
-            self.require_sort = True
 
     def draw_game_rating_widget(self, game: Game):
         changed, value = ratingwidget.ratingwidget("", game.rating)
         if changed:
             game.rating = value
-            async_thread.run(db.update_game(game, "rating"))
-            self.require_sort = True
 
     def draw_game_open_thread_button(self, game: Game, label="", selectable=False):
         if selectable:
@@ -1180,7 +1171,6 @@ class MainGUI():
             imgui.pop_disabled()
         if clicked:
             game.clear_executables()
-            async_thread.run(db.update_game(game, "executables"))
 
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None):
         if not game.executables:
@@ -1208,11 +1198,9 @@ class MainGUI():
                 changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
                 if changed:
                     if value:
-                        game.labels.append(label)
+                        game.add_label(label)
                     else:
-                        game.labels.remove(label)
-                    self.require_sort = True
-                    async_thread.run(db.update_game(game, "labels"))
+                        game.remove_label(label)
                 imgui.same_line()
                 self.draw_label_widget(label)
         else:
@@ -1242,17 +1230,16 @@ class MainGUI():
 
     def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None):
         if multiline:
-            changed, game.notes = imgui.input_text_multiline(
+            changed, value = imgui.input_text_multiline(
                 f"###{game.id}_notes",
                 value=game.notes,
                 width=width or imgui.get_content_region_available_width(),
                 height=self.scaled(450)
             )
-            setter_extra = lambda _=None: [setattr(self, "require_sort", True), async_thread.run(db.update_game(game, "notes"))]
             if changed:
-                setter_extra()
+                game.notes = value
             if imgui.begin_popup_context_item(f"###{game.id}_notes_context"):
-                utils.text_context(game, "notes", setter_extra)
+                utils.text_context(game, "notes")
                 imgui.end_popup()
         else:
             imgui.set_next_item_width(width or imgui.get_content_region_available_width())
@@ -1270,8 +1257,6 @@ class MainGUI():
                 if (offset := game.notes.find("\n")) != -1:
                     value += game.notes[offset:]
                 game.notes = value
-                self.require_sort = True
-                async_thread.run(db.update_game(game, "notes"))
             if changed:
                 setter_extra(first_line)
             if imgui.begin_popup_context_item(f"###{game.id}_notes_inline_context"):
@@ -1564,8 +1549,7 @@ class MainGUI():
             imgui.same_line()
             imgui.text(game.last_played.display or "Never")
             if imgui.is_item_clicked():
-                game.last_played.update(time.time())
-                async_thread.run(db.update_game(game, "last_played"))
+                game.last_played = time.time()
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.text_unformatted("Click to set as played right now!")
@@ -1592,7 +1576,6 @@ class MainGUI():
                     imgui.same_line()
                     if imgui.button(icons.folder_remove_outline):
                         game.remove_executable(executable)
-                        async_thread.run(db.update_game(game, "executables"))
                     imgui.same_line()
                     imgui.text_unformatted(executable)
 
@@ -1970,36 +1953,35 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
-    def sort_games(self, sort_specs: imgui.core._ImGuiTableSortSpecs):
+    def sort_games(self, sorts: imgui.core._ImGuiTableSortSpecs):
         manual_sort = cols.manual_sort.enabled
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
             self.require_sort = True
-        if sort_specs.specs_count > 0:
-            self.sort_specs = []
-            for sort_spec in sort_specs.specs:
-                self.sort_specs.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
-        if sort_specs.specs_dirty or self.require_sort:
+        if self.prev_filters != self.filters:
+            self.prev_filters = self.filters.copy()
+            self.require_sort = True
+        if sorts.specs_count > 0:
+            self.sorts = []
+            for sort_spec in sorts.specs:
+                self.sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
+        if sorts.specs_dirty or self.require_sort:
             if manual_sort:
                 changed = False
-                to_remove = []
-                for id in globals.settings.manual_sort_list:
+                for id in list(globals.settings.manual_sort_list):
                     if id not in globals.games:
-                        to_remove.append(id)
-                for id in to_remove:
-                    while id in globals.settings.manual_sort_list:
                         globals.settings.manual_sort_list.remove(id)
                         changed = True
                 for id in globals.games:
                     if id not in globals.settings.manual_sort_list:
-                        globals.settings.manual_sort_list.append(id)
+                        globals.settings.manual_sort_list.insert(0, id)
                         changed = True
                 if changed:
                     async_thread.run(db.update_settings("manual_sort_list"))
                 self.sorted_games_ids = globals.settings.manual_sort_list
             else:
                 ids = list(globals.games)
-                for sort_spec in self.sort_specs:
+                for sort_spec in self.sorts:
                     match sort_spec.index:
                         case cols.type.index:
                             key = lambda id: globals.games[id].type.name
@@ -2027,7 +2009,7 @@ class MainGUI():
                             key = lambda id: globals.games[id].name.lower()
                     ids.sort(key=key, reverse=sort_spec.reverse)
                 self.sorted_games_ids = ids
-            self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Unchecked)
+                self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Unchecked)
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
@@ -2070,7 +2052,7 @@ class MainGUI():
                         game = globals.games[id]
                         return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
                     self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
-            sort_specs.specs_dirty = False
+            sorts.specs_dirty = False
             self.require_sort = False
 
     def handle_game_hitbox_events(self, game: Game, game_i: int = None):
@@ -2826,7 +2808,6 @@ class MainGUI():
                     case FilterMode.Type.value:
                         flt.match = Type[Type._member_names_[0]]
                 self.filters.append(flt)
-                self.require_sort = True
 
             text_width = imgui.calc_text_size("Invrt ").x
             buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
@@ -2840,7 +2821,6 @@ class MainGUI():
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
                     self.filters.remove(flt)
-                    self.require_sort = True
 
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
@@ -2852,9 +2832,8 @@ class MainGUI():
                     case FilterMode.Installed.value:
                         draw_settings_label("Include outdated:")
                         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                        changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
+                        changed, flt.match = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
                         if changed:
-                            flt.match = value
                             self.require_sort = True
                     case FilterMode.Label.value:
                         if Label.instances:
@@ -2879,14 +2858,13 @@ class MainGUI():
                             imgui.spacing()
                     case FilterMode.Rating.value:
                         draw_settings_label("Rating value:")
-                        changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
+                        changed, flt.match = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
                         if changed:
-                            flt.match = value
                             self.require_sort = True
                         imgui.spacing()
                     case FilterMode.Score.value:
                         draw_settings_label("Score value:")
-                        changed, value = imgui.drag_float(f"###filter_{flt.id}_value", flt.match, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
+                        changed, flt.match = imgui.drag_float(f"###filter_{flt.id}_value", flt.match, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
                         if changed:
                             flt.match = value
                             self.require_sort = True
@@ -3241,7 +3219,6 @@ class MainGUI():
                     flt = Filter(FilterMode.Label)
                     flt.match = label
                     self.filters.append(flt)
-                    self.require_sort = True
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
                     async_thread.run(db.remove_label(label))

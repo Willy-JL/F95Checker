@@ -134,6 +134,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                     add_downloads()
                 download_name += text
         add_downloads()
+        downloads = tuple(downloads)
         return downloads
 
     try:
@@ -307,6 +308,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
                     tag = tag.replace("/tags/", "").strip("/")
                     tags.append(Tag[tag])
+        tags = tuple(tags)
 
         elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
         if elem:

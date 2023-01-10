@@ -262,23 +262,17 @@ async def close():
 
 def sql_to_py(value: str | int | float, data_type: typing.Type):
     match getattr(data_type, "__name__", None):
-        case "list":
-            try:
-                value = json.loads(value)
-            except json.JSONDecodeError:
-                value = [value] if value else []
-            if data_type_args := getattr(data_type, "__args__", None):
-                content_type = data_type_args[0]
-                value = [x for x in (content_type(x) for x in value) if x is not None]
-        case "tuple":
+        case "list" | "tuple":
             if isinstance(value, str) and getattr(data_type, "__args__", [None])[0] is float:
                 value = colors.hex_to_rgba_0_1(value)
             else:
-                value = json.loads(value)
+                try:
+                    value = data_type(json.loads(value))
+                except json.JSONDecodeError:
+                    value = data_type([value]) if value else data_type()
                 if data_type_args := getattr(data_type, "__args__", None):
                     content_type = data_type_args[0]
-                    value = [x for x in (content_type(x) for x in value) if x is not None]
-                value = tuple(value)
+                    value = data_type(x for x in (content_type(x) for x in value) if x is not None)
         case _:
             if isinstance(data_type, types.UnionType):
                 if not (getattr(data_type, "__args__", [None])[-1] is types.NoneType and value is None):
@@ -345,8 +339,12 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
         value = value.copy()
         value = [getattr(item, "value", getattr(item, "id", item)) for item in value]
         value = json.dumps(value)
-    elif isinstance(value, tuple) and 3 <= len(value) <= 4:
-        value = colors.rgba_0_1_to_hex(value)
+    elif isinstance(value, tuple):
+        if 3 <= len(value) <= 4 and all(isinstance(item, (float, int)) for item in value):
+            value = colors.rgba_0_1_to_hex(value)
+        else:
+            value = [getattr(item, "value", getattr(item, "id", item)) for item in value]
+            value = json.dumps(value)
     return value
 
 
@@ -418,12 +416,10 @@ async def remove_label(label: Label):
     """)
     for game in globals.games.values():
         if label in game.labels:
-            game.labels.remove(label)
-            await update_game(game, "labels")
-    for flt in globals.gui.filters:
+            game.remove_label(label)
+    for flt in list(globals.gui.filters):
         if flt.match is label:
             globals.gui.filters.remove(flt)
-            globals.gui.require_sort = True
     Label.remove(label)
 
 
