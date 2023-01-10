@@ -1050,8 +1050,8 @@ class MainGUI():
                 "This game has been updated!\n"
                 f"Installed version: {game.installed or 'N/A'}\n"
                 f"Latest version: {game.version}\n"
-                "Middle click to remove the update marker,\n"
-                "alternatively mark as installed to do the same."
+                "Middle click to remove the update marker, alternatively\n"
+                "mark as installed to do the same."
             )
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
