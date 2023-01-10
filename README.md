@@ -122,10 +122,6 @@ Please note that this extension is solely to aid the usage of the desktop tool, 
 
   After adding the games make sure to refresh atleast once to fetch all the game information!
 
-- **What more cool things can it do?**
-
-  Lorem ipsum dolor sit amet
-
 - **Can you make it download game updates?** and **Can you make it detect my game folders?**
 
   The main reason I decided to make this tool is because all the other alternatives were, in my opinion, too complicated to setup and did way more than what I wanted /
