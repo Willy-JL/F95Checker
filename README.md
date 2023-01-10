@@ -1,6 +1,6 @@
 # F95Checker
 
-An update checker tool for (NSFW) games on the [F95Zone](https://f95zone.to/) platform.
+An update checker and library tool for (NSFW) games on the [F95Zone](https://f95zone.to/) platform.
 
 <p align="center">
   <img src=".github/images/F95Checker.png">
@@ -12,26 +12,23 @@ An update checker tool for (NSFW) games on the [F95Zone](https://f95zone.to/) pl
 - Very easy to setup and use
 - Cross platform (windows, linux, macos)
 - Beautiful and customizable interface
-- Compact list mode and comfy grid view
+- Compact list, comfy grid and kanban columns view modes
 - 2FA accounts supported
 - Alert and inbox checker
 - Track what versions you installed and played
 - Launch games straight from the tool
+- Custom labels, organize your library how you want to
+- Archive games to temporarily mute updates
 - Supported game details:
-  - Name
-  - Version
-  - Developer
+  - Name, Version, Developer
   - Type (game engine / type of thread)
   - Status (completed / on hold / abandoned)
-  - Link to thread
-  - Last update date
-  - Last played date
-  - Date added to library
-  - Description / overview
-  - Changelog
-  - Tags
+  - Last update, last played and added on dates
+  - Description / overview and changelog
   - Header images (including gifs)
-  - Personal rating (5 stars, not related to forum ratings)
+  - Download links and RPDL.net support
+  - Forum tags and personal labels
+  - Forum score (value out of 5) and personal rating (5 stars)
   - Personal notes (textbox you can use however you want)
 - Sorting and filtering by most of above details, with multisort and multifilter support
 - Also supports media (animations, collections...) and normal threads
@@ -58,7 +55,7 @@ help you when things go wrong, but I can only do so much and with some obscure e
 - **MacOS:** Extract, right click `F95Checker.app`, select "Open" in the menu and click "Open" in the next popup **\***
 
 - **Source:** Make sure you have Python 3.10+, install requirements with `pip3 install -U -r requirements.txt` and run with `python3 main.py` (this file is marked
-- executable and has a shebang, you might be able to just double click it!)
+executable and has a shebang, you might be able to just double click it!)
 
 **\*** If you get a message saying that the application is damaged and should be moved to the trash you need to: close the popup, open a terminal, navigate to the
 location of the `F95Checker.app`, type in `xattr -d com.apple.quarantine F95Checker.app` and press enter; after this the method above to open the app should work fine.
@@ -146,20 +143,20 @@ Please note that this extension is solely to aid the usage of the desktop tool, 
 
 - **How do I customize the interface, the columns and the sorting?**
 
-  Everything to do with columns and sorting can only be changed from list view but also applies to grid view. Each column has a header bar at the top, you can use those
-  to customize the interface. You can drag the headers around to reorder the columns, you can drag the edge of some select columns to change their width (only works if
-  other variable size columns are enabled). Left clicking on a header will sort the list by that column, holding shift while clicking a header will add a secondary sort
-  (multisort). Right clicking on any header will allow you to enable or disable some columns and also gives you access to manual sort. When manual sort is enabled you
-  can drag games (both in list and grid view) to reorder them. Manual sort remembers the order if you disable and enable it again, but you will not be able to reorder
-  the games if you have any filters enabled.
+  Everything to do with columns and sorting can only be changed from list view but also applies to grid and kanban view. Each column has a header bar at the top, you can
+  use those o customize the interface. You can drag the headers around to reorder the columns, you can drag the edge of some select columns to change their width (only
+  works if other variable size columns are enabled). Left clicking on a header will sort the list by that column, holding shift while clicking a header will add a
+  secondary sort (multisort). Right clicking on any header will allow you to enable or disable some columns and also gives you access to manual sort. When manual sort is
+  enabled you can drag games (in list and grid mode, not in kanban view) to reorder them. Manual sort remembers the order if you disable and enable it again, but you
+  will not be able to reorder the games if you have any filters enabled.
 
 - **How can I try new features early?**
 
   When I implement new features or work on fixing bugs I submit directly to the [main branch on GitHub](https://github.com/Willy-JL/F95Checker), so running directly from
   the source code there could prove unstable at times, and also requires a development environment with an updated Python install and all the requirements up to date. To
   make testing new versions easier, I sometimes issue beta builds. This usually happens when I make some significant change, or an important bugfix, and want to have
-  some binaries that everyone can try easily and give me feedback. **You can see the beta builds in the
-  [Actions tab on the GitHub repo](https://github.com/Willy-JL/F95Checker/actions);** here you should look for entries with a green tick or a red cross icon. When you
+  some binaries that everyone can try easily and give me feedback. **You can see the beta builds in the**
+  **[Actions tab on the GitHub repo](https://github.com/Willy-JL/F95Checker/actions);** here you should look for entries with a green tick or a red cross icon. When you
   open one, scroll down to the `Artifacts` section, look for your platform and click on it to download.
   **Keep in mind you will need to be logged into GitHub to download.** If the entry had a red icon, that means that the build has failed for some platforms, but yours
   might be fine so check anyway.
