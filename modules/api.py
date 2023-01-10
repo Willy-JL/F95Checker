@@ -583,6 +583,40 @@ async def check(game: Game, full=False, login=False):
         if not globals.settings.update_keep_image and not breaking_keep_old_image:
             fetch_image = fetch_image or (image_url != game.image_url)
 
+        async def update_game():  # FIXME shield
+            game.name = name
+            game.version = version
+            game.developer = developer
+            game.type = type
+            game.status = status
+            game.url = url
+            game.last_updated = last_updated
+            game.last_full_refresh = last_full_refresh
+            game.last_refresh_version = last_refresh_version
+            game.score = score
+            game.played = played
+            game.installed = installed
+            game.updated = updated
+            game.description = description
+            game.changelog = changelog
+            game.tags = tags
+            game.image_url = image_url
+            game.downloads = downloads
+
+            if not game.archived and old_status is not Status.Unchecked and (
+                name != old_name or
+                version != old_version or
+                status != old_status
+            ):
+                old_game = OldGame(
+                    id=game.id,
+                    name=old_name,
+                    version=old_version,
+                    status=old_status,
+                )
+                globals.updated_games[game.id] = old_game
+        await asyncio.shield(update_game())
+
         if fetch_image and image_url and image_url != "-":
             async with images:
                 try:
@@ -610,7 +644,7 @@ async def check(game: Game, full=False, login=False):
                     ext = "." + str(Image.open(io.BytesIO(res)).format or "img").lower()
                 except Exception:
                     ext = ".img"
-                async def replace_image():
+                async def replace_image_and_update_game():
                     for img in globals.images_path.glob(f"{game.id}.*"):
                         try:
                             img.unlink()
@@ -621,41 +655,10 @@ async def check(game: Game, full=False, login=False):
                             await f.write(res)
                     game.image.loaded = False
                     game.image.resolve()
-                await asyncio.shield(replace_image())
-
-        async def update_game():
-            game.name = name
-            game.version = version
-            game.developer = developer
-            game.type = type
-            game.status = status
-            game.url = url
-            game.last_updated = last_updated
-            game.last_full_refresh = last_full_refresh
-            game.last_refresh_version = last_refresh_version
-            game.score = score
-            game.played = played
-            game.installed = installed
-            game.updated = updated
-            game.description = description
-            game.changelog = changelog
-            game.tags = tags
-            game.image_url = image_url
-            game.downloads = downloads
-
-            if old_status is not Status.Unchecked and (
-                name != old_name or
-                version != old_version or
-                status != old_status
-            ):
-                old_game = OldGame(
-                    id=game.id,
-                    name=old_name,
-                    version=old_version,
-                    status=old_status,
-                )
-                globals.updated_games[game.id] = old_game
-        await asyncio.shield(update_game())
+                    await update_game()
+                await asyncio.shield(replace_image_and_update_game())
+        else:
+            await asyncio.shield(update_game())
 
 
 async def check_notifs(login=False):
