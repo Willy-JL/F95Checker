@@ -1913,7 +1913,7 @@ class MainGUI():
                         imgui.set_next_item_width(imgui.get_content_region_available_width() / 2.3)
                         changed, value = imgui.input_text("###version", game.version)
                         if changed:
-                            game.version = value
+                            game.version = value or "N/A"
                         if imgui.begin_popup_context_item(f"###version_context"):
                             utils.text_context(game, "version", no_icons=True)
                             imgui.end_popup()
