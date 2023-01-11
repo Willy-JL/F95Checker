@@ -1224,6 +1224,21 @@ class MainGUI():
         if clicked:
             callbacks.open_game_folder(game, executable=executable)
 
+    def draw_game_id_button(self, game: Game, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            callbacks.clipboard_copy(str(game.id))
+        if imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.text_unformatted(
+                f"Thread ID: {game.id}\n"
+                f"Click to copy!"
+            )
+            imgui.end_tooltip()
+
     def draw_game_recheck_button(self, game: Game, label="", selectable=False):
         if selectable:
             clicked = imgui.selectable(label, False)[0]
@@ -1547,15 +1562,7 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
             imgui.same_line()
-            if imgui.button(f"{icons.pound} ID"):
-                callbacks.clipboard_copy(str(game.id))
-            if imgui.is_item_hovered():
-                imgui.begin_tooltip()
-                imgui.text_unformatted(
-                    f"Thread ID: {game.id}\n"
-                    f"Click to copy!"
-                )
-                imgui.end_tooltip()
+            self.draw_game_id_button(game, f"{icons.pound} ID")
             imgui.same_line()
             self.draw_game_played_checkbox(game, f"{icons.flag_checkered} Played")
             _10 = self.scaled(10)
