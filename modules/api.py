@@ -85,6 +85,10 @@ def setup():
         cleanup_webpages()
 
 
+def is_f95zone_url(url: str):
+    return bool(re.search(r"^https?://[^/]*\.?" + re.escape(domain) + r"/", url))
+
+
 def cookiedict(cookies: http.cookies.SimpleCookie):
     return {cookie.key: cookie.value for cookie in cookies.values()}
 
@@ -624,7 +628,7 @@ async def check(game: Game, full=False, login=False):
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if re.search(r"^https?://[^/]*\.?" + re.escape(domain) + r"/", image_url):
+                    if is_f95zone_url(image_url):
                         raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True

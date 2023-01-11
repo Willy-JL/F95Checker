@@ -132,7 +132,7 @@ async def _launch_exe(exe: str):
     # Check URI scheme and launch with browser or default scheme handler
     if utils.is_uri(exe):
         if exe.startswith(("http://", "https://")):
-            open_webpage(exe, skip_html=True)
+            open_webpage(exe)
         else:
             await default_open(exe)
         return
@@ -328,7 +328,7 @@ def open_game_folder(game: Game, executable: str = None):
     )
 
 
-def open_webpage(url: str, skip_html=False):
+def open_webpage(url: str):
     set = globals.settings
     if set.browser.integrated:
         name = "the integrated browser"
@@ -361,7 +361,7 @@ def open_webpage(url: str, skip_html=False):
                 MsgBox.error,
                 more=error.traceback()
             )
-    if globals.settings.browser_html and not skip_html:
+    if globals.settings.browser_html and api.is_f95zone_url(url):
         async def _fetch_open_page():
             html = await api.download_webpage(url)
             if html:
