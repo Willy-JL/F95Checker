@@ -467,6 +467,9 @@ async def import_f95_watched_threads():
 
 
 async def check(game: Game, full=False, login=False):
+    if game.status is Status.Custom:
+        return
+
     if login:
         globals.refresh_total = 2
         if not await assert_login():
@@ -521,21 +524,26 @@ async def check(game: Game, full=False, login=False):
             if req.status in (403, 404):
                 if not game.archived:
                     buttons = {
-                        f"{icons.check} Yes": lambda: callbacks.remove_game(game, bypass_confirm=True),
-                        f"{icons.cancel} No": None
+                        f"{icons.cancel} Do nothing": None,
+                        f"{icons.trash_can_outline} Remove": lambda: callbacks.remove_game(game, bypass_confirm=True),
+                        f"{icons.puzzle_outline} Convert": lambda: callbacks.convert_f95zone_to_custom(game)
                     }
                     if req.status == 403:
                         title = "No permission"
-                        msg = f"You do not have permission to view {game.name}'s F95Zone thread.\nIt is possible it was privated, moved or deleted."
+                        msg = "You do not have permission to view the F95Zone thread for this game"
                     elif req.status == 404:
                         title = "Thread not found"
-                        msg = f"The F95Zone thread for {game.name} could not be found.\nIt is possible it was privated, moved or deleted."
+                        msg = "The F95Zone thread for this game could not be found"
                     utils.push_popup(
                         msgbox.msgbox, title,
                         msg +
+                        f":\n{game.name}\n"
+                        "It might have been privated, moved or deleted, maybe for breaking forum rules.\n"
                         "\n"
-                        "\n"
-                        f"Do you want to remove {game.name} from your list?",
+                        "You can remove this game from your library, or convert it to a custom game.\n"
+                        "Custom games are untied from F95Zone and are not checked for updates, so\n"
+                        "you won't get this error anymore. You can later convert it back to an F95Zone\n"
+                        "game from its info popup. You can also find more details there.",
                         MsgBox.error,
                         buttons=buttons
                     )
@@ -970,6 +978,8 @@ async def refresh(full=False, notifs=True):
             globals.refresh_progress += 1
 
     for game in globals.games.values():
+        if game.status is Status.Custom:
+            continue
         if game.status is Status.Completed and not globals.settings.refresh_completed_games:
             continue
         game_queue.put_nowait(game)

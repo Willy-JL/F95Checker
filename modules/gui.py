@@ -1225,6 +1225,8 @@ class MainGUI():
             callbacks.open_game_folder(game, executable=executable)
 
     def draw_game_id_button(self, game: Game, label="", selectable=False):
+        if game.status is Status.Custom:
+            imgui.push_disabled()
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
@@ -1238,14 +1240,20 @@ class MainGUI():
                 f"Click to copy!"
             )
             imgui.end_tooltip()
+        if game.status is Status.Custom:
+            imgui.pop_disabled()
 
     def draw_game_recheck_button(self, game: Game, label="", selectable=False):
+        if game.status is Status.Custom:
+            imgui.push_disabled()
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
             clicked = imgui.button(label)
         if clicked:
             utils.start_refresh_task(api.check(game, full=True, login=True))
+        if game.status is Status.Custom:
+            imgui.pop_disabled()
 
     def draw_game_labels_select_widget(self, game: Game):
         if Label.instances:
@@ -1260,6 +1268,17 @@ class MainGUI():
                 self.draw_label_widget(label)
         else:
             imgui.text_disabled("Make some labels first!")
+
+    def draw_game_tags_select_widget(self, game: Game):
+        for tag in Tag:
+            changed, value = imgui.checkbox(f"###{game.id}_tag_{tag.value}", tag in game.tags)
+            if changed:
+                if value:
+                    game.tags = tuple(sorted(list(game.tags) + [tag]))
+                else:
+                    game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
+            imgui.same_line()
+            self.draw_tag_widget(tag)
 
     def draw_game_context_menu(self, game: Game):
         self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
@@ -1847,6 +1866,139 @@ class MainGUI():
                         self.draw_game_tags_widget(game)
                     else:
                         imgui.text_disabled("This game has no tags!")
+                    imgui.end_tab_item()
+
+                if imgui.begin_tab_item((
+                    icons.puzzle_check_outline if game.status is Status.Custom else
+                    icons.puzzle_remove_outline
+                ) + " Custom###custom")[0]:
+                    if game.status is Status.Custom:
+                        imgui.text_unformatted(
+                            "This is a custom game. You can edit its core details below while status, last updated and downloads are disabled. Personal attributes and "
+                            "features still work as normal. If you wish to convert it back to a F95Zone game, then make sure to fill the game url with a valid F95Zone "
+                            "thread url before pressing the button below."
+                        )
+                        if imgui.button(f"{icons.puzzle_remove} Convert to F95Zone game"):
+                            callbacks.convert_custom_to_f95zone(game)
+                        imgui.text("")
+                        imgui.push_item_width(-imgui.FLOAT_MIN)
+                        pos_x = imgui.get_cursor_pos_x() + imgui.calc_text_size("Description:").x
+
+                        imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("URL:").x)
+                        imgui.align_text_to_frame_padding()
+                        imgui.text("URL:")
+                        imgui.same_line()
+                        changed, value = imgui.input_text("###url", game.url)
+                        if changed:
+                            game.url = value
+                        if imgui.begin_popup_context_item(f"###url_context"):
+                            utils.text_context(game, "url", no_icons=True)
+                            imgui.end_popup()
+
+                        imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Name:").x)
+                        imgui.align_text_to_frame_padding()
+                        imgui.text("Name:")
+                        imgui.same_line()
+                        changed, value = imgui.input_text("###name", game.name)
+                        if changed:
+                            game.name = value
+                        if imgui.begin_popup_context_item(f"###name_context"):
+                            utils.text_context(game, "name", no_icons=True)
+                            imgui.end_popup()
+
+                        imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Version:").x)
+                        imgui.align_text_to_frame_padding()
+                        imgui.text("Version:")
+                        imgui.same_line()
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 2.3)
+                        changed, value = imgui.input_text("###version", game.version)
+                        if changed:
+                            game.version = value
+                        if imgui.begin_popup_context_item(f"###version_context"):
+                            utils.text_context(game, "version", no_icons=True)
+                            imgui.end_popup()
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
+                        imgui.text("Developer:")
+                        imgui.same_line()
+                        changed, value = imgui.input_text("###developer", game.developer)
+                        if changed:
+                            game.developer = value
+                        if imgui.begin_popup_context_item(f"###developer_context"):
+                            utils.text_context(game, "developer", no_icons=True)
+                            imgui.end_popup()
+
+                        imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Type:").x)
+                        imgui.align_text_to_frame_padding()
+                        imgui.text("Type:")
+                        imgui.same_line()
+                        imgui.set_next_item_width(self.type_label_width + imgui.get_frame_height())
+                        if imgui.begin_combo(f"###type", game.type.name):
+                            category = None
+                            for type in Type:
+                                if category is not type.category:
+                                    category = type.category
+                                    imgui.text(category.name)
+                                selected = type is game.type
+                                pos = imgui.get_cursor_pos()
+                                if imgui.selectable(f"###type_{type.value}", selected)[0]:
+                                    game.type = type
+                                if selected:
+                                    imgui.set_item_default_focus()
+                                imgui.set_cursor_pos(pos)
+                                self.draw_type_widget(type)
+                            imgui.end_combo()
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
+                        imgui.text("Updated:")
+                        imgui.same_line()
+                        changed, value = imgui.checkbox("###updated", game.updated)
+                        if changed:
+                            game.updated = value
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
+                        imgui.text("Tags:")
+                        imgui.same_line()
+                        imgui.button("Right click to edit")
+                        if imgui.begin_popup_context_item(f"###tags_context"):
+                            self.draw_game_tags_select_widget(game)
+                            imgui.end_popup()
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
+                        imgui.text("Score:")
+                        imgui.same_line()
+                        changed, value = imgui.drag_float(f"###score", game.score, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
+                        if changed:
+                            game.score = value
+
+                        imgui.align_text_to_frame_padding()
+                        imgui.text("Description:")
+                        imgui.same_line()
+                        changed, value = imgui.input_text_multiline(f"###description", value=game.description)
+                        if changed:
+                            game.description = value
+                        if imgui.begin_popup_context_item(f"###description_context"):
+                            utils.text_context(game, "description")
+                            imgui.end_popup()
+
+                        imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Changelog:").x)
+                        imgui.align_text_to_frame_padding()
+                        imgui.text("Changelog:")
+                        imgui.same_line()
+                        changed, value = imgui.input_text_multiline(f"###changelog", value=game.changelog)
+                        if changed:
+                            game.changelog = value
+                        if imgui.begin_popup_context_item(f"###changelog_context"):
+                            utils.text_context(game, "changelog")
+                            imgui.end_popup()
+
+                        imgui.pop_item_width()
+                    else:
+                        imgui.text_unformatted(
+                            "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95Zone. "
+                            "This is useful for games that have been removed for breaking forum rules, or for adding games from other platforms to your library. Custom "
+                            "games allow you to edit their core details (name, version, developer, type, url, score, updated, description, changelog and tags), while "
+                            "some  others (status, last updated and downloads) will be overridden / reset. Personal attributes and features (last played, rating, "
+                            "played, installed, archiving, executables, labels and notes) will keep working as usual."
+                        )
+                        if imgui.button(f"{icons.puzzle_check} Convert to custom game"):
+                            callbacks.convert_f95zone_to_custom(game)
                     imgui.end_tab_item()
 
                 imgui.end_tab_bar()
@@ -3476,6 +3628,21 @@ class MainGUI():
                     rpc_thread.start()
                 else:
                     rpc_thread.stop()
+
+            draw_settings_label(
+                "Custom game:",
+                "Add a custom game that is untied from F95Zone. Useful for games removed for breaking forum rules, or for adding games "
+                "from other platforms. Custom games are not checked for updates and you have to add the core details (name, url, version...) "
+                "yourself. You can later convert a custom game to an F95Zone game from the info popup."
+            )
+            if imgui.button("Add", width=right_width):
+                game_id = async_thread.wait(db.add_game(custom=True))
+                async_thread.wait(db.load_games(game_id))
+                game = globals.games[game_id]
+                if globals.settings.mark_installed_after_add:
+                    game.installed = game.version
+                if globals.settings.select_executable_after_add:
+                    utils.add_game_exe(game)
 
             imgui.end_table()
             imgui.spacing()

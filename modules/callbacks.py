@@ -19,6 +19,7 @@ from modules.structs import (
     ThreadMatch,
     ProcessPipe,
     MsgBox,
+    Status,
     Game,
     Os,
 )
@@ -397,6 +398,34 @@ def copy_masked_link(masked_url: str):
     async_thread.run(_unmask_and_copy())
 
 
+def convert_f95zone_to_custom(game: Game):
+    async_thread.wait(db.update_game_id(game, utils.custom_id()))
+    game.status = Status.Custom
+    game.last_updated = 0
+    game.downloads = ()
+
+
+def convert_custom_to_f95zone(game: Game):
+    new_id = utils.extract_thread_matches(game.url)
+    if not new_id:
+        utils.push_popup(
+            msgbox.msgbox, "Invalid URL",
+            "The URL you provided for this game is not a valid F95Zone thread link!",
+            MsgBox.warn
+        )
+        return
+    new_id = new_id[0].id
+    if new_id in globals.games and globals.games[new_id] is not game:
+        utils.push_popup(
+            msgbox.msgbox, "Invalid URL",
+            "The URL you provided for this game points to another game that is already in your list!",
+            MsgBox.warn
+        )
+        return
+    async_thread.wait(db.update_game_id(game, new_id))
+    game.status = Status.Unchecked
+
+
 def remove_game(game: Game, bypass_confirm=False):
     def remove_callback():
         id = game.id
@@ -420,6 +449,7 @@ def remove_game(game: Game, bypass_confirm=False):
         )
     else:
         remove_callback()
+
 
 async def add_games(*threads: list[ThreadMatch | SearchResult]):
     if not threads:

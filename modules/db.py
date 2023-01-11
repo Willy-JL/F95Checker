@@ -5,6 +5,7 @@ import sqlite3
 import asyncio
 import pathlib
 import typing
+import shutil
 import types
 import enum
 import json
@@ -348,6 +349,28 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
     return value
 
 
+async def update_game_id(game: Game, new_id):
+    await connection.execute(f"""
+        UPDATE games
+        SET
+            id={new_id}
+        WHERE id={game.id}
+    """)
+    globals.games[new_id] = game
+    if game.id != new_id:
+        del globals.games[game.id]
+    for i, img in enumerate(sorted(list(globals.images_path.glob(f"{game.id}.*")), key=lambda path: path.suffix != ".gif")):
+        if i == 0:
+            shutil.move(img, globals.images_path / f"{new_id}{img.suffix}")
+        else:
+            try:
+                img.unlink()
+            except Exception:
+                pass
+    game.id = new_id
+    game.refresh_image()
+
+
 async def update_game(game: Game, *keys: list[str]):
     values = []
 
@@ -385,13 +408,24 @@ async def remove_game(id: int):
     """)
 
 
-async def add_game(thread: ThreadMatch | SearchResult):
-    await connection.execute(f"""
-        INSERT INTO games
-        (id, name, url, added_on)
-        VALUES
-        (?,  ?,    ?,   ?       )
-    """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", time.time()))
+async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
+    if custom:
+        game_id = utils.custom_id()
+        await connection.execute(f"""
+            INSERT INTO games
+            (id, name, status, added_on)
+            VALUES
+            (?,  ?,    ?,      ?       )
+        """, (game_id, f"Custom game ({game_id})", Status.Custom.value, int(time.time())))
+        return game_id
+    else:
+        await connection.execute(f"""
+            INSERT INTO games
+            (id, name, url, added_on)
+            VALUES
+            (?,  ?,    ?,   ?       )
+        """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", int(time.time())))
+        return thread.id
 
 
 async def update_label(label: Label, *keys: list[str]):

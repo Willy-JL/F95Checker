@@ -49,6 +49,10 @@ def image_ext(data: bytes):
     return ext
 
 
+def custom_id():
+    return min(min(game.id for game in globals.games.values()), 0) - 1
+
+
 def is_uri(text: str):
     # See https://www.rfc-editor.org/rfc/rfc3986#section-3.1
     return bool(re.search(r"^[A-Za-z][A-Za-z0-9\+\-\.]*://", text))
