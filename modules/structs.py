@@ -741,6 +741,7 @@ class Game:
 
     def add_label(self, label: Label):
         self.labels.append(label)
+        self.labels.sort(key=lambda label: Label.instances.index(label))
         from modules import globals, async_thread, db
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
