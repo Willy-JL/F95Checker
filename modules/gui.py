@@ -2898,8 +2898,9 @@ class MainGUI():
                     case FilterMode.Installed.value:
                         draw_settings_label("Include outdated:")
                         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                        changed, flt.match = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
+                        changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
                         if changed:
+                            flt.match = value
                             self.require_sort = True
                     case FilterMode.Label.value:
                         if Label.instances:
@@ -2924,13 +2925,14 @@ class MainGUI():
                             imgui.spacing()
                     case FilterMode.Rating.value:
                         draw_settings_label("Rating value:")
-                        changed, flt.match = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
+                        changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
                         if changed:
+                            flt.match = value
                             self.require_sort = True
                         imgui.spacing()
                     case FilterMode.Score.value:
                         draw_settings_label("Score value:")
-                        changed, flt.match = imgui.drag_float(f"###filter_{flt.id}_value", flt.match, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
+                        changed, value = imgui.drag_float(f"###filter_{flt.id}_value", flt.match, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
                         if changed:
                             flt.match = value
                             self.require_sort = True
@@ -3008,9 +3010,10 @@ class MainGUI():
                         imgui.text("Executable: ")
                         imgui.same_line()
                         pos = imgui.get_cursor_pos_x()
-                        changed, set.browser_custom_executable = imgui.input_text("###browser_custom_executable", set.browser_custom_executable)
+                        changed, value = imgui.input_text("###browser_custom_executable", set.browser_custom_executable)
                         setter_extra = lambda _=None: async_thread.run(db.update_settings("browser_custom_executable"))
                         if changed:
+                            set.browser_custom_executable = value
                             setter_extra()
                         if imgui.begin_popup_context_item(f"###browser_custom_executable_context"):
                             utils.text_context(set, "browser_custom_executable", setter_extra, no_icons=True)
@@ -3034,9 +3037,10 @@ class MainGUI():
                         imgui.same_line()
                         imgui.set_cursor_pos_x(pos)
                         imgui.set_next_item_width(args_width)
-                        changed, set.browser_custom_arguments = imgui.input_text("###browser_custom_arguments", set.browser_custom_arguments)
+                        changed, value = imgui.input_text("###browser_custom_arguments", set.browser_custom_arguments)
                         setter_extra = lambda _=None: async_thread.run(db.update_settings("browser_custom_arguments"))
                         if changed:
+                            set.browser_custom_arguments = value
                             setter_extra()
                         if imgui.begin_popup_context_item(f"###browser_custom_arguments_context"):
                             utils.text_context(set, "browser_custom_arguments", setter_extra, no_icons=True)
@@ -3181,12 +3185,13 @@ class MainGUI():
                 "Time format:",
                 "The format expression to use for full timestamps. Uses the strftime specification. Default is '%d/%m/%Y %H:%M'."
             )
-            changed, set.timestamp_format = imgui.input_text("###timestamp_format", set.timestamp_format)
+            changed, value = imgui.input_text("###timestamp_format", set.timestamp_format)
             def setter_extra(_=None):
                 async_thread.run(db.update_settings("timestamp_format"))
                 for timestamp in Timestamp.instances:
                     timestamp.update()
             if changed:
+                set.timestamp_format = value
                 setter_extra()
             if imgui.begin_popup_context_item(f"###timestamp_format_context"):
                 utils.text_context(set, "timestamp_format", setter_extra)
@@ -3205,12 +3210,13 @@ class MainGUI():
                 "Date format:",
                 "The format expression to use for short datestamps. Uses the strftime specification. Default is '%d/%m/%Y'."
             )
-            changed, set.datestamp_format = imgui.input_text("###datestamp_format", set.datestamp_format)
+            changed, value = imgui.input_text("###datestamp_format", set.datestamp_format)
             def setter_extra(_=None):
                 async_thread.run(db.update_settings("datestamp_format"))
                 for datestamp in Datestamp.instances:
                     datestamp.update()
             if changed:
+                set.datestamp_format = value
                 setter_extra()
             if imgui.begin_popup_context_item(f"###datestamp_format_context"):
                 utils.text_context(set, "datestamp_format", setter_extra)
@@ -3259,9 +3265,10 @@ class MainGUI():
                 imgui.table_next_row()
                 imgui.table_next_column()
                 imgui.set_next_item_width(imgui.get_content_region_available_width() + buttons_offset + imgui.style.cell_padding.x)
-                changed, label.name = imgui.input_text_with_hint(f"###label_name_{label.id}", "Label name", label.name)
+                changed, value = imgui.input_text_with_hint(f"###label_name_{label.id}", "Label name", label.name)
                 setter_extra = lambda _=None: async_thread.run(db.update_label(label, "name"))
                 if changed:
+                    label.name = value
                     setter_extra()
                 if imgui.begin_popup_context_item(f"###label_name_{label.id}_context"):
                     utils.text_context(label, "name", setter_extra)
