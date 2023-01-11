@@ -491,7 +491,12 @@ async def check(game: Game, full=False, login=False):
     breaking_version_parsing = last_refresh_before("9.6.4")  # Skip update popup and keep installed/played checkboxes
     breaking_keep_old_image = last_refresh_before("9.0")  # Keep existing image files
     breaking_require_full_check = last_refresh_before("9.6.5")  # Download links
-    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "missing") or breaking_require_full_check
+    full = full or (
+        game.status is Status.Unchecked or
+        (game.last_full_refresh < time.time() - full_interval) or
+        (game.image.missing and game.image_url != "missing") or
+        breaking_require_full_check
+    )
     if not full:
         async with request("HEAD", game.url, read=False) as (_, req):
             if (redirect := str(req.real_url)) != game.url:
