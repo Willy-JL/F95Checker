@@ -242,8 +242,11 @@ def launch_game(game: Game, executable: str = None):
     )
 
 
-async def _open_folder(path: str):
-    folder = pathlib.Path(path).absolute().parent
+async def _open_folder(exe: str):
+    if utils.is_uri(exe):
+        return
+
+    folder = pathlib.Path(exe).absolute().parent
     if not folder.is_dir():
         raise FileNotFoundError()
 
