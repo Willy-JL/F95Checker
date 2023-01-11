@@ -343,12 +343,12 @@ class MainGUI():
                 pass
         except Exception:
             pass
-        if not all([isinstance(x, int) for x in size]) or not len(size) == 2:
+        if not all(type(x) is int for x in size) or not len(size) == 2:
             size = (1280, 720)
 
         # Setup GLFW window
         self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
-        if all([isinstance(x, int) for x in pos]) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
+        if all(type(x) is int for x in pos) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_background:

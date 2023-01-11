@@ -333,14 +333,14 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
         value = value.value
     elif hasattr(value, "hash"):
         value = value.hash
-    elif isinstance(value, bool):
+    elif type(value) is bool:
         value = int(value)
     elif isinstance(value, list):
         value = value.copy()
         value = [getattr(item, "value", getattr(item, "id", item)) for item in value]
         value = json.dumps(value)
     elif isinstance(value, tuple):
-        if 3 <= len(value) <= 4 and all(isinstance(item, (float, int)) for item in value):
+        if 3 <= len(value) <= 4 and all(type(item) in (float, int) for item in value):
             value = colors.rgba_0_1_to_hex(value)
         else:
             value = [getattr(item, "value", getattr(item, "id", item)) for item in value]

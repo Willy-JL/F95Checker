@@ -257,8 +257,8 @@ DisplayMode = IntEnumHack("DisplayMode", [
 
 
 Status = IntEnumHack("Status", [
-    ("Normal",    (1, {"color" : (0.96, 0.96, 0.96), "icon": "lightning_bolt_circle"})),
-    ("Completed", (2, {"color" : (0.00, 0.85, 0.00), "icon": "checkbox_marked_circle"})),
+    ("Normal",    (1, {"color" : (0.95, 0.95, 0.95), "icon": "lightning_bolt_circle"})),
+    ("Completed", (2, {"color" : (0.00, 0.87, 0.00), "icon": "checkbox_marked_circle"})),
     ("OnHold",    (3, {"color" : (0.00, 0.50, 0.95), "icon": "pause_circle"})),
     ("Abandoned", (4, {"color" : (0.87, 0.20, 0.20), "icon": "close_circle"})),
     ("Unchecked", (5, {"color" : (0.50, 0.50, 0.50), "icon": "alert_circle"})),
@@ -693,6 +693,7 @@ class Game:
                 pass
 
     def refresh_image(self):
+        self.image.glob = f"{self.id}.*"
         self.image.loaded = False
         self.image.resolve()
 
@@ -754,7 +755,6 @@ class Game:
 
     def __setattr__(self, name: str, value: typing.Any):
         if self._did_init and name in [
-            "id",
             "name",
             "version",
             "developer",
@@ -782,16 +782,13 @@ class Game:
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
-                old = attr.value
                 attr.update(value)
-                attr = old
             else:
                 super().__setattr__(name, value)
-            if attr != value:
-                from modules import globals, async_thread, db
-                async_thread.run(db.update_game(self, name))
-                if globals.gui:
-                    globals.gui.require_sort = True
+            from modules import globals, async_thread, db
+            async_thread.run(db.update_game(self, name))
+            if globals.gui:
+                globals.gui.require_sort = True
             return
         super().__setattr__(name, value)
 
