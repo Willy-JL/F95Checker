@@ -2225,7 +2225,7 @@ class MainGUI():
                     ids.sort(key=key, reverse=sort_spec.reverse)
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
-                self.sorted_games_ids.sort(key=lambda id: globals.games[id].status is not Status.Unchecked)
+                self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Archived.value:
