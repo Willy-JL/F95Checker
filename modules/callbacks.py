@@ -149,12 +149,9 @@ async def _launch_exe(executable: str):
         mode = exe.stat().st_mode
         executable = not (mode & stat.S_IEXEC < stat.S_IEXEC)
         if not executable:
-            mark_exe = False
-            if exe.suffix in (".exe", ".msi"):  # Probably windows executable
-                mark_exe = True
             with exe.open("rb") as f:
-                if f.read(2) == b"#!":  # Shebang is present, probably a script
-                    mark_exe = True
+                # Check for shebang, exe and msi magic numbers
+                mark_exe = f.read(8).startswith((b"#!", b"MZ", b"ZM", b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"))
             if mark_exe:
                 exe.chmod(mode | stat.S_IEXEC)
                 executable = True
