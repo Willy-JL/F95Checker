@@ -129,16 +129,16 @@ async def default_open(what: str, cwd=None):
         )
 
 
-async def _launch_exe(exe: str):
+async def _launch_exe(executable: str):
     # Check URI scheme and launch with browser or default scheme handler
-    if utils.is_uri(exe):
-        if exe.startswith(("http://", "https://")):
-            open_webpage(exe)
+    if utils.is_uri(executable):
+        if executable.startswith(("http://", "https://")):
+            open_webpage(executable)
         else:
-            await default_open(exe)
+            await default_open(executable)
         return
 
-    exe = pathlib.Path(exe).absolute()
+    exe = pathlib.Path(executable).absolute()
     if not exe.is_file():
         raise FileNotFoundError()
 
@@ -243,11 +243,11 @@ def launch_game(game: Game, executable: str = None):
     )
 
 
-async def _open_folder(exe: str):
-    if utils.is_uri(exe):
+async def _open_folder(executable: str):
+    if utils.is_uri(executable):
         return
 
-    folder = pathlib.Path(exe).absolute().parent
+    folder = pathlib.Path(executable).absolute().parent
     if not folder.is_dir():
         raise FileNotFoundError()
 
