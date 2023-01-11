@@ -683,8 +683,8 @@ class Game:
         self.validate_executables()
 
     def validate_executables(self):
-        from modules import globals
-        self.executables_valids = [os.path.isfile(executable) for executable in self.executables]
+        from modules import globals, utils
+        self.executables_valids = [utils.is_uri(executable) or os.path.isfile(executable) for executable in self.executables]
         self.executables_valid = all(self.executables_valids)
         if globals.gui:
             globals.gui.require_sort = True

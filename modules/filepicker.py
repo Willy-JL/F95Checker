@@ -31,11 +31,20 @@ class FilePicker:
         imgui.WINDOW_ALWAYS_AUTO_RESIZE
     )
 
-    def __init__(self, title="File picker", dir_picker=False, start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags=0):
+    def __init__(
+        self,
+        title="File picker",
+        dir_picker=False,
+        start_dir: str | pathlib.Path = None,
+        callback: typing.Callable = None,
+        buttons: list[str] = [],
+        custom_popup_flags=0
+    ):
         self.current = 0
         self.title = title
         self.active = True
         self.elapsed = 0.0
+        self.buttons = buttons
         self.callback = callback
         self.selected: str = None
         self.filter_box_text = ""
@@ -174,6 +183,13 @@ class FilePicker:
             if imgui.button(cancel_icon):
                 imgui.close_current_popup()
                 closed = True
+            # Custom buttons
+            for button in self.buttons:
+                imgui.same_line()
+                if imgui.button(button):
+                    self.selected = button
+                    imgui.close_current_popup()
+                    closed = True  # added
             # Ok button
             imgui.same_line()
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):
@@ -229,8 +245,22 @@ class FilePicker:
 
 
 class DirPicker(FilePicker):
-    def __init__(self, title="Directory picker", start_dir: str | pathlib.Path = None, callback: typing.Callable = None, custom_popup_flags=0):
-        super().__init__(title=title, dir_picker=True, start_dir=start_dir, callback=callback, custom_popup_flags=custom_popup_flags)
+    def __init__(
+        self,
+        title="Directory picker",
+        start_dir: str | pathlib.Path = None,
+        callback: typing.Callable = None,
+        buttons: list[str] = [],
+        custom_popup_flags=0
+    ):
+        super().__init__(
+            title=title,
+            dir_picker=True,
+            start_dir=start_dir,
+            callback=callback,
+            buttons=buttons,
+            custom_popup_flags=custom_popup_flags
+        )
 
 
 # Example usage

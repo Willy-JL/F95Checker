@@ -80,7 +80,25 @@ def update_start_with_system(toggle: bool):
 
 
 def add_game_exe(game: Game, callback: typing.Callable = None):
+    use_uri = f"{icons.link_variant} Use URI"
     def select_callback(selected):
+        if selected == use_uri:
+            uri = ""
+            def popup_content():
+                nonlocal uri
+                _, uri = imgui.input_text("###exe_uri", uri)
+            buttons = {
+                f"{icons.check} Ok": lambda: select_callback(uri),
+                f"{icons.cancel} Cancel": lambda: select_callback(None)
+            }
+            utils.push_popup(
+                utils.popup, f"Input URI for {game.name}",
+                popup_content,
+                buttons=buttons,
+                closable=True,
+                outside=False
+            )
+            return
         if selected:
             game.add_executable(selected)
         if callback:
@@ -88,7 +106,8 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
         start_dir=globals.settings.default_exe_dir,
-        callback=select_callback
+        callback=select_callback,
+        buttons=[use_uri]
     ).tick)
 
 
@@ -109,8 +128,16 @@ async def default_open(what: str, cwd=None):
         )
 
 
-async def _launch_exe(path: str):
-    exe = pathlib.Path(path).absolute()
+async def _launch_exe(exe: str):
+    # Check URI scheme and launch with browser or default scheme handler
+    if utils.is_uri(exe):
+        if exe.startswith(("http://", "https://")):
+            open_webpage(exe, skip_html=True)
+        else:
+            await default_open(exe)
+        return
+
+    exe = pathlib.Path(exe).absolute()
     if not exe.is_file():
         raise FileNotFoundError()
 
@@ -298,7 +325,7 @@ def open_game_folder(game: Game, executable: str = None):
     )
 
 
-def open_webpage(url: str):
+def open_webpage(url: str, skip_html=False):
     set = globals.settings
     if set.browser.integrated:
         name = "the integrated browser"
@@ -331,7 +358,7 @@ def open_webpage(url: str):
                 MsgBox.error,
                 more=error.traceback()
             )
-    if globals.settings.browser_html:
+    if globals.settings.browser_html and not skip_html:
         async def _fetch_open_page():
             html = await api.download_webpage(url)
             if html:

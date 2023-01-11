@@ -39,6 +39,11 @@ def map_range(in_value: float, in_start: float, in_end: float, out_start: float,
     return out_value
 
 
+def is_uri(text: str):
+    # See https://www.rfc-editor.org/rfc/rfc3986#section-3.1
+    return bool(re.search(r"^[A-Za-z][A-Za-z0-9\+\-\.]*://", text))
+
+
 def is_refreshing():
     if globals.refresh_task and not globals.refresh_task.done():
         return True
