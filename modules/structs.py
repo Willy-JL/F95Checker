@@ -782,8 +782,9 @@ class Game:
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
+                old = attr.value
                 attr.update(value)
-                attr = attr.value
+                attr = old
             else:
                 super().__setattr__(name, value)
             if attr != value:
