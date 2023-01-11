@@ -400,14 +400,10 @@ def copy_masked_link(masked_url: str):
 def remove_game(game: Game, bypass_confirm=False):
     def remove_callback():
         id = game.id
+        game.delete_images()
         del globals.games[id]
         globals.gui.require_sort = True
         async_thread.run(db.remove_game(id))
-        for img in globals.images_path.glob(f"{id}.*"):
-            try:
-                img.unlink()
-            except Exception:
-                pass
     if not bypass_confirm and globals.settings.confirm_on_remove:
         buttons = {
             f"{icons.check} Yes": remove_callback,

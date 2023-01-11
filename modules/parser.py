@@ -314,7 +314,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         if elem:
             image_url = elem.get("data-src")
         else:
-            image_url = "-"
+            image_url = "missing"
 
         downloads = get_game_downloads("downloads", "download")
 

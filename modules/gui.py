@@ -1457,7 +1457,7 @@ class MainGUI():
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
                 self.draw_hover_text(
                     text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
+                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
                 )
             elif image.invalid:
                 text = "Invalid image!"
@@ -1520,6 +1520,21 @@ class MainGUI():
                         image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
                 imgui.end_child()
+            if imgui.begin_popup_context_item(f"###image_context"):
+                if imgui.selectable(f"{icons.folder_open_outline} Set custom image", False)[0]:
+                    def select_callback(selected):
+                        if selected:
+                            game.image_url = "custom"
+                            game.set_image_sync(pathlib.Path(selected).read_bytes())
+                    utils.push_popup(filepicker.FilePicker(
+                        title=f"Select or drop image for {game.name}",
+                        start_dir=globals.settings.default_exe_dir,
+                        callback=select_callback
+                    ).tick)
+                if imgui.selectable(f"{icons.trash_can_outline} Reset image", False)[0]:
+                    game.delete_images()
+                    game.refresh_image()
+                imgui.end_popup()
             imgui.push_text_wrap_pos()
 
             imgui.push_font(imgui.fonts.big)
@@ -2340,7 +2355,7 @@ class MainGUI():
                 imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
                 self.draw_hover_text(
                     text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "-" else "Run a full refresh to try downloading it again!"
+                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
                 )
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
@@ -3061,14 +3076,6 @@ class MainGUI():
                 "off the sides a bit. When fitting the images you see the whole image but it has some empty space at the sides."
             )
             draw_settings_checkbox("fit_images")
-
-            draw_settings_label(
-                "Keep game image:",
-                "When a game is updated and the header image changes, F95Checker downloads it again replacing the old one. This "
-                "setting makes it so the old image is kept and no new image is downloaded. This is useful in case you want "
-                f"to have custom images for your games (you can edit the images manually at {globals.data_path / 'images'})."
-            )
-            draw_settings_checkbox("update_keep_image")
 
             draw_settings_label(
                 "Zoom on hover:",

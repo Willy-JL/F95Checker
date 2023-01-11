@@ -168,7 +168,6 @@ async def connect():
             "style_text":                  f'TEXT    DEFAULT "{DefaultStyle.text}"',
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
-            "update_keep_image":           f'INTEGER DEFAULT {int(False)}',
             "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "zoom_area":                   f'INTEGER DEFAULT 50',
@@ -574,10 +573,6 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
             if (refresh_completed_games := options.get("refresh_completed_games")) is not None:
                 keys.append("refresh_completed_games")
                 values.append(int(refresh_completed_games))
-
-            if (keep_image_on_game_update := options.get("keep_image_on_game_update")) is not None:
-                keys.append("update_keep_image")
-                values.append(int(keep_image_on_game_update))
 
         if (style := config.get("style")) is not None:
 

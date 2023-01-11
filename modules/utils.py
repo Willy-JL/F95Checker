@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
 import OpenGL.GL as gl
+from PIL import Image
 import concurrent
 import functools
 import asyncio
@@ -11,6 +12,7 @@ import math
 import glfw
 import sys
 import re
+import io
 
 from modules.structs import (
     Popup,
@@ -37,6 +39,14 @@ def map_range(in_value: float, in_start: float, in_end: float, out_start: float,
     out_range = out_end - out_start
     out_value = ((in_value / in_end) * out_range) + out_start
     return out_value
+
+
+def image_ext(data: bytes):
+    try:
+        ext = str(Image.open(io.BytesIO(data)).format or "img").lower()
+    except Exception:
+        ext = "img"
+    return ext
 
 
 def is_uri(text: str):

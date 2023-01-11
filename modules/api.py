@@ -1,12 +1,10 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
 import multiprocessing
 import datetime as dt
-from PIL import Image
 import async_timeout
 import http.cookies
 import configparser
 import contextlib
-import subprocess
 import tempfile
 import aiofiles
 import aiohttp
@@ -489,7 +487,7 @@ async def check(game: Game, full=False, login=False):
     breaking_version_parsing = last_refresh_before("9.6.4")  # Skip update popup and keep installed/played checkboxes
     breaking_keep_old_image = last_refresh_before("9.0")  # Keep existing image files
     breaking_require_full_check = last_refresh_before("9.6.5")  # Download links
-    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "-") or breaking_require_full_check
+    full = full or (game.last_full_refresh < time.time() - full_interval) or (game.image.missing and game.image_url != "missing") or breaking_require_full_check
     if not full:
         async with request("HEAD", game.url, read=False) as (_, req):
             if (redirect := str(req.real_url)) != game.url:
@@ -582,7 +580,7 @@ async def check(game: Game, full=False, login=False):
             old_name = name
 
         fetch_image = game.image.missing
-        if not globals.settings.update_keep_image and not breaking_keep_old_image:
+        if not game.image_url == "custom" and not breaking_keep_old_image:
             fetch_image = fetch_image or (image_url != game.image_url)
 
         async def update_game():
@@ -619,7 +617,7 @@ async def check(game: Game, full=False, login=False):
                 globals.updated_games[game.id] = old_game
         await asyncio.shield(update_game())
 
-        if fetch_image and image_url and image_url != "-":
+        if fetch_image and image_url and image_url != "missing":
             async with images:
                 try:
                     res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
@@ -639,26 +637,14 @@ async def check(game: Game, full=False, login=False):
                     except Exception:
                         foreign_ok = False
                     if f95zone_ok and not foreign_ok:
-                        image_url = "-"
+                        image_url = "missing"
+                        res = b""
                     else:
                         raise  # Foreign host might not actually be dead
-                try:
-                    ext = "." + str(Image.open(io.BytesIO(res)).format or "img").lower()
-                except Exception:
-                    ext = ".img"
-                async def replace_image_and_update_game():
-                    for img in globals.images_path.glob(f"{game.id}.*"):
-                        try:
-                            img.unlink()
-                        except Exception:
-                            pass
-                    if image_url != "-":
-                        async with aiofiles.open(globals.images_path / f"{game.id}{ext}", "wb") as f:
-                            await f.write(res)
-                    game.image.loaded = False
-                    game.image.resolve()
+                async def set_image_and_update_game():
+                    await game.set_image_async(res)
                     await update_game()
-                await asyncio.shield(replace_image_and_update_game())
+                await asyncio.shield(set_image_and_update_game())
         else:
             await asyncio.shield(update_game())
 

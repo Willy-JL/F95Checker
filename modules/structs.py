@@ -3,6 +3,7 @@ import multiprocessing
 import datetime as dt
 import dataclasses
 import functools
+import aiofiles
 import asyncio
 import weakref
 import hashlib
@@ -594,7 +595,6 @@ class Settings:
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
     timestamp_format            : str
-    update_keep_image           : bool
     use_parser_processes        : bool
     vsync_ratio                 : int
     zoom_area                   : int
@@ -678,9 +678,38 @@ class Game:
         self._did_init = True
         if self.updated is None:
             self.updated = bool(self.installed) and self.installed != self.version
+        if self.image_url == "-":
+            self.image_url = "missing"
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executables()
+
+    def delete_images(self):
+        from modules import globals
+        for img in globals.images_path.glob(f"{self.id}.*"):
+            try:
+                img.unlink()
+            except Exception:
+                pass
+
+    def refresh_image(self):
+        self.image.loaded = False
+        self.image.resolve()
+
+    async def set_image_async(self, data: bytes):
+        from modules import globals, utils
+        self.delete_images()
+        if data:
+            async with aiofiles.open(globals.images_path / f"{self.id}.{utils.image_ext(data)}", "wb") as f:
+                await f.write(data)
+        self.refresh_image()
+
+    def set_image_sync(self, data: bytes):
+        from modules import globals, utils
+        self.delete_images()
+        if data:
+            (globals.images_path / f"{self.id}.{utils.image_ext(data)}").write_bytes(data)
+        self.refresh_image()
 
     def validate_executables(self):
         from modules import globals, utils
