@@ -32,6 +32,7 @@ An update checker and library tool for (NSFW) games on the [F95Zone](https://f95
   - Personal notes (textbox you can use however you want)
 - Sorting and filtering by most of above details, with multisort and multifilter support
 - Also supports media (animations, collections...) and normal threads
+- Custom games to manually add games from other platforms
 - Auto updating (the tool, NOT the games)
 - Background mode (periodically refresh in background and receive desktop notifications)
 - Many ways to add games, including a companion web browser extension
