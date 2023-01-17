@@ -225,19 +225,3 @@ async def open_torrent_file(torrent_id: int):
     torrent.parent.mkdir(parents=True, exist_ok=True)
     torrent.write_bytes(res)
     await callbacks.default_open(str(torrent))
-
-
-async def open_magnet_link(torrent_id: int):
-    for _ in range(2):
-        if not await assert_login():
-            return
-        res = await fetch("GET", details_endpoint.format(id=torrent_id), headers={**auth()})
-        res = json.loads(res)
-        if not has_authenticated_tracker(res):
-            globals.settings.rpdl_token = ""
-            continue
-        break
-    else:  # Didn't break
-        return
-    magnet = res["data"]["magnet_link"]
-    await callbacks.default_open(magnet)

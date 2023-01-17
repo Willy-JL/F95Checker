@@ -1721,7 +1721,13 @@ class MainGUI():
                                     imgui.table_setup_scroll_freeze(0, 1)
                                     imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
                                     imgui.table_next_column()
-                                    imgui.table_header("View")
+                                    imgui.table_header("Actions")
+                                    self.draw_hover_text(
+                                        f"The {icons.open_in_new} view button will open the torrent webpage with your selected browser.\n"
+                                        f"The {icons.download_multiple} download button will save the torrent file to your user's downloads\n"
+                                        "folder and open it with the default torrenting application.\n",
+                                        text=None
+                                    )
                                     imgui.table_next_column()
                                     imgui.table_header("Title")
                                     imgui.table_next_column()
@@ -1732,16 +1738,6 @@ class MainGUI():
                                     imgui.table_header("Size")
                                     imgui.table_next_column()
                                     imgui.table_header("Date")
-                                    imgui.table_next_column()
-                                    imgui.table_header("Actions")
-                                    self.draw_hover_text(
-                                        f"The {icons.download_multiple} download button will save the torrent file to your user's downloads\n"
-                                        "folder and open it with the default torrenting application.\n"
-                                        f"The {icons.magnet} magnet button will open the magnet link with the default torrenting\n"
-                                        " application. Please note that magnets can be unreliable at times, use\n"
-                                        "torrent files if magnets don't work.",
-                                        text=None
-                                    )
                                     for result in results:
                                         imgui.table_next_row()
                                         imgui.table_next_column()
@@ -1749,6 +1745,9 @@ class MainGUI():
                                         imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
                                         if imgui.button(icons.open_in_new):
                                             callbacks.open_webpage(rpdl.torrent_page.format(id=result.id))
+                                        imgui.same_line()
+                                        if imgui.button(icons.download_multiple):
+                                            async_thread.run(rpdl.open_torrent_file(result.id))
                                         imgui.table_next_column()
                                         imgui.text(result.title)
                                         imgui.table_next_column()
@@ -1759,12 +1758,6 @@ class MainGUI():
                                         imgui.text(result.size)
                                         imgui.table_next_column()
                                         imgui.text(result.date)
-                                        imgui.table_next_column()
-                                        if imgui.button(icons.download_multiple):
-                                            async_thread.run(rpdl.open_torrent_file(result.id))
-                                        imgui.same_line()
-                                        if imgui.button(icons.magnet):
-                                            async_thread.run(rpdl.open_magnet_link(result.id))
                                         imgui.same_line()
                                         imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
                                         imgui.selectable(
