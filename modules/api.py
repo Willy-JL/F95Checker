@@ -96,7 +96,7 @@ def cookiedict(cookies: http.cookies.SimpleCookie):
 
 
 @contextlib.asynccontextmanager
-async def request(method: str, url: str, read=True, **kwargs):
+async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
@@ -107,6 +107,10 @@ async def request(method: str, url: str, read=True, **kwargs):
         max_redirects=None,
         ssl=False,
     )
+    if no_cookies:
+        cookies = {}
+    else:
+        cookies = globals.cookies
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
     while retries:
@@ -114,7 +118,7 @@ async def request(method: str, url: str, read=True, **kwargs):
             async with session.request(
                 method,
                 url,
-                cookies=globals.cookies | ddos_guard_cookies,
+                cookies=cookies | ddos_guard_cookies,
                 **req_opts,
                 **kwargs
             ) as req:
@@ -140,7 +144,7 @@ async def request(method: str, url: str, read=True, **kwargs):
                         async with session.request(
                             "GET",
                             f"{referer if script.startswith('/') else ''}{script}",
-                            cookies=globals.cookies | ddos_guard_cookies,
+                            cookies=cookies | ddos_guard_cookies,
                             headers=headers | {
                                 "Sec-Fetch-Dest": "script",
                                 "Sec-Fetch-Site": "same-site" if "ddos-guard.net/" in script else "cross-site"
@@ -153,7 +157,7 @@ async def request(method: str, url: str, read=True, **kwargs):
                                 async with session.request(
                                     "GET",
                                     f"{referer if image.startswith('/') else ''}{image}",
-                                    cookies=globals.cookies | ddos_guard_cookies,
+                                    cookies=cookies | ddos_guard_cookies,
                                     headers=headers | {
                                         "Sec-Fetch-Dest": "image",
                                         "Sec-Fetch-Site": "same-origin"
@@ -165,7 +169,7 @@ async def request(method: str, url: str, read=True, **kwargs):
                         "POST",
                         f"{referer}/.well-known/ddos-guard/mark/",
                         json=ddos_guard_bypass_fake_mark,
-                        cookies=globals.cookies | ddos_guard_cookies,
+                        cookies=cookies | ddos_guard_cookies,
                         headers=headers | {
                             "Content-Type": "text/plain;charset=UTF-8",
                             "DNT": "1",
@@ -492,7 +496,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
     async with fast_checks:
 
         try:
-            res = await fetch("POST", fast_check_endpoint, data={"threads": ",".join(str(game.id) for game in games)})
+            res = await fetch("POST", fast_check_endpoint, no_cookies=True, data={"threads": ",".join(str(game.id) for game in games)})
             res = json.loads(res)
             if res["msg"] in ("Missing threads data", "Thread not found"):
                 res["status"] = "ok"
