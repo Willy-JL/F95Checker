@@ -166,11 +166,10 @@ Please note that this extension is solely to aid the usage of the desktop tool, 
 
 F95Zone does not yet have a proper API serving the information needed by this tool, so the only way to gather them is by requesting the full game threads like a normal
 browser would. However this is not practical because it consumes a lot of network and computing resources, takes way too long and puts unnecessary stress on the forum
-servers. This tool makes a compromise: it makes small HEAD requests to the threads, basically checking if a redirect happens. The URL will usually change when the thread
-title is changed, and since many titles contain the version numbers, a redirect will often indicate an update and in that case the full thread will be fetched and
-scanned for all the game details. This is what allows F95Checker to quickly check hundreds of games in a matter of seconds. However this will not detect many other
-changes, like status and description, so the tool will run periodic full rechecks once a week. When a full recheck happens you will see the status text in the bottom
-right corner saying "Running x full rechecks".
+servers. This tool makes a compromise: it makes small chunked requests to a dedicated API to check for new version numbers, and when an update is found it then fetches
+the full thread and scans it for all the game details. This is what allows F95Checker to quickly check thousands of games in a matter of seconds. However this will not
+detect many other changes, like status and description, so the tool will run periodic full rechecks once a week. When a full recheck happens you will see the status text
+in the bottom right corner saying "Running x full rechecks".
 
 ## Progress and plans tracker:
 

@@ -842,9 +842,9 @@ class MainGUI():
 
                         # Prepare bottom status / watermark text (done before sidebar to get text offset from bottom of window)
                         if (count := api.images.count) > 0:
-                            text = f"Downloading {count}{'+' if count == globals.settings.refresh_workers else ''} image{'s' if count > 1 else ''}..."
-                        elif (count := api.fulls.count) > 0:
-                            text = f"Running {count}{'+' if count == globals.settings.refresh_workers else ''} full recheck{'s' if count > 1 else ''}..."
+                            text = f"Downloading {count} image{'s' if count > 1 else ''}..."
+                        elif (count := api.full_checks.count) > 0:
+                            text = f"Running {count} full recheck{'s' if count > 1 else ''}..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
                         else:
@@ -1253,7 +1253,7 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
-            utils.start_refresh_task(api.check(game, full=True, login=True))
+            utils.start_refresh_task(api.fast_check([game], full=True, single=True))
         if game.status is Status.Custom:
             imgui.pop_disabled()
 
@@ -2130,13 +2130,15 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
+            imgui.text("Sam: Added the version API for fast refreshing")
+            imgui.bullet()
             imgui.text("GR3ee3N: Optimized build workflows and other PRs")
             imgui.bullet()
             imgui.text("batblue: MacOS suppport and feedback guy")
             imgui.bullet()
             imgui.text("unroot: Linux support and feedback guy")
             imgui.bullet()
-            imgui.text("ploper26: Suggested HEAD requests for refreshing")
+            imgui.text("ploper26: Suggested HEAD checks (no longer used)")
             imgui.bullet()
             imgui.text("ascsd: Helped with brainstorming on some issues and gave some tips")
             imgui.bullet()
@@ -2971,15 +2973,14 @@ class MainGUI():
                     utils.push_popup(
                         msgbox.msgbox, "About refreshing",
                         "Refreshing is the process by which F95Checker goes through your games and checks\n"
-                        "if they have received updates. To keep it fast and smooth this is done by detecting\n"
-                        "changes in the title of the thread (more precisely it checks for redirects, so it doesn't\n"
-                        "need to fetch the whole page).\n"
+                        "if they have received updates. To keep it fast and smooth this is done by checking\n"
+                        "version number changes in chunks with a dedicated API.\n"
                         "\n"
-                        "This means that sometimes it might not be able to pick up some subtle changes and small\n"
-                        "updates. To fix this it also runs a full refresh every week or so (each game has its own\n"
-                        "timer).\n"
+                        "This means that sometimes it might not be able to pick up some subtle changes and\n"
+                        "small updates. To fix this it also runs a full refresh every week or so (each game has\n"
+                        "its own timer).\n"
                         "\n"
-                        "So a full recheck of a game will happen every time the title changes, or every 7 days.\n"
+                        "So a full recheck of a game will happen every time the version changes, or every 7 days.\n"
                         "You can force full rechecks for single games or for the whole list with the right click\n"
                         "menu on the game and on the refresh button.",
                         MsgBox.info

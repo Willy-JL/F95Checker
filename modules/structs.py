@@ -644,36 +644,36 @@ Type = IntEnumHack("Type", [
 
 @dataclasses.dataclass
 class Game:
-    id                   : int
-    name                 : str
-    version              : str
-    developer            : str
-    type                 : Type
-    status               : Status
-    url                  : str
-    added_on             : Datestamp
-    last_updated         : Datestamp
-    last_full_refresh    : int
-    last_refresh_version : str
-    last_played          : Datestamp
-    score                : float
-    rating               : int
-    played               : bool
-    installed            : str
-    updated              : bool | None
-    archived             : bool
-    executables          : list[str]
-    description          : str
-    changelog            : str
-    tags                 : tuple[Tag]
-    labels               : list[Label.get]
-    notes                : str
-    image_url            : str
-    downloads            : tuple[tuple[str, list[tuple[str, str]]]]
-    image                : imagehelper.ImageHelper = None
-    executables_valids   : list[bool] = None
-    executables_valid    : bool = None
-    _did_init            : bool = False
+    id                 : int
+    name               : str
+    version            : str
+    developer          : str
+    type               : Type
+    status             : Status
+    url                : str
+    added_on           : Datestamp
+    last_updated       : Datestamp
+    last_full_check    : int
+    last_check_version : str
+    last_played        : Datestamp
+    score              : float
+    rating             : int
+    played             : bool
+    installed          : str
+    updated            : bool | None
+    archived           : bool
+    executables        : list[str]
+    description        : str
+    changelog          : str
+    tags               : tuple[Tag]
+    labels             : list[Label.get]
+    notes              : str
+    image_url          : str
+    downloads          : tuple[tuple[str, list[tuple[str, str]]]]
+    image              : imagehelper.ImageHelper = None
+    executables_valids : list[bool] = None
+    executables_valid  : bool = None
+    _did_init          : bool = False
 
     def __post_init__(self):
         self._did_init = True
@@ -765,8 +765,8 @@ class Game:
             "url",
             "added_on",
             "last_updated",
-            "last_full_refresh",
-            "last_refresh_version",
+            "last_full_check",
+            "last_check_version",
             "last_played",
             "score",
             "rating",

@@ -48,23 +48,25 @@ from modules import (
 
 domain = "f95zone.to"
 host = "https://" + domain
-check_login_page  = host + "/account/"
-login_page        = host + "/login/"
-notif_endpoint    = host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
-alerts_page       = host + "/account/alerts/"
-inbox_page        = host + "/conversations/"
-threads_page      = host + "/threads/"
-bookmarks_page    = host + "/account/bookmarks?difference={offset}"
-watched_page      = host + "/watched/threads?unread=0&page={page}"
-qsearch_endpoint  = host + "/quicksearch"
-update_endpoint   = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+check_login_page    = host + "/account/"
+login_page          = host + "/login/"
+fast_check_endpoint = host + "/sam/checker.php"
+notif_endpoint      = host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
+alerts_page         = host + "/account/alerts/"
+inbox_page          = host + "/conversations/"
+threads_page        = host + "/threads/"
+bookmarks_page      = host + "/account/bookmarks?difference={offset}"
+watched_page        = host + "/watched/threads?unread=0&page={page}"
+qsearch_endpoint    = host + "/quicksearch"
+update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
 
 updating = False
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
 webpage_prefix = "F95Checker-Temp-"
-images = ContextLimiter()
-fulls = CounterContext()
+fast_checks = ContextLimiter()
+full_checks = ContextLimiter()
+images = CounterContext()
 xf_token = ""
 
 
@@ -235,6 +237,14 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
     elif isinstance(res, dict):
         if res.get("status") == "error":
             more = json.dumps(res, indent=4)
+            if msg := res.get("msg"):
+                raise msgbox.Exc(
+                    "API error",
+                    "The F95Zone API returned an 'error' status with the following message:\n"
+                    f"{msg}",
+                    MsgBox.error,
+                    more=more
+                )
             if errors := res.get("errors", []):
                 if "Cookies are required to use this site. You must accept them to continue using the site." in errors:
                     if return_login:
@@ -466,58 +476,84 @@ async def import_f95_watched_threads():
         )
 
 
-async def check(game: Game, full=False, login=False):
-    if game.status is Status.Custom:
-        return
+def last_check_before(before_version: str, checked_version: str):
+    checked = (checked_version or "0").split(".")
+    before = before_version.split(".")
+    if len(before) > len(checked):
+        checked += ["0" for _ in range(len(before) - len(checked))]
+    elif len(checked) > len(before):
+        before += ["0" for _ in range(len(checked) - len(before))]
+    is_before = False
+    for ch, bf in zip(checked, before):
+        if ch == bf:
+            continue  # Ignore this field if same on both versions
+        is_before = int(ch) < int(bf)
+        break  # If field is smaller then its before
+    return is_before
 
-    if login:
+
+async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None, full=False, single=False):
+    if single:
         globals.refresh_total = 2
         if not await assert_login():
             return
         globals.refresh_progress = 1
+        fast_checks.avail = 1
 
-    def last_refresh_before(breaking: str):
-        checked = (game.last_refresh_version or "0").split(".")
-        breaking = breaking.split(".")
-        if len(breaking) > len(checked):
-            checked += ["0" for _ in range(len(breaking) - len(checked))]
-        elif len(checked) > len(breaking):
-            breaking += ["0" for _ in range(len(checked) - len(breaking))]
-        breaking_changes = False
-        for ch, br in zip(checked, breaking):
-            if ch == br:
-                continue  # Ignore this field if same on both versions
-            breaking_changes = int(br) > int(ch)
-            break  # If field is bigger then its breaking
-        return breaking_changes
-    breaking_name_parsing = last_refresh_before("9.6.4")  # Skip name change in update popup
-    breaking_version_parsing = last_refresh_before("9.6.4")  # Skip update popup and keep installed/played checkboxes
-    breaking_keep_old_image = last_refresh_before("9.0")  # Keep existing image files
-    breaking_require_full_check = last_refresh_before("9.6.5")  # Download links
-    full = full or (
-        game.status is Status.Unchecked or
-        (game.last_full_refresh < time.time() - full_interval) or
-        (game.image.missing and game.image_url != "missing") or
-        breaking_require_full_check
-    )
-    if not full:
-        async with request("HEAD", game.url, read=False) as (_, req):
-            if (redirect := str(req.real_url)) != game.url:
-                if str(game.id) in redirect and redirect.startswith(threads_page):
-                    full = True
-                else:
-                    raise msgbox.Exc(
-                        "Bad HEAD response",
-                        f"Something went wrong checking thread {game.id}, F95Zone responded with an unexpected redirect.\n"
-                        "\n"
-                        "The quick check HEAD request redirected to:\n"
-                        f"{redirect}",
-                        MsgBox.error
-                    )
-    if not full:
-        return
+    games = list(filter(lambda game: game.status is not Status.Custom, games))
 
-    with fulls:
+    async with fast_checks:
+
+        try:
+            res = await fetch("POST", fast_check_endpoint, data={"threads": ",".join(str(game.id) for game in games)})
+            res = json.loads(res)
+            if res["msg"] in ("Missing threads data", "Thread not found"):
+                res["status"] = "ok"
+                res["msg"] = {}
+            raise_f95zone_error(res)
+            versions = res["msg"]
+        except Exception as exc:
+            if isinstance(exc, msgbox.Exc):
+                raise exc
+            async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
+                await f.write(res)
+            raise msgbox.Exc(
+                "Fast check error",
+                "Something went wrong checking some of your games:\n"
+                f"{error.text()}\n"
+                "\n"
+                "The response body has been saved to:\n"
+                f"{globals.self_path / 'check_broken.bin'}\n"
+                "Please submit a bug report on F95Zone or GitHub including this file.",
+                MsgBox.error,
+                more=error.traceback()
+            )
+
+        for game in games:
+
+            version = versions.get(str(game.id))
+            if not version or version == "Unknown":
+                version = "N/A"
+
+            this_full = full or (
+                version != game.version or
+                game.status is Status.Unchecked or
+                (game.last_full_check < time.time() - full_interval) or
+                (game.image.missing and game.image_url != "missing") or
+                last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
+            )
+            if not this_full:
+                globals.refresh_progress += 1
+                continue
+
+            if single:
+                await full_check(game, version)
+            elif full_queue is not None:
+                full_queue.append((game, version))
+
+
+async def full_check(game: Game, version: str):
+    async with full_checks:
 
         async with request("GET", game.url, until=[b"</article>"], timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
@@ -528,16 +564,10 @@ async def check(game: Game, full=False, login=False):
                         f"{icons.trash_can_outline} Remove": lambda: callbacks.remove_game(game, bypass_confirm=True),
                         f"{icons.puzzle_outline} Convert": lambda: callbacks.convert_f95zone_to_custom(game)
                     }
-                    if req.status == 403:
-                        title = "No permission"
-                        msg = "You do not have permission to view the F95Zone thread for this game"
-                    elif req.status == 404:
-                        title = "Thread not found"
-                        msg = "The F95Zone thread for this game could not be found"
                     utils.push_popup(
-                        msgbox.msgbox, title,
-                        msg +
-                        f":\n{game.name}\n"
+                        msgbox.msgbox, "Thread not found",
+                        "The F95Zone thread for this game could not be found:\n"
+                        f"{game.name}\n"
                         "It might have been privated, moved or deleted, maybe for breaking forum rules.\n"
                         "\n"
                         "You can remove this game from your library, or convert it to a custom game.\n"
@@ -547,6 +577,7 @@ async def check(game: Game, full=False, login=False):
                         MsgBox.error,
                         buttons=buttons
                     )
+                globals.refresh_progress += 1
                 return
             url = utils.clean_thread_url(str(req.real_url))
 
@@ -554,11 +585,12 @@ async def check(game: Game, full=False, login=False):
         old_version = game.version
         old_status = game.status
 
+        parse = parser.thread
         args = (game.id, res)
         if globals.settings.use_parser_processes:
             # Using multiprocessing can help with interface stutters
             pipe = ProcessPipe()
-            proc = multiprocessing.Process(target=parser.thread, args=(*args, pipe))
+            proc = multiprocessing.Process(target=parse, args=(*args, pipe))
             with pipe(proc):
                 try:
                     async with async_timeout.timeout(globals.settings.request_timeout):
@@ -570,13 +602,17 @@ async def check(game: Game, full=False, login=False):
                         MsgBox.error
                     )
         else:
-            ret = parser.thread(*args)
+            ret = parse(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
+        (name, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
 
-        last_full_refresh = int(time.time())
-        last_refresh_version = globals.version
+        breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
+        breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/played checkboxes
+        breaking_keep_old_image  = last_check_before("9.0",   game.last_check_version)  # Keep existing image files
+
+        last_full_check = int(time.time())
+        last_check_version = globals.version
 
         # Skip update popup and don't reset played/installed checkboxes if refreshing with braking changes
         played = game.played
@@ -608,8 +644,8 @@ async def check(game: Game, full=False, login=False):
             game.status = status
             game.url = url
             game.last_updated = last_updated
-            game.last_full_refresh = last_full_refresh
-            game.last_refresh_version = last_refresh_version
+            game.last_full_check = last_full_check
+            game.last_check_version = last_check_version
             game.score = score
             game.played = played
             game.installed = installed
@@ -632,10 +668,9 @@ async def check(game: Game, full=False, login=False):
                     status=old_status,
                 )
                 globals.updated_games[game.id] = old_game
-        await asyncio.shield(update_game())
 
         if fetch_image and image_url and image_url != "missing":
-            async with images:
+            with images:
                 try:
                     res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
                 except aiohttp.ClientConnectorError as exc:
@@ -664,6 +699,7 @@ async def check(game: Game, full=False, login=False):
                 await asyncio.shield(set_image_and_update_game())
         else:
             await asyncio.shield(update_game())
+        globals.refresh_progress += 1
 
 
 async def check_notifs(login=False):
@@ -967,33 +1003,25 @@ async def refresh(full=False, notifs=True):
     if not await assert_login():
         return
 
-    game_queue = asyncio.Queue()
-    async def worker():
-        while not game_queue.empty() and utils.is_refreshing():
-            try:
-                await check(game_queue.get_nowait(), full=full)
-            except Exception:
-                game_refresh_task.cancel()
-                raise
-            globals.refresh_progress += 1
-
+    fast_queue: list[list[Game]] = [[]]
+    full_queue: list[tuple[game, str]] = []
     for game in globals.games.values():
         if game.status is Status.Custom:
             continue
         if game.status is Status.Completed and not globals.settings.refresh_completed_games:
             continue
-        game_queue.put_nowait(game)
+        if len(fast_queue[-1]) == 100:
+            fast_queue.append([])
+        fast_queue[-1].append(game)
 
     globals.refresh_progress += 1
-    globals.refresh_total += game_queue.qsize() + int(globals.settings.check_notifs)
-    images.avail = int(max(1, globals.settings.refresh_workers / 10))
+    globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + int(globals.settings.check_notifs)
+    fast_checks.avail = globals.settings.refresh_workers
+    full_checks.avail = int(max(1, globals.settings.refresh_workers / 10))
 
-    game_refresh_task = asyncio.gather(*[worker() for _ in range(globals.settings.refresh_workers)])
-    def reset_counts(_):
-        images.count = 0
-        fulls.count = 0
-    game_refresh_task.add_done_callback(reset_counts)
-    await game_refresh_task
+    await asyncio.gather(*[fast_check(chunk, full_queue, full=full) for chunk in fast_queue])
+
+    await asyncio.gather(*[full_check(game, version) for game, version in full_queue])
 
     if notifs and globals.settings.check_notifs:
         await check_notifs()
