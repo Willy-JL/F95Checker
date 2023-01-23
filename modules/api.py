@@ -410,7 +410,7 @@ async def import_browser_bookmarks(file: str | pathlib.Path):
 
 
 async def import_f95_bookmarks():
-    globals.refresh_total = 2
+    globals.refresh_total = 1
     if not await assert_login():
         return
     globals.refresh_progress = 1
@@ -418,11 +418,11 @@ async def import_f95_bookmarks():
     threads = []
     while True:
         globals.refresh_total += 1
-        globals.refresh_progress += 1
         res = await fetch("GET", bookmarks_page.format(offset=offset))
         raise_f95zone_error(res)
         html = parser.html(res)
         bookmarks = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("listPlain"))
+        globals.refresh_progress += 1
         if not bookmarks:
             break
         for title in bookmarks.find_all(parser.is_class("contentRow-title")):
@@ -439,7 +439,7 @@ async def import_f95_bookmarks():
 
 
 async def import_f95_watched_threads():
-    globals.refresh_total = 2
+    globals.refresh_total = 1
     if not await assert_login():
         return
     globals.refresh_progress = 1
@@ -447,11 +447,11 @@ async def import_f95_watched_threads():
     threads = []
     while True:
         globals.refresh_total += 1
-        globals.refresh_progress += 1
         res = await fetch("GET", watched_page.format(page=page))
         raise_f95zone_error(res)
         html = parser.html(res)
         watched = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("structItemContainer"))
+        globals.refresh_progress += 1
         if not watched:
             break
         page += 1
@@ -722,6 +722,7 @@ async def check_notifs(login=False):
             MsgBox.error,
             more=error.traceback()
         )
+    globals.refresh_progress += 1
     if alerts != 0 and inbox != 0:
         msg = (
             f"You have {alerts + inbox} unread notifications.\n"
