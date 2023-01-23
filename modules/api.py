@@ -96,7 +96,7 @@ def cookiedict(cookies: http.cookies.SimpleCookie):
 
 
 @contextlib.asynccontextmanager
-async def request(method: str, url: str, read=True, until: list[bytes] = None, **kwargs):
+async def request(method: str, url: str, read=True, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
@@ -178,20 +178,7 @@ async def request(method: str, url: str, read=True, until: list[bytes] = None, *
                         ddos_guard_cookies.update(cookiedict(mark_req.cookies))
                     continue
                 if read:
-                    if until:
-                        offset = 0
-                        async for chunk in req.content.iter_any():
-                            if not chunk:
-                                break
-                            res += chunk
-                            while (new_offset := res.find(until[0], offset)) != -1:
-                                offset = new_offset + len(until.pop(0))
-                                if not until:
-                                    break
-                            if not until:
-                                break
-                    else:
-                        res += await req.read()
+                    res += await req.read()
                 yield res, req
             break
         except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
@@ -273,7 +260,7 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
 
 async def is_logged_in():
     global xf_token
-    async with request("GET", check_login_page, until=[b"_xfToken", b">"]) as (res, req):
+    async with request("GET", check_login_page) as (res, req):
         if not 200 <= req.status < 300:
             res += await req.content.read()
             if not raise_f95zone_error(res, return_login=True):
@@ -555,7 +542,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
 async def full_check(game: Game, version: str):
     async with full_checks:
 
-        async with request("GET", game.url, until=[b"</article>"], timeout=globals.settings.request_timeout * 2) as (res, req):
+        async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
             if req.status in (403, 404):
                 if not game.archived:
