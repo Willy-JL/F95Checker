@@ -50,7 +50,7 @@ domain = "f95zone.to"
 host = "https://" + domain
 check_login_page    = host + "/account/"
 login_page          = host + "/login/"
-fast_check_endpoint = host + "/sam/checker.php"
+fast_check_endpoint = host + "/sam/checker.php?threads={threads}"
 notif_endpoint      = host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
 alerts_page         = host + "/account/alerts/"
 inbox_page          = host + "/conversations/"
@@ -96,7 +96,7 @@ def cookiedict(cookies: http.cookies.SimpleCookie):
 
 
 @contextlib.asynccontextmanager
-async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
+async def request(method: str, url: str, read=True, no_cookies=False, expect_json=False, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
@@ -122,8 +122,11 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
                 **req_opts,
                 **kwargs
             ) as req:
-                res = b""
-                if req.headers.get("server") == "ddos-guard" and req.status == 403 and b"<title>DDOS-GUARD</title>" in (res := await req.read()):
+                if not read:
+                    yield b"", req
+                    break
+                res = await req.read()
+                if req.headers.get("server") in ("ddos-guard", "", None) and re.search(rb"<title>DDOS-GUARD</title>", res, flags=re.IGNORECASE):
                     # Attempt DDoS-Guard bypass (credits to https://git.gay/a/ddos-guard-bypass)
                     ddos_guard_cookies.update(cookiedict(req.cookies))
                     if not ddos_guard_first_challenge:
@@ -181,11 +184,11 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
                     ) as mark_req:
                         ddos_guard_cookies.update(cookiedict(mark_req.cookies))
                     continue
-                if read:
-                    res += await req.read()
+                if expect_json:
+                    res = json.loads(res)
                 yield res, req
             break
-        except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        except (aiohttp.ClientError, asyncio.TimeoutError, json.decoder.JSONDecodeError) as exc:
             if globals.settings.ignore_semaphore_timeouts and isinstance(exc, OSError) and exc.errno == 121:
                 continue
             retries -= 1
@@ -496,8 +499,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
     async with fast_checks:
 
         try:
-            res = await fetch("POST", fast_check_endpoint, no_cookies=True, data={"threads": ",".join(str(game.id) for game in games)})
-            res = json.loads(res)
+            res = await fetch("GET", fast_check_endpoint.format(threads=",".join(str(game.id) for game in games)), expect_json=True, no_cookies=True)
             if res["msg"] in ("Missing threads data", "Thread not found"):
                 res["status"] = "ok"
                 res["msg"] = {}
@@ -507,7 +509,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
             if isinstance(exc, msgbox.Exc):
                 raise exc
             async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
-                await f.write(res)
+                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
             raise msgbox.Exc(
                 "Fast check error",
                 "Something went wrong checking some of your games:\n"
@@ -701,8 +703,7 @@ async def check_notifs(login=False):
         globals.refresh_progress = 1
 
     try:
-        res = await fetch("GET", notif_endpoint.format(xf_token=xf_token))
-        res = json.loads(res)
+        res = await fetch("GET", notif_endpoint.format(xf_token=xf_token), expect_json=True)
         raise_f95zone_error(res)
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
         inbox  = int(res["visitor"]["conversations_unread"].replace(",", "").replace(".", ""))
@@ -710,7 +711,7 @@ async def check_notifs(login=False):
         if isinstance(exc, msgbox.Exc):
             raise exc
         async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
-            await f.write(res)
+            await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Notifs check error",
             "Something went wrong checking your unread notifications:\n"
@@ -764,9 +765,8 @@ async def check_notifs(login=False):
 async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
-    res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
     try:
-        res = json.loads(res)
+        res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"}, expect_json=True)
         globals.last_update_check = time.time()
         if "tag_name" not in res:
             utils.push_popup(
@@ -808,7 +808,7 @@ async def check_updates():
             return
     except Exception:
         async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
-            await f.write(res)
+            await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Update check error",
             "Something went wrong checking for F95Checker updates:\n"
