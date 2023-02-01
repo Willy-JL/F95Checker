@@ -486,14 +486,7 @@ def last_check_before(before_version: str, checked_version: str):
     return is_before
 
 
-async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None, full=False, single=False):
-    if single:
-        globals.refresh_total = 2
-        if not await assert_login():
-            return
-        globals.refresh_progress = 1
-        fast_checks.avail = 1
-
+async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None, full=False):
     games = list(filter(lambda game: game.status is not Status.Custom, games))
 
     async with fast_checks:
@@ -539,10 +532,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
                 globals.refresh_progress += 1
                 continue
 
-            if single:
-                await full_check(game, version)
-            elif full_queue is not None:
-                full_queue.append((game, version))
+            full_queue.append((game, version))
 
 
 async def full_check(game: Game, version: str):
@@ -991,23 +981,24 @@ async def check_updates():
         )
 
 
-async def refresh(full=False, notifs=True):
+async def refresh(*games: list[Game], full=False, notifs=True):
     if not await assert_login():
         return
 
     fast_queue: list[list[Game]] = [[]]
     full_queue: list[tuple[game, str]] = []
-    for game in globals.games.values():
+    for game in (games or globals.games.values()):
         if game.status is Status.Custom:
             continue
-        if game.status is Status.Completed and not globals.settings.refresh_completed_games:
+        if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games:
             continue
         if len(fast_queue[-1]) == 100:
             fast_queue.append([])
         fast_queue[-1].append(game)
 
+    notifs = notifs and globals.settings.check_notifs
     globals.refresh_progress += 1
-    globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + int(globals.settings.check_notifs)
+    globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
     fast_checks.avail = globals.settings.refresh_workers
     full_checks.avail = int(max(1, globals.settings.refresh_workers / 10))
 
@@ -1015,11 +1006,12 @@ async def refresh(full=False, notifs=True):
 
     await asyncio.gather(*[full_check(game, version) for game, version in full_queue])
 
-    if notifs and globals.settings.check_notifs:
+    if notifs:
         await check_notifs()
 
-    globals.settings.last_successful_refresh.update(time.time())
-    await db.update_settings("last_successful_refresh")
+    if not games:
+        globals.settings.last_successful_refresh.update(time.time())
+        await db.update_settings("last_successful_refresh")
 
 
 ddos_guard_bypass_fake_mark = {

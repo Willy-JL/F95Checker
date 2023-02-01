@@ -1253,7 +1253,7 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
-            utils.start_refresh_task(api.fast_check([game], full=True, single=True))
+            utils.start_refresh_task(api.refresh(*[game], full=True, notifs=False))
         if game.status is Status.Custom:
             imgui.pop_disabled()
 
