@@ -741,7 +741,8 @@ class Game:
         self.validate_executables()
 
     def add_label(self, label: Label):
-        self.labels.append(label)
+        if label not in self.labels:
+            self.labels.append(label)
         self.labels.sort(key=lambda label: Label.instances.index(label))
         from modules import globals, async_thread, db
         async_thread.run(db.update_game(self, "labels"))
@@ -749,7 +750,8 @@ class Game:
             globals.gui.require_sort = True
 
     def remove_label(self, label: Label):
-        self.labels.remove(label)
+        while label in self.labels:
+            self.labels.remove(label)
         from modules import globals, async_thread, db
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
