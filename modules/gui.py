@@ -295,6 +295,7 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
+        self.selected_games_count = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.sorts: list[SortSpec] = []
@@ -1096,9 +1097,9 @@ class MainGUI():
             utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None):
-        if not game.executables:
+        if game and not game.executables:
             imgui.push_style_color(imgui.COLOR_TEXT, *imgui.style.colors[imgui.COLOR_TEXT_DISABLED][:3], 0.75)
-        else:
+        elif game:
             if executable:
                 try:
                     valid = game.executables_valids[game.executables.index(executable)]
@@ -1112,12 +1113,22 @@ class MainGUI():
             clicked = imgui.selectable(label, False)[0]
         else:
             clicked = imgui.button(label)
-        if not game.executables or not valid:
+        if game and (not game.executables or not valid):
             imgui.pop_style_color()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-            callbacks.open_game_folder(game)
+            if game:
+                callbacks.open_game_folder(game, executable=executable)
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        callbacks.open_game_folder(game)
         elif clicked:
-            callbacks.launch_game(game, executable=executable)
+            if game:
+                callbacks.launch_game(game, executable=executable)
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        callbacks.launch_game(game)
 
     def draw_game_name_text(self, game: Game):
         if game.archived:
@@ -1136,37 +1147,74 @@ class MainGUI():
             return game.version
 
     def draw_game_played_checkbox(self, game: Game, label=""):
-        changed, value = imgui.checkbox(f"{label}###{game.id}_played", game.played)
-        if changed:
-            game.played = value
+        if game:
+            changed, value = imgui.checkbox(f"{label}###{game.id}_played", game.played)
+            if changed:
+                game.played = value
+        else:
+            if imgui.small_button(icons.check):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.played = True
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.played = False
+            imgui.same_line()
+            imgui.text(label + " ")
 
     def draw_game_installed_checkbox(self, game: Game, label=""):
-        if game.installed and game.installed == game.version:
-            checkbox = imgui.checkbox
-        else:
-            checkbox = imgui._checkbox
-        changed, _ = checkbox(f"{label}###{game.id}_installed", bool(game.installed))
-        if changed:
-            if game.installed == game.version:
-                game.installed = ""  # Latest installed -> Not installed
+        if game:
+            if game.installed and game.installed == game.version:
+                checkbox = imgui.checkbox
             else:
-                game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
-                game.updated = False
+                checkbox = imgui._checkbox
+            changed, _ = checkbox(f"{label}###{game.id}_installed", bool(game.installed))
+            if changed:
+                if game.installed == game.version:
+                    game.installed = ""  # Latest installed -> Not installed
+                else:
+                    game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
+                    game.updated = False
+        else:
+            if imgui.small_button(icons.check):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.installed = game.version
+                        game.updated = False
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.installed = ""
+            imgui.same_line()
+            imgui.text(label + " ")
 
     def draw_game_rating_widget(self, game: Game):
-        changed, value = ratingwidget.ratingwidget("", game.rating)
+        changed, value = ratingwidget.ratingwidget("", game.rating if game else 0)
         if changed:
-            game.rating = value
+            if game:
+                game.rating = value
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        game.rating = value
 
     def draw_game_open_thread_button(self, game: Game, label="", selectable=False):
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
             clicked = imgui.button(label)
-        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+        if game and imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             callbacks.clipboard_copy(game.url)
         elif clicked:
-            callbacks.open_webpage(game.url)
+            if game:
+                callbacks.open_webpage(game.url)
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        callbacks.open_webpage(game.url)
 
     def draw_game_copy_link_button(self, game: Game, label="", selectable=False):
         if selectable:
@@ -1177,14 +1225,28 @@ class MainGUI():
             callbacks.clipboard_copy(game.url)
 
     def draw_game_archive_button(self, game: Game, label_off="", label_on="", selectable=False):
-        if selectable:
-            clicked = imgui.selectable(label_on if game.archived else label_off, False)[0]
+        if game:
+            if selectable:
+                clicked = imgui.selectable(label_on if game.archived else label_off, False)[0]
+            else:
+                clicked = imgui.button(label_on if game.archived else label_off)
+            if clicked:
+                game.archived = not game.archived
+                if game.archived:
+                    game.updated = False
         else:
-            clicked = imgui.button(label_on if game.archived else label_off)
-        if clicked:
-            game.archived = not game.archived
-            if game.archived:
-                game.updated = False
+            if imgui.small_button(icons.check):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.archived = True
+                        game.updated = False
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.archived = False
+            imgui.same_line()
+            imgui.text(label_off + " ")
 
     def draw_game_remove_button(self, game: Game, label="", selectable=False):
         if selectable:
@@ -1192,7 +1254,10 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
-            callbacks.remove_game(game)
+            if game:
+                callbacks.remove_game(game)
+            else:
+                callbacks.remove_game(*filter(lambda game: game.selected, globals.games.values()))
 
     def draw_game_add_exe_button(self, game: Game, label="", selectable=False):
         if selectable:
@@ -1203,28 +1268,38 @@ class MainGUI():
             callbacks.add_game_exe(game)
 
     def draw_game_clear_exes_button(self, game: Game, label="", selectable=False):
-        if not game.executables:
+        if game and not game.executables:
             imgui.push_disabled()
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
             clicked = imgui.button(label)
-        if not game.executables:
+        if game and not game.executables:
             imgui.pop_disabled()
         if clicked:
-            game.clear_executables()
+            if game:
+                game.clear_executables()
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        game.clear_executables()
 
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None):
-        if not game.executables:
+        if game and not game.executables:
             imgui.push_alpha()
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
             clicked = imgui.button(label)
-        if not game.executables:
+        if game and not game.executables:
             imgui.pop_alpha()
         if clicked:
-            callbacks.open_game_folder(game, executable=executable)
+            if game:
+                callbacks.open_game_folder(game, executable=executable)
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        callbacks.open_game_folder(game)
 
     def draw_game_id_button(self, game: Game, label="", selectable=False):
         if game.status is Status.Custom:
@@ -1246,28 +1321,42 @@ class MainGUI():
             imgui.pop_disabled()
 
     def draw_game_recheck_button(self, game: Game, label="", selectable=False):
-        if game.status is Status.Custom:
+        if game and game.status is Status.Custom:
             imgui.push_disabled()
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
             clicked = imgui.button(label)
         if clicked:
-            utils.start_refresh_task(api.refresh(*[game], full=True, notifs=False))
-        if game.status is Status.Custom:
+            utils.start_refresh_task(api.refresh(*([game] if game else filter(lambda game: game.selected, globals.games.values())), full=True, notifs=False))
+        if game and game.status is Status.Custom:
             imgui.pop_disabled()
 
     def draw_game_labels_select_widget(self, game: Game):
         if Label.instances:
-            for label in Label.instances:
-                changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
-                if changed:
-                    if value:
-                        game.add_label(label)
-                    else:
-                        game.remove_label(label)
-                imgui.same_line()
-                self.draw_label_widget(label)
+            if game:
+                for label in Label.instances:
+                    changed, value = imgui.checkbox(f"###{game.id}_label_{label.id}", label in game.labels)
+                    if changed:
+                        if value:
+                            game.add_label(label)
+                        else:
+                            game.remove_label(label)
+                    imgui.same_line()
+                    self.draw_label_widget(label)
+            else:
+                for label in Label.instances:
+                    if imgui.small_button(icons.check):
+                        for game in globals.games.values():
+                            if game.selected:
+                                game.add_label(label)
+                    imgui.same_line()
+                    if imgui.small_button(icons.close):
+                        for game in globals.games.values():
+                            if game.selected:
+                                game.remove_label(label)
+                    imgui.same_line()
+                    self.draw_label_widget(label)
         else:
             imgui.text_disabled("Make some labels first!")
 
@@ -1282,21 +1371,29 @@ class MainGUI():
             imgui.same_line()
             self.draw_tag_widget(tag)
 
-    def draw_game_context_menu(self, game: Game):
-        self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
+    def draw_game_context_menu(self, game: Game = None):
+        if not game:
+            imgui.text(f"Selected games: {self.selected_games_count}")
+        if game:
+            self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
         self.draw_game_recheck_button(game, f"{icons.reload_alert} Full Recheck", selectable=True)
         imgui.separator()
         self.draw_game_play_button(game, f"{icons.play} Play", selectable=True)
         self.draw_game_open_thread_button(game, f"{icons.open_in_new} Open Thread", selectable=True)
-        self.draw_game_copy_link_button(game, f"{icons.content_copy} Copy Link", selectable=True)
+        if game:
+            self.draw_game_copy_link_button(game, f"{icons.content_copy} Copy Link", selectable=True)
         imgui.separator()
-        self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe", selectable=True)
+        if game:
+            self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe", selectable=True)
         self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes", selectable=True)
         self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
         self.draw_game_played_checkbox(game, f"{icons.flag_checkered} Played")
         self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
         imgui.separator()
+        if not game:
+            imgui.text("Set:")
+            imgui.same_line()
         self.draw_game_rating_widget(game)
         if imgui.begin_menu(f"{icons.label_multiple_outline} Labels"):
             self.draw_game_labels_select_widget(game)
@@ -2267,6 +2364,9 @@ class MainGUI():
                         game = globals.games[id]
                         return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
                     self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
+            for game in globals.games.values():
+                if game.selected and game.id not in self.sorted_games_ids:
+                    game.selected = False
             sorts.specs_dirty = False
             self.require_sort = False
 
@@ -2279,9 +2379,17 @@ class MainGUI():
             if imgui.is_item_clicked():
                 self.game_hitbox_click = True
             if self.game_hitbox_click and not imgui.is_mouse_down():
-                # Left click = open game info popup
                 self.game_hitbox_click = False
-                utils.push_popup(self.draw_game_info_popup, game, self.sorted_games_ids.copy())
+                if imgui.is_key_down(glfw.KEY_LEFT_CONTROL):
+                    # Ctrl + Left click = select
+                    game.selected = not game.selected
+                else:
+                    if any(game.selected for game in globals.games.values()):
+                        for game in globals.games.values():
+                            game.selected = False
+                    else:
+                        # Left click = open game info popup
+                        utils.push_popup(self.draw_game_info_popup, game, self.sorted_games_ids.copy())
         # Left click drag = swap if in manual sort mode
         if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
             self.game_hitbox_click = False
@@ -2301,7 +2409,10 @@ class MainGUI():
         context_id = f"###{game.id}_context"
         if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
             # Right click = context menu
-            self.draw_game_context_menu(game)
+            if game.selected:
+                self.draw_game_context_menu()
+            else:
+                self.draw_game_context_menu(game)
             imgui.end_popup()
 
     def sync_scroll(self):
@@ -2421,6 +2532,14 @@ class MainGUI():
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
+                if game.selected:
+                    imgui.push_alpha(0.5)
+                    imgui.get_window_draw_list().add_rect_filled(
+                        0, pos_y := imgui.get_cursor_screen_pos().y + 1,
+                        imgui.io.display_size.x, pos_y + frame_height + 2 * imgui.style.cell_padding.y,
+                        imgui.get_color_u32_rgba(*globals.settings.style_accent)
+                    )
+                    imgui.pop_alpha()
                 imgui.push_alpha(0.25)
                 imgui.selectable(f"###{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
                 imgui.pop_alpha()
@@ -2660,7 +2779,15 @@ class MainGUI():
             self.handle_game_hitbox_events(game, game_i)
             pos = imgui.get_item_rect_min()
             pos2 = imgui.get_item_rect_max()
-            draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+            if game.selected:
+                imgui.push_alpha(0.5)
+                draw_list.add_rect_filled(
+                    *pos, *pos2, imgui.get_color_u32_rgba(*globals.settings.style_accent),
+                    rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL
+                )
+                imgui.pop_alpha()
+            else:
+                draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
         else:
             imgui.dummy(cell_width, cell_height)
         draw_list.channels_merge()
@@ -2993,6 +3120,11 @@ class MainGUI():
             draw_settings_label(f"Total games count: {len(globals.games)}")
             imgui.text("")
             imgui.spacing()
+
+            if self.selected_games_count:
+                draw_settings_label(f"Selected games count: {self.selected_games_count}")
+                imgui.text("")
+                imgui.spacing()
 
             if len(self.filters) > 0 or self.add_box_text:
                 draw_settings_label(f"Filtered games count: {len(self.sorted_games_ids)}")

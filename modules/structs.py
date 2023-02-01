@@ -670,6 +670,7 @@ class Game:
     notes              : str
     image_url          : str
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
+    selected           : bool = False
     image              : imagehelper.ImageHelper = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
@@ -795,6 +796,10 @@ class Game:
                 globals.gui.require_sort = True
             return
         super().__setattr__(name, value)
+        if name == "selected":
+            from modules import globals
+            if globals.gui:
+                globals.gui.selected_games_count = len(list(filter(lambda game: game.selected, globals.games.values())))
 
 
 @dataclasses.dataclass
