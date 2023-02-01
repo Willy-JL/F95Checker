@@ -305,6 +305,7 @@ class MainGUI():
         self.input_chars: list[int] = []
         self.switched_display_mode = False
         self.type_label_width: float = None
+        self.last_selected_game: Game = None
         self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
@@ -2380,8 +2381,19 @@ class MainGUI():
                 self.game_hitbox_click = True
             if self.game_hitbox_click and not imgui.is_mouse_down():
                 self.game_hitbox_click = False
-                if imgui.is_key_down(glfw.KEY_LEFT_CONTROL):
-                    # Ctrl + Left click = select
+                if imgui.is_key_down(glfw.KEY_LEFT_SHIFT):
+                    # Shift + Left click = multi select
+                    if self.selected_games_count and self.last_selected_game.selected:
+                        start = self.sorted_games_ids.index(self.last_selected_game.id)
+                        end = self.sorted_games_ids.index(game.id)
+                        if start > end:
+                            start, end = end, start
+                        for select in self.sorted_games_ids[start:end + 1]:
+                            globals.games[select].selected = True
+                    else:
+                        game.selected = True
+                elif imgui.is_key_down(glfw.KEY_LEFT_CONTROL):
+                    # Ctrl + Left click = single select
                     game.selected = not game.selected
                 else:
                     if any(game.selected for game in globals.games.values()):

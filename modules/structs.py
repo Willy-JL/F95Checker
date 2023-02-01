@@ -799,6 +799,8 @@ class Game:
         if name == "selected":
             from modules import globals
             if globals.gui:
+                if value:
+                    globals.gui.last_selected_game = self
                 globals.gui.selected_games_count = len(list(filter(lambda game: game.selected, globals.games.values())))
 
 
