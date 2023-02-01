@@ -423,24 +423,24 @@ def convert_custom_to_f95zone(game: Game):
     game.status = Status.Unchecked
 
 
-def remove_game(game: Game, bypass_confirm=False):
+def remove_game(*games: list[Game], bypass_confirm=False):
     def remove_callback():
-        id = game.id
-        game.delete_images()
-        del globals.games[id]
-        globals.gui.require_sort = True
-        async_thread.run(db.remove_game(id))
-    if not bypass_confirm and globals.settings.confirm_on_remove:
+        for game in games:
+            id = game.id
+            game.delete_images()
+            del globals.games[id]
+            globals.gui.require_sort = True
+            async_thread.run(db.remove_game(id))
+    if not bypass_confirm and (len(games) > 1 or globals.settings.confirm_on_remove):
         buttons = {
             f"{icons.check} Yes": remove_callback,
             f"{icons.cancel} No": None
         }
         utils.push_popup(
-            msgbox.msgbox, "Remove game",
-            "You are removing this game from your list:\n"
-            f"{game.name}\n"
-            "\n"
-            "Are you sure you want to remove it?",
+            msgbox.msgbox, f"Remove game{'' if len(games) == 1 else 's'}",
+            f"You are removing {'this game' if len(games) == 1 else 'these games'} from your list:\n" +
+            "\n".join(game.name for game in games) + "\n"
+            "Are you sure you want to do this?",
             MsgBox.warn,
             buttons
         )
