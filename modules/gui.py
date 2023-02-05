@@ -1887,7 +1887,8 @@ class MainGUI():
                             _rpdl_search_popup,
                             buttons=True,
                             closable=True,
-                            outside=False
+                            outside=False,
+                            footer="Donate at rpdl.net if you like the torrents!"
                         )
                         async_thread.run(_rpdl_run_search())
                     imgui.spacing()
