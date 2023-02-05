@@ -273,7 +273,7 @@ popup_flags: int = (
     imgui.WINDOW_ALWAYS_AUTO_RESIZE
 )
 
-def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, popup_uuid: str = ""):
+def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, footer="", popup_uuid: str = ""):
     if buttons is True:
         buttons = {
             f"{icons.check} Ok": None
@@ -290,23 +290,32 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
         closed = (popup_content() is True) or closed  # Close if content returns True
         imgui.end_group()
         imgui.spacing()
-        if buttons:
-            btns_width = (
-                sum(imgui.calc_text_size(name).x for name in buttons) +
-                (2 * len(buttons) * imgui.style.frame_padding.x) +
-                (imgui.style.item_spacing.x * (len(buttons) - 1))
-            )
+        if buttons or footer:
+            right_width = 0
+            if footer:
+                right_width += imgui.calc_text_size(footer).x
+            if buttons:
+                right_width += (
+                    sum(imgui.calc_text_size(name).x for name in buttons) +
+                    (2 * len(buttons) * imgui.style.frame_padding.x) +
+                    (imgui.style.item_spacing.x * (len(buttons) - (not footer)))
+                )
             cur_pos_x = imgui.get_cursor_pos_x()
-            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - btns_width
+            new_pos_x = cur_pos_x + imgui.get_content_region_available_width() - right_width
             if new_pos_x > cur_pos_x:
                 imgui.set_cursor_pos_x(new_pos_x)
-            for text, callback in buttons.items():
-                if imgui.button(text):
-                    if callback:
-                        callback()
-                    imgui.close_current_popup()
-                    closed = True
+            if footer:
+                imgui.align_text_to_frame_padding()
+                imgui.text(footer)
                 imgui.same_line()
+            if buttons:
+                for text, callback in buttons.items():
+                    if imgui.button(text):
+                        if callback:
+                            callback()
+                        imgui.close_current_popup()
+                        closed = True
+                    imgui.same_line()
         if outside:
              closed = closed or close_weak_popup()
     else:
