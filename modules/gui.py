@@ -3798,7 +3798,7 @@ class MainGUI():
                 if globals.settings.mark_installed_after_add:
                     game.installed = game.version
                 if globals.settings.select_executable_after_add:
-                    utils.add_game_exe(game)
+                    callbacks.add_game_exe(game)
 
             imgui.end_table()
             imgui.spacing()
