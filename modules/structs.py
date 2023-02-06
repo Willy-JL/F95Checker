@@ -273,6 +273,7 @@ Tag = IntEnumHack("Tag", [
     ("3dcg",                   4),
     ("adventure",              5),
     ("ahegao",                 6),
+    ("ai-cg",                  140),
     ("anal-sex",               7),
     ("animated",               8),
     ("asset-addon",            9),
