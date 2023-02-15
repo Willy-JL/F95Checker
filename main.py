@@ -3,7 +3,7 @@ import contextlib
 import pathlib
 import sys
 
-version = "10.1.1"
+version = "10.1.2"
 release = False
 build_number = 0
 version_name = f"{version}{'' if release else ' beta'}{'' if release or not build_number else ' ' + str(build_number)}"
