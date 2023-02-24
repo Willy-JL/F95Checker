@@ -1095,6 +1095,9 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
+            if not game:
+                carousel_ids = [game.id for game in globals.games.values() if game.selected]
+                game = globals.games[carousel_ids[0]]
             utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None):
@@ -1223,7 +1226,11 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
-            callbacks.clipboard_copy(game.url)
+            if game:
+                text = game.url
+            else:
+                text = "\n".join(game.url for game in globals.games.values() if game.selected if game.url)
+            callbacks.clipboard_copy(text)
 
     def draw_game_archive_button(self, game: Game, label_off="", label_on="", selectable=False):
         if game:
@@ -1266,7 +1273,12 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
-            callbacks.add_game_exe(game)
+            if game:
+                callbacks.add_game_exe(game)
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        callbacks.add_game_exe(game)
 
     def draw_game_clear_exes_button(self, game: Game, label="", selectable=False):
         if game and not game.executables:
@@ -1375,17 +1387,14 @@ class MainGUI():
     def draw_game_context_menu(self, game: Game = None):
         if not game:
             imgui.text(f"Selected games: {self.selected_games_count}")
-        if game:
-            self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
+        self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
         self.draw_game_recheck_button(game, f"{icons.reload_alert} Full Recheck", selectable=True)
         imgui.separator()
         self.draw_game_play_button(game, f"{icons.play} Play", selectable=True)
         self.draw_game_open_thread_button(game, f"{icons.open_in_new} Open Thread", selectable=True)
-        if game:
-            self.draw_game_copy_link_button(game, f"{icons.content_copy} Copy Link", selectable=True)
+        self.draw_game_copy_link_button(game, f"{icons.content_copy} Copy Link", selectable=True)
         imgui.separator()
-        if game:
-            self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe", selectable=True)
+        self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe", selectable=True)
         self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes", selectable=True)
         self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
