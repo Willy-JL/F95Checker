@@ -96,7 +96,7 @@ def cookiedict(cookies: http.cookies.SimpleCookie):
 
 
 @contextlib.asynccontextmanager
-async def request(method: str, url: str, read=True, no_cookies=False, expect_json=False, **kwargs):
+async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
@@ -184,8 +184,6 @@ async def request(method: str, url: str, read=True, no_cookies=False, expect_jso
                     ) as mark_req:
                         ddos_guard_cookies.update(cookiedict(mark_req.cookies))
                     continue
-                if expect_json:
-                    res = json.loads(res)
                 yield res, req
             break
         except (aiohttp.ClientError, asyncio.TimeoutError, json.decoder.JSONDecodeError) as exc:
@@ -210,6 +208,20 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                 "Login expired",
                 "Your F95Zone login session has expired,\n"
                 "press refresh to login again.",
+                MsgBox.warn
+            )
+        if b"<title>502 Bad Gateway</title>" in res:
+            raise msgbox.Exc(
+                "Server downtime",
+                "F95Zone servers are currently unreachable,\n"
+                "please retry in a few minutes.",
+                MsgBox.warn
+            )
+        if b"<!-- Too many connections -->" in res:
+            raise msgbox.Exc(
+                "Database overload",
+                "F95Zone databases are currently overloaded,\n"
+                "please retry in a few minutes.",
                 MsgBox.warn
             )
         if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
@@ -492,7 +504,9 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
     async with fast_checks:
 
         try:
-            res = await fetch("GET", fast_check_endpoint.format(threads=",".join(str(game.id) for game in games)), expect_json=True, no_cookies=True)
+            res = await fetch("GET", fast_check_endpoint.format(threads=",".join(str(game.id) for game in games)), no_cookies=True)
+            raise_f95zone_error(res)
+            res = json.loads(res)
             if res["msg"] in ("Missing threads data", "Thread not found"):
                 res["status"] = "ok"
                 res["msg"] = {}
@@ -693,7 +707,9 @@ async def check_notifs(login=False):
         globals.refresh_progress = 1
 
     try:
-        res = await fetch("GET", notif_endpoint.format(xf_token=xf_token), expect_json=True)
+        res = await fetch("GET", notif_endpoint.format(xf_token=xf_token))
+        raise_f95zone_error(res)
+        res = json.loads(res)
         raise_f95zone_error(res)
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
         inbox  = int(res["visitor"]["conversations_unread"].replace(",", "").replace(".", ""))
@@ -756,7 +772,8 @@ async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
     try:
-        res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"}, expect_json=True)
+        res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
+        res = json.loads(res)
         globals.last_update_check = time.time()
         if "tag_name" not in res:
             utils.push_popup(
