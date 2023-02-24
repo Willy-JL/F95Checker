@@ -986,7 +986,7 @@ async def refresh(*games: list[Game], full=False, notifs=True):
         return
 
     fast_queue: list[list[Game]] = [[]]
-    full_queue: list[tuple[game, str]] = []
+    full_queue: list[tuple[Game, str]] = []
     for game in (games or globals.games.values()):
         if game.status is Status.Custom:
             continue
@@ -1001,10 +1001,17 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
     fast_checks.avail = globals.settings.refresh_workers
     full_checks.avail = int(max(1, globals.settings.refresh_workers / 10))
+    tasks: list[asyncio.Task] = []
 
-    await asyncio.gather(*[fast_check(chunk, full_queue, full=full) for chunk in fast_queue])
-
-    await asyncio.gather(*[full_check(game, version) for game, version in full_queue])
+    try:
+        tasks = [asyncio.create_task(fast_check(chunk, full_queue, full=full)) for chunk in fast_queue]
+        await asyncio.gather(*tasks)
+        tasks = [asyncio.create_task(full_check(game, version)) for game, version in full_queue]
+        await asyncio.gather(*tasks)
+    except Exception:
+        for task in tasks:
+            task.cancel()
+        raise
 
     if notifs:
         await check_notifs()
