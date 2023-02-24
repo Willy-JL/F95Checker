@@ -2885,9 +2885,17 @@ class MainGUI():
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
             for label_i, label in enumerate(Label.instances):
                 imgui.table_set_column_index(label_i)
-                imgui.table_header(label.name)
+                count = 0
+                for id in self.sorted_games_ids:
+                    if label in globals.games[id].labels:
+                        count += 1
+                imgui.table_header(f"{label.name} ({count})")
             imgui.table_set_column_index(not_labelled)
-            imgui.table_header("Not Labelled")
+            count = 0
+            for id in self.sorted_games_ids:
+                if not globals.games[id].labels:
+                    count += 1
+            imgui.table_header(f"Not Labelled ({count})")
 
             # Loop cells
             for label_i, label in (*enumerate(Label.instances), (not_labelled, None)):
