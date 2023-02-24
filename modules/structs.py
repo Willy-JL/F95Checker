@@ -562,6 +562,7 @@ class Settings:
     cell_image_ratio            : float
     check_notifs                : bool
     confirm_on_remove           : bool
+    copy_urls_as_bbcode         : bool
     datestamp_format            : str
     default_exe_dir             : str
     display_mode                : DisplayMode

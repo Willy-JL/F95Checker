@@ -1211,7 +1211,15 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if game and imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-            callbacks.clipboard_copy(game.url)
+            if globals.settings.copy_urls_as_bbcode:
+                _url = lambda game: f"[URL='{game.url}']{game.name}[/URL]"
+            else:
+                _url = lambda game: game.url
+            if game:
+                text = _url(game)
+            else:
+                text = "\n".join(_url(game) for game in globals.games.values() if game.selected if game.url)
+            callbacks.clipboard_copy(text)
         elif clicked:
             if game:
                 callbacks.open_webpage(game.url)
@@ -1226,10 +1234,14 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
-            if game:
-                text = game.url
+            if globals.settings.copy_urls_as_bbcode:
+                _url = lambda game: f"[URL='{game.url}']{game.name}[/URL]"
             else:
-                text = "\n".join(game.url for game in globals.games.values() if game.selected if game.url)
+                _url = lambda game: game.url
+            if game:
+                text = _url(game)
+            else:
+                text = "\n".join(_url(game) for game in globals.games.values() if game.selected if game.url)
             callbacks.clipboard_copy(text)
 
     def draw_game_archive_button(self, game: Game, label_off="", label_on="", selectable=False):
@@ -3391,6 +3403,9 @@ class MainGUI():
 
             if set.browser.integrated:
                 imgui.pop_disabled()
+
+            draw_settings_label("Copy game links as BBcode:")
+            draw_settings_checkbox("copy_urls_as_bbcode")
 
             imgui.end_table()
             imgui.spacing()
