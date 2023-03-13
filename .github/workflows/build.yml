@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "windows-2019", python: "3.11.2", cx-freeze: "6.14.7" }
-          - { os: "ubuntu-20.04", python: "3.11.2", cx-freeze: "6.14.7" }
-          - { os: "macos-11",     python: "3.11.2", cx-freeze: "6.14.7" }
+          - { os: "windows-2019", python: "3.11.2", cx-freeze: "6.14.7", cx-logging: "v3.1.0" }
+          - { os: "ubuntu-20.04", python: "3.11.2", cx-freeze: "6.14.7", cx-logging: ""       }
+          - { os: "macos-11",     python: "3.11.2", cx-freeze: "6.14.7", cx-logging: ""       }
     name: "${{ matrix.config.os }}"
     runs-on: "${{ matrix.config.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
@@ -37,7 +37,11 @@ jobs:
       - name: "Setup cx_Freeze"
         env:
           CIBUILDWHEEL: "1"
+        shell: bash
         run: |
+          if [ "${{ matrix.config.cx-logging }}" != "" ] ; then
+            python -m pip install -U 'git+https://github.com/anthony-tuininga/cx_Logging.git@${{ matrix.config.cx-logging }}'
+          fi
           python -m pip install -U 'git+https://github.com/marcelotduarte/cx_Freeze.git@${{ matrix.config.cx-freeze }}'
 
       # === BUILD ===
