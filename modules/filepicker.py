@@ -98,6 +98,8 @@ class FilePicker:
                     drive_exists = pathlib.Path(drive).exists()
                 except PermissionError:
                     drive_exists = True
+                except Exception:
+                    drive_exists = False
                 if drive_exists:
                     i += 1
                     self.drives.append(drive)
