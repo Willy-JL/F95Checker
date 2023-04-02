@@ -167,7 +167,11 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             div.insert_after(html.new_string("\n"))
         plain = sanitize_whitespace(post.find("article").get_text(separator="", strip=False))
 
-        name = fixed_spaces(sanitize_whitespace(re.search(r"(?:.+? - )*([^\[\|]+)", html.title.text).group(1)))
+        name = ""
+        for elem in html.find(is_class("p-title-value")).children:
+            if not is_class("labelLink")(elem) and not is_class("label-append")(elem):
+                name += elem.text
+        name = fixed_spaces(sanitize_whitespace(re.search(r"^\s*(.*?)(?:\s*\[.*?\]\s*)*$", name).group(1)))
 
         developer = get_game_attr(
             "developer/publisher",
