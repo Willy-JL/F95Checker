@@ -4,6 +4,7 @@ import datetime as dt
 import async_timeout
 import http.cookies
 import configparser
+import subprocess
 import contextlib
 import tempfile
 import aiofiles
@@ -23,10 +24,11 @@ import io
 import re
 
 from modules.structs import (
+    MultiProcessPipe,
+    AsyncProcessPipe,
     CounterContext,
     ContextLimiter,
     SearchResult,
-    ProcessPipe,
     OldGame,
     MsgBox,
     Status,
@@ -305,17 +307,18 @@ async def is_logged_in():
 
 async def login():
     try:
-        pipe = ProcessPipe()
-        proc = multiprocessing.Process(target=webview.cookies, args=(login_page, pipe), kwargs=webview.kwargs() | dict(
-            title="F95Checker: Login to F95Zone",
-            size=(size := (500, 720)),
-            pos=(
-                int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-                int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
-            )
-        ))
         new_cookies = {}
-        with pipe(proc):
+        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
+            *shlex.split(globals.start_cmd), "webview", "cookies", json.dumps((login_page,)), json.dumps(webview.kwargs() | dict(
+                title="F95Checker: Login to F95Zone",
+                size=(size := (500, 720)),
+                pos=(
+                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
+                )
+            )),
+            stdout=subprocess.PIPE
+        )):
             while True:
                 (key, value) = await pipe.get_async()
                 new_cookies[key] = value
@@ -586,9 +589,7 @@ async def full_check(game: Game, version: str):
         args = (game.id, res)
         if globals.settings.use_parser_processes:
             # Using multiprocessing can help with interface stutters
-            pipe = ProcessPipe()
-            proc = multiprocessing.Process(target=parse, args=(*args, pipe))
-            with pipe(proc):
+            with (pipe := MultiProcessPipe())(multiprocessing.Process(target=parse, args=(*args, pipe))):
                 try:
                     async with async_timeout.timeout(globals.settings.request_timeout):
                         ret = await pipe.get_async()

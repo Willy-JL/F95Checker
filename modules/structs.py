@@ -10,6 +10,7 @@ import hashlib
 import typing
 import queue
 import enum
+import json
 import time
 import os
 
@@ -89,7 +90,7 @@ class DaemonProcess:
         self.finalize()
 
 
-class ProcessPipe(multiprocessing.queues.Queue):
+class MultiProcessPipe(multiprocessing.queues.Queue):
     def __init__(self):
         super().__init__(0, ctx=multiprocessing.get_context())
 
@@ -114,6 +115,33 @@ class ProcessPipe(multiprocessing.queues.Queue):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.daemon.__exit__()
         if exc_type is queue.Empty:
+            return True
+
+
+class AsyncProcessPipe:
+    class process_exit(Exception):
+        pass
+
+    def __call__(self, proc: asyncio.subprocess.Process):
+        self.proc = proc
+        self.daemon = DaemonProcess(proc)
+        return self
+
+    async def get_async(self, poll_rate=0.1):
+        while self.proc.returncode is None:
+            try:
+                return json.loads(await self.proc.stdout.readline())
+            except json.JSONDecodeError:
+                pass
+        raise self.process_exit()
+
+    def __enter__(self):
+        self.daemon.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.daemon.__exit__()
+        if exc_type is self.process_exit:
             return True
 
 

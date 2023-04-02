@@ -72,6 +72,16 @@ if __name__ == "__main__":
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
 
+    elif "webview" in sys.argv:
+        # Run webviews as subprocesses since Qt doesn't like threading
+        from modules import webview
+        import json
+        i = sys.argv.index("webview")
+        cb = getattr(webview, sys.argv[i + 1])
+        args = json.loads(sys.argv[i + 2])
+        kwargs = json.loads(sys.argv[i + 3])
+        cb(*args, **kwargs)
+
     else:
         try:
             if "main" in sys.argv:

@@ -1,6 +1,6 @@
 from PyQt6 import QtCore, QtGui, QtWidgets, QtNetwork, QtWebEngineCore, QtWebEngineWidgets
-import multiprocessing
 import pathlib
+import json
 import sys
 import os
 
@@ -238,13 +238,13 @@ def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
     app.exec()
 
 
-def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
+def cookies(url: str, **kwargs):
     app = create(**kwargs | dict(buttons=False, extension=False))
     url = QtCore.QUrl(url)
     def on_cookie_add(cookie: QtNetwork.QNetworkCookie):
         name = cookie.name().data().decode('utf-8')
         value = cookie.value().data().decode('utf-8')
-        pipe.put_nowait((name, value))
+        print(json.dumps([name, value]), flush=True)
     app.window.webview.cookieStore.cookieAdded.connect(on_cookie_add)
     app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
     app.window.webview.setUrl(url)
@@ -252,14 +252,14 @@ def cookies(url: str, pipe: multiprocessing.Queue, **kwargs):
     app.exec()
 
 
-def redirect(url: str, pipe: multiprocessing.Queue, click_selector: str = None, *, cookies: dict[str, str] = {}, **kwargs):
+def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = {}, **kwargs):
     app = create(**kwargs | dict(buttons=False, extension=False))
     url = QtCore.QUrl(url)
     for key, value in cookies.items():
         app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
     def url_changed(new: QtCore.QUrl):
         if new != url and not new.url().startswith(url.url()):
-            pipe.put_nowait(new.url())
+            print(json.dumps(new.url()), flush=True)
     app.window.webview.urlChanged.connect(url_changed)
     if click_selector:
         def load_progress(_):

@@ -7,6 +7,7 @@ import asyncio
 import typing
 import shlex
 import imgui
+import json
 import glfw
 import time
 import stat
@@ -14,10 +15,10 @@ import re
 import os
 
 from modules.structs import (
+    AsyncProcessPipe,
     DaemonProcess,
     SearchResult,
     ThreadMatch,
-    ProcessPipe,
     MsgBox,
     Status,
     Game,
@@ -379,18 +380,19 @@ def clipboard_paste():
 
 def copy_masked_link(masked_url: str):
     host = (re.search(r"/masked/(.*?)/", masked_url) or ("", ""))[1]
-    pipe = ProcessPipe()
-    proc = multiprocessing.Process(target=webview.redirect, args=(masked_url, pipe, "a.host_link"), kwargs=webview.kwargs() | dict(
-        cookies=globals.cookies,
-        title=f"Unmask link{f' for {host}' if host else ''}",
-        size=(size := (520, 480)),
-        pos=(
-            int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-            int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
-        )
-    ))
     async def _unmask_and_copy():
-        with pipe(proc):
+        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
+            *shlex.split(globals.start_cmd), "webview", "redirect", json.dumps((masked_url, "a.host_link")), json.dumps(webview.kwargs() | dict(
+                cookies=globals.cookies,
+                title=f"Unmask link{f' for {host}' if host else ''}",
+                size=(size := (520, 480)),
+                pos=(
+                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
+                )
+            )),
+            stdout=subprocess.PIPE
+        )):
             clipboard_copy(await pipe.get_async())
     async_thread.run(_unmask_and_copy())
 
