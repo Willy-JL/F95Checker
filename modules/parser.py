@@ -50,7 +50,7 @@ class ParserException(Exception):
 def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
     def game_has_prefixes(*names: list[str]):
         for name in names:
-            if head.find("span", text=f"[{name}]"):
+            if head.find("span", text=f"{name}"):
                 return True
         return False
     def get_game_attr(*names: list[str]):
@@ -167,7 +167,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             div.insert_after(html.new_string("\n"))
         plain = sanitize_whitespace(post.find("article").get_text(separator="", strip=False))
 
-        name = fixed_spaces(sanitize_whitespace(re.search(r"(?:\[.+?\] - )*([^\[\|]+)", html.title.text).group(1)))
+        name = fixed_spaces(sanitize_whitespace(re.search(r"(?:\.+?\ - )*([^\[\|]+)", html.title.text).group(1)))
 
         developer = get_game_attr(
             "developer/publisher",
