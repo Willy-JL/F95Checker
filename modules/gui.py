@@ -3121,6 +3121,9 @@ class MainGUI():
             if imgui.is_item_clicked():
                 # Click = cancel
                 globals.refresh_task.cancel()
+                api.images.count = 0
+                api.full_checks.count = 0
+                globals.last_update_check = time.time()
             if imgui.is_item_hovered():
                 text = "Click to cancel!"
                 text_size = imgui.calc_text_size(text)
