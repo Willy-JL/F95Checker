@@ -53,70 +53,76 @@ const addBookmark = async (url, tabId) => {
 }
 
 
-// Add library icons for added games
+// Add icons for games and bookmarks
 const updateIcons = async (tabId) => {
     await getData();
     chrome.scripting.executeScript({
         target: { tabId: tabId },
-        func: (games) => {
+        func: (games, bookmarks) => {
             const threadId = (url) => {
                 const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
                 return match ? parseInt(match[1]) : null;
             }
-            const createIcon = (isImage) => {
+            const createContainer = () => {
+                const c = document.createElement("div");
+                c.classList.add("f95checker-library-icons");
+                c.style.display = "inline-flex";
+                c.style.gap = "5px";
+                c.style.padding = "3px 3px";
+                return c;
+            }
+            const gamesIcon = () => {
                 const icon = document.createElement("i");
-                icon.classList.add("fa", "fa-box-heart", "f95checker-library-icon");
                 icon.style.fontFamily = "'Font Awesome 5 Pro'";
-                icon.style.color = "#FD5555";
-                if (isImage) {
-                    icon.style.position = "absolute";
-                    icon.style.zIndex = "50";
-                    icon.style.right = "5px";
-                    icon.style.top = "5px";
-                    icon.style.fontSize = "larger";
-                    icon.style.background = "#262626";
-                    icon.style.border = "solid #262626";
-                    icon.style.borderWidth = "4px 5px";
-                    icon.style.borderRadius = "4px";
-                } else {
-                    icon.style.marginRight = "0.2em"
-                }
+                icon.classList.add("fa", "fa-box-heart");
                 icon.setAttribute("title", "This game is present in your F95Checker library!");
-                icon.addEventListener("click", () => {
-                    alert("This game is present in your F95Checker library!");
-                });
+                icon.addEventListener("click", () => alert("This game is present in your F95Checker library!"));
+                icon.style.color = "#FD5555";
+                return icon;
+            }
+            const bookmarksIcon = () => {
+                const icon = document.createElement("i");
+                icon.style.fontFamily = "'Font Awesome 5 Pro'";
+                icon.classList.add("fa", "fa-sticky-note");
+                icon.setAttribute("title", "Thread bookmarked");
+                icon.addEventListener("click", () => alert("Thread bookmarked"));
+                icon.style.color = "#55eecc";
                 return icon;
             }
             const doUpdate = () => {
-                for (elem of document.getElementsByClassName("f95checker-library-icon")) {
-                    elem.remove();
-                }
-                let done = [];
+                document.querySelectorAll('.f95checker-library-icons').forEach(e => e.remove());
                 for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
                     const id = threadId(elem.href);
-                    if (!id || !games.includes(id)) {
-                        continue;
-                    }
-                    let isDone = false;
-                    for (doneElem of done) {
-                        if (doneElem.contains(elem)) {
-                            isDone = true;
-                            break;
-                        }
-                    }
-                    if (isDone) {
+                    const container = createContainer();
+                    if (!id || ![...games, ...bookmarks].includes(id)) {
                         continue;
                     }
                     const isImage = elem.classList.contains("resource-tile_link") || elem.parentNode.parentNode.classList.contains("es-slides");
                     if (!isImage && !elem.href.endsWith("/unread")) {
                         continue;
                     }
-                    done.push(elem.parentNode);
-                    elem.insertAdjacentElement("beforebegin", createIcon(isImage));
+                    if (isImage) {
+                        container.style.position = "absolute";
+                        container.style.zIndex = "50";
+                        container.style.right = "5px";
+                        container.style.top = "5px";
+                        container.style.background = "#262626";
+                        container.style.border = "solid #262626";
+                        container.style.borderRadius = "4px";
+                        container.style.fontSize = "larger";
+                    }
+                    if (games.includes(id)) container.prepend(gamesIcon());
+                    if (bookmarks.includes(id)) container.prepend(bookmarksIcon());
+                    elem.insertAdjacentElement("beforebegin", container);
                 }
+                const id = threadId(document.location);
+                const container = createContainer();
+                container.style.marginInlineEnd = "6px";
                 const title = document.getElementsByClassName("p-title-value")[0];
-                if (title && games.includes(threadId(document.location))) {
-                    title.insertBefore(createIcon(false), title.childNodes[title.childNodes.length - 1]);
+                if (title) {
+                    if (games.includes(id)) container.prepend(gamesIcon());
+                    if (bookmarks.includes(id)) container.prepend(bookmarksIcon());
+                    if (container.firstChild) title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
                 }
             }
             doUpdate();
@@ -128,7 +134,7 @@ const updateIcons = async (tabId) => {
                 observer.observe(latest, { attributes: true });
             }
         },
-        args: [games]
+        args: [games, bookmarks]
     });
 }
 chrome.webNavigation.onCompleted.addListener((details) => {
