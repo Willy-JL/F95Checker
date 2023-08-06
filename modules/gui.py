@@ -458,6 +458,15 @@ class MainGUI():
             imgui.pop_style_color()
             return imgui._end_combo(*args, **kwargs)
         imgui.end_combo = end_combo
+        # Fix clicking into multiline textboxes
+        imgui._input_text_multiline = imgui.input_text_multiline
+        def input_text_multiline(*args, **kwargs):
+            pos = imgui.io.mouse_pos
+            imgui.io.mouse_pos = (pos.x - 8, pos.y)
+            ret = imgui._input_text_multiline(*args, **kwargs)
+            imgui.io.mouse_pos = (pos.x, pos.y)
+            return ret
+        imgui.input_text_multiline = input_text_multiline
         # Fix some ID hell
         imgui._button = imgui.button
         def button(*args, **kwargs):
