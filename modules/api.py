@@ -502,7 +502,7 @@ def last_check_before(before_version: str, checked_version: str):
 
 
 async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None, full=False):
-    games = list(filter(lambda game: game.status is not Status.Custom, games))
+    games = list(filter(lambda game: not game.custom, games))
 
     async with (fast_checks_sem or asyncio.Semaphore(1)):
 
@@ -1006,7 +1006,7 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     fast_queue: list[list[Game]] = [[]]
     full_queue: list[tuple[Game, str]] = []
     for game in (games or globals.games.values()):
-        if game.status is Status.Custom:
+        if game.custom:
             continue
         if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games:
             continue

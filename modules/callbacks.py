@@ -399,7 +399,7 @@ def copy_masked_link(masked_url: str):
 
 def convert_f95zone_to_custom(game: Game):
     async_thread.wait(db.update_game_id(game, utils.custom_id()))
-    game.status = Status.Custom
+    game.custom = True
     game.downloads = ()
 
 
@@ -421,6 +421,7 @@ def convert_custom_to_f95zone(game: Game):
         )
         return
     async_thread.wait(db.update_game_id(game, new_id))
+    game.custom = False
     game.status = Status.Unchecked
 
 

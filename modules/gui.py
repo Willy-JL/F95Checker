@@ -1336,7 +1336,7 @@ class MainGUI():
                         callbacks.open_game_folder(game)
 
     def draw_game_id_button(self, game: Game, label="", selectable=False):
-        if game.status is Status.Custom:
+        if game.custom:
             imgui.push_disabled()
         if selectable:
             clicked = imgui.selectable(label, False)[0]
@@ -1351,11 +1351,11 @@ class MainGUI():
                 f"Click to copy!"
             )
             imgui.end_tooltip()
-        if game.status is Status.Custom:
+        if game.custom:
             imgui.pop_disabled()
 
     def draw_game_recheck_button(self, game: Game, label="", selectable=False):
-        if game and game.status is Status.Custom:
+        if game and game.custom:
             imgui.push_disabled()
         if selectable:
             clicked = imgui.selectable(label, False)[0]
@@ -1363,7 +1363,7 @@ class MainGUI():
             clicked = imgui.button(label)
         if clicked:
             utils.start_refresh_task(api.refresh(*([game] if game else filter(lambda game: game.selected, globals.games.values())), full=True, notifs=False))
-        if game and game.status is Status.Custom:
+        if game and game.custom:
             imgui.pop_disabled()
 
     def draw_game_labels_select_widget(self, game: Game):
@@ -2008,10 +2008,10 @@ class MainGUI():
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((
-                    icons.puzzle_check_outline if game.status is Status.Custom else
+                    icons.puzzle_check_outline if game.custom else
                     icons.puzzle_remove_outline
                 ) + " Custom###custom")[0]:
-                    if game.status is Status.Custom:
+                    if game.custom:
                         imgui.text_unformatted(
                             "This is a custom game. You can edit its core details below while status, last updated and downloads are disabled. Personal attributes and "
                             "features still work as normal. If you wish to convert it back to a F95Zone game, then make sure to fill the game url with a valid F95Zone "
@@ -2038,18 +2038,25 @@ class MainGUI():
                         imgui.align_text_to_frame_padding()
                         imgui.text("Name:")
                         imgui.same_line()
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() - self.scaled(120))
                         changed, value = imgui.input_text("###name", game.name)
                         if changed:
                             game.name = value
                         if imgui.begin_popup_context_item(f"###name_context"):
                             utils.text_context(game, "name", no_icons=True)
                             imgui.end_popup()
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
+                        imgui.text("Score:")
+                        imgui.same_line()
+                        changed, value = imgui.drag_float("###score", game.score, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
+                        if changed:
+                            game.score = value
 
                         imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Version:").x)
                         imgui.align_text_to_frame_padding()
                         imgui.text("Version:")
                         imgui.same_line()
-                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 3.2)
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 3.5)
                         changed, value = imgui.input_text("###version", game.version)
                         if changed:
                             game.version = value or "N/A"
@@ -2059,7 +2066,7 @@ class MainGUI():
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Developer:")
                         imgui.same_line()
-                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 1.8)
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 2.1)
                         changed, value = imgui.input_text("###developer", game.developer)
                         if changed:
                             game.developer = value
@@ -2067,11 +2074,21 @@ class MainGUI():
                             utils.text_context(game, "developer", no_icons=True)
                             imgui.end_popup()
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
-                        imgui.text("Score:")
+                        imgui.text("Status:")
                         imgui.same_line()
-                        changed, value = imgui.drag_float(f"###score", game.score, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
-                        if changed:
-                            game.score = value
+                        if imgui.begin_combo("###status", game.status.name):
+                            for status in Status:
+                                selected = status is game.status
+                                pos = imgui.get_cursor_pos()
+                                if imgui.selectable(f"###status_{status.value}", selected)[0]:
+                                    game.status = status
+                                if selected:
+                                    imgui.set_item_default_focus()
+                                imgui.set_cursor_pos(pos)
+                                self.draw_status_widget(status)
+                                imgui.same_line()
+                                imgui.text(status.name)
+                            imgui.end_combo()
 
                         imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Tags:").x)
                         imgui.align_text_to_frame_padding()

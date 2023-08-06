@@ -658,6 +658,7 @@ Type = IntEnumHack("Type", [
 @dataclasses.dataclass
 class Game:
     id                 : int
+    custom             : bool | None
     name               : str
     version            : str
     developer          : str
@@ -691,6 +692,8 @@ class Game:
 
     def __post_init__(self):
         self._did_init = True
+        if self.custom is None:
+            self.custom = bool(self.status is Status.Custom)
         if self.updated is None:
             self.updated = bool(self.installed) and self.installed != self.version
         if self.image_url == "-":
@@ -773,6 +776,7 @@ class Game:
 
     def __setattr__(self, name: str, value: typing.Any):
         if self._did_init and name in [
+            "custom",
             "name",
             "version",
             "developer",

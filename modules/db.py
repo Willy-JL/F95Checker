@@ -196,6 +196,7 @@ async def connect():
         table_name="games",
         columns={
             "id":                          f'INTEGER PRIMARY KEY',
+            "custom":                      f'INTEGER DEFAULT NULL',
             "name":                        f'TEXT    DEFAULT ""',
             "version":                     f'TEXT    DEFAULT "Unchecked"',
             "developer":                   f'TEXT    DEFAULT ""',
@@ -416,10 +417,10 @@ async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
         game_id = utils.custom_id()
         await connection.execute(f"""
             INSERT INTO games
-            (id, name, status, added_on)
+            (id, name, added_on)
             VALUES
-            (?,  ?,    ?,      ?       )
-        """, (game_id, f"Custom game ({game_id})", Status.Custom.value, int(time.time())))
+            (?,  ?,    ?       )
+        """, (game_id, f"Custom game ({game_id})", int(time.time())))
         return game_id
     else:
         await connection.execute(f"""
