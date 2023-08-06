@@ -2040,28 +2040,70 @@ class MainGUI():
                         imgui.align_text_to_frame_padding()
                         imgui.text("Version:")
                         imgui.same_line()
-                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 2.3)
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 3.2)
                         changed, value = imgui.input_text("###version", game.version)
                         if changed:
                             game.version = value or "N/A"
                         if imgui.begin_popup_context_item(f"###version_context"):
                             utils.text_context(game, "version", no_icons=True)
                             imgui.end_popup()
-                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Developer:")
                         imgui.same_line()
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 1.8)
                         changed, value = imgui.input_text("###developer", game.developer)
                         if changed:
                             game.developer = value
                         if imgui.begin_popup_context_item(f"###developer_context"):
                             utils.text_context(game, "developer", no_icons=True)
                             imgui.end_popup()
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
+                        imgui.text("Score:")
+                        imgui.same_line()
+                        changed, value = imgui.drag_float(f"###score", game.score, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
+                        if changed:
+                            game.score = value
 
-                        imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Type:").x)
+                        imgui.set_cursor_pos_x(pos_x - imgui.calc_text_size("Tags:").x)
                         imgui.align_text_to_frame_padding()
+                        imgui.text("Tags:")
+                        imgui.same_line()
+                        imgui.button("Right click")
+                        if imgui.begin_popup_context_item(f"###tags_context"):
+                            self.draw_game_tags_select_widget(game)
+                            imgui.end_popup()
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
+                        imgui.text("Updated:")
+                        imgui.same_line()
+                        changed, value = imgui.checkbox("###updated", game.updated)
+                        if changed:
+                            game.updated = value
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
+                        imgui.text("Last Updated:")
+                        date = dt.datetime.fromtimestamp(game.last_updated.value)
+                        day, month, year = date.day, date.month, date.year
+                        frame_height = imgui.get_frame_height()
+                        imgui.same_line()
+                        imgui.set_next_item_width(1.5 * frame_height)
+                        _, day = imgui.drag_int("###last_updated_day", day, change_speed=0.05, min_value=1, max_value=31)
+                        imgui.same_line()
+                        imgui.set_next_item_width(1.5 * frame_height)
+                        _, month = imgui.drag_int("###last_updated_month", month, change_speed=0.03, min_value=1, max_value=12)
+                        imgui.same_line()
+                        imgui.set_next_item_width(2 * frame_height)
+                        _, year = imgui.drag_int("###last_updated_year", year, change_speed=0.05, min_value=1970, max_value=9999)
+                        if day != date.day or month != date.month or year != date.year:
+                            for _ in range(5):
+                                try:
+                                    date = date.replace(day=day, month=month, year=year)
+                                except ValueError:
+                                    day -= 1
+                                    continue
+                                break
+                            game.last_updated = int(date.timestamp())
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Type:")
                         imgui.same_line()
-                        imgui.set_next_item_width(self.type_label_width + imgui.get_frame_height())
                         if imgui.begin_combo(f"###type", game.type.name):
                             category = None
                             for type in Type:
@@ -2077,25 +2119,6 @@ class MainGUI():
                                 imgui.set_cursor_pos(pos)
                                 self.draw_type_widget(type)
                             imgui.end_combo()
-                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
-                        imgui.text("Updated:")
-                        imgui.same_line()
-                        changed, value = imgui.checkbox("###updated", game.updated)
-                        if changed:
-                            game.updated = value
-                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
-                        imgui.text("Tags:")
-                        imgui.same_line()
-                        imgui.button("Right click to edit")
-                        if imgui.begin_popup_context_item(f"###tags_context"):
-                            self.draw_game_tags_select_widget(game)
-                            imgui.end_popup()
-                        imgui.same_line(spacing=imgui.style.item_spacing.x * 4)
-                        imgui.text("Score:")
-                        imgui.same_line()
-                        changed, value = imgui.drag_float(f"###score", game.score, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
-                        if changed:
-                            game.score = value
 
                         imgui.align_text_to_frame_padding()
                         imgui.text("Description:")
