@@ -1348,7 +1348,7 @@ class MainGUI():
             imgui.begin_tooltip()
             imgui.text_unformatted(
                 f"Thread ID: {game.id}\n"
-                f"Click to copy!"
+                "Click to copy!"
             )
             imgui.end_tooltip()
         if game.custom:
@@ -1684,7 +1684,7 @@ class MainGUI():
                         image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
                 imgui.end_child()
-            if imgui.begin_popup_context_item(f"###image_context"):
+            if imgui.begin_popup_context_item("###image_context"):
                 if imgui.selectable(f"{icons.folder_open_outline} Set custom image", False)[0]:
                     def select_callback(selected):
                         if selected:
@@ -2030,7 +2030,7 @@ class MainGUI():
                         changed, value = imgui.input_text("###url", game.url)
                         if changed:
                             game.url = value
-                        if imgui.begin_popup_context_item(f"###url_context"):
+                        if imgui.begin_popup_context_item("###url_context"):
                             utils.text_context(game, "url", no_icons=True)
                             imgui.end_popup()
 
@@ -2042,7 +2042,7 @@ class MainGUI():
                         changed, value = imgui.input_text("###name", game.name)
                         if changed:
                             game.name = value
-                        if imgui.begin_popup_context_item(f"###name_context"):
+                        if imgui.begin_popup_context_item("###name_context"):
                             utils.text_context(game, "name", no_icons=True)
                             imgui.end_popup()
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
@@ -2060,7 +2060,7 @@ class MainGUI():
                         changed, value = imgui.input_text("###version", game.version)
                         if changed:
                             game.version = value or "N/A"
-                        if imgui.begin_popup_context_item(f"###version_context"):
+                        if imgui.begin_popup_context_item("###version_context"):
                             utils.text_context(game, "version", no_icons=True)
                             imgui.end_popup()
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
@@ -2070,7 +2070,7 @@ class MainGUI():
                         changed, value = imgui.input_text("###developer", game.developer)
                         if changed:
                             game.developer = value
-                        if imgui.begin_popup_context_item(f"###developer_context"):
+                        if imgui.begin_popup_context_item("###developer_context"):
                             utils.text_context(game, "developer", no_icons=True)
                             imgui.end_popup()
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
@@ -2095,7 +2095,7 @@ class MainGUI():
                         imgui.text("Tags:")
                         imgui.same_line()
                         imgui.button("Right click")
-                        if imgui.begin_popup_context_item(f"###tags_context"):
+                        if imgui.begin_popup_context_item("###tags_context"):
                             self.draw_game_tags_select_widget(game)
                             imgui.end_popup()
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
@@ -2130,7 +2130,7 @@ class MainGUI():
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Type:")
                         imgui.same_line()
-                        if imgui.begin_combo(f"###type", game.type.name):
+                        if imgui.begin_combo("###type", game.type.name):
                             category = None
                             for type in Type:
                                 if category is not type.category:
@@ -2149,10 +2149,10 @@ class MainGUI():
                         imgui.align_text_to_frame_padding()
                         imgui.text("Description:")
                         imgui.same_line()
-                        changed, value = imgui.input_text_multiline(f"###description", value=game.description)
+                        changed, value = imgui.input_text_multiline("###description", value=game.description)
                         if changed:
                             game.description = value
-                        if imgui.begin_popup_context_item(f"###description_context"):
+                        if imgui.begin_popup_context_item("###description_context"):
                             utils.text_context(game, "description")
                             imgui.end_popup()
 
@@ -2160,10 +2160,10 @@ class MainGUI():
                         imgui.align_text_to_frame_padding()
                         imgui.text("Changelog:")
                         imgui.same_line()
-                        changed, value = imgui.input_text_multiline(f"###changelog", value=game.changelog)
+                        changed, value = imgui.input_text_multiline("###changelog", value=game.changelog)
                         if changed:
                             game.changelog = value
-                        if imgui.begin_popup_context_item(f"###changelog_context"):
+                        if imgui.begin_popup_context_item("###changelog_context"):
                             utils.text_context(game, "changelog")
                             imgui.end_popup()
 
@@ -3044,7 +3044,7 @@ class MainGUI():
             self.require_sort = True
         if changed:
             setter_extra()
-        if imgui.begin_popup_context_item(f"###bottombar_context"):
+        if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
             utils.text_context(self, "add_box_text", setter_extra, no_icons=True)
             imgui.separator()
@@ -3195,7 +3195,7 @@ class MainGUI():
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):
                 utils.start_refresh_task(api.refresh())
-            if imgui.begin_popup_context_item(f"###refresh_context"):
+            if imgui.begin_popup_context_item("###refresh_context"):
                 # Right click = more options context menu
                 if imgui.selectable(f"{icons.bell_badge_outline} Check notifs", False)[0]:
                     utils.start_refresh_task(api.check_notifs(login=True))
@@ -3401,7 +3401,7 @@ class MainGUI():
                         if changed:
                             set.browser_custom_executable = value
                             setter_extra()
-                        if imgui.begin_popup_context_item(f"###browser_custom_executable_context"):
+                        if imgui.begin_popup_context_item("###browser_custom_executable_context"):
                             utils.text_context(set, "browser_custom_executable", setter_extra, no_icons=True)
                             imgui.end_popup()
                         imgui.same_line()
@@ -3428,7 +3428,7 @@ class MainGUI():
                         if changed:
                             set.browser_custom_arguments = value
                             setter_extra()
-                        if imgui.begin_popup_context_item(f"###browser_custom_arguments_context"):
+                        if imgui.begin_popup_context_item("###browser_custom_arguments_context"):
                             utils.text_context(set, "browser_custom_arguments", setter_extra, no_icons=True)
                             imgui.end_popup()
                     utils.push_popup(
@@ -3582,7 +3582,7 @@ class MainGUI():
             if changed:
                 set.timestamp_format = value
                 setter_extra()
-            if imgui.begin_popup_context_item(f"###timestamp_format_context"):
+            if imgui.begin_popup_context_item("###timestamp_format_context"):
                 utils.text_context(set, "timestamp_format", setter_extra)
                 imgui.end_popup()
 
@@ -3607,7 +3607,7 @@ class MainGUI():
             if changed:
                 set.datestamp_format = value
                 setter_extra()
-            if imgui.begin_popup_context_item(f"###datestamp_format_context"):
+            if imgui.begin_popup_context_item("###datestamp_format_context"):
                 utils.text_context(set, "datestamp_format", setter_extra)
                 imgui.end_popup()
 
@@ -3702,12 +3702,12 @@ class MainGUI():
                             "so don't worry about tidiness and paste like it's anarchy!"
                         )
                         _, thread_links._ = imgui.input_text_multiline(
-                            f"###import_links",
+                            "###import_links",
                             value=thread_links._,
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6
                         )
-                        if imgui.begin_popup_context_item(f"###import_links_context"):
+                        if imgui.begin_popup_context_item("###import_links_context"):
                             utils.text_context(thread_links, "_", no_icons=True)
                             imgui.end_popup()
                     buttons={
@@ -3768,13 +3768,13 @@ class MainGUI():
                     thread_links = builtins.type("_", (), dict(_="\n".join(game.url for game in globals.games.values())))()
                     def popup_content():
                         imgui.input_text_multiline(
-                            f"###export_links",
+                            "###export_links",
                             value=thread_links._,
                             width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
                             height=imgui.io.display_size.y * 0.6,
                             flags=imgui.INPUT_TEXT_READ_ONLY
                         )
-                        if imgui.begin_popup_context_item(f"###export_links_context"):
+                        if imgui.begin_popup_context_item("###export_links_context"):
                             utils.text_context(thread_links, "_", editable=False)
                             imgui.end_popup()
                     utils.push_popup(
