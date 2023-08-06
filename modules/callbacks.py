@@ -506,3 +506,13 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
         )
     else:
         await _add_games()
+
+
+async def add_bookmarks(*threads: list[ThreadMatch]):
+    if not threads:
+        return
+    for thread in threads:
+        if thread.id in globals.bookmarks:
+            continue
+        await db.add_bookmark(thread)
+        await db.load_bookmarks(thread.id)

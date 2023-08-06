@@ -459,6 +459,16 @@ async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
         return thread.id
 
 
+async def add_bookmark(thread: ThreadMatch = None):
+    await connection.execute(f"""
+        INSERT INTO bookmarks
+        (id, title, notes)
+        VALUES
+        (?,  ?,     ?    )
+    """, (thread.id, thread.title or f"Unknown ({thread.id})", ""))
+    return thread.id
+
+
 async def update_label(label: Label, *keys: list[str]):
     values = []
 
