@@ -827,3 +827,9 @@ class OldGame:
     name                 : str
     version              : str
     status               : Status
+
+@dataclasses.dataclass
+class Bookmark:
+    id                   : int
+    title                : str
+    notes                : str

@@ -39,7 +39,7 @@ def _():
         logging.basicConfig()
 _()
 
-from modules.structs import Browser, Game, OldGame, Os, Settings
+from modules.structs import Bookmark, Browser, Game, OldGame, Os, Settings
 from modules.gui import MainGUI
 
 os = None
@@ -193,3 +193,4 @@ games: dict[int, Game] = None
 cookies: dict[str, str] = None
 popup_stack: list[partial] = []
 updated_games: dict[int, OldGame] = {}
+bookmarks: dict[int, Bookmark] = None

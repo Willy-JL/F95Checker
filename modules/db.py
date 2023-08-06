@@ -25,6 +25,7 @@ from modules.structs import (
     Label,
     Type,
     Game,
+    Bookmark,
 )
 from modules import (
     globals,
@@ -246,6 +247,15 @@ async def connect():
         }
     )
 
+    await create_table(
+        table_name="bookmarks",
+        columns={
+            "id":                          f'INTEGER PRIMARY KEY',
+            "title":                       f'TEXT    DEFAULT ""',
+            "notes":                       f'TEXT    DEFAULT ""',
+        },
+    )
+
     if migrate and ((path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file()):
         await migrate_legacy(path)
 
@@ -309,6 +319,20 @@ async def load_games(id: int = None):
         globals.games[game["id"]] = row_to_cls(game, Game)
 
 
+async def load_bookmarks(id: int = None):
+    query = """
+        SELECT *
+        FROM bookmarks
+    """
+    if id is not None:
+        query += f"""
+            WHERE id={id}
+        """
+    cursor = await connection.execute(query)
+    for bookmark in await cursor.fetchall():
+        globals.bookmarks[bookmark["id"]] = row_to_cls(bookmark, Bookmark)
+
+
 async def load():
     cursor = await connection.execute("""
         SELECT *
@@ -325,6 +349,9 @@ async def load():
 
     globals.games = {}
     await load_games()
+
+    globals.bookmarks = {}
+    await load_bookmarks()
 
     cursor = await connection.execute("""
         SELECT *
