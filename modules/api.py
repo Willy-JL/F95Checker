@@ -27,7 +27,6 @@ from modules.structs import (
     MultiProcessPipe,
     AsyncProcessPipe,
     CounterContext,
-    ContextLimiter,
     SearchResult,
     OldGame,
     MsgBox,
@@ -66,8 +65,9 @@ updating = False
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
 webpage_prefix = "F95Checker-Temp-"
-fast_checks = ContextLimiter()
-full_checks = ContextLimiter()
+fast_checks_sem: asyncio.Semaphore = None
+full_checks_sem: asyncio.Semaphore = None
+full_checks = CounterContext()
 images = CounterContext()
 xf_token = ""
 
@@ -504,7 +504,7 @@ def last_check_before(before_version: str, checked_version: str):
 async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None, full=False):
     games = list(filter(lambda game: game.status is not Status.Custom, games))
 
-    async with fast_checks:
+    async with (fast_checks_sem or asyncio.Semaphore(1)):
 
         try:
             res = await fetch("GET", fast_check_endpoint.format(threads=",".join(str(game.id) for game in games)), no_cookies=True)
@@ -553,7 +553,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
 
 
 async def full_check(game: Game, version: str):
-    async with full_checks:
+    async with full_checks, (full_checks_sem or asyncio.Semaphore(1)):
 
         async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
@@ -1017,10 +1017,11 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     notifs = notifs and globals.settings.check_notifs
     globals.refresh_progress += 1
     globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
-    fast_checks.avail = globals.settings.refresh_workers
-    full_checks.avail = int(max(1, globals.settings.refresh_workers / 10))
-    tasks: list[asyncio.Task] = []
 
+    global fast_checks_sem, full_checks_sem
+    fast_checks_sem = asyncio.Semaphore(globals.settings.refresh_workers)
+    full_checks_sem = asyncio.Semaphore(int(max(1, globals.settings.refresh_workers / 10)))
+    tasks: list[asyncio.Task] = []
     try:
         tasks = [asyncio.create_task(fast_check(chunk, full_queue, full=full)) for chunk in fast_queue]
         await asyncio.gather(*tasks)
@@ -1029,7 +1030,11 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     except Exception:
         for task in tasks:
             task.cancel()
+        fast_checks_sem = None
+        full_checks_sem = None
         raise
+    fast_checks_sem = None
+    full_checks_sem = None
 
     if notifs:
         await check_notifs()
