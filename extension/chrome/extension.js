@@ -46,6 +46,13 @@ const addGame = async (url, tabId) => {
 }
 
 
+const addBookmark = async (url, tabId) => {
+    await rpcCall("POST", "/bookmarks/add", JSON.stringify([url]), tabId);
+    await sleep(0.5 * 1000)
+    await updateIcons(tabId);
+}
+
+
 // Add library icons for added games
 const updateIcons = async (tabId) => {
     await getData();
@@ -149,9 +156,30 @@ chrome.runtime.onInstalled.addListener(async () => {
         contexts: ["link"],
         targetUrlPatterns: ["*://*.f95zone.to/threads/*"]
     });
+    chrome.contextMenus.create({
+        id: `add-page-to-bookmarks`,
+        title: `Add this page to bookmarks`,
+        contexts: ["page"],
+        documentUrlPatterns: ["*://*.f95zone.to/threads/*"]
+    });
+    chrome.contextMenus.create({
+        id: `add-link-to-bookmarks`,
+        title: `Add this link to bookmarks`,
+        contexts: ["link"],
+        targetUrlPatterns: ["*://*.f95zone.to/threads/*"]
+    });
 });
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    addGame(info.linkUrl || info.pageUrl, tab.id);
+    switch (info.menuItemId) {
+        case 'add-link-to-f95checker':
+        case 'add-page-to-f95checker':
+            addGame(info.linkUrl || info.pageUrl, tab.id);
+            break;
+        case 'add-link-to-bookmarks':
+        case 'add-page-to-bookmarks':
+            addBookmark(info.linkUrl || info.pageUrl, tab.id);
+            break;
+    }
 });
 
 
