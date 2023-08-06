@@ -1,6 +1,7 @@
 const rpcPort = 57095;
 const rpcURL = `http://localhost:${rpcPort}`;
 let games = [];
+let bookmarks = [];
 
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -27,9 +28,14 @@ const rpcCall = async (method, path, body, tabId) => {
 }
 
 
-const getGames = async () => {
-    const res = await rpcCall("GET", "/games");
+const getData = async () => {
+    let res = null;
+
+    res = await rpcCall("GET", "/games");
     games = res ? await res.json() : [];
+
+    res = await rpcCall("GET", "/bookmarks");
+    bookmarks = res ? await res.json() : [];
 }
 
 
@@ -42,7 +48,7 @@ const addGame = async (url, tabId) => {
 
 // Add library icons for added games
 const updateIcons = async (tabId) => {
-    await getGames();
+    await getData();
     chrome.scripting.executeScript({
         target: { tabId: tabId },
         func: (games) => {
@@ -149,6 +155,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 
-// Get game list every 5 minutes
-setInterval(getGames, 5 * 60 * 1000);
-getGames();
+// Get data every 5 minutes
+setInterval(getData, 5 * 60 * 1000);
+getData();
