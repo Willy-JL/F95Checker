@@ -512,7 +512,7 @@ class MainGUI():
         imgui.is_topmost = is_topmost
 
     def refresh_styles(self):
-        globals.settings.style_accent = \
+        _ = \
             imgui.style.colors[imgui.COLOR_CHECK_MARK] = \
             imgui.style.colors[imgui.COLOR_TAB_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_SLIDER_GRAB] = \
@@ -533,17 +533,17 @@ class MainGUI():
             imgui.style.colors[imgui.COLOR_TITLE_BACKGROUND_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_TEXT_SELECTED_BACKGROUND] = \
         globals.settings.style_accent
-        style_accent_dim = \
+        _ = \
             imgui.style.colors[imgui.COLOR_TAB] = \
             imgui.style.colors[imgui.COLOR_RESIZE_GRIP] = \
             imgui.style.colors[imgui.COLOR_TAB_UNFOCUSED] = \
             imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND_HOVERED] = \
         (*globals.settings.style_accent[:3], 0.25)
-        globals.settings.style_alt_bg = \
+        _ = \
             imgui.style.colors[imgui.COLOR_TABLE_HEADER_BACKGROUND] = \
             imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT] = \
         globals.settings.style_alt_bg
-        globals.settings.style_bg = \
+        _ = \
             imgui.style.colors[imgui.COLOR_BUTTON] = \
             imgui.style.colors[imgui.COLOR_HEADER] = \
             imgui.style.colors[imgui.COLOR_FRAME_BACKGROUND] = \
@@ -554,11 +554,11 @@ class MainGUI():
             imgui.style.colors[imgui.COLOR_SLIDER_GRAB_ACTIVE] = \
             imgui.style.colors[imgui.COLOR_SCROLLBAR_BACKGROUND] = \
         globals.settings.style_bg
-        globals.settings.style_border = \
+        _ = \
             imgui.style.colors[imgui.COLOR_BORDER] = \
             imgui.style.colors[imgui.COLOR_SEPARATOR] = \
         globals.settings.style_border
-        style_corner_radius = \
+        _ = \
             imgui.style.tab_rounding  = \
             imgui.style.grab_rounding = \
             imgui.style.frame_rounding = \
@@ -567,10 +567,10 @@ class MainGUI():
             imgui.style.window_rounding = \
             imgui.style.scrollbar_rounding = \
         globals.settings.style_corner_radius * globals.settings.interface_scaling
-        globals.settings.style_text = \
+        _ = \
             imgui.style.colors[imgui.COLOR_TEXT] = \
         globals.settings.style_text
-        globals.settings.style_text_dim = \
+        _ = \
             imgui.style.colors[imgui.COLOR_TEXT_DISABLED] = \
         globals.settings.style_text_dim
         self.qt_app.setStyleSheet(f"""
