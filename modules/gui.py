@@ -3895,6 +3895,10 @@ class MainGUI():
             )
             draw_settings_checkbox("use_parser_processes")
 
+            draw_settings_label(f"Async tasks count: {sum((0 if task.done() else 1) for task in asyncio.all_tasks(loop=async_thread.loop))}")
+            imgui.text("")
+            imgui.spacing()
+
             draw_settings_label(
                 "BG interval:",
                 "When F95Checker is in background mode it automatically refreshes your games periodically. This "
