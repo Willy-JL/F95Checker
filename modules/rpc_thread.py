@@ -1,5 +1,6 @@
 import socketserver
 import http.server
+import dataclasses
 import contextlib
 import threading
 import asyncio
@@ -58,7 +59,7 @@ def start():
                             self.send_json(200, list(globals.games))
                             return
                         case "/bookmarks":
-                            self.send_json(200, list(globals.bookmarks))
+                            self.send_json(200, [dataclasses.asdict(x) for x in globals.bookmarks.values()])
                             return
                         case _:
                             self.send_resp(404)

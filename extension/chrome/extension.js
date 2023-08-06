@@ -80,21 +80,23 @@ const updateIcons = async (tabId) => {
                 icon.style.color = "#FD5555";
                 return icon;
             }
-            const bookmarksIcon = () => {
+            const bookmarksIcon = (id) => {
                 const icon = document.createElement("i");
+                const text = bookmarks.find(b => b.id === id).notes || "<Empty note>";
                 icon.style.fontFamily = "'Font Awesome 5 Pro'";
                 icon.classList.add("fa", "fa-sticky-note");
-                icon.setAttribute("title", "Thread bookmarked");
-                icon.addEventListener("click", () => alert("Thread bookmarked"));
+                icon.setAttribute("title", text);
+                icon.addEventListener("click", () => alert(text));
                 icon.style.color = "#55eecc";
                 return icon;
             }
             const doUpdate = () => {
+                const bookmarksIds = bookmarks.map(b => b.id)
                 document.querySelectorAll('.f95checker-library-icons').forEach(e => e.remove());
                 for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
                     const id = threadId(elem.href);
                     const container = createContainer();
-                    if (!id || ![...games, ...bookmarks].includes(id)) {
+                    if (!id || ![...games, ...bookmarksIds].includes(id)) {
                         continue;
                     }
                     const isImage = elem.classList.contains("resource-tile_link") || elem.parentNode.parentNode.classList.contains("es-slides");
@@ -112,7 +114,7 @@ const updateIcons = async (tabId) => {
                         container.style.fontSize = "larger";
                     }
                     if (games.includes(id)) container.prepend(gamesIcon());
-                    if (bookmarks.includes(id)) container.prepend(bookmarksIcon());
+                    if (bookmarksIds.includes(id)) container.prepend(bookmarksIcon(id));
                     elem.insertAdjacentElement("beforebegin", container);
                 }
                 const id = threadId(document.location);
@@ -121,7 +123,7 @@ const updateIcons = async (tabId) => {
                 const title = document.getElementsByClassName("p-title-value")[0];
                 if (title) {
                     if (games.includes(id)) container.prepend(gamesIcon());
-                    if (bookmarks.includes(id)) container.prepend(bookmarksIcon());
+                    if (bookmarksIds.includes(id)) container.prepend(bookmarksIcon(id));
                     if (container.firstChild) title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
                 }
             }
