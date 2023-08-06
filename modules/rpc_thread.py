@@ -58,8 +58,8 @@ def start():
                         case "/games":
                             self.send_json(200, list(globals.games))
                             return
-                        case "/bookmarks":
-                            self.send_json(200, [dataclasses.asdict(x) for x in globals.bookmarks.values()])
+                        case "/reminders":
+                            self.send_json(200, [dataclasses.asdict(x) for x in globals.reminders.values()])
                             return
                         case _:
                             self.send_resp(404)
@@ -83,15 +83,15 @@ def start():
                                     await asyncio.sleep(0.1)
                                     await callbacks.add_games(*matches)
                                 async_thread.run(_add_game())
-                        case "/bookmarks/add":
+                        case "/reminders/add":
                             urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                             if matches := utils.extract_thread_matches("\n".join(urls)):
                                 globals.gui.show()
-                                # TODO: Open bookmarks window
-                                async def _add_bookmark():
+                                # TODO: Open reminders window
+                                async def _add_reminder():
                                     await asyncio.sleep(0.1)
-                                    await callbacks.add_bookmarks(*matches)
-                                async_thread.run(_add_bookmark())
+                                    await callbacks.add_reminders(*matches)
+                                async_thread.run(_add_reminder())
                         case _:
                             self.send_resp(404)
                             return

@@ -829,7 +829,7 @@ class OldGame:
     status               : Status
 
 @dataclasses.dataclass
-class Bookmark:
+class Reminder:
     id                   : int
     title                : str
     notes                : str

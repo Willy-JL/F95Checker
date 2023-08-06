@@ -9,7 +9,7 @@
 rpcPort = 57095;
 rpcURL = `http://localhost:${rpcPort}`;
 games = [];
-bookmarks = [];
+reminders = [];
 
 sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -34,8 +34,8 @@ getData = async () => {
     res = await rpcCall("GET", "/games");
     games = res ? await res.json() : [];
 
-    res = await rpcCall("GET", "/bookmarks");
-    bookmarks = res ? await res.json() : [];
+    res = await rpcCall("GET", "/reminders");
+    reminders = res ? await res.json() : [];
 }
 
 
@@ -46,14 +46,14 @@ addGame = async (url) => {
 }
 
 
-addBookmark = async (url, tabId) => {
-    await rpcCall("POST", "/bookmarks/add", JSON.stringify([url]), tabId);
+addReminder = async (url, tabId) => {
+    await rpcCall("POST", "/reminders/add", JSON.stringify([url]), tabId);
     await sleep(0.5 * 1000)
     await updateIcons(tabId);
 }
 
 
-// Add icons for games and bookmarks
+// Add icons for games and reminders
 updateIcons = async () => {
     await getData();
     const threadId = (url) => {
@@ -77,9 +77,9 @@ updateIcons = async () => {
         icon.style.color = "#FD5555";
         return icon;
     }
-    const bookmarksIcon = (id) => {
+    const remindersIcon = (id) => {
         const icon = document.createElement("i");
-        const text = bookmarks.find(b => b.id === id).notes || "<Empty note>";
+        const text = reminders.find(b => b.id === id).notes || "<Empty note>";
         icon.style.fontFamily = "'Font Awesome 5 Pro'";
         icon.classList.add("fa", "fa-sticky-note");
         icon.setAttribute("title", text);
@@ -88,12 +88,12 @@ updateIcons = async () => {
         return icon;
     }
     const doUpdate = () => {
-        const bookmarksIds = bookmarks.map(b => b.id)
+        const remindersIds = reminders.map(b => b.id)
         document.querySelectorAll('.f95checker-library-icons').forEach(e => e.remove());
         for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
             const id = threadId(elem.href);
             const container = createContainer();
-            if (!id || ![...games, ...bookmarksIds].includes(id)) {
+            if (!id || ![...games, ...remindersIds].includes(id)) {
                 continue;
             }
             const isImage = elem.classList.contains("resource-tile_link") || elem.parentNode.parentNode.classList.contains("es-slides");
@@ -111,7 +111,7 @@ updateIcons = async () => {
                 container.style.fontSize = "larger";
             }
             if (games.includes(id)) container.prepend(gamesIcon());
-            if (bookmarksIds.includes(id)) container.prepend(bookmarksIcon(id));
+            if (remindersIds.includes(id)) container.prepend(remindersIcon(id));
             elem.insertAdjacentElement("beforebegin", container);
         }
         const id = threadId(document.location);
@@ -120,7 +120,7 @@ updateIcons = async () => {
         const title = document.getElementsByClassName("p-title-value")[0];
         if (title) {
             if (games.includes(id)) container.prepend(gamesIcon());
-            if (bookmarksIds.includes(id)) container.prepend(bookmarksIcon(id));
+            if (remindersIds.includes(id)) container.prepend(remindersIcon(id));
             if (container.firstChild) title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
         }
     }

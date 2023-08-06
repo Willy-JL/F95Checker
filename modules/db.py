@@ -19,13 +19,13 @@ from modules.structs import (
     DisplayMode,
     Timestamp,
     Settings,
+    Reminder,
     Browser,
     MsgBox,
     Status,
     Label,
     Type,
     Game,
-    Bookmark,
 )
 from modules import (
     globals,
@@ -248,7 +248,7 @@ async def connect():
     )
 
     await create_table(
-        table_name="bookmarks",
+        table_name="reminders",
         columns={
             "id":                          f'INTEGER PRIMARY KEY',
             "title":                       f'TEXT    DEFAULT ""',
@@ -319,18 +319,18 @@ async def load_games(id: int = None):
         globals.games[game["id"]] = row_to_cls(game, Game)
 
 
-async def load_bookmarks(id: int = None):
+async def load_reminders(id: int = None):
     query = """
         SELECT *
-        FROM bookmarks
+        FROM reminders
     """
     if id is not None:
         query += f"""
             WHERE id={id}
         """
     cursor = await connection.execute(query)
-    for bookmark in await cursor.fetchall():
-        globals.bookmarks[bookmark["id"]] = row_to_cls(bookmark, Bookmark)
+    for reminder in await cursor.fetchall():
+        globals.reminders[reminder["id"]] = row_to_cls(reminder, Reminder)
 
 
 async def load():
@@ -350,8 +350,8 @@ async def load():
     globals.games = {}
     await load_games()
 
-    globals.bookmarks = {}
-    await load_bookmarks()
+    globals.reminders = {}
+    await load_reminders()
 
     cursor = await connection.execute("""
         SELECT *
@@ -459,9 +459,9 @@ async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
         return thread.id
 
 
-async def add_bookmark(thread: ThreadMatch = None):
+async def add_reminder(thread: ThreadMatch = None):
     await connection.execute(f"""
-        INSERT INTO bookmarks
+        INSERT INTO reminders
         (id, title, notes)
         VALUES
         (?,  ?,     ?    )

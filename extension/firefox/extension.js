@@ -1,7 +1,7 @@
 const rpcPort = 57095;
 const rpcURL = `http://localhost:${rpcPort}`;
 let games = [];
-let bookmarks = [];
+let reminders = [];
 
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -34,8 +34,8 @@ const getData = async () => {
     res = await rpcCall("GET", "/games");
     games = res ? await res.json() : [];
 
-    res = await rpcCall("GET", "/bookmarks");
-    bookmarks = res ? await res.json() : [];
+    res = await rpcCall("GET", "/reminders");
+    reminders = res ? await res.json() : [];
 }
 
 
@@ -46,19 +46,19 @@ const addGame = async (url, tabId) => {
 }
 
 
-const addBookmark = async (url, tabId) => {
-    await rpcCall("POST", "/bookmarks/add", JSON.stringify([url]), tabId);
+const addReminder = async (url, tabId) => {
+    await rpcCall("POST", "/reminders/add", JSON.stringify([url]), tabId);
     await sleep(0.5 * 1000)
     await updateIcons(tabId);
 }
 
 
-// Add icons for games and bookmarks
+// Add icons for games and reminders
 const updateIcons = async (tabId) => {
     await getData();
     chrome.scripting.executeScript({
         target: { tabId: tabId },
-        func: (games, bookmarks) => {
+        func: (games, reminders) => {
             const threadId = (url) => {
                 const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
                 return match ? parseInt(match[1]) : null;
@@ -80,9 +80,9 @@ const updateIcons = async (tabId) => {
                 icon.style.color = "#FD5555";
                 return icon;
             }
-            const bookmarksIcon = (id) => {
+            const remindersIcon = (id) => {
                 const icon = document.createElement("i");
-                const text = bookmarks.find(b => b.id === id).notes || "<Empty note>";
+                const text = reminders.find(b => b.id === id).notes || "<Empty note>";
                 icon.style.fontFamily = "'Font Awesome 5 Pro'";
                 icon.classList.add("fa", "fa-sticky-note");
                 icon.setAttribute("title", text);
@@ -91,12 +91,12 @@ const updateIcons = async (tabId) => {
                 return icon;
             }
             const doUpdate = () => {
-                const bookmarksIds = bookmarks.map(b => b.id)
+                const remindersIds = reminders.map(b => b.id)
                 document.querySelectorAll('.f95checker-library-icons').forEach(e => e.remove());
                 for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
                     const id = threadId(elem.href);
                     const container = createContainer();
-                    if (!id || ![...games, ...bookmarksIds].includes(id)) {
+                    if (!id || ![...games, ...remindersIds].includes(id)) {
                         continue;
                     }
                     const isImage = elem.classList.contains("resource-tile_link") || elem.parentNode.parentNode.classList.contains("es-slides");
@@ -114,7 +114,7 @@ const updateIcons = async (tabId) => {
                         container.style.fontSize = "larger";
                     }
                     if (games.includes(id)) container.prepend(gamesIcon());
-                    if (bookmarksIds.includes(id)) container.prepend(bookmarksIcon(id));
+                    if (remindersIds.includes(id)) container.prepend(remindersIcon(id));
                     elem.insertAdjacentElement("beforebegin", container);
                 }
                 const id = threadId(document.location);
@@ -123,7 +123,7 @@ const updateIcons = async (tabId) => {
                 const title = document.getElementsByClassName("p-title-value")[0];
                 if (title) {
                     if (games.includes(id)) container.prepend(gamesIcon());
-                    if (bookmarksIds.includes(id)) container.prepend(bookmarksIcon(id));
+                    if (remindersIds.includes(id)) container.prepend(remindersIcon(id));
                     if (container.firstChild) title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
                 }
             }
@@ -136,7 +136,7 @@ const updateIcons = async (tabId) => {
                 observer.observe(latest, { attributes: true });
             }
         },
-        args: [games, bookmarks]
+        args: [games, reminders]
     });
 }
 chrome.webNavigation.onCompleted.addListener((details) => {
@@ -165,14 +165,14 @@ chrome.runtime.onInstalled.addListener(async () => {
         targetUrlPatterns: ["*://*.f95zone.to/threads/*"]
     });
     chrome.contextMenus.create({
-        id: `add-page-to-bookmarks`,
-        title: `Add this page to bookmarks`,
+        id: `add-page-to-reminders`,
+        title: `Add this page to reminders`,
         contexts: ["page"],
         documentUrlPatterns: ["*://*.f95zone.to/threads/*"]
     });
     chrome.contextMenus.create({
-        id: `add-link-to-bookmarks`,
-        title: `Add this link to bookmarks`,
+        id: `add-link-to-reminders`,
+        title: `Add this link to reminders`,
         contexts: ["link"],
         targetUrlPatterns: ["*://*.f95zone.to/threads/*"]
     });
@@ -183,9 +183,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         case 'add-page-to-f95checker':
             addGame(info.linkUrl || info.pageUrl, tab.id);
             break;
-        case 'add-link-to-bookmarks':
-        case 'add-page-to-bookmarks':
-            addBookmark(info.linkUrl || info.pageUrl, tab.id);
+        case 'add-link-to-reminders':
+        case 'add-page-to-reminders':
+            addReminder(info.linkUrl || info.pageUrl, tab.id);
             break;
     }
 });
