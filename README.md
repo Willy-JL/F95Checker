@@ -37,15 +37,14 @@ An update checker and library tool for (NSFW) games on the [F95Zone](https://f95
 - Background mode (periodically refresh in background and receive desktop notifications)
 - Many ways to add games, including a companion web browser extension
 
+## Download: [here](https://github.com/Willy-JL/F95Checker/releases/latest)
+
 ## Compatibility:
 
 Built with Python 3.10+ for Windows, Linux and MacOS.
 
 Binaries are available for all 3 platforms, requiring no setup at all. If instead you want to run from source note that Python 3.10+ is required and you'll need to
-install the requirements with pip (development packages might be needed to compile them).
-
-My daily machine runs Arch Linux but I have both Windows and MacOS virtual machines. I always try my best to test the updates on all platforms before release and to
-help you when things go wrong, but I can only do so much and with some obscure errors I might not be able to help you.
+install the requirements with pip.
 
 ## Installation:
 
@@ -60,13 +59,6 @@ executable and has a shebang, you might be able to just double click it!)
 
 **\*** If you get a message saying that the application is damaged and should be moved to the trash you need to: close the popup, open a terminal, navigate to the
 location of the `F95Checker.app`, type in `xattr -d com.apple.quarantine F95Checker.app` and press enter; after this the method above to open the app should work fine.
-
-## Download:
-
-Versions after 7.0 are hosted in the [GitHub releases section](https://github.com/Willy-JL/f95checker/releases), while older versions are archived in the
-[F95Zone thread](https://f95zone.to/threads/44173/).
-
-### Get the latest release [here](https://github.com/Willy-JL/F95Checker/releases/latest).
 
 ## Browser extension
 
@@ -177,6 +169,10 @@ Upcoming features and fixes are tracked on the [GitHub Project page](https://git
 
 You can pitch your feature requests and bug reports either in the [GitHub issues](https://github.com/Willy-JL/F95Checker/issues) or on the
 [F95Zone thread](https://f95zone.to/threads/44173/).
+
+## Old versions:
+
+Versions before 7.0 are archived in the [F95Zone thread](https://f95zone.to/threads/44173/).
 
 ## Disclaimer:
 
