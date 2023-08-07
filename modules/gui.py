@@ -1152,6 +1152,8 @@ class MainGUI():
             imgui.text(game.name)
         else:
             imgui.text_colored(game.name, *globals.settings.style_accent)
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            callbacks.clipboard_copy(game.name)
 
     def get_game_version_text(self, game: Game):
         if game.installed and game.installed != game.version:
