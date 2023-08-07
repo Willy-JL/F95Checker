@@ -2173,7 +2173,7 @@ class MainGUI():
                             "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95Zone. "
                             "This is useful for games that have been removed for breaking forum rules, or for adding games from other platforms to your library. Custom "
                             "games allow you to edit their core details (name, version, developer, type, url, score, updated, description, changelog and tags), while "
-                            "some  others (status, last updated and downloads) will be overridden / reset. Personal attributes and features (last played, rating, "
+                            "some others (status, last updated and downloads) will be overridden / reset. Personal attributes and features (last played, rating, "
                             "played, installed, archiving, executables, labels and notes) will keep working as usual."
                         )
                         if imgui.button(f"{icons.puzzle_check} Convert to custom game"):
