@@ -19,6 +19,7 @@ from modules.structs import (
     DaemonProcess,
     SearchResult,
     ThreadMatch,
+    Reminder,
     MsgBox,
     Status,
     Game,
@@ -475,7 +476,7 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
                 msgbox.msgbox, f"{'Duplicate' if dupe_count > 0 else 'Added'} games",
                 (
                     (f"{added_count} new game{' has' if added_count == 1 else 's have'} been added to your library.\n"
-                    "Make sure to refresh to grab all the game details.")
+                     "Make sure to refresh to grab all the game details.")
                     if added_count > 0 else ""
                 ) +
                 ("\n\n" if dupe_count > 0 and added_count > 0 else "") +
@@ -516,3 +517,90 @@ async def add_reminders(*threads: list[ThreadMatch]):
             continue
         await db.add_reminder(thread)
         await db.load_reminders(thread.id)
+        if globals.settings.edit_reminder_after_add:
+            reminder = globals.reminders[thread.id]
+            edit_reminder(reminder)
+            globals.gui.show()
+
+
+def remove_reminder(*reminders: list[Reminder], bypass_confirm=False):
+    def remove_callback():
+        for reminder in reminders:
+            id = reminder.id
+            del globals.reminders[id]
+            async_thread.run(db.remove_reminder(id))
+    if not bypass_confirm and (len(reminders) > 1 or globals.settings.confirm_on_remove):
+        buttons = {
+            f"{icons.check} Yes": remove_callback,
+            f"{icons.cancel} No": None
+        }
+        utils.push_popup(
+            msgbox.msgbox, f"Remove reminder{'' if len(reminders) == 1 else 's'}",
+            f"You are removing {'this reminder' if len(reminders) == 1 else 'these reminders'} from your list:\n" +
+            "\n".join(reminder.title for reminder in reminders) + "\n"
+                                                     "Are you sure you want to do this?",
+            MsgBox.warn,
+            buttons
+        )
+    else:
+        remove_callback()
+
+
+def transfer_reminder(*reminders: list[Reminder], bypass_confirm=False):
+    def transfer_callback():
+        for reminder in reminders:
+            id = reminder.id
+            del globals.reminders[id]
+            async_thread.run(db.remove_reminder(id))
+            async_thread.run(add_games(ThreadMatch(reminder.title, reminder.id)))
+    if not bypass_confirm and (len(reminders) > 1 or globals.settings.confirm_on_transfer):
+        buttons = {
+            f"{icons.check} Yes": transfer_callback,
+            f"{icons.cancel} No": None
+        }
+        utils.push_popup(
+            msgbox.msgbox, f"Transfer reminder{'' if len(reminders) == 1 else 's'}",
+            f"You are transfering {'this reminder' if len(reminders) == 1 else 'these reminders'} to game list:\n" +
+            "\n".join(reminder.title for reminder in reminders) + "\n"
+                                                                  "Are you sure you want to do this?",
+            MsgBox.warn,
+            buttons
+        )
+    else:
+        transfer_callback()
+
+
+def edit_reminder(reminder: Reminder):
+    name = reminder.title
+    notes = reminder.notes
+
+    def _edit_popup():
+        nonlocal name
+        nonlocal notes
+        changed1, name = imgui.input_text(
+            "###reminder_name",
+            value=name,
+        )
+        changed2, notes = imgui.input_text_multiline(
+            "###reminder_notes",
+            value=notes,
+            width=globals.gui.scaled(500)
+        )
+        if imgui.begin_popup_context_item(f"###{reminder.id}_notes_context"):
+            utils.text_context(reminder, "notes")
+            imgui.end_popup()
+        if imgui.button(f"{icons.content_save} Save"):
+            reminder.title = name
+            reminder.notes = notes
+            async_thread.wait(db.update_reminder(reminder, "title", "notes"))
+            globals.popup_stack.pop()
+
+    utils.push_popup(
+        utils.popup, f"Editing thread #{reminder.id}",
+        _edit_popup,
+        buttons=False,
+        closable=True,
+        outside=False,
+    )
+
+

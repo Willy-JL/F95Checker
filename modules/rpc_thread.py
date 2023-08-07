@@ -86,8 +86,6 @@ def start():
                         case "/reminders/add":
                             urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                             if matches := utils.extract_thread_matches("\n".join(urls)):
-                                globals.gui.show()
-                                # TODO: Open reminders window
                                 async def _add_reminder():
                                     await asyncio.sleep(0.1)
                                     await callbacks.add_reminders(*matches)

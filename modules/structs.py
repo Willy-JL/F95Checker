@@ -573,10 +573,12 @@ class Settings:
     cell_image_ratio            : float
     check_notifs                : bool
     confirm_on_remove           : bool
+    confirm_on_transfer         : bool
     copy_urls_as_bbcode         : bool
     datestamp_format            : str
     default_exe_dir             : str
     display_mode                : DisplayMode
+    edit_reminder_after_add     : bool
     fit_images                  : bool
     grid_columns                : int
     ignore_semaphore_timeouts   : bool
@@ -833,3 +835,5 @@ class Reminder:
     id                   : int
     title                : str
     notes                : str
+    added_on             : int
+    selected             : bool = False

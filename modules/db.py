@@ -135,10 +135,12 @@ async def connect():
             "cell_image_ratio":            f'REAL    DEFAULT 3.0',
             "check_notifs":                f'INTEGER DEFAULT {int(True)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
+            "confirm_on_transfer":         f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT ""',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
+            "edit_reminder_after_add":     f'INTEGER DEFAULT {int(False)}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
@@ -253,6 +255,7 @@ async def connect():
             "id":                          f'INTEGER PRIMARY KEY',
             "title":                       f'TEXT    DEFAULT ""',
             "notes":                       f'TEXT    DEFAULT ""',
+            "added_on":                    f'INTEGER DEFAULT 0',
         },
     )
 
@@ -438,7 +441,6 @@ async def remove_game(id: int):
         WHERE id={id}
     """)
 
-
 async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
     if custom:
         game_id = utils.custom_id()
@@ -462,11 +464,33 @@ async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
 async def add_reminder(thread: ThreadMatch = None):
     await connection.execute(f"""
         INSERT INTO reminders
-        (id, title, notes)
+        (id, title, notes, added_on)
         VALUES
-        (?,  ?,     ?    )
-    """, (thread.id, thread.title or f"Unknown ({thread.id})", ""))
+        (?,  ?,     ?,     ?       )
+    """, (thread.id, thread.title or f"Unknown ({thread.id})", "", int(time.time())))
     return thread.id
+
+
+async def update_reminder(reminder: Reminder, *keys: list[str]):
+    values = []
+
+    for key in keys:
+        value = py_to_sql(getattr(reminder, key))
+        values.append(value)
+
+    await connection.execute(f"""
+        UPDATE reminders
+        SET
+            {", ".join(f"{key} = ?" for key in keys)}
+        WHERE id={reminder.id}
+    """, tuple(values))
+
+
+async def remove_reminder(id: int):
+    await connection.execute(f"""
+        DELETE FROM reminders
+        WHERE id={id}
+    """)
 
 
 async def update_label(label: Label, *keys: list[str]):

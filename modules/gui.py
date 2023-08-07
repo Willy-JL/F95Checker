@@ -28,6 +28,7 @@ from modules.structs import (
     Timestamp,
     ExeState,
     SortSpec,
+    Reminder,
     TrayMsg,
     Browser,
     Filter,
@@ -280,6 +281,13 @@ class MainGUI():
             imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID |
             imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
         )
+        self.reminders_table_flags: int = (
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_ROW_BACKGROUND |
+            imgui.TABLE_SIZING_FIXED_FIT |
+            imgui.TABLE_NO_HOST_EXTEND_Y |
+            imgui.TABLE_NO_BORDERS_IN_BODY_UTIL_RESIZE
+        )
         self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.release else ' by WillyJL'}"
 
         # Variables
@@ -297,6 +305,7 @@ class MainGUI():
         self.bg_mode_paused = False
         self.selected_games_count = 0
         self.game_hitbox_click = False
+        self.editing_reminders = False
         self.hovered_game: Game = None
         self.sorts: list[SortSpec] = []
         self.filters: list[Filter] = []
@@ -840,13 +849,16 @@ class MainGUI():
                         imgui.begin_child("###main_frame", width=-sidebar_size)
                         self.hovered_game = None
                         # Games container
-                        match globals.settings.display_mode.value:
-                            case DisplayMode.list.value:
-                                self.draw_games_list()
-                            case DisplayMode.grid.value:
-                                self.draw_games_grid()
-                            case DisplayMode.kanban.value:
-                                self.draw_games_kanban()
+                        if self.editing_reminders:
+                            self.draw_reminders_list()
+                        else:
+                            match globals.settings.display_mode.value:
+                                case DisplayMode.list.value:
+                                    self.draw_games_list()
+                                case DisplayMode.grid.value:
+                                    self.draw_games_grid()
+                                case DisplayMode.kanban.value:
+                                    self.draw_games_kanban()
                         # Bottombar
                         self.draw_bottombar()
                         imgui.end_child()
@@ -1044,6 +1056,11 @@ class MainGUI():
                 self.filters.append(flt)
             imgui.end_group()
 
+    def draw_reminder_name_text(self, reminder: Reminder):
+        imgui.text_colored(reminder.title, *globals.settings.style_accent)
+        imgui.same_line()
+        imgui.text_disabled(f"#{reminder.id}")
+
     def draw_game_update_icon(self, game: Game):
         quick_filter = globals.settings.quick_filters
         if quick_filter:
@@ -1238,6 +1255,68 @@ class MainGUI():
                 for game in globals.games.values():
                     if game.selected:
                         callbacks.open_webpage(game.url)
+
+    def draw_reminder_open_thread_button(self, reminder: Reminder, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if reminder and imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            if globals.settings.copy_urls_as_bbcode:
+                _url = lambda reminder: f"[URL='https://f95zone.to/threads/{reminder.id}']{reminder.title}[/URL]"
+            else:
+                _url = lambda reminder: f"https://f95zone.to/threads/{reminder.id}"
+            if reminder:
+                text = _url(reminder)
+            else:
+                text = "\n".join(_url(reminder) for reminder in globals.reminders.values() if reminder.selected if reminder.id)
+            callbacks.clipboard_copy(text)
+        elif clicked:
+            if reminder:
+                callbacks.open_webpage(f"https://f95zone.to/threads/{reminder.id}")
+            else:
+                for reminder in globals.reminders.values():
+                    if reminder.selected:
+                        callbacks.open_webpage(f"https://f95zone.to/threads/{reminder.id}")
+
+
+    def draw_reminder_transfer_button(self, reminder: Reminder, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            if reminder:
+                callbacks.transfer_reminder(reminder)
+            else:
+                callbacks.transfer_reminder(*filter(lambda reminder: reminder.selected, globals.reminders.values()))
+
+    def draw_reminder_notes_button(self, reminder: Reminder, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            utils.push_popup(self.draw_reminder_notes_popup, reminder)
+
+    def draw_reminder_edit_button(self, reminder: Reminder, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            callbacks.edit_reminder(reminder)
+
+    def draw_reminder_remove_button(self, reminder: Reminder, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            if reminder:
+                callbacks.remove_reminder(reminder)
+            else:
+                callbacks.remove_reminder(*filter(lambda reminder: reminder.selected, globals.reminders.values()))
 
     def draw_game_copy_link_button(self, game: Game, label="", selectable=False):
         if selectable:
@@ -1434,6 +1513,19 @@ class MainGUI():
         imgui.separator()
         self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive", selectable=True)
         self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove", selectable=True)
+
+    def draw_reminder_context_menu(self, reminder: Reminder = None):
+        if not reminder:
+            imgui.text(f"Selected multiple reminders")
+        if reminder:
+            self.draw_reminder_notes_button(reminder, f"{icons.note_text_outline} Notes", selectable=True)
+        self.draw_reminder_open_thread_button(reminder, f"{icons.open_in_new} Open Thread", selectable=True)
+        imgui.separator()
+        self.draw_reminder_transfer_button(reminder, f"{icons.transfer_up} Transfer to game list", selectable=True)
+        imgui.separator()
+        if reminder:
+            self.draw_reminder_edit_button(reminder, f"{icons.text_box_edit} Edit", selectable=True)
+        self.draw_reminder_remove_button(reminder, f"{icons.trash_can_outline} Remove", selectable=True)
 
     def draw_game_notes_widget(self, game: Game, multiline=True, width: int | float = None):
         if multiline:
@@ -2351,6 +2443,62 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
+    def draw_reminders_list(self, popup_uuid: str = ""):
+        if imgui.begin_table(
+            "###reminders_list",
+            column=3,
+            flags=self.reminders_table_flags,
+            outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
+        ):
+            # Column headers
+            imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
+            imgui.table_next_column()
+            imgui.table_header("##open_thread_button")
+            imgui.table_next_column()
+            imgui.table_header("Thread")
+            imgui.table_next_column()
+            imgui.table_header("Notes")
+            imgui.table_next_row()
+
+            frame_height = imgui.get_frame_height()
+
+            if self.add_box_text:
+                filtered_reminders = []
+                query = self.add_box_text.lower()
+                reminders = list(globals.reminders.values())
+                filtered_reminders += list(filter(lambda r: query in r.title.lower() or query in str(r.id).lower(), reminders))
+            else:
+                filtered_reminders = list(globals.reminders.values())
+
+            filtered_reminders.sort(key=lambda r: r.added_on, reverse=True)
+
+            for reminder_i, reminder in enumerate(filtered_reminders):
+                # Rows
+                imgui.table_next_row()
+                imgui.table_next_column()
+                self.draw_reminder_open_thread_button(reminder, icons.open_in_new)
+                imgui.table_next_column()
+                self.draw_reminder_name_text(reminder)
+                imgui.table_next_column()
+                imgui.text(reminder.notes.replace("\n", " "))
+                # Row hitbox
+                imgui.same_line()
+                imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
+                if reminder.selected:
+                    imgui.push_alpha(0.5)
+                    imgui.get_window_draw_list().add_rect_filled(
+                        0, pos_y := imgui.get_cursor_screen_pos().y + 1,
+                        imgui.io.display_size.x, pos_y + frame_height + 2 * imgui.style.cell_padding.y,
+                        imgui.get_color_u32_rgba(*globals.settings.style_accent)
+                    )
+                    imgui.pop_alpha()
+                imgui.push_alpha(0.25)
+                imgui.selectable(f"###{reminder.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
+                imgui.pop_alpha()
+                self.handle_reminder_hitbox_events(reminder, reminder_i)
+
+            imgui.end_table()
+
     def sort_games(self, sorts: imgui.core._ImGuiTableSortSpecs):
         manual_sort = cols.manual_sort.enabled
         if manual_sort != self.prev_manual_sort:
@@ -2513,6 +2661,36 @@ class MainGUI():
                 self.draw_game_context_menu()
             else:
                 self.draw_game_context_menu(game)
+            imgui.end_popup()
+
+    def draw_reminder_notes_popup(self, reminder: Reminder, popup_uuid: str = ""):
+        def popup_content():
+            imgui.dummy(self.scaled(500), self.scaled(0))
+            imgui.text_wrapped(reminder.notes or "<Empty note>")
+
+        return utils.popup(f"Notes: {reminder.title}", popup_content, popup_uuid=popup_uuid)
+
+    def handle_reminder_hitbox_events(self, reminder: Reminder, reminder_i: int = None):
+        if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
+            if imgui.is_item_clicked():
+                if imgui.is_key_down(glfw.KEY_LEFT_CONTROL):
+                    # Ctrl + Left click = single select
+                    reminder.selected = not reminder.selected
+                else:
+                    if any(reminder.selected for reminder in globals.reminders.values()):
+                        for reminder in globals.reminders.values():
+                            reminder.selected = False
+                    else:
+                        # Left click = open notes popup
+                        utils.push_popup(self.draw_reminder_notes_popup, reminder)
+
+        context_id = f"###{reminder.id}_context"
+        if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
+            # Right click = context menu
+            if reminder.selected:
+                self.draw_reminder_context_menu()
+            else:
+                self.draw_reminder_context_menu(reminder)
             imgui.end_popup()
 
     def sync_scroll(self):
@@ -2999,16 +3177,21 @@ class MainGUI():
 
     def draw_bottombar(self):
         new_display_mode = None
+        if self.editing_reminders:
+            hint = "Type to filter reminders by name and thread id"
+        else:
+            hint = "Type to filter the list, press enter to add a game (link/search)"
 
-        for display_mode in DisplayMode:
-            if globals.settings.display_mode is display_mode:
-                imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-            if imgui.button(getattr(icons, display_mode.icon)):
-                new_display_mode = display_mode
-                self.switched_display_mode = True
-            if globals.settings.display_mode is display_mode:
-                imgui.pop_style_color()
-            imgui.same_line()
+        if not self.editing_reminders:
+            for display_mode in DisplayMode:
+                if globals.settings.display_mode is display_mode:
+                    imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
+                if imgui.button(getattr(icons, display_mode.icon)):
+                    new_display_mode = display_mode
+                    self.switched_display_mode = True
+                if globals.settings.display_mode is display_mode:
+                    imgui.pop_style_color()
+                imgui.same_line()
 
         if new_display_mode is not None:
             globals.settings.display_mode = new_display_mode
@@ -3029,7 +3212,7 @@ class MainGUI():
             any_active = True
         activated, value = imgui.input_text_with_hint(
             "###bottombar",
-            "Type to filter the list, press enter to add a game (link/search)",
+            hint,
             self.add_box_text,
             flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
         )
@@ -3063,14 +3246,14 @@ class MainGUI():
                     MsgBox.info
                 )
             imgui.end_popup()
-        if self.add_box_valid:
+        if self.add_box_valid and not self.editing_reminders:
             imgui.same_line()
             if imgui.button("Add!") or activated:
                 async_thread.run(callbacks.add_games(*utils.extract_thread_matches(self.add_box_text)))
                 self.add_box_text = ""
                 self.add_box_valid = False
                 self.require_sort = True
-        elif activated:
+        elif activated and not self.editing_reminders:
             async def _search_and_add(query: str):
                 login = None
                 results = None
@@ -3883,6 +4066,12 @@ class MainGUI():
                 if globals.settings.select_executable_after_add:
                     callbacks.add_game_exe(game)
 
+            draw_settings_label("Confirm when transfering:")
+            draw_settings_checkbox("confirm_on_transfer")
+
+            draw_settings_label("Edit reminder after add:")
+            draw_settings_checkbox("edit_reminder_after_add")
+
             imgui.end_table()
             imgui.spacing()
 
@@ -4052,6 +4241,19 @@ class MainGUI():
 
             imgui.end_table()
             imgui.spacing()
+
+        if draw_settings_section("Reminders", collapsible=False):
+            draw_settings_label(
+                "Reminders:",
+                "You can add reminders using F95Checker Browser Addon. "
+                "Threads with reminders will have cyan note icon attached to them, you can also add notes to reminders and see them when hovering over icon. "
+                "Reminders are NOT connected to F95zone bookmarks system, but they are very similar and can be used as an alternative."
+            )
+
+            if imgui.button("Close" if self.editing_reminders else "Edit", width=right_width):
+                self.editing_reminders = not self.editing_reminders
+
+            imgui.end_table()
 
         if draw_settings_section("Background", collapsible=False):
             draw_settings_label(
