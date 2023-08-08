@@ -31,6 +31,7 @@ from modules import (
     async_thread,
     colors,
     msgbox,
+    parser,
     utils,
     error,
     api,
@@ -417,10 +418,10 @@ async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
         game_id = utils.custom_id()
         await connection.execute(f"""
             INSERT INTO games
-            (id, custom, name, added_on)
+            (id, custom, name, added_on, last_updated)
             VALUES
-            (?,  ?,      ?,    ?       )
-        """, (game_id, True, f"Custom game ({game_id})", int(time.time())))
+            (?,  ?,      ?,    ?,        ?           )
+        """, (game_id, True, f"Custom game ({game_id})", int(time.time()), parser.datestamp(time.time())))
         return game_id
     else:
         await connection.execute(f"""
