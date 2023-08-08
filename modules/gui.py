@@ -48,6 +48,7 @@ from modules import (
     filepicker,
     callbacks,
     webview,
+    parser,
     msgbox,
     colors,
     icons,
@@ -2128,7 +2129,7 @@ class MainGUI():
                                     day -= 1
                                     continue
                                 break
-                            game.last_updated = int(date.timestamp())
+                            game.last_updated = parser.datestamp(date.timestamp())
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Type:")
                         imgui.same_line()
