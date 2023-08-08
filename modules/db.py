@@ -417,18 +417,18 @@ async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
         game_id = utils.custom_id()
         await connection.execute(f"""
             INSERT INTO games
-            (id, name, added_on)
+            (id, custom, name, added_on)
             VALUES
-            (?,  ?,    ?       )
-        """, (game_id, f"Custom game ({game_id})", int(time.time())))
+            (?,  ?,      ?,    ?       )
+        """, (game_id, True, f"Custom game ({game_id})", int(time.time())))
         return game_id
     else:
         await connection.execute(f"""
             INSERT INTO games
-            (id, name, url, added_on)
+            (id, custom, name, url, added_on)
             VALUES
-            (?,  ?,    ?,   ?       )
-        """, (thread.id, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", int(time.time())))
+            (?,  ?,      ?,    ?,   ?       )
+        """, (thread.id, False, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", int(time.time())))
         return thread.id
 
 
