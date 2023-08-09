@@ -49,6 +49,7 @@ from modules import (
     filepicker,
     callbacks,
     webview,
+    parser,
     msgbox,
     colors,
     icons,
@@ -2205,13 +2206,13 @@ class MainGUI():
                         frame_height = imgui.get_frame_height()
                         imgui.same_line()
                         imgui.set_next_item_width(1.5 * frame_height)
-                        _, day = imgui.drag_int("###last_updated_day", day, change_speed=0.05, min_value=1, max_value=31)
+                        day = min(max(imgui.drag_int("###last_updated_day", day, change_speed=0.05, min_value=1, max_value=31)[1], 1), 31)
                         imgui.same_line()
                         imgui.set_next_item_width(1.5 * frame_height)
-                        _, month = imgui.drag_int("###last_updated_month", month, change_speed=0.03, min_value=1, max_value=12)
+                        month = min(max(imgui.drag_int("###last_updated_month", month, change_speed=0.03, min_value=1, max_value=12)[1], 1), 12)
                         imgui.same_line()
                         imgui.set_next_item_width(2 * frame_height)
-                        _, year = imgui.drag_int("###last_updated_year", year, change_speed=0.05, min_value=1970, max_value=9999)
+                        year = min(max(imgui.drag_int("###last_updated_year", year, change_speed=0.05, min_value=1970, max_value=9999)[1], 1970), 9999)
                         if day != date.day or month != date.month or year != date.year:
                             for _ in range(5):
                                 try:
@@ -2220,7 +2221,7 @@ class MainGUI():
                                     day -= 1
                                     continue
                                 break
-                            game.last_updated = int(date.timestamp())
+                            game.last_updated = parser.datestamp(date.timestamp())
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Type:")
                         imgui.same_line()
