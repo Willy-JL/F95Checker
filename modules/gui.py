@@ -3869,6 +3869,26 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
+        if draw_settings_section("Reminders"):
+            draw_settings_label(
+                "Reminders:",
+                "You can add reminders using F95Checker Browser Addon. "
+                "Threads with reminders will have cyan note icon attached to them, you can also add notes to reminders and see them when hovering over icon. "
+                "Reminders are NOT connected to F95zone bookmarks system, but they are very similar and can be used as an alternative."
+            )
+
+            if imgui.button("Close" if self.editing_reminders else "Edit", width=right_width):
+                self.editing_reminders = not self.editing_reminders
+
+            draw_settings_label("Edit reminder after add:")
+            draw_settings_checkbox("edit_reminder_after_add")
+
+            draw_settings_label("Confirm when transfering:")
+            draw_settings_checkbox("confirm_on_transfer")
+
+            imgui.end_table()
+            imgui.spacing()
+
         if draw_settings_section("Manage"):
             imgui.table_next_row()
             imgui.table_next_column()
@@ -4066,12 +4086,6 @@ class MainGUI():
                 if globals.settings.select_executable_after_add:
                     callbacks.add_game_exe(game)
 
-            draw_settings_label("Confirm when transfering:")
-            draw_settings_checkbox("confirm_on_transfer")
-
-            draw_settings_label("Edit reminder after add:")
-            draw_settings_checkbox("edit_reminder_after_add")
-
             imgui.end_table()
             imgui.spacing()
 
@@ -4241,19 +4255,6 @@ class MainGUI():
 
             imgui.end_table()
             imgui.spacing()
-
-        if draw_settings_section("Reminders", collapsible=False):
-            draw_settings_label(
-                "Reminders:",
-                "You can add reminders using F95Checker Browser Addon. "
-                "Threads with reminders will have cyan note icon attached to them, you can also add notes to reminders and see them when hovering over icon. "
-                "Reminders are NOT connected to F95zone bookmarks system, but they are very similar and can be used as an alternative."
-            )
-
-            if imgui.button("Close" if self.editing_reminders else "Edit", width=right_width):
-                self.editing_reminders = not self.editing_reminders
-
-            imgui.end_table()
 
         if draw_settings_section("Background", collapsible=False):
             draw_settings_label(
