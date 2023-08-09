@@ -40,6 +40,10 @@ def is_class(name: str):
     return _is_class
 
 
+def datestamp(timestamp: int | float):
+    return int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(timestamp).date().toordinal()).timestamp())
+
+
 class ParserException(Exception):
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -287,7 +291,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                     last_updated = int(post.find(is_class("message-attribution-main")).find("time").get("data-time"))
             except Exception:
                 pass
-        last_updated = int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(last_updated).date().toordinal()).timestamp())
+        last_updated = datestamp(last_updated)
 
         score = 0.0
         if elem := head.find("select", attrs={"name": "rating"}):
