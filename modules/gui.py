@@ -2466,7 +2466,7 @@ class MainGUI():
                 filtered_reminders = []
                 query = self.add_box_text.lower()
                 reminders = list(globals.reminders.values())
-                filtered_reminders += list(filter(lambda r: query in r.title.lower() or query in str(r.id).lower(), reminders))
+                filtered_reminders += list(filter(lambda r: query in r.title.lower() or query in str(r.id).lower() or query in r.notes.lower(), reminders))
             else:
                 filtered_reminders = list(globals.reminders.values())
 
@@ -3178,7 +3178,7 @@ class MainGUI():
     def draw_bottombar(self):
         new_display_mode = None
         if self.editing_reminders:
-            hint = "Type to filter reminders by name and thread id"
+            hint = "Type to filter reminders by thread ID, name, or notes"
         else:
             hint = "Type to filter the list, press enter to add a game (link/search)"
 
