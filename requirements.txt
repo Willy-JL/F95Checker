@@ -5,8 +5,10 @@ glfw>=2.6.2
 
 # Interface stuff
 imgui>=2.0.0
-PyQt6-WebEngine>=6.5.0
-PyQt6>=6.5.0
+PyQt6-WebEngine>=6.5.0 ; sys_platform != "darwin"
+PyQt6>=6.5.0 ; sys_platform != "darwin"
+PyQt6-WebEngine>=6.4.0, <6.5.0 ; sys_platform == "darwin"
+PyQt6>=6.4.0, <6.5.0 ; sys_platform == "darwin"
 
 # Async goodness
 aiosqlite>=0.19.0
