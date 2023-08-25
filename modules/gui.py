@@ -676,7 +676,7 @@ class MainGUI():
         try:
             with open(globals.data_path / "filters.pkl", "rb") as file:
                 self.filters = pickle.load(file)
-        except:
+        except Exception:
             self.filters = []
 
     def close(self, *_, **__):
