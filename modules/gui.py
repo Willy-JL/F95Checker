@@ -668,9 +668,8 @@ class MainGUI():
         self.type_label_width = None
 
     def save_filters(self):
-        if self.filters:
-            with open(globals.data_path / "filters.pkl", "wb") as file:
-                pickle.dump(self.filters, file)
+        with open(globals.data_path / "filters.pkl", "wb") as file:
+            pickle.dump(self.filters, file)
 
     def load_filters(self):
         try:
