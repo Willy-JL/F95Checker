@@ -14,6 +14,7 @@ import asyncio
 import pathlib
 import aiohttp
 import OpenGL
+import pickle
 import string
 import imgui
 import time
@@ -369,6 +370,8 @@ class MainGUI():
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
+        self.load_filters()
+
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
             if args.exc_type is not msgbox.Exc:
@@ -665,6 +668,17 @@ class MainGUI():
         self.impl.refresh_font_texture()
         self.type_label_width = None
 
+    def save_filters(self):
+        with open(globals.data_path / "filters.pkl", "wb") as file:
+            pickle.dump(self.filters, file)
+
+    def load_filters(self):
+        try:
+            with open(globals.data_path / "filters.pkl", "rb") as file:
+                self.filters = pickle.load(file)
+        except Exception:
+            self.filters = []
+
     def close(self, *_, **__):
         glfw.set_window_should_close(self.window, True)
 
@@ -933,6 +947,7 @@ class MainGUI():
                         time.sleep(1 / 3)
         finally:
             # Main loop over, cleanup and close
+            self.save_filters()
             imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
             ini = imgui.save_ini_settings_to_memory()
             try:
