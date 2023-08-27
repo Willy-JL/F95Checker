@@ -340,3 +340,11 @@ def push_popup(*args, bottom=False, **kwargs):
     else:
         globals.popup_stack.append(popup)
     return popup
+
+def simple_invisible_button(label: str):
+    imgui.push_style_color(imgui.COLOR_BORDER, 0, 0, 0, 0)
+    imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0, 0, 0, 0)
+    imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0, 0, 0, 0)
+    button = imgui.small_button(label)
+    imgui.pop_style_color(3)
+    return button

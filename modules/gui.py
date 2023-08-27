@@ -20,6 +20,7 @@ import imgui
 import time
 import glfw
 import sys
+import re
 
 from modules.structs import (
     DefaultStyle,
@@ -49,6 +50,7 @@ from modules import (
     filepicker,
     callbacks,
     webview,
+    structs,
     parser,
     msgbox,
     colors,
@@ -289,6 +291,7 @@ class MainGUI():
         self.focused = True
         self.minimized = False
         self.add_box_text = ""
+        self.search_query = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.require_sort = True
@@ -297,14 +300,17 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
+        self.autocomplete_term = ""
+        self.autocomplete_items = []
         self.selected_games_count = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.sorts: list[SortSpec] = []
-        self.filters: list[Filter] = []
+        self.filters: list[list[Filter]] = []
         self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
+        self.saved_search_terms: list[str] = []
         self.switched_display_mode = False
         self.type_label_width: float = None
         self.last_selected_game: Game = None
@@ -331,18 +337,18 @@ class MainGUI():
             with open(imgui.io.ini_file_name, "r") as f:
                 ini = f.read()
             imgui.load_ini_settings_from_memory(ini)
-            start = ini.find("[Window][F95Checker]")
+            start = ini.find("[Window][F95CheckerX]")
             assert start != -1
             end = ini.find("\n\n", start)
             assert end != -1
             config = configparser.RawConfigParser()
             config.read_string(ini[start:end])
             try:
-                size = tuple(int(x) for x in config.get("Window][F95Checker", "Size").split(","))
+                size = tuple(int(x) for x in config.get("Window][F95CheckerX", "Size").split(","))
             except Exception:
                 pass
             try:
-                pos = tuple(int(x) for x in config.get("Window][F95Checker", "ScreenPos").split(","))
+                pos = tuple(int(x) for x in config.get("Window][F95CheckerX", "ScreenPos").split(","))
             except Exception:
                 pass
         except Exception:
@@ -370,7 +376,7 @@ class MainGUI():
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
-        self.load_filters()
+        self.load_search_terms()
 
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
@@ -668,16 +674,16 @@ class MainGUI():
         self.impl.refresh_font_texture()
         self.type_label_width = None
 
-    def save_filters(self):
-        with open(globals.data_path / "filters.pkl", "wb") as file:
-            pickle.dump(self.filters, file)
+    def save_search_terms(self):
+        with open(globals.data_path / "savedsearch_v1.pkl", "wb") as file:
+            pickle.dump(self.saved_search_terms, file)
 
-    def load_filters(self):
+    def load_search_terms(self):
         try:
-            with open(globals.data_path / "filters.pkl", "rb") as file:
-                self.filters = pickle.load(file)
+            with open(globals.data_path / "savedsearch_v1.pkl", "rb") as file:
+                self.saved_search_terms = pickle.load(file)
         except Exception:
-            self.filters = []
+            self.saved_search_terms = []
 
     def close(self, *_, **__):
         glfw.set_window_should_close(self.window, True)
@@ -947,11 +953,11 @@ class MainGUI():
                         time.sleep(1 / 3)
         finally:
             # Main loop over, cleanup and close
-            self.save_filters()
+            self.save_search_terms()
             imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
             ini = imgui.save_ini_settings_to_memory()
             try:
-                start = ini.find("[Window][F95Checker]")
+                start = ini.find("[Window][F95CheckerX]")
                 assert start != -1
                 end = ini.find("\n\n", start)
                 assert end != -1
@@ -1015,9 +1021,8 @@ class MainGUI():
         else:
             clicked = imgui.small_button(type.name)
         if clicked and quick_filter:
-            flt = Filter(FilterMode.Type)
-            flt.match = type
-            self.filters.append(flt)
+            flt = Filter(FilterMode.Type, type, quick=True)
+            self.add_and_display_quick_filter(flt)
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, setup=True):
@@ -1025,9 +1030,8 @@ class MainGUI():
         if setup:
             self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         if imgui.small_button(tag.name) and quick_filter:
-            flt = Filter(FilterMode.Tag)
-            flt.match = tag
-            self.filters.append(flt)
+            flt = Filter(FilterMode.Tag, tag.name, quick=True)
+            self.add_and_display_quick_filter(flt)
         if setup:
             self.end_framed_text(interaction=quick_filter)
 
@@ -1035,9 +1039,8 @@ class MainGUI():
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(label.color, interaction=quick_filter)
         if imgui.small_button(label.short_name if short else label.name) and quick_filter:
-            flt = Filter(FilterMode.Label)
-            flt.match = label
-            self.filters.append(flt)
+            flt = Filter(FilterMode.Label, label.name, quick=True)
+            self.add_and_display_quick_filter(flt)
         if short and imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_font(imgui.fonts.default)
@@ -1055,9 +1058,8 @@ class MainGUI():
         if quick_filter:
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Status)
-                flt.match = status
-                self.filters.append(flt)
+                flt = Filter(FilterMode.Status, status, quick=True)
+                self.add_and_display_quick_filter(flt)
             imgui.end_group()
 
     def draw_game_update_icon(self, game: Game):
@@ -1069,8 +1071,8 @@ class MainGUI():
         if quick_filter:
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Updated)
-                self.filters.append(flt)
+                flt = Filter(FilterMode.Updated, True, quick=True)
+                self.add_and_display_quick_filter(flt)
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -1096,8 +1098,8 @@ class MainGUI():
         if quick_filter:
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Archived)
-                self.filters.append(flt)
+                flt = Filter(FilterMode.Archived, True, quick=True)
+                self.add_and_display_quick_filter(flt)
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -1750,8 +1752,10 @@ class MainGUI():
 
             imgui.text_disabled("Developer:")
             imgui.same_line()
-            offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
-            utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
+            text = game.developer or "Unknown"
+            if utils.simple_invisible_button(text):
+                flt = Filter(FilterMode.Developer, text, quick=True)
+                self.add_and_display_quick_filter(flt)
 
             imgui.text_disabled("Personal Rating:")
             imgui.same_line()
@@ -2426,46 +2430,57 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
-            for flt in self.filters:
-                match flt.mode.value:
-                    case FilterMode.Archived.value:
-                        key = lambda id: flt.invert != (globals.games[id].archived is True)
-                    case FilterMode.Exe_State.value:
-                        key = lambda id: flt.invert != (
-                            (not globals.games[id].executables) if flt.match is ExeState.Unset else
-                            (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid)))
-                        )
-                    case FilterMode.Installed.value:
-                        key = lambda id: flt.invert != (
-                            (globals.games[id].installed != "") if flt.match else
-                            (globals.games[id].installed == globals.games[id].version)
-                        )
-                    case FilterMode.Label.value:
-                        key = lambda id: flt.invert != (flt.match in globals.games[id].labels)
-                    case FilterMode.Played.value:
-                        key = lambda id: flt.invert != (globals.games[id].played is True)
-                    case FilterMode.Rating.value:
-                        key = lambda id: flt.invert != (globals.games[id].rating == flt.match)
-                    case FilterMode.Score.value:
-                        key = lambda id: flt.invert != (globals.games[id].score >= flt.match)
-                    case FilterMode.Status.value:
-                        key = lambda id: flt.invert != (globals.games[id].status is flt.match)
-                    case FilterMode.Tag.value:
-                        key = lambda id: flt.invert != (flt.match in globals.games[id].tags)
-                    case FilterMode.Type.value:
-                        key = lambda id: flt.invert != (globals.games[id].type is flt.match)
-                    case FilterMode.Updated.value:
-                        key = lambda id: flt.invert != (globals.games[id].updated is True)
-                    case _:
-                        key = None
-                if key is not None:
-                    self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
+            keep_ids = set()
+            for and_group in self.filters:
+                temp_sorted_games_ids = self.sorted_games_ids
+                for flt in and_group:
+                    match flt.mode:
+                        case FilterMode.Archived:
+                            key = lambda id: flt.value == globals.games[id].archived
+                        case FilterMode.Developer:
+                            key = lambda id: flt.value == globals.games[id].developer
+                        case FilterMode.ExeState:
+                            key = lambda id: flt.inverted != (
+                                (not globals.games[id].executables) if flt.value is ExeState.Unset else
+                                (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.value is ExeState.Invalid)))
+                            )
+                        case FilterMode.Installed:
+                            key = lambda id: (globals.games[id].installed != "") if flt.value else (globals.games[id].installed == globals.games[id].version)
+                        case FilterMode.Label:
+                            key = lambda id: flt.inverted != (flt.value in [l.name for l in globals.games[id].labels])
+                        case FilterMode.Played:
+                            key = lambda id: flt.value == globals.games[id].played
+                        case FilterMode.Rating:
+                            if flt.signop:
+                                key = lambda id: flt.inverted != flt.signop(globals.games[id].rating, flt.value)
+                            else:
+                                key = lambda id: flt.inverted != (globals.games[id].rating >= flt.value)
+                        case FilterMode.Score:
+                            if flt.signop:
+                                key = lambda id: flt.inverted != flt.signop(globals.games[id].score, flt.value)
+                            else:
+                                key = lambda id: flt.inverted != (globals.games[id].score >= flt.value)
+                        case FilterMode.Status:
+                            key = lambda id: flt.inverted != (globals.games[id].status is flt.value)
+                        case FilterMode.Tag:
+                            key = lambda id: flt.inverted != (flt.value in [t.name for t in globals.games[id].tags])
+                        case FilterMode.Type:
+                            key = lambda id: flt.inverted != (globals.games[id].type is flt.value)
+                        case FilterMode.Updated:
+                            key = lambda id: flt.value == globals.games[id].updated
+                        case _:
+                            key = None
+                    if key is not None:
+                        temp_sorted_games_ids = list(filter(key, temp_sorted_games_ids))
+                keep_ids.update(temp_sorted_games_ids)
             if self.add_box_text:
+                self.sorted_games_ids = [i for i in self.sorted_games_ids if i in keep_ids]
+            if self.search_query:
                 if self.add_box_valid:
                     matches = [match.id for match in utils.extract_thread_matches(self.add_box_text)]
                     self.sorted_games_ids = list(filter(lambda id: id in matches, self.sorted_games_ids))
                 else:
-                    search = self.add_box_text.lower()
+                    search = self.search_query.lower()
                     def key(id):
                         game = globals.games[id]
                         return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
@@ -3027,6 +3042,10 @@ class MainGUI():
                 imgui.pop_style_color()
             imgui.same_line()
 
+        if imgui.button(icons.archive_search_outline):
+            utils.push_popup(self.draw_saved_search_popup)
+        imgui.same_line()
+
         if new_display_mode is not None:
             globals.settings.display_mode = new_display_mode
             async_thread.run(db.update_settings("display_mode"))
@@ -3046,9 +3065,10 @@ class MainGUI():
             any_active = True
         activated, value = imgui.input_text_with_hint(
             "###bottombar",
-            "Type to filter the list, press enter to add a game (link/search)",
+            "Type to filter the list (press F1 for help), press enter to add a game (link/search)",
             self.add_box_text,
-            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
+            callback=self.autocomplete_callback,
+            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE | imgui.INPUT_TEXT_CALLBACK_ALWAYS
         )
         changed = value != self.add_box_text
         self.add_box_text = value
@@ -3063,6 +3083,7 @@ class MainGUI():
             self.require_sort = True
         if changed:
             setter_extra()
+            self.parse_filter_bar()
         if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
             utils.text_context(self, "add_box_text", setter_extra, no_icons=True)
@@ -3084,7 +3105,9 @@ class MainGUI():
             imgui.same_line()
             if imgui.button("Add!") or activated:
                 async_thread.run(callbacks.add_games(*utils.extract_thread_matches(self.add_box_text)))
+                self.filters = []
                 self.add_box_text = ""
+                self.search_query = ""
                 self.add_box_valid = False
                 self.require_sort = True
         elif activated:
@@ -3128,6 +3151,164 @@ class MainGUI():
             self.add_box_text = ""
             self.add_box_valid = False
             self.require_sort = True
+
+    def parse_filter_bar(self):
+        self.filters = []
+        filters_regex = r"(\S+):((?:(?=[^'\"])\S+|(?=').+?')|(?=\").+?\")"
+        filter_and_groups = self.add_box_text.split("OR")
+        self.search_query = re.sub(filters_regex, "", self.add_box_text).replace("OR", "").strip()
+        for group in filter_and_groups:
+            group_filters = []
+            for (mode, value) in re.findall(filters_regex, group):
+                try:
+                    flt = Filter(mode, value)
+                    group_filters.append(flt)
+                except TypeError:
+                    pass
+            self.filters.append(group_filters)
+
+    def autocomplete_callback(self, data: imgui.core._ImGuiInputTextCallbackData):
+        """ Draws autocomplete window """
+        if imgui.is_key_pressed(glfw.KEY_F1):
+            utils.push_popup(self.draw_autocomplete_help_popup)
+            return
+        self.update_autocomplete(data.cursor_pos)
+        entries = list(filter(lambda e: self.autocomplete_term.lower() in e.lower(), self.autocomplete_items))
+        if data.event_flag == imgui.INPUT_TEXT_CALLBACK_ALWAYS and entries:
+            search_string = self.add_box_text[:data.cursor_pos]
+            width = imgui.calc_text_size(max(entries, key=len)).x + imgui.STYLE_FRAME_PADDING * 2
+            height = imgui.STYLE_FRAME_BORDERSIZE + imgui.get_text_line_height_with_spacing() * len(entries)
+            # TODO: find a way to calculate size of visible text only, to prevent tooltip sliding out of bounds
+            posx = imgui.get_item_rect_min().x + imgui.calc_text_size(search_string).x
+            # right now posx is clamped to input width
+            posx = min((posx, imgui.get_item_rect_max().x - width))
+            posy = imgui.get_window_height() - height - (imgui.get_item_rect_max().y - imgui.get_item_rect_min().y)
+            imgui.set_next_window_size(width, height)
+            imgui.set_next_window_position(posx, posy)
+            imgui.push_style_var(imgui.STYLE_WINDOW_ROUNDING, 0)
+            with imgui.begin_tooltip():
+                for entry in entries:
+                    imgui.text(entry)
+            imgui.pop_style_var()
+
+    def update_autocomplete(self, cursor_pos: int):
+        """ Updates autocomplete content """
+        search_string = self.add_box_text[:cursor_pos]
+        filters = list(re.finditer(r"(\S+):", search_string))
+        if not filters:
+            self.reset_autocomplete()
+            return
+        single_filter_string = search_string[filters[-1].start():]
+        (mode, value) = single_filter_string.split(":")
+        if value.endswith(" ") and not value.startswith(("'", '"')):
+            self.reset_autocomplete()
+            return
+        if value.startswith("'") and value.count("'") == 2 or value.startswith('"') and value.count('"') == 2:
+            self.reset_autocomplete()
+            return
+        self.autocomplete_term = value.strip().strip("'").strip('"')
+        if self.autocomplete_term.startswith(("'", '"')):
+            self.autocomplete_term = self.autocomplete_term[1:]
+        if mode.startswith("-"):
+            mode = mode[1:]
+        mode = structs.mode_equivalance_dict.get_value(mode)
+        match mode:
+            case FilterMode.Archived:
+                self.autocomplete_items = ["yes, y, +", "no, -"]
+            case FilterMode.Developer:
+                self.autocomplete_items = [g.developer for g in globals.games.values()]
+            case FilterMode.ExeState:
+                self.autocomplete_items = [", ".join(key) for key in structs.exe_equivalence_dict]
+            case FilterMode.Installed:
+                self.autocomplete_items = ["yes, y, +", "no, -"]
+            case FilterMode.Label:
+                self.autocomplete_items = [label.name for label in Label.instances]
+            case FilterMode.Played:
+                self.autocomplete_items = ["yes, y, +", "no, -"]
+            case FilterMode.Rating:
+                self.autocomplete_term = ""
+                lowest = min(globals.games.values(), key=lambda g: g.rating)
+                highest = max(globals.games.values(), key=lambda g: g.rating)
+                self.autocomplete_items = [f"Lowest rating: {lowest.rating}", f"Highest rating: {highest.rating}"]
+            case FilterMode.Score:
+                self.autocomplete_term = ""
+                lowest = min(globals.games.values(), key=lambda g: g.score)
+                highest = max(globals.games.values(), key=lambda g: g.score)
+                self.autocomplete_items = [f"Lowest score: {lowest.score}", f"Highest score: {highest.score}"]
+            case FilterMode.Status:
+                self.autocomplete_items = [", ".join(key) for key in structs.status_equivalence_dict]
+            case FilterMode.Tag:
+                self.autocomplete_items = [tag for tag in Tag._member_names_]
+            case FilterMode.Type:
+                self.autocomplete_items = [", ".join(k) for k in structs.type_equivalence_dict]
+            case FilterMode.Updated:
+                self.autocomplete_items = ["yes, y, +", "no, -"]
+            case _:
+                pass
+
+    def reset_autocomplete(self):
+        self.autocomplete_term = ""
+        self.autocomplete_items = []
+
+    def draw_autocomplete_help_popup(self, popup_uuid: str = ""):
+        def popup_content():
+            imgui.dummy(self.scaled(700), self.scaled(0))
+            width = imgui.get_content_region_available_width()
+            imgui.push_text_wrap_pos(width)
+            flags = imgui.TABLE_BORDERS_INNER_VERTICAL | imgui.TABLE_ROW_BACKGROUND | imgui.TABLE_PAD_OUTER_X
+            with imgui.begin_table("AutocompleteHelp", 2, flags):
+                imgui.table_setup_column("Filter")
+                imgui.table_setup_column("Shorthands (WIP)")
+                imgui.push_style_color(imgui.COLOR_TABLE_HEADER_BACKGROUND, 255, 255, 255, 0.2)
+                imgui.table_headers_row()
+                imgui.pop_style_color()
+                for entry in structs.mode_equivalance_dict.keys():
+                    imgui.table_next_column()
+                    imgui.text(entry[0])
+                    imgui.table_next_column()
+                    imgui.text(", ".join(entry[1:]))
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("To use a filter type it into search field followed by a semicolon.")
+            imgui.text("For example you can type 'tag:' to filter by tag or '-tag:' to create a negative filter.")
+            imgui.text("You can also type regular text (usually after filters) to filter by name or version.")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("Numeric filters can take in '>', '>=', '<', '<=' operators -> score:<=3.2")
+            imgui.text("By default '>=' operator is used so query 'score:3.2' is equivalent to 'score:>=3.2'")
+            imgui.text("If filter value contains spaces you can wrap it in quotes -> tag:'male protagonist'")
+            imgui.text("Keyword OR can be used to create more complex queries -> type:unity tag:vore OR type:flash")
+            imgui.spacing()
+            imgui.spacing()
+            imgui.text("If filter exists autocomplete will appear showing you all available options.")
+            imgui.text("Autocomplete can also show additional information for filters like score and rating.")
+            imgui.pop_text_wrap_pos()
+        return utils.popup("Help: Filtering & Autocomplete", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
+    def add_and_display_quick_filter(self, flt: Filter):
+        self.add_box_text = f"{str(flt)} {self.add_box_text}"
+        self.parse_filter_bar()
+
+    def draw_saved_search_popup(self, popup_uuid=""):
+        def popup_content():
+            if imgui.button(f"{icons.content_save} Save current search"):
+                self.save_search()
+            if self.saved_search_terms:
+                imgui.text("")
+            for term in self.saved_search_terms:
+                if imgui.button(icons.magnify):
+                    self.add_box_text = term
+                    self.parse_filter_bar()
+                imgui.same_line()
+                if imgui.button(icons.trash_can_outline):
+                    self.saved_search_terms.remove(term)
+                imgui.same_line()
+                imgui.text(term)
+        return utils.popup("Saved search terms", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
+    def save_search(self):
+        if self.add_box_text and self.add_box_text not in self.saved_search_terms:
+            self.saved_search_terms.append(self.add_box_text)
 
     def draw_sidebar(self):
         set = globals.settings
@@ -3255,140 +3436,6 @@ class MainGUI():
                 draw_settings_label(f"Filtered games count: {len(self.sorted_games_ids)}")
                 imgui.text("")
                 imgui.spacing()
-
-            draw_settings_label("Add filter:")
-            changed, value = imgui.combo("###add_filter", 0, FilterMode._member_names_)
-            if changed and value > 0:
-                flt = Filter(FilterMode(value + 1))
-                match flt.mode.value:
-                    case FilterMode.Exe_State.value:
-                        flt.match = ExeState[ExeState._member_names_[0]]
-                    case FilterMode.Installed.value:
-                        flt.match = True
-                    case FilterMode.Label.value:
-                        if Label.instances:
-                            flt.match = Label.instances[0]
-                    case FilterMode.Rating.value:
-                        flt.match = 0
-                    case FilterMode.Score.value:
-                        flt.match = 0.0
-                    case FilterMode.Status.value:
-                        flt.match = Status[Status._member_names_[0]]
-                    case FilterMode.Tag.value:
-                        flt.match = Tag[Tag._member_names_[0]]
-                    case FilterMode.Type.value:
-                        flt.match = Type[Type._member_names_[0]]
-                self.filters.append(flt)
-
-            text_width = imgui.calc_text_size("Invrt ").x
-            buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
-            for flt in self.filters:
-                imgui.text("")
-                draw_settings_label(f"Filter by {flt.mode.name}:")
-                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
-                if imgui.button((icons.invert_colors if flt.invert else icons.invert_colors_off) + "Invrt", width=frame_height + text_width):
-                    flt.invert = not flt.invert
-                    self.require_sort = True
-                imgui.same_line()
-                if imgui.button(icons.trash_can_outline, width=frame_height):
-                    self.filters.remove(flt)
-
-                match flt.mode.value:
-                    case FilterMode.Exe_State.value:
-                        draw_settings_label("Executable state:")
-                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, ExeState._member_names_)
-                        if changed:
-                            flt.match = ExeState[ExeState._member_names_[value]]
-                            self.require_sort = True
-                    case FilterMode.Installed.value:
-                        draw_settings_label("Include outdated:")
-                        imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
-                        changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
-                        if changed:
-                            flt.match = value
-                            self.require_sort = True
-                    case FilterMode.Label.value:
-                        if Label.instances:
-                            if flt.match is None:
-                                flt.match = Label.instances[0]
-                            draw_settings_label("Label value:")
-                            if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
-                                for label in Label.instances:
-                                    selected = label is flt.match
-                                    pos = imgui.get_cursor_pos()
-                                    if imgui.selectable(f"###filter_{flt.id}_value_{label.id}", selected)[0]:
-                                        flt.match = label
-                                        self.require_sort = True
-                                    if selected:
-                                        imgui.set_item_default_focus()
-                                    imgui.set_cursor_pos(pos)
-                                    self.draw_label_widget(label)
-                                imgui.end_combo()
-                        else:
-                            draw_settings_label("Make some labels first!")
-                            imgui.text("")
-                            imgui.spacing()
-                    case FilterMode.Rating.value:
-                        draw_settings_label("Rating value:")
-                        changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
-                        if changed:
-                            flt.match = value
-                            self.require_sort = True
-                        imgui.spacing()
-                    case FilterMode.Score.value:
-                        draw_settings_label("Score value:")
-                        changed, value = imgui.drag_float(f"###filter_{flt.id}_value", flt.match, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
-                        if changed:
-                            flt.match = value
-                            self.require_sort = True
-                    case FilterMode.Status.value:
-                        draw_settings_label("Status value:")
-                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
-                            for status in Status:
-                                selected = status is flt.match
-                                pos = imgui.get_cursor_pos()
-                                if imgui.selectable(f"###filter_{flt.id}_value_{status.value}", selected)[0]:
-                                    flt.match = status
-                                    self.require_sort = True
-                                if selected:
-                                    imgui.set_item_default_focus()
-                                imgui.set_cursor_pos(pos)
-                                self.draw_status_widget(status)
-                                imgui.same_line()
-                                imgui.text(status.name)
-                            imgui.end_combo()
-                    case FilterMode.Tag.value:
-                        draw_settings_label("Tag value:")
-                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
-                            for tag in Tag:
-                                selected = tag is flt.match
-                                pos = imgui.get_cursor_pos()
-                                if imgui.selectable(f"###filter_{flt.id}_value_{tag.value}", selected)[0]:
-                                    flt.match = tag
-                                    self.require_sort = True
-                                if selected:
-                                    imgui.set_item_default_focus()
-                                imgui.set_cursor_pos(pos)
-                                self.draw_tag_widget(tag)
-                            imgui.end_combo()
-                    case FilterMode.Type.value:
-                        draw_settings_label("Type value:")
-                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
-                            category = None
-                            for type in Type:
-                                if category is not type.category:
-                                    category = type.category
-                                    imgui.text(category.name)
-                                selected = type is flt.match
-                                pos = imgui.get_cursor_pos()
-                                if imgui.selectable(f"###filter_{flt.id}_value_{type.value}", selected)[0]:
-                                    flt.match = type
-                                    self.require_sort = True
-                                if selected:
-                                    imgui.set_item_default_focus()
-                                imgui.set_cursor_pos(pos)
-                                self.draw_type_widget(type)
-                            imgui.end_combo()
 
             imgui.end_table()
             imgui.spacing()
@@ -3689,9 +3736,8 @@ class MainGUI():
                     async_thread.run(db.update_label(label, "color"))
                 imgui.same_line()
                 if imgui.button(icons.filter_plus_outline, width=frame_height):
-                    flt = Filter(FilterMode.Label)
-                    flt.match = label
-                    self.filters.append(flt)
+                    flt = Filter(FilterMode.Label, label.name, quick=True)
+                    self.add_and_display_quick_filter(flt)
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
                     async_thread.run(db.remove_label(label))
