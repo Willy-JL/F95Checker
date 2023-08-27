@@ -56,7 +56,7 @@ addReminder = async (url, tabId) => {
 // Add icons for games and reminders
 updateIcons = async () => {
     await getData();
-    const threadId = (url) => {
+    const extractThreadId = (url) => {
         const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
         return match ? parseInt(match[1]) : null;
     }
@@ -87,19 +87,27 @@ updateIcons = async () => {
         icon.style.color = "#55eecc";
         return icon;
     }
-    const doUpdate = () => {
-        const remindersIds = reminders.map(b => b.id)
+    const removeOldIcons = () => {
         document.querySelectorAll('.f95checker-library-icons').forEach(e => e.remove());
+    }
+    const addThreadIcons = () => {
         for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
-            const id = threadId(elem.href);
-            const container = createContainer();
-            if (!id || ![...games, ...remindersIds].includes(id)) {
+
+            const id = extractThreadId(elem.href);
+
+            if (!id || ![...games, ...reminders.map(r => r.id)].includes(id)) {
                 continue;
             }
+
             const isImage = elem.classList.contains("resource-tile_link") || elem.parentNode.parentNode.classList.contains("es-slides");
-            if (!isImage && !elem.href.endsWith("/unread")) {
+            if (!isImage && /page-\d*$/.test(elem.href)) {
                 continue;
             }
+
+            const container = createContainer();
+            if (games.includes(id)) container.prepend(gamesIcon());
+            if (reminders.map(r => r.id).includes(id)) container.prepend(remindersIcon(id));
+
             if (isImage) {
                 container.style.position = "absolute";
                 container.style.zIndex = "50";
@@ -110,26 +118,49 @@ updateIcons = async () => {
                 container.style.borderRadius = "4px";
                 container.style.fontSize = "larger";
             }
-            if (games.includes(id)) container.prepend(gamesIcon());
-            if (remindersIds.includes(id)) container.prepend(remindersIcon(id));
-            elem.insertAdjacentElement("beforebegin", container);
+
+            if (!isImage && elem.children.length > 0) {
+                // Search page
+                try {
+                    whitespaces = elem.querySelectorAll('span.label-append')
+                    whitespaces[whitespaces.length - 1].insertAdjacentElement("afterend", container);
+                } catch (e) {
+                    continue
+                }
+            }
+            else if (elem.classList.contains('resource-tile_link')) {
+                // To accomodate all tile layouts on latest updates page
+                thumb = elem.querySelector('div.resource-tile_thumb')
+                thumb.insertAdjacentElement("beforebegin", container);
+            } else {
+                // Everywhere else
+                elem.insertAdjacentElement("beforebegin", container);
+            }
         }
-        const id = threadId(document.location);
+    }
+    const addPageIcon = () => {
+        const id = extractThreadId(document.location);
         const container = createContainer();
         container.style.marginInlineEnd = "6px";
         const title = document.getElementsByClassName("p-title-value")[0];
         if (title) {
             if (games.includes(id)) container.prepend(gamesIcon());
-            if (remindersIds.includes(id)) container.prepend(remindersIcon(id));
+            if (reminders.map(r => r.id).includes(id)) container.prepend(remindersIcon(id));
             if (container.firstChild) title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
         }
     }
-    doUpdate();
-    const latest = document.getElementById("latest-page_items-wrap");
-    if (latest) {
-        const observer = new MutationObserver(() => {
-            doUpdate();
-        });
-        observer.observe(latest, { attributes: true });
+    const doUpdate = () => {
+        removeOldIcons();
+        addThreadIcons();
+        addPageIcon();
     }
+    const installMutationObservers = () => {
+        const latest = document.getElementById("latest-page_items-wrap");
+        if (latest) {
+            const observer = new MutationObserver(doUpdate);
+            observer.observe(latest, { attributes: true });
+        }
+    }
+    installMutationObservers();
+    doUpdate();
 };
