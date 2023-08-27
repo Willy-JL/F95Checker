@@ -277,6 +277,16 @@ Status = IntEnumHack("Status", [
 ])
 
 
+status_equivalence_dict = {
+    ("normal",):    Status.Normal,
+    ("completed",): Status.Completed,
+    ("onhold",):    Status.OnHold,
+    ("abandoned",): Status.Abandoned,
+    ("unchecked",): Status.Unchecked,
+    ("custom",):    Status.Custom,
+}
+
+
 Tag = IntEnumHack("Tag", [
     ("2d-game",                1),
     ("2dcg",                   2),
@@ -428,6 +438,13 @@ ExeState = IntEnumHack("ExeState", [
 ])
 
 
+exe_equivalence_dict = {
+    ("invalid",):   ExeState.Invalid,
+    ("selected",):  ExeState.Selected,
+    ("unset",):     ExeState.Unset,
+}
+
+
 MsgBox = IntEnumHack("MsgBox", [
     ("info",  (1, {"color": (0.10, 0.69, 0.95), "icon": "information"})),
     ("warn",  (2, {"color": (0.95, 0.69, 0.10), "icon": "alert_rhombus"})),
@@ -436,9 +453,8 @@ MsgBox = IntEnumHack("MsgBox", [
 
 
 FilterMode = IntEnumHack("FilterMode", [
-    "Choose",
     "Archived",
-    "Exe State",
+    "ExeState",
     "Installed",
     "Label",
     "Played",
@@ -461,8 +477,134 @@ Category = IntEnumHack("Category", [
 @dataclasses.dataclass
 class Filter:
     mode: FilterMode
-    invert = False
-    match = None
+    value: typing.Any
+    raw_mode: str = ""
+    raw_value: str = ""
+    sign: str = None
+    inverted: bool = False
+
+    mode_equivalance_dict = {
+        ("archived",):   FilterMode.Archived,
+        ("exe",):        FilterMode.ExeState,
+        ("installed",):  FilterMode.Installed,
+        ("label",):      FilterMode.Label,
+        ("played",):     FilterMode.Played,
+        ("rating",):     FilterMode.Rating,
+        ("score",):      FilterMode.Score,
+        ("status",):     FilterMode.Status,
+        ("tag",):        FilterMode.Tag,
+        ("type",):       FilterMode.Type,
+        ("updated",):    FilterMode.Updated,
+    }
+
+    def __init__(self, mode, value, quick: bool = False):
+        if quick:
+            self.mode = mode
+            self.value = value
+            self.raw_mode = self._get_dict_key(self.mode_equivalance_dict, mode)
+        else:
+            self.raw_mode = mode
+            self._extract_special_characters(value)
+            self.mode = self._get_dict_value(self.mode_equivalance_dict, self.raw_mode)
+        match self.mode:
+            case FilterMode.Archived:
+                if quick:
+                    self.raw_value = "yes"
+                else:
+                    self._convert_value_to_bool()
+            case FilterMode.ExeState:
+                if quick:
+                    self.raw_value = self._get_dict_key(exe_equivalence_dict, value)
+                else:
+                    self.value = self._get_dict_value(exe_equivalence_dict, self.value)
+            case FilterMode.Installed:
+                if quick:
+                    self.raw_value = "yes"
+                else:
+                    self._convert_value_to_bool()
+            case FilterMode.Label:
+                if quick:
+                    self.raw_value = f"'{value}'"
+                else:
+                    pass
+            case FilterMode.Played:
+                if quick:
+                    self.raw_value = "yes"
+                else:
+                    self._convert_value_to_bool()
+            case FilterMode.Rating:
+                if quick:
+                    pass
+                else:
+                    self._convert_value_to_float()
+            case FilterMode.Score:
+                if quick:
+                    pass
+                else:
+                    self._convert_value_to_float()
+            case FilterMode.Status:
+                if quick:
+                    self.raw_value = self._get_dict_key(status_equivalence_dict, value)
+                else:
+                    self.value = self._get_dict_value(status_equivalence_dict, self.value)
+            case FilterMode.Tag:
+                if quick:
+                    self.raw_value = value
+                else:
+                    pass
+            case FilterMode.Type:
+                if quick:
+                    self.raw_value = self._get_dict_key(type_equivalence_dict, value)
+                else:
+                    self.value = self._get_dict_value(type_equivalence_dict, self.value)
+            case FilterMode.Updated:
+                if quick:
+                    self.raw_value = "yes"
+                else:
+                    self._convert_value_to_bool()
+            case _:
+                pass
+
+    def _extract_special_characters(self, raw_value):
+        self.value = str(raw_value)
+        self.value = self.value.strip("'").strip('"')
+        self.raw_value = self.value
+        if self.raw_mode.startswith("-"):
+            self.inverted = True
+            self.raw_mode = self.raw_mode[1:]
+        if self.value.startswith((">=", "<=")):
+            self.sign = self.value[:2]
+            self.value = self.value[2:]
+        elif self.value.startswith((">", "<")):
+            self.sign = self.value[:1]
+            self.value = self.value[1:]
+
+    def _convert_value_to_bool(self):
+        if self.value in ["yes", "y", "+"]:
+            self.value = True
+        elif self.value in ["no", "n", "-"]:
+            self.value = False
+        else:
+            raise TypeError
+
+    def _convert_value_to_float(self):
+        try:
+            self.value = float(self.value)
+        except Exception:
+            raise TypeError
+
+    def _get_dict_value(self, d: dict, key: typing.Hashable):
+        value = [v for k, v in d.items() if key in k]
+        return value[0] if value else None
+
+    def _get_dict_key(self, d: dict, search_value: typing.Hashable):
+        for keys, value in d.items():
+            if search_value == value:
+                return keys[0] if isinstance(keys, (list, tuple)) else keys
+        return None
+
+    def __str__(self):
+        return f"{self.raw_mode}:{self.raw_value}"
 
     def __post_init__(self):
         self.id = id(self)
@@ -654,6 +796,38 @@ Type = IntEnumHack("Type", [
     ("Unchecked",  (23, {"color": colors.hex_to_rgba_0_1("#393939"), "category": Category.Misc})),
 ])
 
+type_equivalence_dict = {
+    ("adrift",):     Type.ADRIFT,
+    ("flash",):      Type.Flash,
+    ("html",):       Type.HTML,
+    ("java",):       Type.Java,
+    ("others",):     Type.Others,
+    ("qsp",):        Type.QSP,
+    ("rags",):       Type.RAGS,
+    ("renpy",):      Type.RenPy,
+    ("rpgm",):       Type.RPGM,
+    ("tads",):       Type.Tads,
+    ("unity",):      Type.Unity,
+    ("unreal",):     Type.Unreal_Eng,
+    ("webgl",):      Type.WebGL,
+    ("wolf",):       Type.Wolf_RPG,
+    ("cg",):         Type.CG,
+    ("collection",): Type.Collection,
+    ("comics",):     Type.Comics,
+    ("gif",):        Type.GIF,
+    ("manga",):      Type.Manga,
+    ("pinup",):      Type.Pinup,
+    ("rip",):        Type.SiteRip,
+    ("video",):      Type.Video,
+    ("cheatmod",):   Type.Cheat_Mod,
+    ("mod",):        Type.Mod,
+    ("readme",):     Type.READ_ME,
+    ("request",):    Type.Request,
+    ("tool",):       Type.Tool,
+    ("tutorial",):   Type.Tutorial,
+    ("misc",):       Type.Misc,
+    ("unchecked",):  Type.Unchecked,
+}
 
 @dataclasses.dataclass
 class Game:
