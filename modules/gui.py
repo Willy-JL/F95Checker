@@ -307,6 +307,7 @@ class MainGUI():
         self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
+        self.saved_search_terms: list[str] = []
         self.switched_display_mode = False
         self.type_label_width: float = None
         self.last_selected_game: Game = None
@@ -371,6 +372,8 @@ class MainGUI():
         glfw.set_drop_callback(self.window, self.drop_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
+
+        self.load_search_terms()
 
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
@@ -668,6 +671,17 @@ class MainGUI():
         self.impl.refresh_font_texture()
         self.type_label_width = None
 
+    def save_search_terms(self):
+        with open(globals.data_path / "savedsearch.pkl", "wb") as file:
+            pickle.dump(self.saved_search_terms, file)
+
+    def load_search_terms(self):
+        try:
+            with open(globals.data_path / "savedsearch.pkl", "rb") as file:
+                self.saved_search_terms = pickle.load(file)
+        except Exception:
+            self.saved_search_terms = []
+
     def close(self, *_, **__):
         glfw.set_window_should_close(self.window, True)
 
@@ -936,6 +950,7 @@ class MainGUI():
                         time.sleep(1 / 3)
         finally:
             # Main loop over, cleanup and close
+            self.save_search_terms()
             imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
             ini = imgui.save_ini_settings_to_memory()
             try:
@@ -3031,6 +3046,10 @@ class MainGUI():
                 imgui.pop_style_color()
             imgui.same_line()
 
+        if imgui.button(icons.archive_search_outline):
+            utils.push_popup(self.draw_saved_search_popup)
+        imgui.same_line()
+
         if new_display_mode is not None:
             globals.settings.display_mode = new_display_mode
             async_thread.run(db.update_settings("display_mode"))
@@ -3067,7 +3086,6 @@ class MainGUI():
             self.require_sort = True
         if changed:
             setter_extra()
-            self.filters = []
             self.parse_filter_bar()
         if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
@@ -3136,6 +3154,7 @@ class MainGUI():
             self.require_sort = True
 
     def parse_filter_bar(self):
+        self.filters = []
         filters_regex = r"(\S+):((?:(?=[^'\"])\S+|(?=').+?')|(?=\").+?\")"
         self.search_query = re.sub(filters_regex, "", self.add_box_text).strip()
         for filter in re.findall(filters_regex, self.add_box_text):
@@ -3148,6 +3167,27 @@ class MainGUI():
 
     def prepend_filter_text(self, filter: Filter):
         self.add_box_text = f"{str(filter)} {self.add_box_text}"
+
+    def draw_saved_search_popup(self, popup_uuid=""):
+        def popup_content():
+            if imgui.button(f"{icons.content_save} Save current search"):
+                self.save_search()
+            if self.saved_search_terms:
+                imgui.text("")
+            for term in self.saved_search_terms:
+                if imgui.button(icons.magnify):
+                    self.add_box_text = term
+                    self.parse_filter_bar()
+                imgui.same_line()
+                if imgui.button(icons.trash_can_outline):
+                    self.saved_search_terms.remove(term)
+                imgui.same_line()
+                imgui.text(term)
+        return utils.popup("Saved search terms", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
+    def save_search(self):
+        if self.add_box_text and self.add_box_text not in self.saved_search_terms:
+            self.saved_search_terms.append(self.add_box_text)
 
     def draw_sidebar(self):
         set = globals.settings
