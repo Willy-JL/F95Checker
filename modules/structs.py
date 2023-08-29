@@ -563,7 +563,7 @@ class Filter:
                 else:
                     self._convert_value_to_bool()
             case _:
-                pass
+                raise TypeError
 
     def _extract_special_characters(self, raw_value):
         self.value = str(raw_value)

@@ -50,6 +50,7 @@ from modules import (
     filepicker,
     callbacks,
     webview,
+    structs,
     parser,
     msgbox,
     colors,
@@ -299,6 +300,8 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
+        self.autocomplete_term = ""
+        self.autocomplete_items = []
         self.selected_games_count = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
@@ -3071,7 +3074,8 @@ class MainGUI():
             "###bottombar",
             "Type to filter the list, press enter to add a game (link/search)",
             self.add_box_text,
-            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
+            callback=self.autocomplete_callback,
+            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE | imgui.INPUT_TEXT_CALLBACK_ALWAYS
         )
         changed = value != self.add_box_text
         self.add_box_text = value
@@ -3164,6 +3168,81 @@ class MainGUI():
                 self.filters.append(flt)
             except TypeError:
                 pass
+
+    def autocomplete_callback(self, data: imgui.core._ImGuiInputTextCallbackData):
+        self.update_autocomplete(data.cursor_pos)
+        entries = list(filter(lambda e: self.autocomplete_term.lower() in e.lower(), self.autocomplete_items))
+        if data.event_flag == imgui.INPUT_TEXT_CALLBACK_ALWAYS and entries:
+            string = self.add_box_text[:data.cursor_pos]
+            width = imgui.calc_text_size(max(entries, key=len)).x + imgui.STYLE_FRAME_PADDING * 2
+            height = imgui.STYLE_FRAME_BORDERSIZE + imgui.get_text_line_height_with_spacing() * len(entries)
+            # TODO: find a way to calculate size of visible text only, to prevent tooltip sliding beyond the edge of the window
+            posx = imgui.get_item_rect_min().x + imgui.calc_text_size(string).x
+            posy = imgui.get_window_height() - height - (imgui.get_item_rect_max().y - imgui.get_item_rect_min().y)
+            imgui.set_next_window_size(width, height)
+            imgui.set_next_window_position(posx, posy)
+            imgui.push_style_var(imgui.STYLE_WINDOW_ROUNDING, 0)
+            with imgui.begin_tooltip():
+                for entry in entries:
+                    imgui.text(entry)
+            imgui.pop_style_var()
+
+    def update_autocomplete(self, cursor_pos: int):
+        string = self.add_box_text[:cursor_pos]
+        # TODO: cleanup this mess, maybe extract into unified sanitization function (struct.extract_special_characters)
+        filters = list(re.finditer(r"(\S+):", string))
+        if not filters:
+            self.reset_autocomplete()
+            return
+        single_filter_string = string[filters[-1].start():]
+        (mode, value) = single_filter_string.split(":")
+        if value.endswith(" ") and not value.startswith(("'", '"')):
+            self.reset_autocomplete()
+            return
+        if value.startswith("'") and value.count("'") == 2 or value.startswith('"') and value.count('"') == 2:
+            self.reset_autocomplete()
+            return
+        self.autocomplete_term = value.strip().strip("'").strip('"')
+        if self.autocomplete_term.startswith(("'", '"')):
+            self.autocomplete_term = self.autocomplete_term[1:]
+        if mode.startswith("-"):
+            mode = mode[1:]
+        # TODO: match by mode_equivalance_dict keys
+        match mode:
+            case "archived":
+                self.autocomplete_items = ["yes", "y", "+", "no", "-"]
+            case "exe":
+                self.autocomplete_items = [k[0] for k in structs.exe_equivalence_dict]
+            case "installed":
+                self.autocomplete_items = ["yes", "y", "+", "no", "-"]
+            case "label":
+                self.autocomplete_items = [l.name for l in Label.instances]
+            case "played":
+                self.autocomplete_items = ["yes", "y", "+", "no", "-"]
+            case "rating":
+                self.autocomplete_term = ""
+                lowest = min(globals.games.values(), key=lambda g: g.rating)
+                highest = max(globals.games.values(), key=lambda g: g.rating)
+                self.autocomplete_items = [f"Lowest rating: {lowest.rating}", f"Highest rating: {highest.rating}"]
+            case "score":
+                self.autocomplete_term = ""
+                lowest = min(globals.games.values(), key=lambda g: g.score)
+                highest = max(globals.games.values(), key=lambda g: g.score)
+                self.autocomplete_items = [f"Lowest score: {lowest.score}", f"Highest score: {highest.score}"]
+            case "status":
+                self.autocomplete_items = [k[0] for k in structs.status_equivalence_dict]
+            case "tag":
+                self.autocomplete_items = [t for t in Tag._member_names_]
+            case "type":
+                self.autocomplete_items = [k[0] for k in structs.type_equivalence_dict]
+            case "updated":
+                self.autocomplete_items = ["yes", "y", "+", "no", "-"]
+            case _:
+                pass
+
+    def reset_autocomplete(self):
+        self.autocomplete_term = ""
+        self.autocomplete_items = []
 
     def prepend_filter_text(self, filter: Filter):
         self.add_box_text = f"{str(filter)} {self.add_box_text}"
