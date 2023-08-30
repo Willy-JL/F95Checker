@@ -2,8 +2,10 @@ import multiprocessing.queues
 import multiprocessing
 import datetime as dt
 import dataclasses
+import collections
 import functools
 import aiofiles
+import operator
 import asyncio
 import weakref
 import hashlib
@@ -253,6 +255,19 @@ class IntEnumHack(enum.IntEnum):
             setattr(cls, new_name, self)
 
 
+class TupleDict(collections.UserDict):
+    """Dict with a tuple key and a single non-iterable value"""
+    def get_value(self, key: typing.Hashable):
+        value = [v for k, v in self.items() if key in k]
+        return value[0] if value else None
+
+    def get_key(self, value: typing.Hashable, full_list=False):
+        for keys, v in self.items():
+            if value == v:
+                return keys if full_list else keys[0]
+        return None
+
+
 Os = IntEnumHack("Os", [
     "Windows",
     "Linux",
@@ -277,14 +292,14 @@ Status = IntEnumHack("Status", [
 ])
 
 
-status_equivalence_dict = {
+status_equivalence_dict = TupleDict({
     ("normal",):    Status.Normal,
     ("completed",): Status.Completed,
     ("onhold",):    Status.OnHold,
     ("abandoned",): Status.Abandoned,
     ("unchecked",): Status.Unchecked,
     ("custom",):    Status.Custom,
-}
+})
 
 
 Tag = IntEnumHack("Tag", [
@@ -438,11 +453,11 @@ ExeState = IntEnumHack("ExeState", [
 ])
 
 
-exe_equivalence_dict = {
+exe_equivalence_dict = TupleDict({
     ("invalid",):   ExeState.Invalid,
     ("selected",):  ExeState.Selected,
     ("unset",):     ExeState.Unset,
-}
+})
 
 
 MsgBox = IntEnumHack("MsgBox", [
@@ -467,6 +482,21 @@ FilterMode = IntEnumHack("FilterMode", [
 ])
 
 
+mode_equivalance_dict = TupleDict({
+    ("archived",):  FilterMode.Archived,
+    ("exe",):       FilterMode.ExeState,
+    ("installed",): FilterMode.Installed,
+    ("label",):     FilterMode.Label,
+    ("played",):    FilterMode.Played,
+    ("rating",):    FilterMode.Rating,
+    ("score",):     FilterMode.Score,
+    ("status",):    FilterMode.Status,
+    ("tag",):       FilterMode.Tag,
+    ("type",):      FilterMode.Type,
+    ("updated",):   FilterMode.Updated,
+})
+
+
 Category = IntEnumHack("Category", [
     "Games",
     "Media",
@@ -480,32 +510,18 @@ class Filter:
     value: typing.Any
     raw_mode: str = ""
     raw_value: str = ""
-    sign: str = None
     inverted: bool = False
-
-    mode_equivalance_dict = {
-        ("archived",):   FilterMode.Archived,
-        ("exe",):        FilterMode.ExeState,
-        ("installed",):  FilterMode.Installed,
-        ("label",):      FilterMode.Label,
-        ("played",):     FilterMode.Played,
-        ("rating",):     FilterMode.Rating,
-        ("score",):      FilterMode.Score,
-        ("status",):     FilterMode.Status,
-        ("tag",):        FilterMode.Tag,
-        ("type",):       FilterMode.Type,
-        ("updated",):    FilterMode.Updated,
-    }
+    signop: typing.Callable = None
 
     def __init__(self, mode, value, quick: bool = False):
         if quick:
             self.mode = mode
             self.value = value
-            self.raw_mode = self._get_dict_key(self.mode_equivalance_dict, mode)
+            self.raw_mode = mode_equivalance_dict.get_key(mode)
         else:
             self.raw_mode = mode
             self._extract_special_characters(value)
-            self.mode = self._get_dict_value(self.mode_equivalance_dict, self.raw_mode)
+            self.mode = mode_equivalance_dict.get_value(self.raw_mode)
         match self.mode:
             case FilterMode.Archived:
                 if quick:
@@ -514,9 +530,9 @@ class Filter:
                     self._convert_value_to_bool()
             case FilterMode.ExeState:
                 if quick:
-                    self.raw_value = self._get_dict_key(exe_equivalence_dict, value)
+                    self.raw_value = exe_equivalence_dict.get_key(value)
                 else:
-                    self.value = self._get_dict_value(exe_equivalence_dict, self.value)
+                    self.value = exe_equivalence_dict.get_value(self.value)
             case FilterMode.Installed:
                 if quick:
                     self.raw_value = "yes"
@@ -544,9 +560,9 @@ class Filter:
                     self._convert_value_to_float()
             case FilterMode.Status:
                 if quick:
-                    self.raw_value = self._get_dict_key(status_equivalence_dict, value)
+                    self.raw_value = status_equivalence_dict.get_key(value)
                 else:
-                    self.value = self._get_dict_value(status_equivalence_dict, self.value)
+                    self.value = status_equivalence_dict.get_value(self.value)
             case FilterMode.Tag:
                 if quick:
                     self.raw_value = value
@@ -554,9 +570,9 @@ class Filter:
                     pass
             case FilterMode.Type:
                 if quick:
-                    self.raw_value = self._get_dict_key(type_equivalence_dict, value)
+                    self.raw_value = type_equivalence_dict.get_key(value)
                 else:
-                    self.value = self._get_dict_value(type_equivalence_dict, self.value)
+                    self.value = type_equivalence_dict.get_value(self.value)
             case FilterMode.Updated:
                 if quick:
                     self.raw_value = "yes"
@@ -572,11 +588,17 @@ class Filter:
         if self.raw_mode.startswith("-"):
             self.inverted = True
             self.raw_mode = self.raw_mode[1:]
-        if self.value.startswith((">=", "<=")):
-            self.sign = self.value[:2]
+        if self.value.startswith(">="):
+            self.signop = operator.ge
             self.value = self.value[2:]
-        elif self.value.startswith((">", "<")):
-            self.sign = self.value[:1]
+        elif self.value.startswith("<="):
+            self.signop = operator.le
+            self.value = self.value[2:]
+        elif self.value.startswith(">"):
+            self.signop = operator.gt
+            self.value = self.value[1:]
+        elif self.value.startswith("<"):
+            self.signop = operator.lt
             self.value = self.value[1:]
 
     def _convert_value_to_bool(self):
@@ -592,16 +614,6 @@ class Filter:
             self.value = float(self.value)
         except Exception:
             raise TypeError
-
-    def _get_dict_value(self, d: dict, key: typing.Hashable):
-        value = [v for k, v in d.items() if key in k]
-        return value[0] if value else None
-
-    def _get_dict_key(self, d: dict, search_value: typing.Hashable):
-        for keys, value in d.items():
-            if search_value == value:
-                return keys[0] if isinstance(keys, (list, tuple)) else keys
-        return None
 
     def __str__(self):
         return f"{self.raw_mode}:{self.raw_value}"
@@ -796,7 +808,7 @@ Type = IntEnumHack("Type", [
     ("Unchecked",  (23, {"color": colors.hex_to_rgba_0_1("#393939"), "category": Category.Misc})),
 ])
 
-type_equivalence_dict = {
+type_equivalence_dict = TupleDict({
     ("adrift",):     Type.ADRIFT,
     ("flash",):      Type.Flash,
     ("html",):       Type.HTML,
@@ -827,7 +839,7 @@ type_equivalence_dict = {
     ("tutorial",):   Type.Tutorial,
     ("misc",):       Type.Misc,
     ("unchecked",):  Type.Unchecked,
-}
+})
 
 @dataclasses.dataclass
 class Game:

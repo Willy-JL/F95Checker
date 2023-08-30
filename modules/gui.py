@@ -2434,49 +2434,37 @@ class MainGUI():
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
             for flt in self.filters:
-                match flt.mode.value:
-                    case FilterMode.Archived.value:
+                match flt.mode:
+                    case FilterMode.Archived:
                         key = lambda id: flt.value == globals.games[id].archived
-                    case FilterMode.ExeState.value:
+                    case FilterMode.ExeState:
                         key = lambda id: flt.inverted != (
                             (not globals.games[id].executables) if flt.value is ExeState.Unset else
                             (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.value is ExeState.Invalid)))
                         )
-                    case FilterMode.Installed.value:
+                    case FilterMode.Installed:
                         key = lambda id: (globals.games[id].installed != "") if flt.value else (globals.games[id].installed == globals.games[id].version)
-                    case FilterMode.Label.value:
+                    case FilterMode.Label:
                         key = lambda id: flt.inverted != (flt.value in [l.name for l in globals.games[id].labels])
-                    case FilterMode.Played.value:
+                    case FilterMode.Played:
                         key = lambda id: flt.value == globals.games[id].played
-                    case FilterMode.Rating.value:
-                        if flt.sign == ">":
-                            key = lambda id: flt.inverted != (globals.games[id].rating > flt.value)
-                        elif flt.sign == "<":
-                            key = lambda id: flt.inverted != (globals.games[id].rating < flt.value)
-                        elif flt.sign == ">=":
-                            key = lambda id: flt.inverted != (globals.games[id].rating >= flt.value)
-                        elif flt.sign == "<=":
-                            key = lambda id: flt.inverted != (globals.games[id].rating <= flt.value)
+                    case FilterMode.Rating:
+                        if flt.signop:
+                            key = lambda id: flt.inverted != flt.signop(globals.games[id].rating, flt.value)
                         else:
                             key = lambda id: flt.inverted != (globals.games[id].rating >= flt.value)
-                    case FilterMode.Score.value:
-                        if flt.sign == ">":
-                            key = lambda id: flt.inverted != (globals.games[id].score > flt.value)
-                        elif flt.sign == "<":
-                            key = lambda id: flt.inverted != (globals.games[id].score < flt.value)
-                        elif flt.sign == ">=":
-                            key = lambda id: flt.inverted != (globals.games[id].score >= flt.value)
-                        elif flt.sign == "<=":
-                            key = lambda id: flt.inverted != (globals.games[id].score <= flt.value)
+                    case FilterMode.Score:
+                        if flt.signop:
+                            key = lambda id: flt.inverted != flt.signop(globals.games[id].score, flt.value)
                         else:
                             key = lambda id: flt.inverted != (globals.games[id].score >= flt.value)
-                    case FilterMode.Status.value:
+                    case FilterMode.Status:
                         key = lambda id: flt.inverted != (globals.games[id].status is flt.value)
-                    case FilterMode.Tag.value:
+                    case FilterMode.Tag:
                         key = lambda id: flt.inverted != (flt.value in [t.name for t in globals.games[id].tags])
-                    case FilterMode.Type.value:
+                    case FilterMode.Type:
                         key = lambda id: flt.inverted != (globals.games[id].type is flt.value)
-                    case FilterMode.Updated.value:
+                    case FilterMode.Updated:
                         key = lambda id: flt.value == globals.games[id].updated
                     case _:
                         key = None
@@ -3112,7 +3100,9 @@ class MainGUI():
             imgui.same_line()
             if imgui.button("Add!") or activated:
                 async_thread.run(callbacks.add_games(*utils.extract_thread_matches(self.add_box_text)))
+                self.filters = []
                 self.add_box_text = ""
+                self.search_query = ""
                 self.add_box_valid = False
                 self.require_sort = True
         elif activated:
@@ -3161,8 +3151,8 @@ class MainGUI():
         self.filters = []
         filters_regex = r"(\S+):((?:(?=[^'\"])\S+|(?=').+?')|(?=\").+?\")"
         self.search_query = re.sub(filters_regex, "", self.add_box_text).strip()
-        for filter in re.findall(filters_regex, self.add_box_text):
-            (mode, value) = filter
+        for _filter in re.findall(filters_regex, self.add_box_text):
+            (mode, value) = _filter
             try:
                 flt = Filter(mode, value)
                 self.filters.append(flt)
@@ -3173,11 +3163,13 @@ class MainGUI():
         self.update_autocomplete(data.cursor_pos)
         entries = list(filter(lambda e: self.autocomplete_term.lower() in e.lower(), self.autocomplete_items))
         if data.event_flag == imgui.INPUT_TEXT_CALLBACK_ALWAYS and entries:
-            string = self.add_box_text[:data.cursor_pos]
+            search_string = self.add_box_text[:data.cursor_pos]
             width = imgui.calc_text_size(max(entries, key=len)).x + imgui.STYLE_FRAME_PADDING * 2
             height = imgui.STYLE_FRAME_BORDERSIZE + imgui.get_text_line_height_with_spacing() * len(entries)
-            # TODO: find a way to calculate size of visible text only, to prevent tooltip sliding beyond the edge of the window
-            posx = imgui.get_item_rect_min().x + imgui.calc_text_size(string).x
+            # TODO: find a way to calculate size of visible text only, to prevent tooltip sliding out of bounds
+            posx = imgui.get_item_rect_min().x + imgui.calc_text_size(search_string).x
+            # right now posx is clamped to input width
+            posx = min((posx, imgui.get_item_rect_max().x - width))
             posy = imgui.get_window_height() - height - (imgui.get_item_rect_max().y - imgui.get_item_rect_min().y)
             imgui.set_next_window_size(width, height)
             imgui.set_next_window_position(posx, posy)
@@ -3188,13 +3180,12 @@ class MainGUI():
             imgui.pop_style_var()
 
     def update_autocomplete(self, cursor_pos: int):
-        string = self.add_box_text[:cursor_pos]
-        # TODO: cleanup this mess, maybe extract into unified sanitization function (struct.extract_special_characters)
-        filters = list(re.finditer(r"(\S+):", string))
+        search_string = self.add_box_text[:cursor_pos]
+        filters = list(re.finditer(r"(\S+):", search_string))
         if not filters:
             self.reset_autocomplete()
             return
-        single_filter_string = string[filters[-1].start():]
+        single_filter_string = search_string[filters[-1].start():]
         (mode, value) = single_filter_string.split(":")
         if value.endswith(" ") and not value.startswith(("'", '"')):
             self.reset_autocomplete()
@@ -3207,35 +3198,35 @@ class MainGUI():
             self.autocomplete_term = self.autocomplete_term[1:]
         if mode.startswith("-"):
             mode = mode[1:]
-        # TODO: match by mode_equivalance_dict keys
+        mode = structs.mode_equivalance_dict.get_value(mode)
         match mode:
-            case "archived":
+            case FilterMode.Archived:
                 self.autocomplete_items = ["yes", "y", "+", "no", "-"]
-            case "exe":
-                self.autocomplete_items = [k[0] for k in structs.exe_equivalence_dict]
-            case "installed":
+            case FilterMode.ExeState:
+                self.autocomplete_items = [", ".join(key) for key in structs.exe_equivalence_dict]
+            case FilterMode.Installed:
                 self.autocomplete_items = ["yes", "y", "+", "no", "-"]
-            case "label":
-                self.autocomplete_items = [l.name for l in Label.instances]
-            case "played":
+            case FilterMode.Label:
+                self.autocomplete_items = [label.name for label in Label.instances]
+            case FilterMode.Played:
                 self.autocomplete_items = ["yes", "y", "+", "no", "-"]
-            case "rating":
+            case FilterMode.Rating:
                 self.autocomplete_term = ""
                 lowest = min(globals.games.values(), key=lambda g: g.rating)
                 highest = max(globals.games.values(), key=lambda g: g.rating)
                 self.autocomplete_items = [f"Lowest rating: {lowest.rating}", f"Highest rating: {highest.rating}"]
-            case "score":
+            case FilterMode.Score:
                 self.autocomplete_term = ""
                 lowest = min(globals.games.values(), key=lambda g: g.score)
                 highest = max(globals.games.values(), key=lambda g: g.score)
                 self.autocomplete_items = [f"Lowest score: {lowest.score}", f"Highest score: {highest.score}"]
-            case "status":
-                self.autocomplete_items = [k[0] for k in structs.status_equivalence_dict]
-            case "tag":
-                self.autocomplete_items = [t for t in Tag._member_names_]
-            case "type":
-                self.autocomplete_items = [k[0] for k in structs.type_equivalence_dict]
-            case "updated":
+            case FilterMode.Status:
+                self.autocomplete_items = [", ".join(key) for key in structs.status_equivalence_dict]
+            case FilterMode.Tag:
+                self.autocomplete_items = [tag for tag in Tag._member_names_]
+            case FilterMode.Type:
+                self.autocomplete_items = [", ".join(k) for k in structs.type_equivalence_dict]
+            case FilterMode.Updated:
                 self.autocomplete_items = ["yes", "y", "+", "no", "-"]
             case _:
                 pass
