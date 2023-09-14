@@ -304,6 +304,7 @@ class MainGUI():
         self.autocomplete_items = []
         self.selected_games_count = 0
         self.game_hitbox_click = False
+        self.showing_reminders = False
         self.hovered_game: Game = None
         self.sorts: list[SortSpec] = []
         self.filters: list[list[Filter]] = []
@@ -1273,6 +1274,28 @@ class MainGUI():
                 text = "\n".join(_url(game) for game in globals.games.values() if game.selected if game.url)
             callbacks.clipboard_copy(text)
 
+    def draw_game_reminder_button(self, game: Game, label_off="", label_on="", selectable=False):
+        if game:
+            if selectable:
+                clicked = imgui.selectable(label_on if game.reminder else label_off, False)[0]
+            else:
+                clicked = imgui.button(label_on if game.reminder else label_off)
+            if clicked:
+                game.reminder = not game.reminder
+        else:
+            if imgui.small_button(icons.check):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.reminder = True
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.reminder = False
+            imgui.same_line()
+            imgui.text(label_off + " ")
+        self.require_sort = True
+
     def draw_game_archive_button(self, game: Game, label_off="", label_on="", selectable=False):
         if game:
             if selectable:
@@ -1450,6 +1473,7 @@ class MainGUI():
             self.draw_game_labels_select_widget(game)
             imgui.end_menu()
         imgui.separator()
+        self.draw_game_reminder_button(game, label_off=f"{icons.alert_box_outline} Reminder", label_on=f"{icons.heart_box_outline} Regular", selectable=True)
         self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive", selectable=True)
         self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove", selectable=True)
 
@@ -2430,6 +2454,7 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
+            self.sorted_games_ids = list(filter(lambda id: self.showing_reminders == globals.games[id].reminder, self.sorted_games_ids))
             keep_ids = set()
             for and_group in self.filters:
                 temp_sorted_games_ids = self.sorted_games_ids
@@ -3423,7 +3448,11 @@ class MainGUI():
         imgui.begin_child("Settings")
 
         if draw_settings_section("Filter", collapsible=False):
-            draw_settings_label(f"Total games count: {len(globals.games)}")
+            games = globals.games.values()
+            if self.showing_reminders:
+                draw_settings_label(f"Total reminders count: {len([g for g in games if g.reminder])}")
+            else:
+                draw_settings_label(f"Total games count: {len([g for g in games if not g.reminder])}")
             imgui.text("")
             imgui.spacing()
 
@@ -3432,7 +3461,7 @@ class MainGUI():
                 imgui.text("")
                 imgui.spacing()
 
-            if len(self.filters) > 0 or self.add_box_text:
+            if self.add_box_text:
                 draw_settings_label(f"Filtered games count: {len(self.sorted_games_ids)}")
                 imgui.text("")
                 imgui.spacing()
@@ -4125,6 +4154,18 @@ class MainGUI():
             )
             if imgui.button("Switch", width=right_width):
                 self.hide()
+            imgui.end_table()
+
+        if draw_settings_section("Background", collapsible=False):
+            draw_settings_label(
+                "Reminders:",
+                "Games marked as reminders will be hidden from main game list, and will have different icon in browser. "
+                "They will get updates like regular games so you can still track changes. "
+                "Use them for the games you don't really care about, but want to keep an eye on."
+            )
+            if imgui.button("Hide" if self.showing_reminders else "Show", width=right_width):
+                self.showing_reminders = not self.showing_reminders
+                self.require_sort = True
             imgui.end_table()
 
         imgui.end_child()

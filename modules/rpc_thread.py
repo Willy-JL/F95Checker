@@ -55,7 +55,7 @@ def start():
                 try:
                     match self.path:
                         case "/games":
-                            self.send_json(200, list(globals.games))
+                            self.send_json(200, [{"id": g.id, "notes": g.notes, "reminder": g.reminder} for g in globals.games.values()])
                             return
                         case _:
                             self.send_resp(404)

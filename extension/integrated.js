@@ -53,15 +53,28 @@ updateIcons = async () => {
         c.style.padding = '3px 3px';
         return c;
     };
-    const gamesIcon = () => {
+    const gameIcon = (id) => {
         const icon = document.createElement('i');
         icon.style.fontFamily = "'Font Awesome 5 Pro'";
-        icon.classList.add('fa', 'fa-heart-square');
-        icon.setAttribute('title', 'This game is present in your F95CheckerX library!');
-        icon.addEventListener('click', () =>
-            alert('This game is present in your F95CheckerX library!')
-        );
-        icon.style.color = '#FD5555';
+        const game = games.find((g) => g.id === id);
+        let full_text = '';
+        if (game.reminder) {
+            icon.style.color = '#55eecc';
+            icon.classList.add('fa', 'fa-exclamation-square');
+            full_text = "You've marked this thread as a reminder";
+        } else {
+            icon.style.color = '#FD5555';
+            icon.classList.add('fa', 'fa-heart-square');
+            full_text = 'This game is present in your library';
+        }
+        if (game.notes !== '') {
+            full_text += `\nNOTES:\n${game.notes}`;
+            icon.classList.replace('fa-heart-square', 'fa-pen-square');
+            icon.classList.replace('fa-exclamation-square', 'fa-pen-square');
+        } else {
+        }
+        icon.setAttribute('title', full_text);
+        icon.addEventListener('click', () => alert(full_text));
         return icon;
     };
     const removeOldIcons = () => {
@@ -71,7 +84,7 @@ updateIcons = async () => {
         for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
             const id = extractThreadId(elem.href);
 
-            if (!id || ![...games].includes(id)) {
+            if (!id || ![...games.map((g) => g.id)].includes(id)) {
                 continue;
             }
 
@@ -91,7 +104,7 @@ updateIcons = async () => {
             }
 
             const container = createContainer();
-            if (games.includes(id)) container.prepend(gamesIcon());
+            if (games.map((g) => g.id).includes(id)) container.prepend(gameIcon(id));
 
             if (isImage) {
                 container.style.position = 'absolute';
@@ -108,8 +121,10 @@ updateIcons = async () => {
                 // Search page
                 try {
                     whitespaces = elem.querySelectorAll('span.label-append');
-                    lastWhitespace = whitespaces[whitespaces.length - 1];
-                    lastWhitespace.insertAdjacentElement('afterend', container);
+                    whitespaces[whitespaces.length - 1].insertAdjacentElement(
+                        'afterend',
+                        container
+                    );
                 } catch (e) {
                     continue;
                 }
@@ -129,9 +144,12 @@ updateIcons = async () => {
         container.style.marginInlineEnd = '6px';
         const title = document.getElementsByClassName('p-title-value')[0];
         if (title) {
-            if (games.includes(id)) container.prepend(gamesIcon());
+            if (games.map((g) => g.id).includes(id)) container.prepend(gameIcon(id));
             if (container.firstChild)
-                title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
+                title.insertBefore(
+                    container,
+                    title.childNodes[title.childNodes.length - 1]
+                );
         }
     };
     const doUpdate = () => {

@@ -215,6 +215,7 @@ async def connect():
             "installed":                   f'TEXT    DEFAULT ""',
             "updated":                     f'INTEGER DEFAULT NULL',
             "archived":                    f'INTEGER DEFAULT {int(False)}',
+            "reminder":                    f'INTEGER DEFAULT {int(False)}',
             "executables":                 f'TEXT    DEFAULT "[]"',
             "description":                 f'TEXT    DEFAULT ""',
             "changelog":                   f'TEXT    DEFAULT ""',

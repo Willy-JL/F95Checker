@@ -869,6 +869,7 @@ class Game:
     installed          : str
     updated            : bool | None
     archived           : bool
+    reminder           : bool
     executables        : list[str]
     description        : str
     changelog          : str
@@ -987,6 +988,7 @@ class Game:
             "installed",
             "updated",
             "archived",
+            "reminder",
             "executables",
             "description",
             "changelog",
