@@ -172,7 +172,7 @@ class Datestamp(Timestamp):
 
 
 class DefaultStyle:
-    accent        = "#d4202e"
+    accent        = "#007AF2"
     alt_bg        = "#101010"
     bg            = "#0a0a0a"
     border        = "#454545"

@@ -284,7 +284,7 @@ class MainGUI():
             imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID |
             imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
         )
-        self.watermark_text = f"F95CheckerX build {globals.version_name}"
+        self.watermark_text = f"F95CheckerX build {globals.build_number}"
 
         # Variables
         self.hidden = False
@@ -2275,17 +2275,18 @@ class MainGUI():
     def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
             _60 = self.scaled(60)
-            _255 = self.scaled(255)
+            _280 = self.scaled(280)
             imgui.begin_group()
-            imgui.dummy(_60, _255)
+            imgui.dummy(_60, _280)
             imgui.same_line()
-            self.icon_texture.render(_255, _255, rounding=globals.settings.style_corner_radius)
+            self.icon_texture.render(_280, _280, rounding=globals.settings.style_corner_radius)
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(imgui.fonts.big)
             imgui.text("F95Checker eXtended")
             imgui.pop_font()
-            imgui.text(f"Build {globals.version_name}")
+            imgui.text(f"Build {globals.build_number}")
+            imgui.text(f"Based on version {globals.version_name}")
             imgui.text("Made by WillyJL")
             imgui.text("Modified by littleraisins")
             imgui.text("")
@@ -2302,7 +2303,7 @@ class MainGUI():
                 imgui.text(f"{platform.system()} {platform.release()}")
             imgui.end_group()
             imgui.same_line()
-            imgui.dummy(_60, _255)
+            imgui.dummy(_60, _280)
             imgui.end_group()
             imgui.spacing()
             width = imgui.get_content_region_available_width()
@@ -4185,7 +4186,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.msg_queue: list[TrayMsg] = []
         super().__init__(self.idle_icon)
 
-        self.watermark = QtGui.QAction(f"F95CheckerX build {globals.version_name}")
+        self.watermark = QtGui.QAction(f"F95CheckerX build {globals.build_number}")
         self.watermark.triggered.connect(lambda *_: self.main_gui.show())
 
         self.next_refresh = QtGui.QAction("Next Refresh: N/A")
