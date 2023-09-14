@@ -1,5 +1,6 @@
 import requests
 import json
+import sys
 import os
 
 
@@ -31,7 +32,8 @@ if __name__ == "__main__":
             "Authorization": f"token {os.environ['GITHUB_TOKEN']}"
         },
         json={
-            "body": body
+            "body": body,
+            "name": f"Build {sys.argv[0]}"
         }
     )
     if not req.ok:
