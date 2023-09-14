@@ -95,7 +95,7 @@ def start():
                 "RPC server error",
                 f"Failed to start RPC server on localhost port {globals.rpc_port}:\n{error.text()}\n"
                 "\n"
-                "This means that the web browser extension will not work, while F95Checker\n"
+                "This means that the web browser extension will not work, while F95CheckerX\n"
                 "itself should be unaffected. Some common causes are:\n"
                 " - Hyper-V\n"
                 " - Docker\n"

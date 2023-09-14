@@ -7,8 +7,8 @@ path = pathlib.Path(__file__).absolute().parent
 
 
 # Main metadata
-name = "F95Checker"
-identifier = "io.github.willy-jl.f95checker"
+name = "F95CheckerX"
+identifier = "io.github.littleraisins.f95checker"
 icon = path / "resources/icons/icon"
 script = path / "main.py"
 debug_script = path / "main-debug.py"

@@ -50,16 +50,16 @@ def _():
     home = pathlib.Path.home()
     if sys.platform.startswith("win"):
         os = Os.Windows
-        data_path = "AppData/Roaming/f95checker"
+        data_path = "AppData/Roaming/f95checkerx"
     elif sys.platform.startswith("linux"):
         os = Os.Linux
-        if (home / ".f95checker").exists() and not (home / ".config/f95checker").exists():
+        if (home / ".f95checker").exists() and not (home / ".config/f95checkerx").exists():
             (home / ".config").mkdir(parents=True, exist_ok=True)
-            shutil.move(home / ".f95checker", home / ".config/f95checker")
-        data_path = ".config/f95checker"
+            shutil.move(home / ".f95checker", home / ".config/f95checkerx")
+        data_path = ".config/f95checkerx"
     elif sys.platform.startswith("darwin"):
         os = Os.MacOS
-        data_path = "Library/Application Support/f95checker"
+        data_path = "Library/Application Support/f95checkerx"
     else:
         print("Your system is not officially supported at the moment!\n"
             "You can let me know on the tool thread or on GitHub, or you can try porting yourself ;)")
@@ -149,7 +149,7 @@ def _():
 
     if os is Os.Windows:
         import winreg
-        autostart = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\F95Checker"
+        autostart = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\F95CheckerX"
         try:
             current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
             value = winreg.QueryValue(current_user, autostart)
@@ -160,7 +160,7 @@ def _():
         import configparser
         autostart_dir = pathlib.Path.home() / ".config/autostart"
         autostart_dir.mkdir(parents=True, exist_ok=True)
-        autostart = autostart_dir / "F95Checker.desktop"
+        autostart = autostart_dir / "F95CheckerX.desktop"
         try:
             config = configparser.RawConfigParser()
             config.optionxform = lambda option: option
@@ -173,7 +173,7 @@ def _():
         import plistlib
         autostart_dir = pathlib.Path.home() / "Library/LaunchAgents"
         autostart_dir.mkdir(parents=True, exist_ok=True)
-        autostart = autostart_dir / "io.github.willy-jl.f95checker.plist"
+        autostart = autostart_dir / "io.github.littleraisins.f95checkerx.plist"
         try:
             plist = plistlib.loads(autostart.read_bytes())
             value = shlex.join(plist["ProgramArguments"])

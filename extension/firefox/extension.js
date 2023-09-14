@@ -20,7 +20,7 @@ const rpcCall = async (method, path, body, tabId) => {
         if (tabId) {
             chrome.scripting.executeScript({
                 target: { tabId: tabId },
-                func: () => { alert("Could not connect to F95Checker!\nIs it open and updated? Is RPC enabled?") }
+                func: () => { alert("Could not connect to F95CheckerX!\nIs it open and updated? Is RPC enabled?") }
             });
         }
     }
@@ -52,7 +52,7 @@ const updateIcons = async (tabId) => {
             }
             const createIcon = (isImage) => {
                 const icon = document.createElement("i");
-                icon.classList.add("fa", "fa-box-heart", "f95checker-library-icon");
+                icon.classList.add("fa", "fa-box-heart", "f95checkerx-library-icon");
                 icon.style.fontFamily = "'Font Awesome 5 Pro'";
                 icon.style.color = "#FD5555";
                 if (isImage) {
@@ -68,14 +68,14 @@ const updateIcons = async (tabId) => {
                 } else {
                     icon.style.marginRight = "0.2em"
                 }
-                icon.setAttribute("title", "This game is present in your F95Checker library!");
+                icon.setAttribute("title", "This game is present in your F95CheckerX library!");
                 icon.addEventListener("click", () => {
-                    alert("This game is present in your F95Checker library!");
+                    alert("This game is present in your F95CheckerX library!");
                 });
                 return icon;
             }
             const doUpdate = () => {
-                for (elem of document.getElementsByClassName("f95checker-library-icon")) {
+                for (elem of document.getElementsByClassName("f95checkerx-library-icon")) {
                     elem.remove();
                 }
                 let done = [];
@@ -132,14 +132,14 @@ chrome.browserAction.onClicked.addListener(tab => {
 // Context menus
 chrome.runtime.onInstalled.addListener(async () => {
     chrome.contextMenus.create({
-        id: `add-page-to-f95checker`,
-        title: `Add this page to F95Checker`,
+        id: `add-page-to-f95checkerx`,
+        title: `Add this page to F95CheckerX`,
         contexts: ["page"],
         documentUrlPatterns: ["*://*.f95zone.to/threads/*"]
     });
     chrome.contextMenus.create({
-        id: `add-link-to-f95checker`,
-        title: `Add this link to F95Checker`,
+        id: `add-link-to-f95checkerx`,
+        title: `Add this link to F95CheckerX`,
         contexts: ["link"],
         targetUrlPatterns: ["*://*.f95zone.to/threads/*"]
     });

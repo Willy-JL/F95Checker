@@ -50,7 +50,7 @@ updateIcons = async () => {
     }
     const createIcon = (isImage) => {
         const icon = document.createElement("i");
-        icon.classList.add("fa", "fa-box-heart", "f95checker-library-icon");
+        icon.classList.add("fa", "fa-box-heart", "f95checkerx-library-icon");
         icon.style.fontFamily = "'Font Awesome 5 Pro'";
         icon.style.color = "#FD5555";
         if (isImage) {
@@ -66,14 +66,14 @@ updateIcons = async () => {
         } else {
             icon.style.marginRight = "0.2em"
         }
-        icon.setAttribute("title", "This game is present in your F95Checker library!");
+        icon.setAttribute("title", "This game is present in your F95CheckerX library!");
         icon.addEventListener("click", () => {
-            alert("This game is present in your F95Checker library!");
+            alert("This game is present in your F95CheckerX library!");
         });
         return icon;
     }
     const doUpdate = () => {
-        for (elem of document.getElementsByClassName("f95checker-library-icon")) {
+        for (elem of document.getElementsByClassName("f95checkerx-library-icon")) {
             elem.style.display = "none";
             elem.innerHTML = "";
             elem.outerHTML = "";

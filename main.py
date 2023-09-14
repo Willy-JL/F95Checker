@@ -6,7 +6,7 @@ import sys
 version = "10.3"
 release = False
 build_number = 0
-version_name = f"{version}{'' if release else ' beta'}{'' if release or not build_number else ' ' + str(build_number)}"
+version_name = f"{version}"
 rpc_port = 57095
 
 frozen = getattr(sys, "frozen", False)

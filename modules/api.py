@@ -59,12 +59,12 @@ threads_page        = host + "/threads/"
 bookmarks_page      = host + "/account/bookmarks?difference={offset}"
 watched_page        = host + "/watched/threads?unread=0&page={page}"
 qsearch_endpoint    = host + "/quicksearch"
-update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+update_endpoint     = "https://api.github.com/repos/littleraisins/F95CheckerX/releases/latest"
 
 updating = False
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
-webpage_prefix = "F95Checker-Temp-"
+webpage_prefix = "F95CheckerX-Temp-"
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
 full_checks = CounterContext()
@@ -76,7 +76,7 @@ xf_token = ""
 def setup():
     global session
     session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
-    session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
+    session.headers["User-Agent"] = f"F95CheckerX/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
     # Setup multiprocessing for parsing threads
     method = "spawn"  # Using fork defeats the purpose, with spawn the main ui does not hang
     if globals.os is not Os.Windows and globals.frozen:
@@ -236,7 +236,7 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
         if b"<title>DDOS-GUARD</title>" in res:
             raise msgbox.Exc(
                 "DDoS-Guard bypass failure",
-                "F95Zone requested a DDoS-Guard browser challenge and F95Checker\n"
+                "F95Zone requested a DDoS-Guard browser challenge and F95CheckerX\n"
                 "was unable to bypass it. Try waiting a few minutes, opening F95Zone\n"
                 "in browser, rebooting your router, or connecting through a VPN.",
                 MsgBox.error
@@ -310,7 +310,7 @@ async def login():
         new_cookies = {}
         with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
             *shlex.split(globals.start_cmd), "webview", "cookies", json.dumps((login_page,)), json.dumps(webview.kwargs() | dict(
-                title="F95Checker: Login to F95Zone",
+                title="F95CheckerX: Login to F95Zone",
                 size=(size := (500, 720)),
                 pos=(
                     int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
@@ -779,7 +779,7 @@ async def check_updates():
         if "tag_name" not in res:
             utils.push_popup(
                 msgbox.msgbox, "Update check error",
-                "Failed to fetch latest F95Checker release information.\n"
+                "Failed to fetch latest F95CheckerX release information.\n"
                 "This might be a temporary issue.",
                 MsgBox.warn
             )
@@ -819,7 +819,7 @@ async def check_updates():
             await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Update check error",
-            "Something went wrong checking for F95Checker updates:\n"
+            "Something went wrong checking for F95CheckerX updates:\n"
             f"{error.text()}\n"
             "\n"
             "The response body has been saved to:\n"
@@ -857,7 +857,7 @@ async def check_updates():
             f"{icons.cancel} Cancel": cancel_callback
         }
         utils.push_popup(
-            utils.popup, "Updating F95Checker",
+            utils.popup, "Updating F95CheckerX",
             popup_content,
             buttons=buttons,
             closable=False,
@@ -905,7 +905,7 @@ async def check_updates():
         if globals.os is Os.Windows:
             script = "\n".join((
                 "try {"
-                'Write-Host "Waiting for F95Checker to quit..."',
+                'Write-Host "Waiting for F95CheckerX to quit..."',
                 f"Wait-Process -Id {ppid}",
                 'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
@@ -920,7 +920,7 @@ async def check_updates():
                 f"Get-ChildItem -Force -Path {shlex.quote(str(src))} | Select-Object -ExpandProperty FullName | Move-Item -Force -Destination {shlex.quote(str(dst))}",
                 'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
-                'Write-Host "Starting F95Checker..."',
+                'Write-Host "Starting F95CheckerX..."',
                 f"& {globals.start_cmd}",
                 "} catch {",
                 'Write-Host "An error occurred:`n" $_.InvocationInfo.PositionMessage "`n" $_',
@@ -942,11 +942,11 @@ async def check_updates():
                 except Exception:
                     pass
             script = "\n".join([
-                shlex.join(["echo", "Waiting for F95Checker to quit..."]),
+                shlex.join(["echo", "Waiting for F95CheckerX to quit..."]),
                 shlex.join(["tail", "--pid", str(ppid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(ppid), "+r", "1"]),
                 shlex.join(["echo", "Sleeping 3 seconds..."]),
                 shlex.join(["sleep", "3"]),
-                shlex.join(["echo", "Starting F95Checker..."]),
+                shlex.join(["echo", "Starting F95CheckerX..."]),
                 globals.start_cmd,
             ])
             shell = [shutil.which("bash") or shutil.which("zsh") or shutil.which("sh"), "-c"]
@@ -970,15 +970,15 @@ async def check_updates():
         f"{icons.cancel} No": None
     }
     for popup in globals.popup_stack:
-        if popup.func is msgbox.msgbox and popup.args[0] == "F95Checker update":
+        if popup.func is msgbox.msgbox and popup.args[0] == "F95CheckerX update":
             globals.popup_stack.remove(popup)
     if globals.frozen and globals.os is Os.MacOS:
         path = globals.self_path.parent.parent
     else:
         path = globals.self_path
     utils.push_popup(
-        msgbox.msgbox, "F95Checker update",
-        f"F95Checker has been updated to version {latest_name} (you are on {globals.version_name}).\n"
+        msgbox.msgbox, "F95CheckerX update",
+        f"F95CheckerX has been updated to version {latest_name} (you are on {globals.version_name}).\n"
         "UPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n"
         f"{path}\n"
         "Your user data (games, settings, login, ...) will not be affected.\n"
@@ -992,8 +992,8 @@ async def check_updates():
     )
     if globals.gui.hidden or not globals.gui.focused:
         globals.gui.tray.push_msg(
-            title="F95Checker update",
-            msg="F95Checker has received an update.\n"
+            title="F95CheckerX update",
+            msg="F95CheckerX has received an update.\n"
                 "Click here to view it.",
             icon=QSystemTrayIcon.MessageIcon.Information
         )

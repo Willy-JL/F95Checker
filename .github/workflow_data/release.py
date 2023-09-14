@@ -21,14 +21,8 @@ if __name__ == "__main__":
         for asset in release["assets"]:
             if asset_type.lower() in asset["name"].lower():
                 asset_url = asset["browser_download_url"]
-        body += f">### [{asset_type} {asset_icon}]({asset_url}) ([VirusTotal](https://www.virustotal.com/gui/file/))\n\n"
-    body += (
-        "## ❤️ Support\n" +
-        "F95Checker is **Free and Open Source Software**, provided to you **free of cost**. However it is actively **developed by " +
-        "one single person only, WillyJL**. Please consider [**donating**](https://linktr.ee/WillyJL) or **sharing this software**!\n\n" +
-        "## 🚀 Changelog\n" +
-        release["body"]
-    )
+        body += f">### [{asset_type} {asset_icon}]({asset_url})\n\n"
+    body += release["body"]
     print(f"Full body:\n\n{body}")
     req = requests.patch(
         release["url"],

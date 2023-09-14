@@ -61,7 +61,7 @@ from modules import (
 )
 
 tool_page         = api.threads_page + "44173/"
-github_page       = "https://github.com/Willy-JL/F95Checker"
+github_page       = "https://github.com/littleraisins/F95CheckerX"
 developer_page    = "https://linktr.ee/WillyJL"
 
 imgui.io = None
@@ -282,7 +282,7 @@ class MainGUI():
             imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID |
             imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
         )
-        self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.release else ' by WillyJL'}"
+        self.watermark_text = f"F95CheckerX build {globals.version_name}"
 
         # Variables
         self.hidden = False
@@ -351,7 +351,7 @@ class MainGUI():
             size = (1280, 720)
 
         # Setup GLFW window
-        self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
+        self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95CheckerX")
         if all(type(x) is int for x in pos) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
@@ -847,7 +847,7 @@ class MainGUI():
 
                         # Create main window
                         imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
-                        imgui.begin("F95Checker", closable=False, flags=self.window_flags)
+                        imgui.begin("F95CheckerX", closable=False, flags=self.window_flags)
                         imgui.pop_style_var()
                         sidebar_size = self.scaled(self.sidebar_size)
 
@@ -2247,18 +2247,19 @@ class MainGUI():
     def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
             _60 = self.scaled(60)
-            _230 = self.scaled(230)
+            _255 = self.scaled(255)
             imgui.begin_group()
-            imgui.dummy(_60, _230)
+            imgui.dummy(_60, _255)
             imgui.same_line()
-            self.icon_texture.render(_230, _230, rounding=globals.settings.style_corner_radius)
+            self.icon_texture.render(_255, _255, rounding=globals.settings.style_corner_radius)
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(imgui.fonts.big)
-            imgui.text("F95Checker")
+            imgui.text("F95Checker eXtended")
             imgui.pop_font()
-            imgui.text(f"Version {globals.version_name}")
-            imgui.text("Made with <3 by WillyJL")
+            imgui.text(f"Build {globals.version_name}")
+            imgui.text("Made by WillyJL")
+            imgui.text("Modified by littleraisins")
             imgui.text("")
             imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
             imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
@@ -2273,7 +2274,7 @@ class MainGUI():
                 imgui.text(f"{platform.system()} {platform.release()}")
             imgui.end_group()
             imgui.same_line()
-            imgui.dummy(_60, _230)
+            imgui.dummy(_60, _255)
             imgui.end_group()
             imgui.spacing()
             width = imgui.get_content_region_available_width()
@@ -2284,7 +2285,7 @@ class MainGUI():
             if imgui.button(f"{icons.github} GitHub Repo", width=btn_width):
                 callbacks.open_webpage(github_page)
             imgui.same_line()
-            if imgui.button(f"{icons.link_variant} Donate + Links", width=btn_width):
+            if imgui.button(f"{icons.link_variant} Donate + Links (WillyJL)", width=btn_width):
                 callbacks.open_webpage(developer_page)
             imgui.spacing()
             imgui.spacing()
@@ -2365,7 +2366,7 @@ class MainGUI():
                 imgui.bullet_text(name)
                 imgui.same_line(spacing=16)
             imgui.pop_text_wrap_pos()
-        return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+        return utils.popup("About F95CheckerX", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def sort_games(self, sorts: imgui.core._ImGuiTableSortSpecs):
         manual_sort = cols.manual_sort.enabled
@@ -3223,7 +3224,7 @@ class MainGUI():
                 if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                     utils.push_popup(
                         msgbox.msgbox, "About refreshing",
-                        "Refreshing is the process by which F95Checker goes through your games and checks\n"
+                        "Refreshing is the process by which F95CheckerX goes through your games and checks\n"
                         "if they have received updates. To keep it fast and smooth this is done by checking\n"
                         "version number changes in chunks with a dedicated API.\n"
                         "\n"
@@ -3395,8 +3396,8 @@ class MainGUI():
         if draw_settings_section("Browser"):
             draw_settings_label(
                 "Browser:",
-                "All the options you select here ONLY affect how F95Checker opens links for you, it DOES NOT affect how this tool "
-                "operates internally. F95Checker DOES NOT interact with your browsers in any meaningful way, it uses a separate "
+                "All the options you select here ONLY affect how F95CheckerX opens links for you, it DOES NOT affect how this tool "
+                "operates internally. F95CheckerX DOES NOT interact with your browsers in any meaningful way, it uses a separate "
                 "session just for itself."
             )
             changed, value = imgui.combo("###browser", set.browser.index, Browser.avail_list)
@@ -3462,7 +3463,7 @@ class MainGUI():
 
             draw_settings_label(
                 "Download pages:",
-                "With this enabled links will first be downloaded by F95Checker and then opened as simple HTML files in your "
+                "With this enabled links will first be downloaded by F95CheckerX and then opened as simple HTML files in your "
                 "browser. This might be useful if you use private mode because the page will load as if you were logged in, "
                 "allowing you to see links and spoiler content without actually logging in."
             )
@@ -3540,7 +3541,7 @@ class MainGUI():
 
             draw_settings_label(
                 "BG on close:",
-                "When closing the window F95Checker will instead switch to background mode. Quit the app via the tray icon."
+                "When closing the window F95CheckerX will instead switch to background mode. Quit the app via the tray icon."
             )
             draw_settings_checkbox("background_on_close")
 
@@ -3651,7 +3652,7 @@ class MainGUI():
 
             draw_settings_label(
                 "Render if unfocused:",
-                "F95Checker renders its interface using ImGui and OpenGL and this means it has to render the whole interface up "
+                "F95CheckerX renders its interface using ImGui and OpenGL and this means it has to render the whole interface up "
                 "to hundreds of times per second (look at the framerate below). This process is as optimized as possible but it "
                 "will inevitably consume some CPU and GPU resources. If you absolutely need the performance you can disable this "
                 "option to stop rendering when the checker window is not focused, but keep in mind that it might lead to weird "
@@ -3756,7 +3757,7 @@ class MainGUI():
                     }
                     utils.push_popup(
                         msgbox.msgbox, "Bookmark file",
-                        "F95Checker can import your browser bookmarks using an exported bookmark HTML.\n"
+                        "F95CheckerX can import your browser bookmarks using an exported bookmark HTML.\n"
                         "Exporting such a file may vary between browsers, but generally speaking you need to:\n"
                         " - Open your browser's bookmark manager\n"
                         " - Find an import / export section, menu or dropdown\n"
@@ -3841,13 +3842,13 @@ class MainGUI():
 
             draw_settings_label(
                 "Ask exe on add:",
-                "When this is enabled you will be asked to select a game executable right after adding the game to F95Checker."
+                "When this is enabled you will be asked to select a game executable right after adding the game to F95CheckerX."
             )
             draw_settings_checkbox("select_executable_after_add")
 
             draw_settings_label(
                 "Installed on add:",
-                "When this is enabled games will be marked as installed by default when first added to F95Checker."
+                "When this is enabled games will be marked as installed by default when first added to F95CheckerX."
             )
             draw_settings_checkbox("mark_installed_after_add")
 
@@ -3874,7 +3875,7 @@ class MainGUI():
 
             draw_settings_label(
                 "RPC enabled:",
-                f"The RPC allows other programs on your pc to interact with F95Checker via the api on localhost:{globals.rpc_port}. "
+                f"The RPC allows other programs on your pc to interact with F95CheckerX via the api on localhost:{globals.rpc_port}. "
                 "Essentially this is what makes the web browser extension work. Disable this if you are having issues with the RPC, "
                 "but do note that doing so will prevent the extension from working at all."
             )
@@ -3922,7 +3923,7 @@ class MainGUI():
 
             draw_settings_label(
                 "Timeout:",
-                "To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
+                "To check for updates for a game F95CheckerX sends a web request to F95Zone. However this can sometimes go "
                 "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
                 "A timeout 10-30 seconds is most typical."
             )
@@ -3968,7 +3969,7 @@ class MainGUI():
 
             draw_settings_label(
                 "BG interval:",
-                "When F95Checker is in background mode it automatically refreshes your games periodically. This "
+                "When F95CheckerX is in background mode it automatically refreshes your games periodically. This "
                 "controls how often (in minutes) this happens."
             )
             changed, value = imgui.drag_int("###bg_refresh_interval", set.bg_refresh_interval, change_speed=4.0, min_value=30, max_value=1440, format="%d min")
@@ -3981,7 +3982,7 @@ class MainGUI():
 
             draw_settings_label(
                 "BG notifs intv:",
-                "When F95Checker is in background mode it automatically checks your notifications periodically. This "
+                "When F95CheckerX is in background mode it automatically checks your notifications periodically. This "
                 "controls how often (in minutes) this happens."
             )
             changed, value = imgui.drag_int("###bg_notifs_interval", set.bg_notifs_interval, change_speed=4.0, min_value=15, max_value=1440, format="%d min")
@@ -4005,7 +4006,7 @@ class MainGUI():
 
             draw_settings_label(
                 "Start in BG:",
-                "F95Checker will start in background mode, hidden in the system tray."
+                "F95CheckerX will start in background mode, hidden in the system tray."
             )
             draw_settings_checkbox("start_in_background")
 
@@ -4072,7 +4073,7 @@ class MainGUI():
         if draw_settings_section("Background", collapsible=False):
             draw_settings_label(
                 "BG mode:",
-                "When in background mode, F95Checker hides the main window and only keeps the icon in the system tray. The main feature of "
+                "When in background mode, F95CheckerX hides the main window and only keeps the icon in the system tray. The main feature of "
                 "background mode is periodic refreshing: your list will be automatically refreshed at regular intervals and you will receive "
                 "a desktop notification if some updates / notifications have been found."
             )
@@ -4097,7 +4098,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.msg_queue: list[TrayMsg] = []
         super().__init__(self.idle_icon)
 
-        self.watermark = QtGui.QAction(f"F95Checker {globals.version_name}")
+        self.watermark = QtGui.QAction(f"F95CheckerX build {globals.version_name}")
         self.watermark.triggered.connect(lambda *_: self.main_gui.show())
 
         self.next_refresh = QtGui.QAction("Next Refresh: N/A")
