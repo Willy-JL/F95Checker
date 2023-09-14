@@ -10,109 +10,142 @@ rpcPort = 57095;
 rpcURL = `http://localhost:${rpcPort}`;
 games = [];
 
-
-sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
+sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 rpcCall = async (method, path, body) => {
     try {
         const res = await fetch(`${rpcURL}${path}`, {
             method: method,
-            body: body
+            body: body,
         });
         if (!res.ok) {
             throw res.status;
         }
         return res;
     } catch {}
-}
+};
 
+getData = async () => {
+    let res = null;
 
-getGames = async () => {
-    const res = await rpcCall("GET", "/games");
+    res = await rpcCall('GET', '/games');
     games = res ? await res.json() : [];
-}
-
+};
 
 addGame = async (url) => {
-    await rpcCall("POST", "/games/add", JSON.stringify([url]));
-    await sleep(0.5 * 1000)
+    await rpcCall('POST', '/games/add', JSON.stringify([url]));
+    await sleep(0.5 * 1000);
     await updateIcons();
-}
+};
 
-
-// Add library icons for added games
+// Add icons for games, reminders, etc.
 updateIcons = async () => {
-    await getGames();
-    const threadId = (url) => {
+    await getData();
+    const extractThreadId = (url) => {
         const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
         return match ? parseInt(match[1]) : null;
-    }
-    const createIcon = (isImage) => {
-        const icon = document.createElement("i");
-        icon.classList.add("fa", "fa-box-heart", "f95checkerx-library-icon");
+    };
+    const createContainer = () => {
+        const c = document.createElement('div');
+        c.classList.add('f95checkerx-library-icons');
+        c.style.display = 'inline-flex';
+        c.style.gap = '5px';
+        c.style.padding = '3px 3px';
+        return c;
+    };
+    const gamesIcon = () => {
+        const icon = document.createElement('i');
         icon.style.fontFamily = "'Font Awesome 5 Pro'";
-        icon.style.color = "#FD5555";
-        if (isImage) {
-            icon.style.position = "absolute";
-            icon.style.zIndex = "50";
-            icon.style.right = "5px";
-            icon.style.top = "5px";
-            icon.style.fontSize = "larger";
-            icon.style.background = "#262626";
-            icon.style.border = "solid #262626";
-            icon.style.borderWidth = "4px 5px";
-            icon.style.borderRadius = "4px";
-        } else {
-            icon.style.marginRight = "0.2em"
-        }
-        icon.setAttribute("title", "This game is present in your F95CheckerX library!");
-        icon.addEventListener("click", () => {
-            alert("This game is present in your F95CheckerX library!");
-        });
+        icon.classList.add('fa', 'fa-heart-square');
+        icon.setAttribute('title', 'This game is present in your F95CheckerX library!');
+        icon.addEventListener('click', () =>
+            alert('This game is present in your F95CheckerX library!')
+        );
+        icon.style.color = '#FD5555';
         return icon;
-    }
-    const doUpdate = () => {
-        for (elem of document.getElementsByClassName("f95checkerx-library-icon")) {
-            elem.style.display = "none";
-            elem.innerHTML = "";
-            elem.outerHTML = "";
-            elem.remove();
-        }
-        let done = [];
+    };
+    const removeOldIcons = () => {
+        document.querySelectorAll('.f95checkerx-library-icons').forEach((e) => e.remove());
+    };
+    const addHrefIcons = () => {
         for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
-            const id = threadId(elem.href);
-            if (!id || !games.includes(id)) {
+            const id = extractThreadId(elem.href);
+
+            if (!id || ![...games].includes(id)) {
                 continue;
             }
-            let isDone = false;
-            for (doneElem of done) {
-                if (doneElem.contains(elem)) {
-                    isDone = true;
-                    break;
+
+            const isImage =
+                elem.classList.contains('resource-tile_link') ||
+                elem.parentNode.parentNode.classList.contains('es-slides');
+
+            if (
+                !isImage &&
+                (/page-.*$/.test(elem.href) ||
+                    /post-\d*$/.test(elem.href) ||
+                    /reply\?.*$/.test(elem.href) ||
+                    elem.parentNode.classList.contains('pageNav') ||
+                    elem.parentNode.classList.contains('pageNav-page'))
+            ) {
+                continue;
+            }
+
+            const container = createContainer();
+            if (games.includes(id)) container.prepend(gamesIcon());
+
+            if (isImage) {
+                container.style.position = 'absolute';
+                container.style.zIndex = '50';
+                container.style.right = '5px';
+                container.style.top = '5px';
+                container.style.background = '#262626';
+                container.style.border = 'solid #262626';
+                container.style.borderRadius = '4px';
+                container.style.fontSize = 'larger';
+            }
+
+            if (!isImage && elem.children.length > 0) {
+                // Search page
+                try {
+                    whitespaces = elem.querySelectorAll('span.label-append');
+                    lastWhitespace = whitespaces[whitespaces.length - 1];
+                    lastWhitespace.insertAdjacentElement('afterend', container);
+                } catch (e) {
+                    continue;
                 }
+            } else if (elem.classList.contains('resource-tile_link')) {
+                // To accomodate all tile layouts on latest updates page
+                thumb = elem.querySelector('div.resource-tile_thumb');
+                thumb.insertAdjacentElement('beforebegin', container);
+            } else {
+                // Everywhere else
+                elem.insertAdjacentElement('beforebegin', container);
             }
-            if (isDone) {
-                continue;
-            }
-            const isImage = elem.classList.contains("resource-tile_link") || elem.parentNode.parentNode.classList.contains("es-slides");
-            if (!isImage && !elem.href.endsWith("/unread")) {
-                continue;
-            }
-            done.push(elem.parentNode);
-            elem.insertAdjacentElement("beforebegin", createIcon(isImage));
         }
-        const title = document.getElementsByClassName("p-title-value")[0];
-        if (title && games.includes(threadId(document.location))) {
-            title.insertBefore(createIcon(false), title.childNodes[title.childNodes.length - 1]);
+    };
+    const addPageIcon = () => {
+        const id = extractThreadId(document.location);
+        const container = createContainer();
+        container.style.marginInlineEnd = '6px';
+        const title = document.getElementsByClassName('p-title-value')[0];
+        if (title) {
+            if (games.includes(id)) container.prepend(gamesIcon());
+            if (container.firstChild)
+                title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
         }
-    }
+    };
+    const doUpdate = () => {
+        removeOldIcons();
+        addHrefIcons();
+        addPageIcon();
+    };
+    const installMutationObservers = () => {
+        const latest = document.getElementById('latest-page_items-wrap');
+        if (latest) {
+            const observer = new MutationObserver(doUpdate);
+            observer.observe(latest, { attributes: true });
+        }
+    };
+    installMutationObservers();
     doUpdate();
-    const latest = document.getElementById("latest-page_items-wrap");
-    if (latest) {
-        const observer = new MutationObserver(() => {
-            doUpdate();
-        });
-        observer.observe(latest, { attributes: true });
-    }
-}
+};
