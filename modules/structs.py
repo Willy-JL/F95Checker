@@ -469,6 +469,7 @@ MsgBox = IntEnumHack("MsgBox", [
 
 FilterMode = IntEnumHack("FilterMode", [
     "Archived",
+    "Custom",
     "Developer",
     "ExeState",
     "Installed",
@@ -485,6 +486,7 @@ FilterMode = IntEnumHack("FilterMode", [
 
 mode_equivalance_dict = TupleDict({
     ("archived",):  FilterMode.Archived,
+    ("custom",):    FilterMode.Custom,
     ("developer",): FilterMode.Developer,
     ("exe",):       FilterMode.ExeState,
     ("installed",): FilterMode.Installed,
@@ -528,6 +530,11 @@ class Filter:
             case FilterMode.Archived:
                 if quick:
                     self.raw_value = "yes"
+                else:
+                    self._convert_value_to_bool()
+            case FilterMode.Custom:
+                if quick:
+                    self.raw_value = True
                 else:
                     self._convert_value_to_bool()
             case FilterMode.Developer:

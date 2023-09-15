@@ -2459,6 +2459,8 @@ class MainGUI():
                     match flt.mode:
                         case FilterMode.Archived:
                             key = lambda id: flt.value == globals.games[id].archived
+                        case FilterMode.Custom:
+                            key = lambda id: flt.value == globals.games[id].custom
                         case FilterMode.Developer:
                             key = lambda id: flt.value == globals.games[id].developer
                         case FilterMode.ExeState:
@@ -3236,6 +3238,8 @@ class MainGUI():
         mode = structs.mode_equivalance_dict.get_value(mode)
         match mode:
             case FilterMode.Archived:
+                self.autocomplete_items = ["yes, y, +", "no, -"]
+            case FilterMode.Custom:
                 self.autocomplete_items = ["yes, y, +", "no, -"]
             case FilterMode.Developer:
                 self.autocomplete_items = [g.developer for g in globals.games.values()]
