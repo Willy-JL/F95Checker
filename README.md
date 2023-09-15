@@ -16,6 +16,8 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
 
 ## :link: Browser addon
 
+> **IMPORTANT**: Original browser addon (red icon) won't work with this version!
+
 - **Firefox:** Install from [Mozilla Addons](https://addons.mozilla.org/en-US/firefox/addon/f95checkerx-browser-addon/?utm_source=addons.mozilla.org&utm_medium=referral&utm_content=search)
 
 - **Chrome:** Open `chrome://extensions/` in browser, enable "Developer mode", drag and drop `extension/chrome.zip`
