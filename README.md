@@ -16,7 +16,8 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
 
 ## :link: Browser addon
 
-> **IMPORTANT**: Original browser addon (red icon) won't work with this version!
+> **IMPORTANT**: Original browser addon (red icon) won't work with this version!  
+> But, you can safely install both browser addons, and run them at the same time.
 
 - **Firefox:** Install from [Mozilla Addons](https://addons.mozilla.org/en-US/firefox/addon/f95checkerx-browser-addon/?utm_source=addons.mozilla.org&utm_medium=referral&utm_content=search)
 
@@ -33,9 +34,10 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
 
 ## :warning: Disclaimer:
 
+- You can safely install both browser addons, and run them at the same time.
+- This version will receive updates and bugfixes from F95Checker original repo.
+- If you are migrating from F95Checker just copy your database file to `f95checkerx` directory.
+- The only way to switch back to regular version is to export+import threads, database is not compatible.
 - If you are using F95CheckerX report all issues to this repo, I will forward them to F95Checker if necessary.
-- This version will receive updates and bugfixes from F95Checker original repo and I will try to keep it compatible.
-- F95CheckerX creates separate folders from your F95Checker installation to avoid conflicts and loss of data.
-- If you are migrating from F95Checker just copy your database file to `f95checkerx` directory. Keep F95Checker folder.
-- If this version will at some point become incompatible with F95Checker I will update disclaimer or provide compatibilty patches, we'll see.
+- F95CheckerX creates folders separate from your F95Checker installation to avoid any conflicts and loss of data.
 - Treat every release of F95CheckerX as beta, if you want stable version get latest release of F95Checker [here](https://github.com/Willy-JL/F95Checker/releases/latest)
