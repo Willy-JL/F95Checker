@@ -776,7 +776,7 @@ async def check_updates():
         res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(res)
         globals.last_update_check = time.time()
-        if "tag_name" not in res:
+        if "name" not in res or re.fullmatch(r"Build \d+", res["name"]) is None:
             utils.push_popup(
                 msgbox.msgbox, "Update check error",
                 "Failed to fetch latest F95CheckerX release information.\n"
@@ -786,19 +786,10 @@ async def check_updates():
             return
         if res["prerelease"]:
             return  # Release is not ready yet
-        latest_name = res["tag_name"]
-        latest = latest_name.split(".")
-        current = globals.version.split(".")
-        if len(current) > len(latest):
-            latest += ["0" for _ in range(len(current) - len(latest))]
-        elif len(latest) > len(current):
-            current += ["0" for _ in range(len(latest) - len(current))]
-        update_available = not globals.release  # Allow updating from beta to full release
-        for cur, lat in zip(current, latest):
-            if cur == lat:
-                continue  # Ignore this field if same on both versions
-            update_available = int(lat) > int(cur)
-            break  # If field is bigger then its an update
+        latest_name = res["name"]
+        latest_build = int(latest_name.split(" ")[1])
+        current_build = globals.build_number
+        update_available = latest_build > current_build
         asset_url = None
         asset_name = None
         asset_size = None
@@ -824,7 +815,7 @@ async def check_updates():
             "\n"
             "The response body has been saved to:\n"
             f"{globals.self_path / 'update_broken.bin'}\n"
-            "Please submit a bug report on F95Zone or GitHub including this file.",
+            "Please submit a bug report F95CheckerX GitHub including this file.",
             MsgBox.error,
             more=error.traceback()
         )
