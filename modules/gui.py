@@ -1022,8 +1022,7 @@ class MainGUI():
         else:
             clicked = imgui.small_button(type.name)
         if clicked and quick_filter:
-            flt = Filter(FilterMode.Type, type, quick=True)
-            self.add_and_display_quick_filter(flt)
+            self.add_quick_filter(FilterMode.Type, type)
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, setup=True):
@@ -1031,8 +1030,7 @@ class MainGUI():
         if setup:
             self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         if imgui.small_button(tag.name) and quick_filter:
-            flt = Filter(FilterMode.Tag, tag.name, quick=True)
-            self.add_and_display_quick_filter(flt)
+            self.add_quick_filter(FilterMode.Tag, tag.name)
         if setup:
             self.end_framed_text(interaction=quick_filter)
 
@@ -1040,8 +1038,7 @@ class MainGUI():
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(label.color, interaction=quick_filter)
         if imgui.small_button(label.short_name if short else label.name) and quick_filter:
-            flt = Filter(FilterMode.Label, label.name, quick=True)
-            self.add_and_display_quick_filter(flt)
+            self.add_quick_filter(FilterMode.Label, label.name)
         if short and imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_font(imgui.fonts.default)
@@ -1059,8 +1056,7 @@ class MainGUI():
         if quick_filter:
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Status, status, quick=True)
-                self.add_and_display_quick_filter(flt)
+                self.add_quick_filter(FilterMode.Status, status)
             imgui.end_group()
 
     def draw_game_update_icon(self, game: Game):
@@ -1072,8 +1068,7 @@ class MainGUI():
         if quick_filter:
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Updated, True, quick=True)
-                self.add_and_display_quick_filter(flt)
+                self.add_quick_filter(FilterMode.Updated, True)
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -1099,8 +1094,7 @@ class MainGUI():
         if quick_filter:
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Archived, True, quick=True)
-                self.add_and_display_quick_filter(flt)
+                self.add_quick_filter(FilterMode.Archived, True)
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -1778,8 +1772,7 @@ class MainGUI():
             imgui.same_line()
             text = game.developer or "Unknown"
             if utils.simple_invisible_button(text):
-                flt = Filter(FilterMode.Developer, text, quick=True)
-                self.add_and_display_quick_filter(flt)
+                self.add_quick_filter(FilterMode.Developer, text)
 
             imgui.text_disabled("Personal Rating:")
             imgui.same_line()
@@ -3311,8 +3304,15 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("Help: Filtering & Autocomplete", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
-    def add_and_display_quick_filter(self, flt: Filter):
-        self.add_box_text = f"{str(flt)} {self.add_box_text}"
+    def add_quick_filter(self, mode, value):
+        try:
+            flt = Filter(mode, value, quick=True)
+        except TypeError:  # quick filters always contain valid data, adding this just to be safe
+            return
+        filter_string = str(flt)
+        if filter_string in self.add_box_text:  # no duplicates
+            return
+        self.add_box_text = f"{filter_string} {self.add_box_text}"
         self.parse_filter_bar()
 
     def draw_saved_search_popup(self, popup_uuid=""):
@@ -3766,8 +3766,7 @@ class MainGUI():
                     async_thread.run(db.update_label(label, "color"))
                 imgui.same_line()
                 if imgui.button(icons.filter_plus_outline, width=frame_height):
-                    flt = Filter(FilterMode.Label, label.name, quick=True)
-                    self.add_and_display_quick_filter(flt)
+                    self.add_quick_filter(FilterMode.Label, label.name)
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
                     async_thread.run(db.remove_label(label))
