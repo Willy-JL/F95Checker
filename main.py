@@ -7,7 +7,7 @@ version = "10.3"
 release = False
 build_number = 0
 version_name = f"{version}"
-rpc_port = 57095
+rpc_port = 57096
 
 frozen = getattr(sys, "frozen", False)
 self_path = pathlib.Path(sys.executable if frozen else __file__).parent
@@ -47,7 +47,7 @@ def main():
 def lock_singleton():
     from modules import singleton
     try:
-        singleton.lock("F95Checker")
+        singleton.lock("F95CheckerX")
         locked = True
     except RuntimeError:
         locked = False
@@ -55,7 +55,7 @@ def lock_singleton():
         yield locked
     finally:
         if locked:
-            singleton.release("F95Checker")
+            singleton.release("F95CheckerX")
         else:
             try:
                 from urllib import request

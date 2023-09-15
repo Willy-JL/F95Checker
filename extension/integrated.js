@@ -6,7 +6,7 @@
 // Also now this script doesn't do anything on its own, it only defines the functions
 // It is up to the WebView to invoke them when appropriate
 
-rpcPort = 57095;
+rpcPort = 57096;
 rpcURL = `http://localhost:${rpcPort}`;
 games = [];
 

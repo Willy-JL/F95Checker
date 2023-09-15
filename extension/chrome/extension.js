@@ -1,4 +1,4 @@
-const rpcPort = 57095;
+const rpcPort = 57096;
 const rpcURL = `http://localhost:${rpcPort}`;
 let games = [];
 
