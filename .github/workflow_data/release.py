@@ -33,7 +33,7 @@ if __name__ == "__main__":
         },
         json={
             "body": body,
-            "name": f"Build {sys.argv[0]}"
+            "name": f"Build {sys.argv[1]}"
         }
     )
     if not req.ok:
