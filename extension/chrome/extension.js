@@ -41,6 +41,12 @@ const addGame = async (url, tabId) => {
     await updateIcons(tabId);
 };
 
+const addReminder = async (url, tabId) => {
+    await rpcCall('POST', '/reminders/add', JSON.stringify([url]), tabId);
+    await sleep(0.5 * 1000);
+    await updateIcons(tabId);
+};
+
 // Add icons for games, reminders, etc.
 const updateIcons = async (tabId) => {
     await getData();
@@ -203,6 +209,18 @@ chrome.runtime.onInstalled.addListener(async () => {
         contexts: ['link'],
         targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });
+    chrome.contextMenus.create({
+        id: `add-page-to-f95checkerx-reminder`,
+        title: `Add this page to F95CheckerX as reminder`,
+        contexts: ['page'],
+        documentUrlPatterns: ['*://*.f95zone.to/threads/*'],
+    });
+    chrome.contextMenus.create({
+        id: `add-link-to-f95checkerx-reminder`,
+        title: `Add this link to F95CheckerX as reminder`,
+        contexts: ['link'],
+        targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
+    });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -210,6 +228,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         case 'add-link-to-f95checkerx':
         case 'add-page-to-f95checkerx':
             addGame(info.linkUrl || info.pageUrl, tab.id);
+            break;
+        case 'add-link-to-f95checkerx-reminder':
+        case 'add-page-to-f95checkerx-reminder':
+            addReminder(info.linkUrl || info.pageUrl, tab.id);
             break;
     }
 });

@@ -38,6 +38,12 @@ addGame = async (url) => {
     await updateIcons();
 };
 
+addReminder = async (url) => {
+    await rpcCall('POST', '/reminders/add', JSON.stringify([url]));
+    await sleep(0.5 * 1000);
+    await updateIcons();
+};
+
 // Add icons for games, reminders, etc.
 updateIcons = async () => {
     await getData();

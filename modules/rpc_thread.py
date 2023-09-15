@@ -79,6 +79,13 @@ def start():
                                     await asyncio.sleep(0.1)
                                     await callbacks.add_games(*matches)
                                 async_thread.run(_add_game())
+                        case "/reminders/add":
+                            urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                            if matches := utils.extract_thread_matches("\n".join(urls)):
+                                async def _add_reminder():
+                                    await asyncio.sleep(0.1)
+                                    await callbacks.add_games(*matches, reminders=True)
+                                async_thread.run(_add_reminder())
                         case _:
                             self.send_resp(404)
                             return
