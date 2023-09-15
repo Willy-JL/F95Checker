@@ -2448,7 +2448,10 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
-            self.sorted_games_ids = list(filter(lambda id: self.showing_reminders == globals.games[id].reminder, self.sorted_games_ids))
+            if not self.showing_reminders and globals.settings.reminders_in_filtered and self.add_box_text:
+                pass
+            else:
+                self.sorted_games_ids = list(filter(lambda id: self.showing_reminders == globals.games[id].reminder, self.sorted_games_ids))
             keep_ids = set()
             for and_group in self.filters:
                 temp_sorted_games_ids = self.sorted_games_ids
@@ -3778,6 +3781,30 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
+        if draw_settings_section("Reminders"):
+            draw_settings_label(
+                "Reminders:",
+                "Games marked as reminders will be hidden from main game list, and will have different icon in browser. "
+                "They will get updates like regular games so you can still track changes. "
+                "Use them for the games you don't really care about, but want to keep an eye on. "
+            )
+            if imgui.button("Hide" if self.showing_reminders else "Show", width=right_width):
+                self.showing_reminders = not self.showing_reminders
+                self.require_sort = True
+
+            draw_settings_label(
+                "Appear in filtered results:",
+                "Reminders will always appear in filtered results.\n"
+                "Even if your reminders are hidden when you are applying filters.\n"
+                "Note, however, that your normal games will be excluded from results, if\n"
+                "you are applying filters to your reminders specifically (on reminders screen)."
+            )
+            if draw_settings_checkbox("reminders_in_filtered"):
+                self.require_sort = True
+
+            imgui.end_table()
+            imgui.spacing()
+
         if draw_settings_section("Manage"):
             imgui.table_next_row()
             imgui.table_next_column()
@@ -4154,18 +4181,6 @@ class MainGUI():
             )
             if imgui.button("Switch", width=right_width):
                 self.hide()
-            imgui.end_table()
-
-        if draw_settings_section("Background", collapsible=False):
-            draw_settings_label(
-                "Reminders:",
-                "Games marked as reminders will be hidden from main game list, and will have different icon in browser. "
-                "They will get updates like regular games so you can still track changes. "
-                "Use them for the games you don't really care about, but want to keep an eye on."
-            )
-            if imgui.button("Hide" if self.showing_reminders else "Show", width=right_width):
-                self.showing_reminders = not self.showing_reminders
-                self.require_sort = True
             imgui.end_table()
 
         imgui.end_child()

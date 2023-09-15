@@ -749,6 +749,7 @@ class Settings:
     quick_filters               : bool
     refresh_completed_games     : bool
     refresh_workers             : int
+    reminders_in_filtered       : bool
     render_when_unfocused       : bool
     request_timeout             : int
     rpc_enabled                 : bool

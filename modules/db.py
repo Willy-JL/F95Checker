@@ -150,6 +150,7 @@ async def connect():
             "quick_filters":               f'INTEGER DEFAULT {int(True)}',
             "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
             "refresh_workers":             f'INTEGER DEFAULT 20',
+            "reminders_in_filtered":       f'INTEGER DEFAULT {int(False)}',
             "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',
             "request_timeout":             f'INTEGER DEFAULT 30',
             "rpc_enabled":                 f'INTEGER DEFAULT {int(True)}',
