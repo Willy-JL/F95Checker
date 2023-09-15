@@ -54,14 +54,16 @@ updateIcons = async () => {
     const createContainer = () => {
         const c = document.createElement('div');
         c.classList.add('f95checkerx-library-icons');
-        c.style.display = 'inline-flex';
-        c.style.gap = '5px';
-        c.style.padding = '3px 3px';
+        c.style.display = 'inline';
+        c.style.marginInlineEnd = '4px';
         return c;
     };
     const gameIcon = (id) => {
         const icon = document.createElement('i');
         icon.style.fontFamily = "'Font Awesome 5 Pro'";
+        icon.style.fontSize = '120%';
+        icon.style.position = 'relative';
+        icon.style.verticalAlign = 'bottom';
         const game = games.find((g) => g.id === id);
         let full_text = '';
         if (game.reminder) {
@@ -147,7 +149,6 @@ updateIcons = async () => {
     const addPageIcon = () => {
         const id = extractThreadId(document.location);
         const container = createContainer();
-        container.style.marginInlineEnd = '6px';
         const title = document.getElementsByClassName('p-title-value')[0];
         if (title) {
             if (games.map((g) => g.id).includes(id)) container.prepend(gameIcon(id));
