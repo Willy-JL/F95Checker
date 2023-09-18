@@ -3108,9 +3108,6 @@ class MainGUI():
         def setter_extra(_=None):
             self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
             self.require_sort = True
-        if changed:
-            setter_extra()
-            self.parse_filter_bar()
         if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
             utils.text_context(self, "add_box_text", setter_extra, no_icons=True)
@@ -3128,6 +3125,9 @@ class MainGUI():
                     MsgBox.info
                 )
             imgui.end_popup()
+        if changed:
+            setter_extra()
+            self.parse_filter_bar()
         if self.add_box_valid:
             imgui.same_line()
             if imgui.button("Add!") or activated:
