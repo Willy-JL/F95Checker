@@ -539,11 +539,11 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
                 version = "N/A"
 
             this_full = full or (
-                version != game.version or
-                game.status is Status.Unchecked or
-                (game.last_full_check < time.time() - full_interval) or
-                (game.image.missing and game.image_url != "missing") or
-                last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
+                    version != game.version or
+                    game.status is Status.Unchecked or
+                    (game.last_full_check < time.time() - full_interval) or
+                    (game.banner.missing and game.banner_url != "missing") or
+                    last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
             )
             if not this_full:
                 globals.refresh_progress += 1
@@ -603,7 +603,7 @@ async def full_check(game: Game, version: str):
             ret = parse(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
+        (name, developer, type, status, last_updated, score, description, changelog, tags, banner_url, attachment_urls, downloads) = ret
 
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/played checkboxes
@@ -630,9 +630,9 @@ async def full_check(game: Game, version: str):
         if breaking_name_parsing:
             old_name = name
 
-        fetch_image = game.image.missing
-        if not game.image_url == "custom" and not breaking_keep_old_image:
-            fetch_image = fetch_image or (image_url != game.image_url)
+        fetch_banner = game.banner.missing
+        if not game.banner_url == "custom" and not breaking_keep_old_image:
+            fetch_banner = fetch_banner or (banner_url != game.banner_url)
 
         async def update_game():
             game.name = name
@@ -651,7 +651,8 @@ async def full_check(game: Game, version: str):
             game.description = description
             game.changelog = changelog
             game.tags = tags
-            game.image_url = image_url
+            game.banner_url = banner_url
+            game.attachment_urls = attachment_urls
             game.downloads = downloads
 
             if not game.archived and old_status is not Status.Unchecked and (
@@ -667,14 +668,14 @@ async def full_check(game: Game, version: str):
                 )
                 globals.updated_games[game.id] = old_game
 
-        if fetch_image and image_url and image_url != "missing":
+        if fetch_banner and banner_url and banner_url != "missing":
             with images:
                 try:
-                    res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
+                    res = await fetch("GET", banner_url, timeout=globals.settings.request_timeout * 4)
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if is_f95zone_url(image_url):
+                    if is_f95zone_url(banner_url):
                         raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True
@@ -683,11 +684,11 @@ async def full_check(game: Game, version: str):
                     except Exception:
                         f95zone_ok = False
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", banner_url).group(1))
                     except Exception:
                         foreign_ok = False
                     if f95zone_ok and not foreign_ok:
-                        image_url = "missing"
+                        banner_url = "missing"
                         res = b""
                     else:
                         raise  # Foreign host might not actually be dead
@@ -699,6 +700,35 @@ async def full_check(game: Game, version: str):
             await asyncio.shield(update_game())
         globals.refresh_progress += 1
 
+
+async def download_game_attachments(game: Game):
+    async def download_attachment(url: str):
+        with images:
+            try:
+                res = await fetch("GET", url, timeout=globals.settings.request_timeout * 4)
+            except aiohttp.ClientConnectorError as exc:
+                if not isinstance(exc.os_error, socket.gaierror):
+                    raise  # Not a dead link
+                if is_f95zone_url(url):
+                    raise  # Not a foreign host, raise normal connection error message
+                f95zone_ok = True
+                foreign_ok = True
+                try:
+                    await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
+                except Exception:
+                    f95zone_ok = False
+                try:
+                    await async_thread.loop.run_in_executor(None, socket.gethostbyname,
+                                                            re.search(r"^https?://([^/]+)", url).group(1))
+                except Exception:
+                    foreign_ok = False
+                if f95zone_ok and not foreign_ok:
+                    return
+                else:
+                    raise  # Foreign host might not actually be dead
+            await asyncio.shield(game.add_image_async(res))
+    tasks = [asyncio.create_task(download_attachment(url)) for url in game.attachment_urls]
+    await asyncio.gather(*tasks)
 
 async def check_notifs(login=False):
     if login:

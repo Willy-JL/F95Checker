@@ -1,3 +1,5 @@
+import os.path
+
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import concurrent.futures
@@ -292,6 +294,7 @@ class MainGUI():
         self.minimized = False
         self.add_box_text = ""
         self.search_query = ""
+        self.selected_image = 0
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.require_sort = True
@@ -955,6 +958,8 @@ class MainGUI():
         finally:
             # Main loop over, cleanup and close
             self.save_search_terms()
+            for game in globals.games.values():
+                game.apply_new_image_order()
             imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
             ini = imgui.save_ini_settings_to_memory()
             try:
@@ -1120,6 +1125,7 @@ class MainGUI():
             if not game:
                 carousel_ids = [game.id for game in globals.games.values() if game.selected]
                 game = globals.games[carousel_ids[0]]
+            self.selected_image = 0
             utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None):
@@ -1651,28 +1657,29 @@ class MainGUI():
         def popup_content():
             nonlocal popup_pos, popup_size, zoom_popup
             # Image
-            image = game.image
+            all_images = [game.banner, *game.additional_images]
+            selected_image = all_images[self.selected_image]
             avail = imgui.get_content_region_available()
-            if image.missing:
-                text = "Image missing!"
+            if selected_image.missing:
+                text = "Banner missing!" if self.selected_image == 0 else "Image missing!"
                 width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
                 self.draw_hover_text(
                     text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
+                    hover_text="This thread does not seem to have a banner!" if game.banner_url == "missing" else "Run a full refresh to try downloading it again!"
                 )
-            elif image.invalid:
-                text = "Invalid image!"
+            elif selected_image.invalid:
+                text = "Invalid banner!" if self.selected_image == 0 else "Invalid image!"
                 width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
                 self.draw_hover_text(
                     text=text,
-                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
+                    hover_text="This image has an unrecognised format and couldn't be loaded!"
                 )
             else:
-                aspect_ratio = image.height / image.width
-                width = min(avail.x, image.width)
-                height = min(width * aspect_ratio, image.height)
+                aspect_ratio = selected_image.height / selected_image.width
+                width = min(avail.x, selected_image.width)
+                height = min(width * aspect_ratio, selected_image.height)
                 if height > (new_height := avail.y * self.scaled(0.4)):
                     height = new_height
                     width = height * (1 / aspect_ratio)
@@ -1684,7 +1691,7 @@ class MainGUI():
                 imgui.dummy(width + 2.0, height)
                 imgui.set_scroll_x(1.0)
                 imgui.set_cursor_screen_pos(image_pos)
-                image.render(width, height, rounding=globals.settings.style_corner_radius)
+                selected_image.render(width, height, rounding=globals.settings.style_corner_radius)
                 if imgui.is_item_hovered():
                     # Image popup
                     if imgui.is_mouse_down():
@@ -1701,7 +1708,7 @@ class MainGUI():
                         flags = imgui.DRAW_ROUND_CORNERS_ALL
                         pos2 = (x + width, y + height)
                         fg_draw_list = imgui.get_foreground_draw_list()
-                        fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
+                        fg_draw_list.add_image_rounded(selected_image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
                     # Zoom
                     elif globals.settings.zoom_enabled:
                         if diff := int(imgui.get_scroll_x() - 1.0):
@@ -1719,24 +1726,41 @@ class MainGUI():
                         y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
                         imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
                         imgui.begin_tooltip()
-                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
+                        selected_image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
                 imgui.end_child()
             if imgui.begin_popup_context_item("###image_context"):
-                if imgui.selectable(f"{icons.folder_open_outline} Set custom image", False)[0]:
+                if imgui.selectable(f"{icons.folder_open_outline} Set banner", False)[0]:
                     def select_callback(selected):
                         if selected:
-                            game.image_url = "custom"
+                            game.banner_url = "custom"
                             game.set_image_sync(pathlib.Path(selected).read_bytes())
                     utils.push_popup(filepicker.FilePicker(
                         title=f"Select or drop image for {game.name}",
                         start_dir=globals.settings.default_exe_dir,
                         callback=select_callback
                     ).tick)
-                if imgui.selectable(f"{icons.trash_can_outline} Reset image", False)[0]:
-                    game.delete_images()
-                    game.refresh_image()
+                if imgui.selectable(f"{icons.trash_can_outline} Reset banner", False)[0]:
+                    game.delete_image()
+                    game.refresh_banner()
+                imgui.separator()
+                if imgui.selectable(f"{icons.image_multiple} Manage additional images", False)[0]:
+                    utils.push_popup(self.draw_manage_additional_images_popup, game)
                 imgui.end_popup()
+            if game.additional_images:
+                carousel_height = 50.0
+                imgui.begin_child("###horizontal_carousel", width=avail.x, height=carousel_height+imgui.style.scrollbar_size, flags=imgui.WINDOW_HORIZONTAL_SCROLLING_BAR)
+                total_width = (len(game.additional_images) - 1) * imgui.style.item_spacing.x
+                for image in all_images:
+                    total_width += (image.width / image.height) * carousel_height
+                if total_width < avail.x:
+                    imgui.set_cursor_pos_x((avail.x - total_width) / 2)
+                for idx, image in enumerate(all_images):
+                    aspect_ratio = image.width / image.height
+                    if imgui.image_button(image.texture_id, carousel_height * aspect_ratio, carousel_height, (0,0), (1,1), (1,1,1,1), (0,0,0,0), 0):
+                        self.selected_image = idx
+                    imgui.same_line()
+                imgui.end_child()
             imgui.push_text_wrap_pos()
 
             imgui.push_font(imgui.fonts.big)
@@ -2265,6 +2289,74 @@ class MainGUI():
                     return 1, True
         return return_args
 
+    def draw_manage_additional_images_popup(self, game: Game, popup_uuid: str = ""):
+        def popup_content():
+            height = 100.0
+            popup_width = 400
+            imgui.dummy(self.scaled(popup_width), self.scaled(0))
+            dnd_flags = imgui.DRAG_DROP_ACCEPT_PEEK_ONLY | imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID | imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
+            if imgui.button(f"{icons.image_plus_outline} Add image"):
+                def select_callback(selected):
+                    if selected:
+                        game.add_image(pathlib.Path(selected).read_bytes())
+                utils.push_popup(filepicker.FilePicker(
+                    title=f"Select or drop image",
+                    start_dir=globals.settings.default_exe_dir,
+                    callback=select_callback
+                ).tick)
+            imgui.same_line()
+            if imgui.button(f"{icons.download_circle_outline} Download thread screenshots"):
+                def download_callback():
+                    async_thread.run(api.download_game_attachments(game))
+                buttons = {
+                    f"{icons.download_outline} Download": download_callback,
+                    f"{icons.cancel} Cancel": None
+                }
+                amount = len(game.attachment_urls)
+                utils.push_popup(
+                    msgbox.msgbox, f"Download all thread screenshots",
+                    "This action will download all thread screenshots and save them locally.\n" +
+                    "DOWNLOADING IMAGES CAN PUT A HEAVY LOAD ON THE SERVERS.\n" +
+                    "I suggest manually downloading and adding best ones.\n" +
+                    "Please, don't abuse this feature!\n\n" +
+                    f"Amount of screenshots available for this thread: {amount}\n" +
+                    "If the number is wrong, try running a full thread recheck.",
+                    MsgBox.warn,
+                    buttons
+                )
+            imgui.spacing()
+            imgui.spacing()
+            if not game.additional_images:
+                imgui.text_disabled("Nothing yet.")
+            for idx, image in enumerate(game.additional_images):
+                posx, posy = imgui.get_cursor_pos()
+                image_width = min((image.width / image.height) * height, popup_width)
+                imgui.selectable(f"##image_dummy{image.resolved_path.name}", width=popup_width, height=height)
+                if imgui.is_mouse_clicked():
+                    pass
+                if imgui.begin_drag_drop_source(flags=dnd_flags):
+                    payload = idx + 1
+                    payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
+                    imgui.set_drag_drop_payload("i", payload)
+                    imgui.end_drag_drop_source()
+                if imgui.begin_drag_drop_target():
+                    if payload := imgui.accept_drag_drop_payload("i", flags=dnd_flags):
+                        payload = int.from_bytes(payload, sys.byteorder) - 1
+                        lst = game.additional_images
+                        lst[idx], lst[payload] = lst[payload], lst[idx]
+                    imgui.end_drag_drop_target()
+                if imgui.begin_popup_context_item(f"##image_dummy{image.resolved_path.name}"):
+                    if imgui.selectable(f"{icons.panorama_variant_outline} {'Set as banner' if game.banner.missing or game.banner.invalid else 'Swap with banner'}", False)[0]:
+                        game.image_banner_swap(idx)
+                    if imgui.selectable(f"{icons.image_remove_outline} Remove", False)[0]:
+                        game.delete_image(filename=image.resolved_path.stem)
+                        del game.additional_images[idx]
+                    imgui.end_popup()
+                imgui.set_item_allow_overlap()
+                imgui.set_cursor_position((posx, posy))
+                image.render(image_width, height, rounding=globals.settings.style_corner_radius)
+        return utils.popup(f"Manage images for '{game.name}'", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
     def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
             _60 = self.scaled(60)
@@ -2548,6 +2640,7 @@ class MainGUI():
                             game.selected = False
                     else:
                         # Left click = open game info popup
+                        self.selected_image = 0
                         utils.push_popup(self.draw_game_info_popup, game, self.sorted_games_ids.copy())
         # Left click drag = swap if in manual sort mode
         if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
@@ -2781,19 +2874,19 @@ class MainGUI():
         pos = imgui.get_cursor_pos()
         imgui.begin_group()
         # Image
-        if game.image.missing:
-            text = "Image missing!"
+        if game.banner.missing:
+            text = "Banner missing!"
             text_size = imgui.calc_text_size(text)
             showed_img = imgui.is_rect_visible(cell_width, img_height)
             if text_size.x < cell_width:
                 imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
                 self.draw_hover_text(
                     text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
+                    hover_text="This thread does not seem to have an image!" if game.banner_url == "missing" else "Run a full refresh to try downloading it again!"
                 )
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
-        elif game.image.invalid:
+        elif game.banner.invalid:
             text = "Invalid image!"
             text_size = imgui.calc_text_size(text)
             showed_img = imgui.is_rect_visible(cell_width, img_height)
@@ -2806,8 +2899,8 @@ class MainGUI():
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         else:
-            crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
-            showed_img = game.image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+            crop = game.banner.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
+            showed_img = game.banner.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         # Alignments
         imgui.indent(side_indent)
         imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
@@ -3420,13 +3513,13 @@ class MainGUI():
         elif self.hovered_game:
             # Hover = show image
             game = self.hovered_game
-            if game.image.missing:
+            if game.banner.missing:
                 imgui.button("Image missing!", width=width, height=height)
-            elif game.image.invalid:
+            elif game.banner.invalid:
                 imgui.button("Invalid image!", width=width, height=height)
             else:
-                crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                crop = game.banner.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                game.banner.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
         else:
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):

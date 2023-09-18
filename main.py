@@ -27,7 +27,8 @@ def main():
     except Exception:
         pass
 
-    from modules import async_thread, sync_thread
+    from modules import async_thread, sync_thread, utils
+    utils.migrate_old_single_images()
     async_thread.setup()
     sync_thread.setup()
 

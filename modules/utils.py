@@ -348,3 +348,11 @@ def simple_invisible_button(label: str):
     button = imgui.small_button(label)
     imgui.pop_style_color(3)
     return button
+
+def migrate_old_single_images():
+    import os, pathlib
+    for item in pathlib.Path(globals.images_path).iterdir():
+        if item.is_file():
+            if not (newdir := item.with_name(item.stem)).exists():
+                os.mkdir(newdir)
+            os.rename(item.absolute(), newdir / f"banner.{item.suffix}")

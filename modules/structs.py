@@ -9,6 +9,7 @@ import operator
 import asyncio
 import weakref
 import hashlib
+import pathlib
 import typing
 import queue
 import enum
@@ -884,10 +885,14 @@ class Game:
     tags               : tuple[Tag]
     labels             : list[Label.get]
     notes              : str
-    image_url          : str
+    banner_url         : str
+    attachment_urls    : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
+    highest_file_index : int = 0
     selected           : bool = False
-    image              : imagehelper.ImageHelper = None
+    images_path        : pathlib.Path = None
+    banner             : imagehelper.ImageHelper = None
+    additional_images  : list[imagehelper.ImageHelper] = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
     _did_init          : bool = False
@@ -898,39 +903,105 @@ class Game:
             self.custom = bool(self.status is Status.Custom)
         if self.updated is None:
             self.updated = bool(self.installed) and self.installed != self.version
-        if self.image_url == "-":
-            self.image_url = "missing"
-        from modules import globals
-        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+        if self.banner_url == "-":
+            self.banner_url = "missing"
+        self.init_images()
         self.validate_executables()
 
-    def delete_images(self):
+    def init_images(self):
         from modules import globals
-        for img in globals.images_path.glob(f"{self.id}.*"):
+        self.images_path = globals.images_path / str(self.id)
+        self.images_path.mkdir(parents=True, exist_ok=True)
+        self.banner = imagehelper.ImageHelper(self.images_path, glob=f"banner.*")
+        self.additional_images = []
+        for item in self.images_path.iterdir():
+            if item.is_file() and item.stem != "banner":
+                try:
+                    filename = int(item.stem)
+                except ValueError:
+                    continue
+                image = imagehelper.ImageHelper(self.images_path, glob=f"{filename}.*")
+                self.additional_images.append(image)
+        if self.additional_images:
+            self.sort_images()
+            self.highest_file_index = int(self.additional_images[-1].resolved_path.stem)
+
+    def sort_images(self):
+        self.additional_images.sort(key=lambda helper: int(helper.resolved_path.stem))
+
+    def add_image(self, b: bytes):
+        self.highest_file_index += 1
+        filename = str(self.highest_file_index)
+        self.set_image_sync(b, filename=filename)
+        image = imagehelper.ImageHelper(self.images_path, glob=f"{filename}.*")
+        self.additional_images.append(image)
+
+    async def add_image_async(self, b: bytes):
+        self.highest_file_index += 1
+        filename = str(self.highest_file_index)
+        await self.set_image_async(b, filename=filename)
+        image = imagehelper.ImageHelper(self.images_path, glob=f"{filename}.*")
+        self.additional_images.append(image)
+
+    def delete_image(self, filename: str = "banner", all=False):
+        for file in self.images_path.glob(f"{filename}.*") if not all else self.images_path.iterdir():
             try:
-                img.unlink()
+                file.unlink()
             except Exception:
                 pass
 
-    def refresh_image(self):
-        self.image.glob = f"{self.id}.*"
-        self.image.loaded = False
-        self.image.resolve()
+    def image_banner_swap(self, image_id: int):
+        if self.banner.invalid or self.banner.missing:
+            self.delete_image()
+            image = self.additional_images[image_id]
+            os.replace(image.resolved_path.absolute(), image.resolved_path.with_stem("banner"))
+            del self.additional_images[image_id]
+        else:
+            image = self.additional_images[image_id]
+            banner = next(self.images_path.glob("banner.*"))
+            os.rename(banner.absolute(), banner.with_name("bannertemp"))
+            temp_banner = self.images_path / "bannertemp"
+            os.rename(image.resolved_path.absolute(), image.resolved_path.with_stem("banner"))
+            os.rename(temp_banner.absolute(), temp_banner.with_name(f"{image_id+1}{banner.suffix}"))
+            image.loaded = False
+            image.resolve()
+        self.refresh_banner()
 
-    async def set_image_async(self, data: bytes):
+    def refresh_banner(self):
+        self.banner.glob = f"banner.*"
+        self.banner.loaded = False
+        self.banner.resolve()
+
+    async def set_image_async(self, data: bytes, filename: str = "banner"):
         from modules import globals, utils
-        self.delete_images()
+        self.delete_image(filename)
         if data:
-            async with aiofiles.open(globals.images_path / f"{self.id}.{utils.image_ext(data)}", "wb") as f:
+            async with aiofiles.open(self.images_path / f"{filename}.{utils.image_ext(data)}", "wb") as f:
                 await f.write(data)
-        self.refresh_image()
+        self.refresh_banner()
 
-    def set_image_sync(self, data: bytes):
+    def set_image_sync(self, data: bytes, filename: str = "banner"):
         from modules import globals, utils
-        self.delete_images()
+        self.delete_image(filename)
         if data:
-            (globals.images_path / f"{self.id}.{utils.image_ext(data)}").write_bytes(data)
-        self.refresh_image()
+            (self.images_path / f"{filename}.{utils.image_ext(data)}").write_bytes(data)
+        self.refresh_banner()
+
+    def apply_new_image_order(self):
+        if not self.additional_images:
+            pass
+        # adding underscore to avoid name conflicts during rename
+        for new_index, helper in enumerate(self.additional_images):
+            new_index += 1
+            old_path = helper.resolved_path
+            if new_index != int(old_path.stem):
+                os.rename(old_path, old_path.with_stem(f"_{new_index}"))
+        for root, _, files in os.walk(self.images_path):
+            for file in files:
+                if file.startswith("_"):
+                    org_fp = os.path.join(root, file)
+                    new_fp = os.path.join(root, file[1:])
+                    os.rename(org_fp, new_fp)
 
     def validate_executables(self):
         from modules import globals, utils
@@ -1003,7 +1074,8 @@ class Game:
             "tags",
             "labels",
             "notes",
-            "image_url",
+            "banner_url",
+            "attachment_urls",
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):

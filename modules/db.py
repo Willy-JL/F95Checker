@@ -223,13 +223,15 @@ async def connect():
             "tags":                        f'TEXT    DEFAULT "[]"',
             "labels":                      f'TEXT    DEFAULT "[]"',
             "notes":                       f'TEXT    DEFAULT ""',
-            "image_url":                   f'TEXT    DEFAULT ""',
+            "banner_url":                  f'TEXT    DEFAULT ""',
+            "attachment_urls":             f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"'
         },
         renames=[
             ("executable", "executables"),
             ("last_full_refresh", "last_full_check"),
-            ("last_refresh_version", "last_check_version")
+            ("last_refresh_version", "last_check_version"),
+            ("image_url", "banner_url")
         ]
     )
 
@@ -375,7 +377,7 @@ async def update_game_id(game: Game, new_id):
             except Exception:
                 pass
     game.id = new_id
-    game.refresh_image()
+    game.refresh_banner()
 
 
 async def update_game(game: Game, *keys: list[str]):
