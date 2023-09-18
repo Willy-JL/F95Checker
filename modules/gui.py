@@ -2451,7 +2451,10 @@ class MainGUI():
             if not self.showing_reminders and globals.settings.reminders_in_filtered and self.add_box_text:
                 pass
             else:
-                self.sorted_games_ids = list(filter(lambda id: self.showing_reminders == globals.games[id].reminder, self.sorted_games_ids))
+                # this method modifies list in place, using filter() will create a new collection instead
+                # it's important because during manual sorting 'self.sorted_games_ids' actually references
+                # 'globals.settings.manual_sort_list' and both lists should receive same modifications
+                self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].reminder == self.showing_reminders]
             keep_ids = set()
             for and_group in self.filters:
                 temp_sorted_games_ids = self.sorted_games_ids
