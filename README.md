@@ -2,7 +2,7 @@
 
 If you never used F95Checker before, please read [original README](https://github.com/Willy-JL/F95Checker).
 
-This document only mentions parts that were changed and stuff added to the extended version.
+This document only mentions parts that were changed or added.
 
 Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#warning-disclaimer) before using this version.
 
@@ -10,18 +10,23 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
 
 ## :dna: Modifications:
 
-- Implemented reminders
-- Various browser addon improvements and bufixes
-- Replaced GUI filters with more powerfull filter system
+- **Reminders**: Separate games you love and games that you want to keep an eye on.
+- **Powerful filtering**: Save different sets of filters, support for OR queries, and autocomplete.
+- **Multiple images per thread**: Add your own screenshots or automatically download thread attachments.
+
+And more miscellaneous stuff missing from the original:
+  - Various browser addon improvements and bug fixes (PR pending https://github.com/Willy-JL/F95Checker/pull/90)
+  - Filter by developer + quick filter by clicking dev name (https://github.com/Willy-JL/F95Checker/issues/54).
+  - Dedicated "Custom game" filter (https://github.com/Willy-JL/F95Checker/issues/88).
 
 ## :link: Browser addon
 
-> **IMPORTANT**: Original browser addon (red icon) won't work with this version!  
+> **IMPORTANT**: The original browser addon (red icon) won't work with this version!  
 > But, you can safely install both browser addons, and run them at the same time.
 
 - **Firefox:** Install from [Mozilla Addons](https://addons.mozilla.org/en-US/firefox/addon/f95checkerx-browser-addon/?utm_source=addons.mozilla.org&utm_medium=referral&utm_content=search)
 
-- **Chrome:** Open `chrome://extensions/` in browser, enable "Developer mode", drag and drop `extension/chrome.zip`
+- **Chrome:** Open `chrome://extensions`, enable "Developer mode", drag and drop `extension/chrome.zip`
   
 ## :card_file_box: Data locations:
 
