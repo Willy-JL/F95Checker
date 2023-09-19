@@ -999,7 +999,7 @@ async def check_updates():
         path = globals.self_path
     utils.push_popup(
         msgbox.msgbox, "F95CheckerX update",
-        f"F95CheckerX has been updated to version {latest_name} (you are on {globals.version_name}).\n"
+        f"F95CheckerX has been updated to build {latest_build} (you are on build {globals.build_number}).\n"
         "UPDATING WILL DELETE EVERYTHING IN THIS FOLDER:\n"
         f"{path}\n"
         "Your user data (games, settings, login, ...) will not be affected.\n"
