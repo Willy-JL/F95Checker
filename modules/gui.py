@@ -322,6 +322,8 @@ class MainGUI():
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
         self.bg_mode_notifs_timer: float = None
+        self.temp_image_cycle_pause: bool = False
+        self.image_carousel_prev_time: float = 0.0
 
         # Setup Qt objects
         webview.config_qt_flags(globals.debug)
@@ -1125,7 +1127,7 @@ class MainGUI():
             if not game:
                 carousel_ids = [game.id for game in globals.games.values() if game.selected]
                 game = globals.games[carousel_ids[0]]
-            self.selected_image = 0
+            self.prepare_image_carousel()
             utils.push_popup(self.draw_game_info_popup, game, carousel_ids.copy() if carousel_ids else None)
 
     def draw_game_play_button(self, game: Game, label="", selectable=False, executable: str = None):
@@ -1650,15 +1652,29 @@ class MainGUI():
             popup_uuid=popup_uuid
         )
 
+    def prepare_image_carousel(self):
+        self.selected_image = 0
+        self.temp_image_cycle_pause = False
+        self.image_carousel_prev_time = imgui.get_time() * 1000
+
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         popup_pos = None
         popup_size = None
         zoom_popup = False
+        all_images = [game.banner, *game.additional_images]
+        selected_image = all_images[self.selected_image]
+        if game.additional_images and globals.settings.cycle_images and not self.temp_image_cycle_pause:
+            imagehelper.redraw = True
+            time_now_ms = imgui.get_time() * 1000
+            if time_now_ms - self.image_carousel_prev_time > globals.settings.cycle_length:
+                self.image_carousel_prev_time = time_now_ms
+                if self.selected_image < len(all_images) - 1:
+                    self.selected_image += 1
+                else:
+                    self.selected_image = 0
         def popup_content():
-            nonlocal popup_pos, popup_size, zoom_popup
+            nonlocal popup_pos, popup_size, zoom_popup, all_images, selected_image
             # Image
-            all_images = [game.banner, *game.additional_images]
-            selected_image = all_images[self.selected_image]
             avail = imgui.get_content_region_available()
             if selected_image.missing:
                 text = "Banner missing!" if self.selected_image == 0 else "Image missing!"
@@ -1744,12 +1760,18 @@ class MainGUI():
                     game.delete_image()
                     game.refresh_banner()
                 imgui.separator()
+                if globals.settings.cycle_images:
+                    label = f"{icons.play_circle_outline} Resume cycle" if self.temp_image_cycle_pause else f"{icons.pause_circle_outline} Pause cycle"
+                    if imgui.selectable(label, False)[0]:
+                        self.temp_image_cycle_pause = not self.temp_image_cycle_pause
+                    imgui.separator()
                 if imgui.selectable(f"{icons.image_multiple} Manage additional images", False)[0]:
                     utils.push_popup(self.draw_manage_additional_images_popup, game)
                 imgui.end_popup()
             if game.additional_images:
                 carousel_height = 50.0
-                imgui.begin_child("###horizontal_carousel", width=avail.x, height=carousel_height+imgui.style.scrollbar_size, flags=imgui.WINDOW_HORIZONTAL_SCROLLING_BAR)
+                imgui.push_style_var(imgui.STYLE_WINDOW_PADDING, (3, 3))
+                imgui.begin_child("###horizontal_carousel", width=avail.x, height=carousel_height+imgui.style.scrollbar_size + 8, flags=imgui.WINDOW_HORIZONTAL_SCROLLING_BAR | imgui.WINDOW_ALWAYS_USE_WINDOW_PADDING)
                 total_width = (len(game.additional_images) - 1) * imgui.style.item_spacing.x
                 for image in all_images:
                     total_width += (image.width / image.height) * carousel_height
@@ -1757,10 +1779,19 @@ class MainGUI():
                     imgui.set_cursor_pos_x((avail.x - total_width) / 2)
                 for idx, image in enumerate(all_images):
                     aspect_ratio = image.width / image.height
-                    if imgui.image_button(image.texture_id, carousel_height * aspect_ratio, carousel_height, (0,0), (1,1), (1,1,1,1), (0,0,0,0), 0):
+                    imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 3)
+                    imgui.push_style_color(imgui.COLOR_BORDER, 0, 0, 0, 0)
+                    if popaccent := self.selected_image == idx:
+                        imgui.push_style_color(imgui.COLOR_BORDER, *globals.settings.style_accent)
+                    if imgui.image_button(image.texture_id, carousel_height * aspect_ratio, carousel_height, (0,0), (1,1), (1,1,1,1), (0,0,0,0), 1):
                         self.selected_image = idx
+                    if not imgui.is_item_visible() and self.selected_image == idx and globals.settings.cycle_images and not self.temp_image_cycle_pause:
+                        imgui.set_scroll_here_x()
+                    imgui.pop_style_var()
+                    imgui.pop_style_color(2 if popaccent else 1)
                     imgui.same_line()
                 imgui.end_child()
+                imgui.pop_style_var()
             imgui.push_text_wrap_pos()
 
             imgui.push_font(imgui.fonts.big)
@@ -2351,6 +2382,7 @@ class MainGUI():
                     if imgui.selectable(f"{icons.image_remove_outline} Remove", False)[0]:
                         game.delete_image(filename=image.resolved_path.stem)
                         del game.additional_images[idx]
+                        self.selected_image = min(self.selected_image, len([game.banner, *game.additional_images]) - 1)
                     imgui.end_popup()
                 imgui.set_item_allow_overlap()
                 imgui.set_cursor_position((posx, posy))
@@ -2640,7 +2672,7 @@ class MainGUI():
                             game.selected = False
                     else:
                         # Left click = open game info popup
-                        self.selected_image = 0
+                        self.prepare_image_carousel()
                         utils.push_popup(self.draw_game_info_popup, game, self.sorted_games_ids.copy())
         # Left click drag = swap if in manual sort mode
         if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
@@ -3708,6 +3740,22 @@ class MainGUI():
 
             if not set.zoom_enabled:
                 imgui.pop_disabled()
+
+            draw_settings_label(
+                "Cycle images:",
+                "If you have attached more images to your thread besides banner,\n"
+                "they will be automatically cycled on thread details screen."
+            )
+            draw_settings_checkbox("cycle_images")
+
+            draw_settings_label(
+                "Cycle length:",
+                "How often to cycle images. Default 2500 ms."
+            )
+            changed, value = imgui.drag_int("###cycle_length", set.cycle_length, 1.0, 100, 600000, "%d ms")
+            set.cycle_length = min(max(value, 100), 600000)
+            if changed:
+                async_thread.run(db.update_settings("cycle_length"))
 
             imgui.end_table()
             imgui.spacing()

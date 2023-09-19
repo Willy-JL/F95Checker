@@ -743,6 +743,8 @@ class Settings:
     check_notifs                : bool
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
+    cycle_images                : bool
+    cycle_length                : int
     datestamp_format            : str
     default_exe_dir             : str
     display_mode                : DisplayMode
@@ -958,11 +960,12 @@ class Game:
             del self.additional_images[image_id]
         else:
             image = self.additional_images[image_id]
+            image_filename = image.resolved_path.stem
             banner = next(self.images_path.glob("banner.*"))
             os.rename(banner.absolute(), banner.with_name("bannertemp"))
             temp_banner = self.images_path / "bannertemp"
             os.rename(image.resolved_path.absolute(), image.resolved_path.with_stem("banner"))
-            os.rename(temp_banner.absolute(), temp_banner.with_name(f"{image_id+1}{banner.suffix}"))
+            os.rename(temp_banner.absolute(), temp_banner.with_name(f"{image_filename}{banner.suffix}"))
             image.loaded = False
             image.resolve()
         self.refresh_banner()

@@ -136,6 +136,8 @@ async def connect():
             "check_notifs":                f'INTEGER DEFAULT {int(True)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
+            "cycle_images":                f'INTEGER DEFAULT {int(False)}',
+            "cycle_length":                f'INTEGER DEFAULT 2500',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT ""',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
