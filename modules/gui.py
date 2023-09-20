@@ -3463,17 +3463,46 @@ class MainGUI():
             width = imgui.get_content_region_available_width()
             imgui.push_text_wrap_pos(width)
             flags = imgui.TABLE_BORDERS_INNER_VERTICAL | imgui.TABLE_ROW_BACKGROUND | imgui.TABLE_PAD_OUTER_X
-            with imgui.begin_table("AutocompleteHelp", 2, flags):
+            with imgui.begin_table("AutocompleteHelp", 3, flags):
                 imgui.table_setup_column("Filter")
-                imgui.table_setup_column("Shorthands (WIP)")
+                imgui.table_setup_column("Type")
+                imgui.table_setup_column("Shorthands")
                 imgui.push_style_color(imgui.COLOR_TABLE_HEADER_BACKGROUND, 255, 255, 255, 0.2)
                 imgui.table_headers_row()
                 imgui.pop_style_color()
-                for entry in structs.mode_equivalance_dict.keys():
+                for raw_modes, mode in structs.mode_equivalance_dict.items():
                     imgui.table_next_column()
-                    imgui.text(entry[0])
+                    imgui.text(raw_modes[0])
                     imgui.table_next_column()
-                    imgui.text(", ".join(entry[1:]))
+                    match mode:
+                        case FilterMode.Archived:
+                            imgui.text("bool")
+                        case FilterMode.Custom:
+                            imgui.text("bool")
+                        case FilterMode.Developer:
+                            imgui.text("textual")
+                        case FilterMode.ExeState:
+                            imgui.text("textual")
+                        case FilterMode.Installed:
+                            imgui.text("bool")
+                        case FilterMode.Label:
+                            imgui.text("textual")
+                        case FilterMode.Played:
+                            imgui.text("bool")
+                        case FilterMode.Rating:
+                            imgui.text("numeric")
+                        case FilterMode.Score:
+                            imgui.text("numeric")
+                        case FilterMode.Status:
+                            imgui.text("textual")
+                        case FilterMode.Tag:
+                            imgui.text("textual")
+                        case FilterMode.Type:
+                            imgui.text("textual")
+                        case FilterMode.Updated:
+                            imgui.text("bool")
+                    imgui.table_next_column()
+                    imgui.text(", ".join(raw_modes[1:]))
             imgui.spacing()
             imgui.spacing()
             imgui.text("To use a filter type it into search field followed by a semicolon.")

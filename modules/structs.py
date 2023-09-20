@@ -486,19 +486,19 @@ FilterMode = IntEnumHack("FilterMode", [
 
 
 mode_equivalance_dict = TupleDict({
-    ("archived",):  FilterMode.Archived,
-    ("custom",):    FilterMode.Custom,
-    ("developer",): FilterMode.Developer,
-    ("exe",):       FilterMode.ExeState,
-    ("installed",): FilterMode.Installed,
-    ("label",):     FilterMode.Label,
-    ("played",):    FilterMode.Played,
-    ("rating",):    FilterMode.Rating,
-    ("score",):     FilterMode.Score,
-    ("status",):    FilterMode.Status,
-    ("tag",):       FilterMode.Tag,
-    ("type",):      FilterMode.Type,
-    ("updated",):   FilterMode.Updated,
+    ("archived",    "a"            ):   FilterMode.Archived,
+    ("custom",      "c"            ):   FilterMode.Custom,
+    ("developer",   "d",      "dev"):   FilterMode.Developer,
+    ("exe",         "e",           ):   FilterMode.ExeState,
+    ("installed",   "i",     "inst"):   FilterMode.Installed,
+    ("label",       "l"            ):   FilterMode.Label,
+    ("played",      "p"            ):   FilterMode.Played,
+    ("rating",      "r"            ):   FilterMode.Rating,
+    ("score",       "s"            ):   FilterMode.Score,
+    ("status",      "st"           ):   FilterMode.Status,
+    ("tag",         "t"            ):   FilterMode.Tag,
+    ("type",        "tp"           ):   FilterMode.Type,
+    ("updated",     "u",      "upd"):   FilterMode.Updated,
 })
 
 
