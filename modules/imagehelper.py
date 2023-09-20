@@ -1,5 +1,5 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
-from PIL import Image, ImageSequence, UnidentifiedImageError
+from PIL import Image, ImageFile, ImageSequence, UnidentifiedImageError
 import OpenGL.GL as gl
 import functools
 import pathlib
@@ -109,6 +109,7 @@ class ImageHelper:
             return
 
         try:
+            ImageFile.LOAD_TRUNCATED_IMAGES = True
             image = Image.open(self.resolved_path)
         except UnidentifiedImageError:
             self.invalid = True
