@@ -749,6 +749,7 @@ class Settings:
     default_exe_dir             : str
     display_mode                : DisplayMode
     fit_images                  : bool
+    fit_additional_images       : bool
     grid_columns                : int
     ignore_semaphore_timeouts   : bool
     interface_scaling           : float

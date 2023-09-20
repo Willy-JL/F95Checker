@@ -272,6 +272,13 @@ class MainGUI():
             imgui.TABLE_SIZING_FIXED_SAME |
             imgui.TABLE_NO_SAVED_SETTINGS
         )
+        self.additional_images_grid_table_flags: int = (
+            imgui.TABLE_SCROLL_Y |
+            imgui.TABLE_PAD_OUTER_X |
+            imgui.TABLE_NO_HOST_EXTEND_Y |
+            imgui.TABLE_SIZING_FIXED_SAME |
+            imgui.TABLE_NO_SAVED_SETTINGS
+        )
         self.game_kanban_table_flags: int = (
             imgui.TABLE_SCROLL_X |
             imgui.TABLE_SCROLL_Y |
@@ -322,6 +329,7 @@ class MainGUI():
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
         self.autocomplete_selected: int = None
+        self.additional_images_columns: int = 3
         self.bg_mode_notifs_timer: float = None
         self.temp_image_cycle_pause: bool = False
         self.image_carousel_prev_time: float = 0.0
@@ -2323,8 +2331,7 @@ class MainGUI():
 
     def draw_manage_additional_images_popup(self, game: Game, popup_uuid: str = ""):
         def popup_content():
-            height = 100.0
-            popup_width = 400
+            popup_width = 600
             imgui.dummy(self.scaled(popup_width), self.scaled(0))
             dnd_flags = imgui.DRAG_DROP_ACCEPT_PEEK_ONLY | imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID | imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
             if imgui.button(f"{icons.image_plus_outline} Add image"):
@@ -2356,38 +2363,72 @@ class MainGUI():
                     MsgBox.warn,
                     buttons
                 )
+            imgui.same_line(imgui.get_content_region_available_width() - 110)
+            imgui.text("Fit:")
+            imgui.same_line()
+            changed, value = imgui.checkbox("###fit_additional_images", globals.settings.fit_additional_images)
+            if changed:
+                globals.settings.fit_additional_images = value
+                async_thread.run(db.update_settings("fit_additional_images"))
+            imgui.same_line()
+            if imgui.button(f"{icons.table_column_remove}"):
+                self.additional_images_columns -= 1
+                self.additional_images_columns = max(1, self.additional_images_columns)
+            imgui.same_line()
+            if imgui.button(f"{icons.table_column_plus_after}"):
+                self.additional_images_columns += 1
+                self.additional_images_columns = min(self.additional_images_columns, 10)
             imgui.spacing()
             imgui.spacing()
             if not game.additional_images:
                 imgui.text_disabled("Nothing yet.")
-            for idx, image in enumerate(game.additional_images):
-                posx, posy = imgui.get_cursor_pos()
-                image_width = min((image.width / image.height) * height, popup_width)
-                imgui.selectable(f"##image_dummy{image.resolved_path.name}", width=popup_width, height=height)
-                if imgui.is_mouse_clicked():
-                    pass
-                if imgui.begin_drag_drop_source(flags=dnd_flags):
-                    payload = idx + 1
-                    payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
-                    imgui.set_drag_drop_payload("i", payload)
-                    imgui.end_drag_drop_source()
-                if imgui.begin_drag_drop_target():
-                    if payload := imgui.accept_drag_drop_payload("i", flags=dnd_flags):
-                        payload = int.from_bytes(payload, sys.byteorder) - 1
-                        lst = game.additional_images
-                        lst[idx], lst[payload] = lst[payload], lst[idx]
-                    imgui.end_drag_drop_target()
-                if imgui.begin_popup_context_item(f"##image_dummy{image.resolved_path.name}"):
-                    if imgui.selectable(f"{icons.panorama_variant_outline} {'Set as banner' if game.banner.missing or game.banner.invalid else 'Swap with banner'}", False)[0]:
-                        game.image_banner_swap(idx)
-                    if imgui.selectable(f"{icons.image_remove_outline} Remove", False)[0]:
-                        game.delete_image(filename=image.resolved_path.stem)
-                        del game.additional_images[idx]
-                        self.selected_image = min(self.selected_image, len([game.banner, *game.additional_images]) - 1)
-                    imgui.end_popup()
-                imgui.set_item_allow_overlap()
-                imgui.set_cursor_position((posx, posy))
-                image.render(image_width, height, rounding=globals.settings.style_corner_radius)
+            else:
+                spacing = 8
+                current_col = 1
+                widescreen_ratio = 16 / 9
+                initial_x = imgui.get_cursor_pos_x()
+                columns = self.additional_images_columns
+                image_width = (imgui.get_content_region_available_width() - spacing * (columns - 1)) / columns
+                image_height = image_width / widescreen_ratio
+                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (spacing, spacing))
+                for idx, image in enumerate(game.additional_images):
+                    x1, y1 = imgui.get_cursor_pos()
+                    imgui.selectable(f"##image_dummy{image.resolved_path.name}", width=image_width, height=image_height)
+                    if imgui.begin_drag_drop_source(flags=dnd_flags):
+                        payload = idx + 1
+                        payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
+                        imgui.set_drag_drop_payload("i", payload)
+                        imgui.end_drag_drop_source()
+                    if imgui.begin_drag_drop_target():
+                        if payload := imgui.accept_drag_drop_payload("i", flags=dnd_flags):
+                            payload = int.from_bytes(payload, sys.byteorder) - 1
+                            lst = game.additional_images
+                            lst[idx], lst[payload] = lst[payload], lst[idx]
+                        imgui.end_drag_drop_target()
+                    if imgui.begin_popup_context_item(f"##image_dummy{image.resolved_path.name}"):
+                        if imgui.selectable(f"{icons.panorama_variant_outline} {'Set as banner' if game.banner.missing or game.banner.invalid else 'Swap with banner'}", False)[0]:
+                            game.image_banner_swap(idx)
+                        if imgui.selectable(f"{icons.image_remove_outline} Remove", False)[0]:
+                            game.delete_image(filename=image.resolved_path.stem)
+                            del game.additional_images[idx]
+                            self.selected_image = min(self.selected_image, len([game.banner, *game.additional_images]) - 1)
+                        imgui.end_popup()
+                    imgui.set_item_allow_overlap()
+                    imgui.set_cursor_position((x1, y1))
+                    crop = image.crop_to_ratio(widescreen_ratio, fit=globals.settings.fit_additional_images)
+                    image.render(image_width, image_height, *crop, rounding=globals.settings.style_corner_radius)
+                    if current_col == columns:
+                        imgui.set_cursor_pos_x(initial_x)
+                        if len(game.additional_images) == idx + 1:
+                            imgui.set_cursor_pos_y(y1 + image_height)
+                        else:
+                            imgui.set_cursor_pos_y(y1 + image_height + spacing)
+                        current_col = 1
+                    else:
+                        imgui.set_cursor_pos_x(x1 + image_width + spacing)
+                        imgui.set_cursor_pos_y(y1)
+                        current_col += 1
+                imgui.pop_style_var()
         return utils.popup(f"Manage images for '{game.name}'", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def draw_about_popup(self, popup_uuid: str = ""):
