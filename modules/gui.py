@@ -321,6 +321,7 @@ class MainGUI():
         self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
+        self.autocomplete_selected: int = None
         self.bg_mode_notifs_timer: float = None
         self.temp_image_cycle_pause: bool = False
         self.image_carousel_prev_time: float = 0.0
@@ -3344,24 +3345,47 @@ class MainGUI():
         if imgui.is_key_pressed(glfw.KEY_F1):
             utils.push_popup(self.draw_autocomplete_help_popup)
             return
-        self.update_autocomplete(data.cursor_pos)
+        interactive = self.update_autocomplete(data.cursor_pos)
         entries = list(filter(lambda e: self.autocomplete_term.lower() in e.lower(), self.autocomplete_items))
-        if data.event_flag == imgui.INPUT_TEXT_CALLBACK_ALWAYS and entries:
-            search_string = self.add_box_text[:data.cursor_pos]
-            width = imgui.calc_text_size(max(entries, key=len)).x + imgui.STYLE_FRAME_PADDING * 2
-            height = imgui.STYLE_FRAME_BORDERSIZE + imgui.get_text_line_height_with_spacing() * len(entries)
-            # TODO: find a way to calculate size of visible text only, to prevent tooltip sliding out of bounds
-            posx = imgui.get_item_rect_min().x + imgui.calc_text_size(search_string).x
-            # right now posx is clamped to input width
-            posx = min((posx, imgui.get_item_rect_max().x - width))
-            posy = imgui.get_window_height() - height - (imgui.get_item_rect_max().y - imgui.get_item_rect_min().y)
-            imgui.set_next_window_size(width, height)
-            imgui.set_next_window_position(posx, posy)
-            imgui.push_style_var(imgui.STYLE_WINDOW_ROUNDING, 0)
-            with imgui.begin_tooltip():
-                for entry in entries:
-                    imgui.text(entry)
-            imgui.pop_style_var()
+        if not entries:
+            self.autocomplete_selected = None
+            return
+        if interactive:
+            if self.autocomplete_selected is None:
+                self.autocomplete_selected = len(entries) - 1
+            if imgui.is_key_pressed(glfw.KEY_UP, repeat=True):
+                self.autocomplete_selected -= 1
+                self.autocomplete_selected = max(0, self.autocomplete_selected)
+            elif imgui.is_key_pressed(glfw.KEY_DOWN, repeat=True):
+                self.autocomplete_selected += 1
+                self.autocomplete_selected = min(self.autocomplete_selected, len(entries) - 1)
+            elif imgui.is_key_pressed(glfw.KEY_RIGHT) or imgui.is_key_pressed(glfw.KEY_TAB):
+                part_one = self.add_box_text.rpartition(":")[0]
+                value = entries[self.autocomplete_selected]
+                if " " in str(value):
+                    value = f"'{value}'"
+                data.delete_chars(0, len(self.add_box_text))
+                data.insert_chars(0, f"{part_one}:{value} ")
+                return
+        search_string = self.add_box_text[:data.cursor_pos]
+        width = imgui.calc_text_size(max(entries, key=len)).x + imgui.STYLE_FRAME_PADDING * 2
+        height = imgui.STYLE_FRAME_BORDERSIZE + imgui.get_text_line_height_with_spacing() * len(entries)
+        # TODO: find a way to calculate size of visible text only, to prevent tooltip sliding out of bounds
+        posx = imgui.get_item_rect_min().x + imgui.calc_text_size(search_string).x
+        # right now posx is clamped to input width
+        posx = min((posx, imgui.get_item_rect_max().x - width))
+        posy = imgui.get_window_height() - height - (imgui.get_item_rect_max().y - imgui.get_item_rect_min().y)
+        imgui.set_next_window_size(width, height)
+        imgui.set_next_window_position(posx, posy)
+        imgui.push_style_var(imgui.STYLE_WINDOW_ROUNDING, 0)
+        with imgui.begin_tooltip():
+            for idx, entry in enumerate(entries):
+                if popcolor := self.autocomplete_selected == idx:
+                    imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
+                imgui.text(entry)
+                if popcolor:
+                    imgui.pop_style_color()
+        imgui.pop_style_var()
 
     def update_autocomplete(self, cursor_pos: int):
         """ Updates autocomplete content """
@@ -3369,46 +3393,53 @@ class MainGUI():
         filters = list(re.finditer(r"(\S+):", search_string))
         if not filters:
             self.reset_autocomplete()
-            return
+            return False
         single_filter_string = search_string[filters[-1].start():]
         (mode, value) = single_filter_string.split(":")
         if value.endswith(" ") and not value.startswith(("'", '"')):
             self.reset_autocomplete()
-            return
+            return False
         if value.startswith("'") and value.count("'") == 2 or value.startswith('"') and value.count('"') == 2:
             self.reset_autocomplete()
-            return
+            return False
         self.autocomplete_term = value.strip().strip("'").strip('"')
         if self.autocomplete_term.startswith(("'", '"')):
             self.autocomplete_term = self.autocomplete_term[1:]
         if mode.startswith("-"):
             mode = mode[1:]
         mode = structs.mode_equivalance_dict.get_value(mode)
+        interactive = True
         match mode:
             case FilterMode.Archived:
                 self.autocomplete_items = ["yes, y, +", "no, -"]
+                interactive = False
             case FilterMode.Custom:
                 self.autocomplete_items = ["yes, y, +", "no, -"]
+                interactive = False
             case FilterMode.Developer:
                 self.autocomplete_items = [g.developer for g in globals.games.values()]
             case FilterMode.ExeState:
                 self.autocomplete_items = [", ".join(key) for key in structs.exe_equivalence_dict]
             case FilterMode.Installed:
                 self.autocomplete_items = ["yes, y, +", "no, -"]
+                interactive = False
             case FilterMode.Label:
                 self.autocomplete_items = [label.name for label in Label.instances]
             case FilterMode.Played:
                 self.autocomplete_items = ["yes, y, +", "no, -"]
+                interactive = False
             case FilterMode.Rating:
                 self.autocomplete_term = ""
                 lowest = min(globals.games.values(), key=lambda g: g.rating)
                 highest = max(globals.games.values(), key=lambda g: g.rating)
                 self.autocomplete_items = [f"Lowest rating: {lowest.rating}", f"Highest rating: {highest.rating}"]
+                interactive = False
             case FilterMode.Score:
                 self.autocomplete_term = ""
                 lowest = min(globals.games.values(), key=lambda g: g.score)
                 highest = max(globals.games.values(), key=lambda g: g.score)
                 self.autocomplete_items = [f"Lowest score: {lowest.score}", f"Highest score: {highest.score}"]
+                interactive = False
             case FilterMode.Status:
                 self.autocomplete_items = [", ".join(key) for key in structs.status_equivalence_dict]
             case FilterMode.Tag:
@@ -3417,8 +3448,10 @@ class MainGUI():
                 self.autocomplete_items = [", ".join(k) for k in structs.type_equivalence_dict]
             case FilterMode.Updated:
                 self.autocomplete_items = ["yes, y, +", "no, -"]
+                interactive = False
             case _:
-                pass
+                interactive = False
+        return interactive
 
     def reset_autocomplete(self):
         self.autocomplete_term = ""
