@@ -353,6 +353,10 @@ def migrate_old_single_images():
     import os, pathlib
     for item in pathlib.Path(globals.images_path).iterdir():
         if item.is_file():
-            if not (newdir := item.with_name(item.stem)).exists():
-                os.mkdir(newdir)
-            os.rename(item.absolute(), newdir / f"banner.{item.suffix}")
+            dir = item.with_name(item.stem)
+            if not dir.exists():
+                os.mkdir(dir)
+            try:
+                os.rename(item.absolute(), dir / f"banner{item.suffix}")
+            except FileExistsError:
+                pass

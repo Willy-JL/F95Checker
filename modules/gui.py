@@ -1643,10 +1643,10 @@ class MainGUI():
                 self.draw_game_more_info_button(game, f"{icons.information_outline} Info", carousel_ids=sorted_ids)
 
                 imgui.end_group()
-                height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
-                crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
+                crop = game.banner.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.banner.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
 
                 if game_i != len(sorted_ids) - 1:
                     imgui.text("\n")

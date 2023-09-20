@@ -10,9 +10,12 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
 
 ## :dna: Modifications
 
-- **Reminders**: Separate games you love and games that you want to keep an eye on.
-- **Powerful filtering**: Save different sets of filters, support for OR queries, and autocomplete.
-- **Multiple images per thread**: Add your own screenshots or automatically download thread attachments.
+- **Reminders**: Separate games you love and games that you want to keep an eye on.  
+  :zap:***How to use***: Check out "Reminders" section in the sidebar.
+- **Powerful filtering**: Save different sets of filters, support for OR queries, and autocomplete.  
+  :zap:***How to use***: Press `F1` when typing in search box to open help window.
+- **Multiple images per thread**: Add your own screenshots or automatically download thread attachments.  
+  :zap:***How to use***: Open game details screen, right click image, press "Manage additional images".
 
 And more miscellaneous stuff missing from the original:
   - Various browser addon improvements and bug fixes (PR pending https://github.com/Willy-JL/F95Checker/pull/90)
