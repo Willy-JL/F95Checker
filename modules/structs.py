@@ -948,11 +948,11 @@ class Game:
         self.additional_images.append(image)
 
     def delete_image(self, filename: str = "banner", all=False):
-        for file in self.images_path.glob(f"{filename}.*") if not all else self.images_path.iterdir():
-            try:
-                file.unlink()
-            except Exception:
-                pass
+        try:
+            for file in self.images_path.glob(f"{filename}.*") if not all else self.images_path.iterdir():
+                    file.unlink()
+        except Exception:
+            pass
 
     def image_banner_swap(self, image_id: int):
         if self.banner.invalid or self.banner.missing:
