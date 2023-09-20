@@ -8,7 +8,7 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
 
 :arrow_down: **[Download](https://github.com/littleraisins/F95CheckerX/releases/latest)**
 
-## :dna: Modifications:
+## :dna: Modifications
 
 - **Reminders**: Separate games you love and games that you want to keep an eye on.
 - **Powerful filtering**: Save different sets of filters, support for OR queries, and autocomplete.
@@ -28,16 +28,13 @@ And more miscellaneous stuff missing from the original:
 
 - **Chrome:** Open `chrome://extensions`, enable "Developer mode", drag and drop `extension/chrome.zip`
   
-## :card_file_box: Data locations:
+## :card_file_box: Data locations
 
-  - `%APPDATA%\f95checkerx\` on Windows
-    (usually `C:\Users\username\AppData\Roaming\f95checkerx\`)
-  - `~/.config/f95checkerx/` on Linux
-    (usually `/home/username/.config/f95checkerx/`)
-  - `~/Library/Application Support/f95checkerx/` on MacOS
-    (usually `/Users/username/Library/Application Support/f95checkerx/`)
+  - **Linux**: `~/.config/f95checkerx/`
+  - **Windows**: `%APPDATA%\f95checkerx\`
+  - **MacOS**: `~/Library/Application Support/f95checkerx/`
 
-## :warning: Disclaimer:
+## :warning: Disclaimer
 
 - You can safely install both browser addons, and run them at the same time.
 - This version will receive updates and bugfixes from F95Checker original repo.
@@ -45,4 +42,4 @@ And more miscellaneous stuff missing from the original:
 - The only way to switch back to regular version is to export+import threads, database is not compatible.
 - If you are using F95CheckerX report all issues to this repo, I will forward them to F95Checker if necessary.
 - F95CheckerX creates folders separate from your F95Checker installation to avoid any conflicts and loss of data.
-- Treat every release of F95CheckerX as beta, if you want stable version get latest release of F95Checker [here](https://github.com/Willy-JL/F95Checker/releases/latest)
+- Treat every release of F95CheckerX as beta, if you want stable version get latest release of standard F95Checker [here](https://github.com/Willy-JL/F95Checker/releases/latest).
