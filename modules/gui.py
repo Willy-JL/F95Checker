@@ -2528,18 +2528,33 @@ class MainGUI():
                 self.sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
         if sorts.specs_dirty or self.require_sort:
             if manual_sort:
-                changed = False
-                for id in list(globals.settings.manual_sort_list):
-                    if id not in globals.games:
-                        globals.settings.manual_sort_list.remove(id)
-                        changed = True
-                for id in globals.games:
-                    if id not in globals.settings.manual_sort_list:
-                        globals.settings.manual_sort_list.insert(0, id)
-                        changed = True
-                if changed:
-                    async_thread.run(db.update_settings("manual_sort_list"))
-                self.sorted_games_ids = globals.settings.manual_sort_list
+                if self.showing_reminders:
+                    changed = False
+                    reminders = {k: v for k, v in globals.games.items() if v.reminder}
+                    for id in list(globals.settings.manual_sort_list_reminders):
+                        if id not in reminders:
+                            globals.settings.manual_sort_list_reminders.remove(id)
+                            changed = True
+                    for id in reminders:
+                        if id not in globals.settings.manual_sort_list_reminders:
+                            globals.settings.manual_sort_list_reminders.insert(0, id)
+                            changed = True
+                    if changed:
+                        async_thread.run(db.update_settings("manual_sort_list_reminders"))
+                    self.sorted_games_ids = globals.settings.manual_sort_list_reminders
+                else:
+                    changed = False
+                    for id in list(globals.settings.manual_sort_list):
+                        if id not in globals.games:
+                            globals.settings.manual_sort_list.remove(id)
+                            changed = True
+                    for id in globals.games:
+                        if id not in globals.settings.manual_sort_list:
+                            globals.settings.manual_sort_list.insert(0, id)
+                            changed = True
+                    if changed:
+                        async_thread.run(db.update_settings("manual_sort_list"))
+                    self.sorted_games_ids = globals.settings.manual_sort_list
             else:
                 ids = list(globals.games)
                 for sort_spec in self.sorts:
@@ -2686,9 +2701,9 @@ class MainGUI():
                 if payload := imgui.accept_drag_drop_payload("game_i", flags=self.game_hitbox_drag_drop_flags):
                     payload = int.from_bytes(payload, sys.byteorder)
                     payload = payload - 1
-                    lst = globals.settings.manual_sort_list
+                    lst = globals.settings.manual_sort_list_reminders if self.showing_reminders else globals.settings.manual_sort_list
                     lst[game_i], lst[payload] = lst[payload], lst[game_i]
-                    async_thread.run(db.update_settings("manual_sort_list"))
+                    async_thread.run(db.update_settings("manual_sort_list_reminders" if self.showing_reminders else "manual_sort_list"))
                 imgui.end_drag_drop_target()
         context_id = f"###{game.id}_context"
         if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
