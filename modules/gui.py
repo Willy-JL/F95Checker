@@ -2363,7 +2363,11 @@ class MainGUI():
                     MsgBox.warn,
                     buttons
                 )
-            imgui.same_line(imgui.get_content_region_available_width() - 110)
+            controls_width = (imgui.calc_text_size("Fit:").x + imgui.calc_text_size("Columns:").x +
+                              imgui.style.item_spacing.x * 4 + imgui.get_frame_height() +
+                              imgui.style.frame_padding.x * 4 +
+                              imgui.calc_text_size(f"{icons.minus}").x + imgui.calc_text_size(f"{icons.plus}").x)
+            imgui.same_line(imgui.get_content_region_available_width() - controls_width)
             imgui.text("Fit:")
             imgui.same_line()
             changed, value = imgui.checkbox("###fit_additional_images", globals.settings.fit_additional_images)
@@ -2371,11 +2375,13 @@ class MainGUI():
                 globals.settings.fit_additional_images = value
                 async_thread.run(db.update_settings("fit_additional_images"))
             imgui.same_line()
-            if imgui.button(f"{icons.table_column_remove}"):
+            imgui.text("Columns:")
+            imgui.same_line()
+            if imgui.button(f"{icons.minus}"):
                 self.additional_images_columns -= 1
                 self.additional_images_columns = max(1, self.additional_images_columns)
             imgui.same_line()
-            if imgui.button(f"{icons.table_column_plus_after}"):
+            if imgui.button(f"{icons.plus}"):
                 self.additional_images_columns += 1
                 self.additional_images_columns = min(self.additional_images_columns, 10)
             imgui.spacing()
