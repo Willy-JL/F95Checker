@@ -33,6 +33,7 @@ if __name__ == "__main__":
         },
         json={
             "body": body,
+            "make_latest": True,
             "name": f"Build {sys.argv[1]}"
         }
     )
