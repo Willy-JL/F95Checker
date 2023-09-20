@@ -3230,12 +3230,16 @@ class MainGUI():
             # Changed active state, and escape is pressed, so clear textbox
             self.add_box_text = ""
             changed = True
-        def setter_extra(_=None):
-            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
-            self.require_sort = True
         if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
-            utils.text_context(self, "add_box_text", setter_extra, no_icons=True)
+            if imgui.selectable(f"{icons.content_copy} Copy", False)[0]:
+                callbacks.clipboard_copy(self.add_box_text)
+            if imgui.selectable(f"{icons.content_paste} Paste", False)[0]:
+                self.add_box_text += callbacks.clipboard_paste()
+                changed = True
+            if imgui.selectable(f"{icons.trash_can_outline} Clear", False)[0]:
+                self.add_box_text = ""
+                changed = True
             imgui.separator()
             if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                 utils.push_popup(
@@ -3251,7 +3255,8 @@ class MainGUI():
                 )
             imgui.end_popup()
         if changed:
-            setter_extra()
+            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
+            self.require_sort = True
             self.parse_filter_bar()
         if self.add_box_valid:
             imgui.same_line()
