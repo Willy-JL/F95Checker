@@ -326,6 +326,7 @@ class MainGUI():
         self.type_label_width: float = None
         self.last_selected_game: Game = None
         self.prev_filters: list[Filter] = []
+        self.hovered_game_image_idx: int = 0
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
         self.autocomplete_selected: int = None
@@ -333,6 +334,7 @@ class MainGUI():
         self.bg_mode_notifs_timer: float = None
         self.temp_image_cycle_pause: bool = False
         self.image_carousel_prev_time: float = 0.0
+        self.hovered_game_image_prev_time: float = 0.0
 
         # Setup Qt objects
         webview.config_qt_flags(globals.debug)
@@ -874,7 +876,6 @@ class MainGUI():
 
                         # Main pane
                         imgui.begin_child("###main_frame", width=-sidebar_size)
-                        self.hovered_game = None
                         # Games container
                         match globals.settings.display_mode.value:
                             case DisplayMode.list.value:
@@ -2708,9 +2709,25 @@ class MainGUI():
     def handle_game_hitbox_events(self, game: Game, game_i: int = None):
         manual_sort = cols.manual_sort.enabled
         not_filtering = len(self.filters) == 0 and not self.add_box_text
-        if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
-            # Hover = image on refresh button
+        hovered = imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM)
+        # first condition to avoid index errors, second to clear hovered game if no longer hovered
+        if self.hovered_game != game and hovered or self.hovered_game == game and not hovered:
+            self.hovered_game = None
+            self.hovered_game_image_idx = 0
+        if hovered:
+            # Hover = image on refresh button and cycle
             self.hovered_game = game
+            if globals.settings.cycle_images and globals.settings.cycle_on_hover:
+                imagehelper.redraw = True
+                time_now_ms = imgui.get_time() * 1000
+                if time_now_ms - self.hovered_game_image_prev_time > globals.settings.cycle_length:
+                    self.hovered_game_image_prev_time = time_now_ms
+                    if self.hovered_game_image_idx < len([game.banner, *game.additional_images]) - 1:
+                        self.hovered_game_image_idx += 1
+                    else:
+                        self.hovered_game_image_idx = 0
+            else:
+                self.hovered_game_image_idx = 0
             if imgui.is_item_clicked():
                 self.game_hitbox_click = True
             if self.game_hitbox_click and not imgui.is_mouse_down():
@@ -2968,9 +2985,13 @@ class MainGUI():
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
         imgui.begin_group()
+        if (g := self.hovered_game) == game:
+            image = [g.banner, *g.additional_images][self.hovered_game_image_idx]
+        else:
+            image = game.banner
         # Image
-        if game.banner.missing:
-            text = "Banner missing!"
+        if image.missing:
+            text = "Image missing!"
             text_size = imgui.calc_text_size(text)
             showed_img = imgui.is_rect_visible(cell_width, img_height)
             if text_size.x < cell_width:
@@ -2981,7 +3002,7 @@ class MainGUI():
                 )
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
-        elif game.banner.invalid:
+        elif image.invalid:
             text = "Invalid image!"
             text_size = imgui.calc_text_size(text)
             showed_img = imgui.is_rect_visible(cell_width, img_height)
@@ -2994,8 +3015,8 @@ class MainGUI():
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         else:
-            crop = game.banner.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
-            showed_img = game.banner.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+            crop = image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
+            showed_img = image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         # Alignments
         imgui.indent(side_indent)
         imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
@@ -3674,13 +3695,14 @@ class MainGUI():
         elif self.hovered_game:
             # Hover = show image
             game = self.hovered_game
-            if game.banner.missing:
+            image = [game.banner, *game.additional_images][self.hovered_game_image_idx]
+            if image.missing:
                 imgui.button("Image missing!", width=width, height=height)
-            elif game.banner.invalid:
+            elif image.invalid:
                 imgui.button("Invalid image!", width=width, height=height)
             else:
-                crop = game.banner.crop_to_ratio(width / height, fit=globals.settings.fit_images)
-                game.banner.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                crop = image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
         else:
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):
@@ -3872,14 +3894,21 @@ class MainGUI():
 
             draw_settings_label(
                 "Cycle images:",
-                "If you have attached more images to your thread besides banner,\n"
-                "they will be automatically cycled on thread details screen."
+                "Automatically cycle additional images.\n"
             )
             draw_settings_checkbox("cycle_images")
 
             draw_settings_label(
+                "Cycle on hover:",
+                "Cycle images when hovering game cell in grid or kanban.\n"
+                "This will also cycle images in refresh button in list view.\n"
+                "NOTE: \"Cycle images\" should be enabled for this to work."
+            )
+            draw_settings_checkbox("cycle_on_hover")
+
+            draw_settings_label(
                 "Cycle length:",
-                "How often to cycle images. Default 2500 ms."
+                "How often to switch images. Default 2500 ms."
             )
             changed, value = imgui.drag_int("###cycle_length", set.cycle_length, 1.0, 100, 600000, "%d ms")
             set.cycle_length = min(max(value, 100), 600000)

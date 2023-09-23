@@ -745,6 +745,7 @@ class Settings:
     copy_urls_as_bbcode         : bool
     cycle_images                : bool
     cycle_length                : int
+    cycle_on_hover              : bool
     datestamp_format            : str
     default_exe_dir             : str
     display_mode                : DisplayMode
