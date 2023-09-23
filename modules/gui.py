@@ -18,6 +18,7 @@ import aiohttp
 import OpenGL
 import pickle
 import string
+import typing
 import imgui
 import time
 import glfw
@@ -2438,6 +2439,86 @@ class MainGUI():
                 imgui.pop_style_var()
         return utils.popup(f"Manage images for '{game.name}'", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
+    def draw_ext_tag_manager_popup(self, popup_uuid: str = ""):
+        def popup_content():
+            imgui.dummy(self.scaled(600), self.scaled(0))
+            if imgui.begin_tab_bar("Extension tags"):
+                if imgui.begin_tab_item(f"{icons.thumb_up_outline} Positive")[0]:
+                    imgui.spacing()
+                    self.draw_tag_manager_controls("positive")
+                    imgui.spacing()
+                    if globals.settings.ext_tags_positive:
+                        self.draw_tag_manager_tags("positive")
+                    else:
+                        imgui.text_disabled("None yet.")
+                    imgui.end_tab_item()
+                if imgui.begin_tab_item(f"{icons.thumb_down_outline} Negative")[0]:
+                    imgui.spacing()
+                    self.draw_tag_manager_controls("negative")
+                    imgui.spacing()
+                    if globals.settings.ext_tags_negative:
+                        self.draw_tag_manager_tags("negative")
+                    else:
+                        imgui.text_disabled("None yet.")
+                    imgui.end_tab_item()
+                if imgui.begin_tab_item(f"{icons.cancel} Critical")[0]:
+                    imgui.spacing()
+                    self.draw_tag_manager_controls("critical")
+                    imgui.spacing()
+                    if globals.settings.ext_tags_critical:
+                        self.draw_tag_manager_tags("critical")
+                    else:
+                        imgui.text_disabled("None yet.")
+                    imgui.end_tab_item()
+                imgui.end_tab_bar()
+        return utils.popup("Manage extension tags", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
+    def draw_tag_manager_controls(self, _type: typing.Literal["positive", "negative", "critical"]):
+        combo_items = ["Choose", *structs.CLEAR_TAGS]
+        changed, value = imgui.combo("###tag_manager", 0, combo_items)
+        imgui.same_line()
+        imgui.text_disabled("Click on tag to remove")
+        if changed and value > 0:
+            tag = combo_items[value]
+            if tag in globals.settings.ext_tags_critical: globals.settings.ext_tags_critical.remove(tag)
+            if tag in globals.settings.ext_tags_positive: globals.settings.ext_tags_positive.remove(tag)
+            if tag in globals.settings.ext_tags_negative: globals.settings.ext_tags_negative.remove(tag)
+            match _type:
+                case "positive":
+                    globals.settings.ext_tags_positive.append(tag)
+                case "negative":
+                    globals.settings.ext_tags_negative.append(tag)
+                case "critical":
+                    globals.settings.ext_tags_critical.append(tag)
+            async_thread.run(db.update_settings("ext_tags_positive", "ext_tags_negative", "ext_tags_critical"))
+
+    def draw_tag_manager_tags(self, _type: typing.Literal["positive", "negative", "critical"]):
+        tags = []
+        action = None
+        _20 = self.scaled(20)
+        match _type:
+            case "positive":
+                self.begin_framed_text((0.0, 0.4, 0.0, 1.0), interaction=True)
+                tags = globals.settings.ext_tags_positive
+                action = lambda t: globals.settings.ext_tags_positive.remove(t)
+            case "negative":
+                self.begin_framed_text((0.6, 0.0, 0.0, 1.0), interaction=True)
+                tags = globals.settings.ext_tags_negative
+                action = lambda t: globals.settings.ext_tags_negative.remove(t)
+            case "critical":
+                self.begin_framed_text((0.1, 0.1, 0.1, 1.0), interaction=True)
+                tags = globals.settings.ext_tags_critical
+                action = lambda t: globals.settings.ext_tags_critical.remove(t)
+        for tag in tags:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(tag).x + _20:
+                imgui.dummy(0, 0)
+            if imgui.small_button(tag):
+                action(tag)
+                async_thread.run(db.update_settings("ext_tags_positive", "ext_tags_negative", "ext_tags_critical"))
+            imgui.same_line()
+        imgui.dummy(0, 0)
+        self.end_framed_text(interaction=True)
+
     def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
             _60 = self.scaled(60)
@@ -3837,6 +3918,21 @@ class MainGUI():
 
             draw_settings_label("Copy game links as BBcode:")
             draw_settings_checkbox("copy_urls_as_bbcode")
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Extension"):
+            draw_settings_label("Tags:")
+            if imgui.button("Manage", width=right_width):
+                utils.push_popup(self.draw_ext_tag_manager_popup)
+
+            draw_settings_label(
+                "Highlight tags:",
+                "Highlight positive and negative tags with different colors.\n"
+                "Works on Latest Updates page and thread page."
+            )
+            draw_settings_checkbox("ext_highlight_tags")
 
             imgui.end_table()
             imgui.spacing()

@@ -54,8 +54,16 @@ def start():
             def do_GET(self):
                 try:
                     match self.path:
+                        case "/settings":
+                            self.send_json(200, {"ext_highlight_tags": globals.settings.ext_highlight_tags})
+                            return
                         case "/games":
                             self.send_json(200, [{"id": g.id, "notes": g.notes, "reminder": g.reminder} for g in globals.games.values()])
+                            return
+                        case "/tags":
+                            self.send_json(200, {"positive": globals.settings.ext_tags_positive,
+                                                            "negative": globals.settings.ext_tags_negative,
+                                                            "critical": globals.settings.ext_tags_critical})
                             return
                         case _:
                             self.send_resp(404)

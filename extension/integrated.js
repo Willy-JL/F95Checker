@@ -8,7 +8,9 @@
 
 rpcPort = 57096;
 rpcURL = `http://localhost:${rpcPort}`;
+settings = {};
 games = [];
+tags = {};
 
 sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -28,24 +30,30 @@ rpcCall = async (method, path, body) => {
 getData = async () => {
     let res = null;
 
+    res = await rpcCall('GET', '/settings');
+    settings = res ? await res.json() : { ext_highlight_tags: false };
+
     res = await rpcCall('GET', '/games');
     games = res ? await res.json() : [];
+
+    res = await rpcCall('GET', '/tags');
+    tags = res ? await res.json() : { positive: [], negative: [], critical: [] };
 };
 
 addGame = async (url) => {
     await rpcCall('POST', '/games/add', JSON.stringify([url]));
     await sleep(0.5 * 1000);
-    await updateIcons();
+    await render();
 };
 
 addReminder = async (url) => {
     await rpcCall('POST', '/reminders/add', JSON.stringify([url]));
     await sleep(0.5 * 1000);
-    await updateIcons();
+    await render();
 };
 
 // Add icons for games, reminders, etc.
-updateIcons = async () => {
+render = async () => {
     await getData();
     const extractThreadId = (url) => {
         const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
@@ -153,16 +161,54 @@ updateIcons = async () => {
         if (title) {
             if (games.map((g) => g.id).includes(id)) container.prepend(gameIcon(id));
             if (container.firstChild)
-                title.insertBefore(
-                    container,
-                    title.childNodes[title.childNodes.length - 1]
-                );
+                title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
         }
+    };
+    const processTags = () => {
+        if (!settings.ext_highlight_tags) {
+            return;
+        }
+        // Latest Updates
+        const hoveredTiles = document.querySelectorAll('div.resource-tile-hover');
+        hoveredTiles.forEach((tile) => {
+            const tagsWrapper = tile.querySelector('div.resource-tile_tags');
+            if (!tagsWrapper) {
+                return;
+            }
+            const tagSpans = tagsWrapper.querySelectorAll('span');
+            tagSpans.forEach((span) => {
+                const name = span.innerHTML;
+                if (tags.positive.includes(name)) {
+                    span.style.backgroundColor = '#006600';
+                } else if (tags.negative.includes(name)) {
+                    span.style.backgroundColor = '#990000';
+                } else if (tags.critical.includes(name)) {
+                    span.style.backgroundColor = '#000000';
+                }
+            });
+        });
+        // Thread page
+        const tagLinks = document.querySelectorAll('a.tagItem');
+        tagLinks.forEach((tag) => {
+            const name = tag.innerHTML;
+            if (tags.positive.includes(name)) {
+                tag.style.color = 'white';
+                tag.style.backgroundColor = '#006600';
+            } else if (tags.negative.includes(name)) {
+                tag.style.color = 'white';
+                tag.style.backgroundColor = '#990000';
+            } else if (tags.critical.includes(name)) {
+                tag.style.color = 'white';
+                tag.style.backgroundColor = '#000000';
+                tag.style.border = '1px solid #ffffff55';
+            }
+        });
     };
     const doUpdate = () => {
         removeOldIcons();
         addHrefIcons();
         addPageIcon();
+        processTags();
     };
     const installMutationObservers = () => {
         const latest = document.getElementById('latest-page_items-wrap');
@@ -170,6 +216,11 @@ updateIcons = async () => {
             const observer = new MutationObserver(doUpdate);
             observer.observe(latest, { attributes: true });
         }
+        const tiles = document.querySelectorAll('div.resource-tile_body');
+        tiles.forEach((tile) => {
+            const observer = new MutationObserver(processTags);
+            observer.observe(tile, { attributes: true, subtree: true });
+        });
     };
     installMutationObservers();
     doUpdate();

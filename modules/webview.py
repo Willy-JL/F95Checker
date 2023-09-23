@@ -165,7 +165,7 @@ def create(
         app.window.controls.progress.setValue(0)
         app.window.controls.progress.repaint()
         if extension:
-            app.window.webview.page.runJavaScript(extension + "\nupdateIcons();")
+            app.window.webview.page.runJavaScript(extension + "\nrender();")
     app.window.webview.loadStarted.connect(load_started)
     app.window.webview.loadProgress.connect(load_progress)
     app.window.webview.loadFinished.connect(load_finished)

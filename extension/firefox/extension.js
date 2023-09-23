@@ -1,6 +1,8 @@
 const rpcPort = 57096;
 const rpcURL = `http://localhost:${rpcPort}`;
+let settings = {};
 let games = [];
+let tags = {};
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -31,28 +33,34 @@ const rpcCall = async (method, path, body, tabId) => {
 const getData = async () => {
     let res = null;
 
+    res = await rpcCall('GET', '/settings');
+    settings = res ? await res.json() : { ext_highlight_tags: false };
+
     res = await rpcCall('GET', '/games');
     games = res ? await res.json() : [];
+
+    res = await rpcCall('GET', '/tags');
+    tags = res ? await res.json() : { positive: [], negative: [], critical: [] };
 };
 
 const addGame = async (url, tabId) => {
     await rpcCall('POST', '/games/add', JSON.stringify([url]), tabId);
     await sleep(0.5 * 1000);
-    await updateIcons(tabId);
+    await render(tabId);
 };
 
 const addReminder = async (url, tabId) => {
     await rpcCall('POST', '/reminders/add', JSON.stringify([url]), tabId);
     await sleep(0.5 * 1000);
-    await updateIcons(tabId);
+    await render(tabId);
 };
 
 // Add icons for games, reminders, etc.
-const updateIcons = async (tabId) => {
+const render = async (tabId) => {
     await getData();
     chrome.scripting.executeScript({
         target: { tabId: tabId },
-        func: (games) => {
+        func: (settings, games, tags) => {
             const extractThreadId = (url) => {
                 const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
                 return match ? parseInt(match[1]) : null;
@@ -165,10 +173,51 @@ const updateIcons = async (tabId) => {
                         );
                 }
             };
+            const processTags = () => {
+                if (!settings.ext_highlight_tags) {
+                    return;
+                }
+                // Latest Updates
+                const hoveredTiles = document.querySelectorAll('div.resource-tile-hover');
+                hoveredTiles.forEach((tile) => {
+                    const tagsWrapper = tile.querySelector('div.resource-tile_tags');
+                    if (!tagsWrapper) {
+                        return;
+                    }
+                    const tagSpans = tagsWrapper.querySelectorAll('span');
+                    tagSpans.forEach((span) => {
+                        const name = span.innerHTML;
+                        if (tags.positive.includes(name)) {
+                            span.style.backgroundColor = '#006600';
+                        } else if (tags.negative.includes(name)) {
+                            span.style.backgroundColor = '#990000';
+                        } else if (tags.critical.includes(name)) {
+                            span.style.backgroundColor = '#000000';
+                        }
+                    });
+                });
+                // Thread page
+                const tagLinks = document.querySelectorAll('a.tagItem');
+                tagLinks.forEach((tag) => {
+                    const name = tag.innerHTML;
+                    if (tags.positive.includes(name)) {
+                        tag.style.color = 'white';
+                        tag.style.backgroundColor = '#006600';
+                    } else if (tags.negative.includes(name)) {
+                        tag.style.color = 'white';
+                        tag.style.backgroundColor = '#990000';
+                    } else if (tags.critical.includes(name)) {
+                        tag.style.color = 'white';
+                        tag.style.backgroundColor = '#000000';
+                        tag.style.border = '1px solid #ffffff55';
+                    }
+                });
+            };
             const doUpdate = () => {
                 removeOldIcons();
                 addHrefIcons();
                 addPageIcon();
+                processTags();
             };
             const installMutationObservers = () => {
                 const latest = document.getElementById('latest-page_items-wrap');
@@ -176,17 +225,22 @@ const updateIcons = async (tabId) => {
                     const observer = new MutationObserver(doUpdate);
                     observer.observe(latest, { attributes: true });
                 }
+                const tiles = document.querySelectorAll('div.resource-tile_body');
+                tiles.forEach((tile) => {
+                    const observer = new MutationObserver(processTags);
+                    observer.observe(tile, { attributes: true, subtree: true });
+                });
             };
             installMutationObservers();
             doUpdate();
         },
-        args: [games],
+        args: [settings, games, tags],
     });
 };
 
 chrome.webNavigation.onCompleted.addListener(
     (details) => {
-        updateIcons(details.tabId);
+        render(details.tabId);
     },
     { url: [{ hostSuffix: 'f95zone.to' }] }
 );
