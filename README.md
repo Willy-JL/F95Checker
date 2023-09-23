@@ -16,6 +16,8 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
   :zap:***How to use***: Press `F1` when typing in search box to open help window.
 - **Multiple images per thread**: Add your own screenshots or automatically download thread attachments.  
   :zap:***How to use***: Open game details screen, right click image, press "Manage additional images".
+- **Tag highlighter**: Extension can highlight positive, negative, and critical tags with colors (inspired by [this post](https://f95zone.to/threads/f95zones-latest-updates-tag-highlighter.156364/)).  
+  :zap:***How to use***: Use "Extension" settings section to manage tags, see results in the browser.
 
 And more miscellaneous stuff missing from the original:
   - Various browser addon improvements and bug fixes (PR pending https://github.com/Willy-JL/F95Checker/pull/90)
@@ -45,4 +47,4 @@ And more miscellaneous stuff missing from the original:
 - The only way to switch back to regular version is to export+import threads, database is not compatible.
 - If you are using F95CheckerX report all issues to this repo, I will forward them to F95Checker if necessary.
 - F95CheckerX creates folders separate from your F95Checker installation to avoid any conflicts and loss of data.
-- Treat every release of F95CheckerX as beta, if you want stable version get latest release of standard F95Checker [here](https://github.com/Willy-JL/F95Checker/releases/latest).
+- Treat every release of F95CheckerX as beta, if you want stable version get latest release of F95Checker [here](https://github.com/Willy-JL/F95Checker/releases/latest).
