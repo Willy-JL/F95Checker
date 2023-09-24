@@ -3411,12 +3411,12 @@ class MainGUI():
                 utils.push_popup(
                     msgbox.msgbox, "About the bottom bar",
                     "This is the filter/add bar. By typing inside it you can search your game list.\n"
-                    "Pressing enter will search F95Zone for a matching thread and ask if you wish to\n"
+                    "Pressing Ctrl+Enter will search F95Zone for a matching thread and ask if you wish to\n"
                     "add it to your list.\n"
                     "\n"
                     "When you instead paste a link to a F95Zone thread, the 'Add!' button will show\n"
                     "up, allowing you to add that thread to your list. When a link is detected you\n"
-                    "can also press enter on your keyboard to trigger the 'Add!' button.",
+                    "can also press Enter on your keyboard to trigger the 'Add!' button.",
                     MsgBox.info
                 )
             imgui.end_popup()
@@ -3433,47 +3433,50 @@ class MainGUI():
                 self.search_query = ""
                 self.add_box_valid = False
                 self.require_sort = True
-        elif activated:
-            async def _search_and_add(query: str):
-                login = None
-                results = None
-                def popup_content():
-                    nonlocal login, results
-                    if not results:
-                        imgui.text(f"Running F95Zone search for query '{query}'.")
-                        imgui.text("Status:")
-                        imgui.same_line()
-                        if login is None:
-                            imgui.text("Logging in...")
-                        elif not login:
-                            return True
-                        elif results is None:
-                            imgui.text("Searching...")
-                        else:
-                            imgui.text("No results!")
-                        return
-                    imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
-                    for result in results:
-                        if result.id in globals.games:
-                            imgui.push_disabled()
-                        clicked = imgui.selectable(result.title, False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
-                        if result.id in globals.games:
-                            imgui.pop_disabled()
-                        if clicked:
-                            async_thread.run(callbacks.add_games(result))
-                utils.push_popup(
-                    utils.popup, "Quick search",
-                    popup_content,
-                    buttons=True,
-                    closable=True,
-                    outside=False
-                )
-                if login := await api.assert_login():
-                    results = await api.quick_search(query)
-            async_thread.run(_search_and_add(self.add_box_text))
-            self.add_box_text = ""
-            self.add_box_valid = False
-            self.require_sort = True
+
+    def search_and_add(self):
+        async def _search_and_add(query: str):
+            login = None
+            results = None
+
+            def popup_content():
+                nonlocal login, results
+                if not results:
+                    imgui.text(f"Running F95Zone search for query '{query}'.")
+                    imgui.text("Status:")
+                    imgui.same_line()
+                    if login is None:
+                        imgui.text("Logging in...")
+                    elif not login:
+                        return True
+                    elif results is None:
+                        imgui.text("Searching...")
+                    else:
+                        imgui.text("No results!")
+                    return
+                imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
+                for result in results:
+                    if result.id in globals.games:
+                        imgui.push_disabled()
+                    clicked = imgui.selectable(result.title, False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
+                    if result.id in globals.games:
+                        imgui.pop_disabled()
+                    if clicked:
+                        async_thread.run(callbacks.add_games(result))
+
+            utils.push_popup(
+                utils.popup, "Quick search",
+                popup_content,
+                buttons=True,
+                closable=True,
+                outside=False
+            )
+            if login := await api.assert_login():
+                results = await api.quick_search(query)
+
+        async_thread.run(_search_and_add(self.add_box_text))
+        self.add_box_valid = False
+        self.require_sort = True
 
     def parse_filter_bar(self):
         self.filters = []
@@ -3492,6 +3495,9 @@ class MainGUI():
 
     def autocomplete_callback(self, data: imgui.core._ImGuiInputTextCallbackData):
         """ Draws autocomplete window """
+        if imgui.get_io().key_ctrl and imgui.is_key_pressed(glfw.KEY_ENTER):
+            self.search_and_add()
+            return
         if imgui.is_key_pressed(glfw.KEY_F1):
             utils.push_popup(self.draw_autocomplete_help_popup)
             return
@@ -3509,7 +3515,7 @@ class MainGUI():
             elif imgui.is_key_pressed(glfw.KEY_DOWN, repeat=True):
                 self.autocomplete_selected += 1
                 self.autocomplete_selected = min(self.autocomplete_selected, len(entries) - 1)
-            elif imgui.is_key_pressed(glfw.KEY_RIGHT) or imgui.is_key_pressed(glfw.KEY_TAB):
+            elif imgui.is_key_pressed(glfw.KEY_RIGHT) or imgui.is_key_pressed(glfw.KEY_TAB) or imgui.is_key_pressed(glfw.KEY_ENTER):
                 part_one = self.add_box_text.rpartition(":")[0]
                 value = entries[self.autocomplete_selected]
                 if " " in str(value):
@@ -3667,7 +3673,8 @@ class MainGUI():
             imgui.spacing()
             imgui.spacing()
             imgui.text("If filter exists autocomplete will appear showing you all available options.")
-            imgui.text("Autocomplete can also show additional information for filters like score and rating.")
+            imgui.text("Autocomplete can also show non-interactive information for filters like score and rating.")
+            imgui.text("Use Up and Down arrows to navigate autocomplete. Press Enter, Tab, or Right arrow to apply.")
             imgui.pop_text_wrap_pos()
         return utils.popup("Help: Filtering & Autocomplete", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
