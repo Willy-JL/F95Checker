@@ -3573,7 +3573,7 @@ class MainGUI():
                 self.autocomplete_items = ["yes, y, +", "no, -"]
                 interactive = False
             case FilterMode.Developer:
-                self.autocomplete_items = [g.developer for g in globals.games.values()]
+                self.autocomplete_items = [g.developer for g in globals.games.values() if g.developer != ""]
             case FilterMode.ExeState:
                 self.autocomplete_items = [", ".join(key) for key in structs.exe_equivalence_dict]
             case FilterMode.Installed:
