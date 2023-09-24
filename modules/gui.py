@@ -1935,7 +1935,8 @@ class MainGUI():
                     imgui.same_line()
                     if imgui.small_button(f"{icons.magnify}Search"):
                         results = None
-                        query = "".join(char for char in game.name if char in string.ascii_letters)
+                        query = game.name.replace("&", "And")
+                        query = "".join(char for char in query if char in string.ascii_letters)
                         def _rpdl_search_popup():
                             nonlocal results
                             nonlocal query
