@@ -4196,16 +4196,6 @@ class MainGUI():
 
         if draw_settings_section("Reminders"):
             draw_settings_label(
-                "Reminders:",
-                "Games marked as reminders will be hidden from main game list, and will have different icon in browser. "
-                "They will get updates like regular games so you can still track changes. "
-                "Use them for the games you don't really care about, but want to keep an eye on. "
-            )
-            if imgui.button("Hide" if self.showing_reminders else "Show", width=right_width):
-                self.showing_reminders = not self.showing_reminders
-                self.require_sort = True
-
-            draw_settings_label(
                 "Appear in filtered results:",
                 "Reminders will always appear in filtered results.\n"
                 "Even if your reminders are hidden when you are applying filters.\n"
@@ -4594,6 +4584,17 @@ class MainGUI():
             )
             if imgui.button("Switch", width=right_width):
                 self.hide()
+
+            draw_settings_label(
+                "Reminders:",
+                "Games marked as reminders will be hidden from main game list, and will have different icon in browser. "
+                "They will get updates like regular games so you can still track changes. "
+                "Use them for the games you don't really care about, but want to keep an eye on. "
+            )
+            if imgui.button("Hide" if self.showing_reminders else "Show", width=right_width):
+                self.showing_reminders = not self.showing_reminders
+                self.require_sort = True
+
             imgui.end_table()
 
         imgui.end_child()
