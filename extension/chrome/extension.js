@@ -173,7 +173,7 @@ const render = async (tabId) => {
                         );
                 }
             };
-            const processTags = () => {
+            const highlightTags = () => {
                 if (!settings.ext_highlight_tags) {
                     return;
                 }
@@ -213,6 +213,14 @@ const render = async (tabId) => {
                     }
                 });
             };
+            const processTags = () => {
+                highlightTags();
+                const tiles = document.querySelectorAll('div.resource-tile_body');
+                tiles.forEach((tile) => {
+                    const observer = new MutationObserver(highlightTags);
+                    observer.observe(tile, { attributes: true, subtree: true });
+                });
+            };
             const doUpdate = () => {
                 removeOldIcons();
                 addHrefIcons();
@@ -225,11 +233,6 @@ const render = async (tabId) => {
                     const observer = new MutationObserver(doUpdate);
                     observer.observe(latest, { attributes: true });
                 }
-                const tiles = document.querySelectorAll('div.resource-tile_body');
-                tiles.forEach((tile) => {
-                    const observer = new MutationObserver(processTags);
-                    observer.observe(tile, { attributes: true, subtree: true });
-                });
             };
             installMutationObservers();
             doUpdate();

@@ -164,7 +164,7 @@ render = async () => {
                 title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
         }
     };
-    const processTags = () => {
+    const highlightTags = () => {
         if (!settings.ext_highlight_tags) {
             return;
         }
@@ -202,6 +202,14 @@ render = async () => {
                 tag.style.backgroundColor = '#000000';
                 tag.style.border = '1px solid #ffffff55';
             }
+        });
+    };
+    const processTags = () => {
+        highlightTags();
+        const tiles = document.querySelectorAll('div.resource-tile_body');
+        tiles.forEach((tile) => {
+            const observer = new MutationObserver(highlightTags);
+            observer.observe(tile, { attributes: true, subtree: true });
         });
     };
     const doUpdate = () => {

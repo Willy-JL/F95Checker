@@ -173,7 +173,7 @@ const render = async (tabId) => {
                         );
                 }
             };
-            const processTags = () => {
+            const highlightTags = () => {
                 if (!settings.ext_highlight_tags) {
                     return;
                 }
@@ -211,6 +211,14 @@ const render = async (tabId) => {
                         tag.style.backgroundColor = '#000000';
                         tag.style.border = '1px solid #ffffff55';
                     }
+                });
+            };
+            const processTags = () => {
+                highlightTags();
+                const tiles = document.querySelectorAll('div.resource-tile_body');
+                tiles.forEach((tile) => {
+                    const observer = new MutationObserver(highlightTags);
+                    observer.observe(tile, { attributes: true, subtree: true });
                 });
             };
             const doUpdate = () => {
