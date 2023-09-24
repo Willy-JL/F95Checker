@@ -315,6 +315,7 @@ class MainGUI():
         self.game_hitbox_click = False
         self.showing_reminders = False
         self.hovered_game: Game = None
+        self.hovered_game_i: int = None
         self.sorts: list[SortSpec] = []
         self.filters: list[list[Filter]] = []
         self.refresh_ratio_smooth = 0.0
@@ -2793,12 +2794,14 @@ class MainGUI():
         not_filtering = len(self.filters) == 0 and not self.add_box_text
         hovered = imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM)
         # first condition to avoid index errors, second to clear hovered game if no longer hovered
-        if self.hovered_game != game and hovered or self.hovered_game == game and not hovered:
+        if self.hovered_game != game and hovered or self.hovered_game == game and not hovered and self.hovered_game_i == game_i:
             self.hovered_game = None
+            self.hovered_game_i = 0
             self.hovered_game_image_idx = 0
         if hovered:
             # Hover = image on refresh button and cycle
             self.hovered_game = game
+            self.hovered_game_i = game_i
             if globals.settings.cycle_images and globals.settings.cycle_on_hover:
                 imagehelper.redraw = True
                 time_now_ms = imgui.get_time() * 1000
@@ -3333,7 +3336,7 @@ class MainGUI():
                             continue
                     elif label not in game.labels:
                         continue
-                    self.draw_game_cell(game, None, draw_list, cell_width, img_height, cell_config)
+                    self.draw_game_cell(game, label_i, draw_list, cell_width, img_height, cell_config)
                     wrap -= 1
                     if wrap:
                         imgui.same_line()
