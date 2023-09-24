@@ -262,25 +262,25 @@ chrome.browserAction.onClicked.addListener((tab) => {
 chrome.runtime.onInstalled.addListener(async () => {
     chrome.contextMenus.create({
         id: `add-page-to-f95checkerx`,
-        title: `Add this page to F95CheckerX`,
+        title: `Add page to Game List`,
         contexts: ['page'],
         documentUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });
     chrome.contextMenus.create({
         id: `add-link-to-f95checkerx`,
-        title: `Add this link to F95CheckerX`,
+        title: `Add link to Game List`,
         contexts: ['link'],
         targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });
     chrome.contextMenus.create({
         id: `add-page-to-f95checkerx-reminder`,
-        title: `Add this page to F95CheckerX as reminder`,
+        title: `Add page to Reminders`,
         contexts: ['page'],
         documentUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });
     chrome.contextMenus.create({
         id: `add-link-to-f95checkerx-reminder`,
-        title: `Add this link to F95CheckerX as reminder`,
+        title: `Add link to Reminders`,
         contexts: ['link'],
         targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });

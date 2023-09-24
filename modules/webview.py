@@ -118,17 +118,17 @@ def create(
             data = app.window.webview.lastContextMenuRequest()
             if (url := data.linkUrl().url()):
                 if "f95zone.to/threads/" in url:
-                    add = QtGui.QAction(icon, "Add this link to F95CheckerX", menu)
+                    add = QtGui.QAction(icon, "Add link to Game List", menu)
                     add.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
                     menu.addAction(add)
-                    addr = QtGui.QAction(icon, "Add this link to F95CheckerX as reminder", menu)
+                    addr = QtGui.QAction(icon, "Add link to Reminders", menu)
                     addr.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addReminder({url!r});"))
                     menu.addAction(addr)
             elif "f95zone.to/threads/" in (url := app.window.webview.url().url()):
-                add = QtGui.QAction(icon, "Add this page to F95CheckerX", menu)
+                add = QtGui.QAction(icon, "Add page to Game List", menu)
                 add.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addGame({url!r});"))
                 menu.addAction(add)
-                addr = QtGui.QAction(icon, "Add this page to F95CheckerX as reminder", menu)
+                addr = QtGui.QAction(icon, "Add page to Reminders", menu)
                 addr.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addReminder({url!r});"))
                 menu.addAction(addr)
             menu.exec(app.window.webview.mapToGlobal(pos))
