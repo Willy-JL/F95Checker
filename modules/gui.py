@@ -2509,6 +2509,7 @@ class MainGUI():
                 self.begin_framed_text((0.1, 0.1, 0.1, 1.0), interaction=True)
                 tags = globals.settings.ext_tags_critical
                 action = lambda t: globals.settings.ext_tags_critical.remove(t)
+        tags.sort()
         for tag in tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag).x + _20:
                 imgui.dummy(0, 0)
