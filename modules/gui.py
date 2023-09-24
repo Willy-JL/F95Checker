@@ -1,5 +1,3 @@
-import os.path
-
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
 import concurrent.futures
@@ -2321,11 +2319,13 @@ class MainGUI():
                     if idx == -1:
                         idx = len(carousel_ids) - 1
                     change_id = carousel_ids[idx]
+                    self.selected_image = 0
                 if imgui.is_key_pressed(glfw.KEY_RIGHT, repeat=True) or clicked_right:
                     idx += 1
                     if idx == len(carousel_ids):
                         idx = 0
                     change_id = carousel_ids[idx]
+                    self.selected_image = 0
                 if change_id is not None:
                     utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids)
                     return 1, True
