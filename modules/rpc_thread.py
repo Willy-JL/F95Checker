@@ -58,7 +58,7 @@ def start():
                             self.send_json(200, {"ext_highlight_tags": globals.settings.ext_highlight_tags})
                             return
                         case "/games":
-                            self.send_json(200, [{"id": g.id, "notes": g.notes, "reminder": g.reminder} for g in globals.games.values()])
+                            self.send_json(200, [{"id": g.id, "notes": g.notes, "reminder": g.reminder, "favorite": g.favorite} for g in globals.games.values()])
                             return
                         case "/tags":
                             self.send_json(200, {"positive": globals.settings.ext_tags_positive,
@@ -94,6 +94,13 @@ def start():
                                     await asyncio.sleep(0.1)
                                     await callbacks.add_games(*matches, reminders=True)
                                 async_thread.run(_add_reminder())
+                        case "/favorites/add":
+                            urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                            if matches := utils.extract_thread_matches("\n".join(urls)):
+                                async def _add_favorite():
+                                    await asyncio.sleep(0.1)
+                                    await callbacks.add_games(*matches, favorites=True)
+                                async_thread.run(_add_favorite())
                         case _:
                             self.send_resp(404)
                             return

@@ -55,7 +55,12 @@ const addReminder = async (url, tabId) => {
     await render(tabId);
 };
 
-// Add icons for games, reminders, etc.
+const addFavorite = async (url, tabId) => {
+    await rpcCall('POST', '/favorites/add', JSON.stringify([url]), tabId);
+    await sleep(0.5 * 1000);
+    await render(tabId);
+};
+
 const render = async (tabId) => {
     await getData();
     chrome.scripting.executeScript({
@@ -76,7 +81,6 @@ const render = async (tabId) => {
                 const icon = document.createElement('i');
                 icon.style.fontFamily = "'Font Awesome 5 Pro'";
                 icon.style.fontSize = '120%';
-                icon.style.position = 'relative';
                 icon.style.verticalAlign = 'bottom';
                 const game = games.find((g) => g.id === id);
                 let full_text = '';
@@ -84,16 +88,20 @@ const render = async (tabId) => {
                     icon.style.color = '#55eecc';
                     icon.classList.add('fa', 'fa-exclamation-square');
                     full_text = "You've marked this thread as a reminder";
+                } else if (game.favorite) {
+                    icon.style.color = '#fcc808';
+                    icon.classList.add('fa', 'fa-heart-square');
+                    full_text = "You've marked this thread as a favorite";
                 } else {
                     icon.style.color = '#FD5555';
-                    icon.classList.add('fa', 'fa-heart-square');
-                    full_text = 'This game is present in your library';
+                    icon.classList.add('fa', 'fa-check-square');
+                    full_text = 'This game is present in your tracker';
                 }
                 if (game.notes !== '') {
                     full_text += `\nNOTES:\n${game.notes}`;
+                    icon.classList.replace('fa-check-square', 'fa-pen-square');
                     icon.classList.replace('fa-heart-square', 'fa-pen-square');
                     icon.classList.replace('fa-exclamation-square', 'fa-pen-square');
-                } else {
                 }
                 icon.setAttribute('title', full_text);
                 icon.addEventListener('click', () => alert(full_text));
@@ -257,13 +265,13 @@ chrome.action.onClicked.addListener((tab) => {
 chrome.runtime.onInstalled.addListener(async () => {
     chrome.contextMenus.create({
         id: `add-page-to-f95checkerx`,
-        title: `Add page to Game List`,
+        title: `Add page to Tracker`,
         contexts: ['page'],
         documentUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });
     chrome.contextMenus.create({
         id: `add-link-to-f95checkerx`,
-        title: `Add link to Game List`,
+        title: `Add link to Tracker`,
         contexts: ['link'],
         targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });
@@ -279,6 +287,18 @@ chrome.runtime.onInstalled.addListener(async () => {
         contexts: ['link'],
         targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
     });
+    chrome.contextMenus.create({
+        id: `add-page-to-f95checkerx-favorite`,
+        title: `Add page to Favorites`,
+        contexts: ['page'],
+        documentUrlPatterns: ['*://*.f95zone.to/threads/*'],
+    });
+    chrome.contextMenus.create({
+        id: `add-link-to-f95checkerx-favorite`,
+        title: `Add link to Favorites`,
+        contexts: ['link'],
+        targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
+    });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -290,6 +310,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         case 'add-link-to-f95checkerx-reminder':
         case 'add-page-to-f95checkerx-reminder':
             addReminder(info.linkUrl || info.pageUrl, tab.id);
+            break;
+        case 'add-link-to-f95checkerx-favorite':
+        case 'add-page-to-f95checkerx-favorite':
+            addFavorite(info.linkUrl || info.pageUrl, tab.id);
             break;
     }
 });

@@ -52,7 +52,12 @@ addReminder = async (url) => {
     await render();
 };
 
-// Add icons for games, reminders, etc.
+addFavorite = async (url) => {
+    await rpcCall('POST', '/favorites/add', JSON.stringify([url]));
+    await sleep(0.5 * 1000);
+    await render();
+};
+
 render = async () => {
     await getData();
     const extractThreadId = (url) => {
@@ -70,7 +75,6 @@ render = async () => {
         const icon = document.createElement('i');
         icon.style.fontFamily = "'Font Awesome 5 Pro'";
         icon.style.fontSize = '120%';
-        icon.style.position = 'relative';
         icon.style.verticalAlign = 'bottom';
         const game = games.find((g) => g.id === id);
         let full_text = '';
@@ -78,13 +82,18 @@ render = async () => {
             icon.style.color = '#55eecc';
             icon.classList.add('fa', 'fa-exclamation-square');
             full_text = "You've marked this thread as a reminder";
+        } else if (game.favorite) {
+            icon.style.color = '#fcc808';
+            icon.classList.add('fa', 'fa-heart-square');
+            full_text = "You've marked this thread as a favorite";
         } else {
             icon.style.color = '#FD5555';
-            icon.classList.add('fa', 'fa-heart-square');
-            full_text = 'This game is present in your library';
+            icon.classList.add('fa', 'fa-check-square');
+            full_text = 'This game is present in your tracker';
         }
         if (game.notes !== '') {
             full_text += `\nNOTES:\n${game.notes}`;
+            icon.classList.replace('fa-check-square', 'fa-pen-square');
             icon.classList.replace('fa-heart-square', 'fa-pen-square');
             icon.classList.replace('fa-exclamation-square', 'fa-pen-square');
         } else {
@@ -161,7 +170,10 @@ render = async () => {
         if (title) {
             if (games.map((g) => g.id).includes(id)) container.prepend(gameIcon(id));
             if (container.firstChild)
-                title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
+                title.insertBefore(
+                    container,
+                    title.childNodes[title.childNodes.length - 1]
+                );
         }
     };
     const highlightTags = () => {
@@ -224,11 +236,6 @@ render = async () => {
             const observer = new MutationObserver(doUpdate);
             observer.observe(latest, { attributes: true });
         }
-        const tiles = document.querySelectorAll('div.resource-tile_body');
-        tiles.forEach((tile) => {
-            const observer = new MutationObserver(processTags);
-            observer.observe(tile, { attributes: true, subtree: true });
-        });
     };
     installMutationObservers();
     doUpdate();

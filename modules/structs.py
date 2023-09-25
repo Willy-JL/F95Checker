@@ -904,12 +904,14 @@ class Settings:
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]
     manual_sort_list_reminders  : list[int]
+    manual_sort_list_favorites  : list[int]
     mark_installed_after_add    : bool
     max_retries                 : int
     quick_filters               : bool
     refresh_completed_games     : bool
     refresh_workers             : int
     reminders_in_filtered       : bool
+    favorites_in_filtered       : bool
     render_when_unfocused       : bool
     request_timeout             : int
     rpc_enabled                 : bool
@@ -1031,6 +1033,7 @@ class Game:
     updated            : bool | None
     archived           : bool
     reminder           : bool
+    favorite           : bool
     executables        : list[str]
     description        : str
     changelog          : str
@@ -1221,6 +1224,7 @@ class Game:
             "updated",
             "archived",
             "reminder",
+            "favorite",
             "executables",
             "description",
             "changelog",

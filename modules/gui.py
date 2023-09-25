@@ -243,7 +243,7 @@ def _scaled(mult: float, size: int | float):
 class MainGUI():
     def __init__(self):
         # Constants
-        self.sidebar_size = 230
+        self.sidebar_size = 265
         self.window_flags: int = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
@@ -312,8 +312,8 @@ class MainGUI():
         self.autocomplete_term = ""
         self.autocomplete_items = []
         self.selected_games_count = 0
+        self.selected_screen: int = 0
         self.game_hitbox_click = False
-        self.showing_reminders = False
         self.hovered_game: Game = None
         self.hovered_game_i: int = None
         self.sorts: list[SortSpec] = []
@@ -1293,16 +1293,44 @@ class MainGUI():
             else:
                 clicked = imgui.button(label_on if game.reminder else label_off)
             if clicked:
+                game.favorite = False
                 game.reminder = not game.reminder
         else:
             if imgui.small_button(icons.check):
                 for game in globals.games.values():
                     if game.selected:
                         game.reminder = True
+                        game.favorite = False
             imgui.same_line()
             if imgui.small_button(icons.close):
                 for game in globals.games.values():
                     if game.selected:
+                        game.reminder = False
+                        game.favorite = False
+            imgui.same_line()
+            imgui.text(label_off + " ")
+        self.require_sort = True
+
+    def draw_game_favorite_button(self, game: Game, label_off="", label_on="", selectable=False):
+        if game:
+            if selectable:
+                clicked = imgui.selectable(label_on if game.favorite else label_off, False)[0]
+            else:
+                clicked = imgui.button(label_on if game.favorite else label_off)
+            if clicked:
+                game.reminder = False
+                game.favorite = not game.favorite
+        else:
+            if imgui.small_button(icons.check):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.favorite = True
+                        game.reminder = False
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.favorite = False
                         game.reminder = False
             imgui.same_line()
             imgui.text(label_off + " ")
@@ -1486,6 +1514,7 @@ class MainGUI():
             imgui.end_menu()
         imgui.separator()
         self.draw_game_reminder_button(game, label_off=f"{icons.alert_box_outline} Reminder", label_on=f"{icons.heart_box_outline} Regular", selectable=True)
+        self.draw_game_favorite_button(game, label_off=f"{icons.star_outline} Favorite", label_on=f"{icons.heart_box_outline} Regular", selectable=True)
         self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive", selectable=True)
         self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove", selectable=True)
 
@@ -2661,33 +2690,47 @@ class MainGUI():
                 self.sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
         if sorts.specs_dirty or self.require_sort:
             if manual_sort:
-                if self.showing_reminders:
-                    changed = False
-                    reminders = {k: v for k, v in globals.games.items() if v.reminder}
-                    for id in list(globals.settings.manual_sort_list_reminders):
-                        if id not in reminders:
-                            globals.settings.manual_sort_list_reminders.remove(id)
-                            changed = True
-                    for id in reminders:
-                        if id not in globals.settings.manual_sort_list_reminders:
-                            globals.settings.manual_sort_list_reminders.insert(0, id)
-                            changed = True
-                    if changed:
-                        async_thread.run(db.update_settings("manual_sort_list_reminders"))
-                    self.sorted_games_ids = globals.settings.manual_sort_list_reminders
-                else:
-                    changed = False
-                    for id in list(globals.settings.manual_sort_list):
-                        if id not in globals.games:
-                            globals.settings.manual_sort_list.remove(id)
-                            changed = True
-                    for id in globals.games:
-                        if id not in globals.settings.manual_sort_list:
-                            globals.settings.manual_sort_list.insert(0, id)
-                            changed = True
-                    if changed:
-                        async_thread.run(db.update_settings("manual_sort_list"))
-                    self.sorted_games_ids = globals.settings.manual_sort_list
+                match self.selected_screen:
+                    case 0:
+                        changed = False
+                        for id in list(globals.settings.manual_sort_list):
+                            if id not in globals.games:
+                                globals.settings.manual_sort_list.remove(id)
+                                changed = True
+                        for id in globals.games:
+                            if id not in globals.settings.manual_sort_list:
+                                globals.settings.manual_sort_list.insert(0, id)
+                                changed = True
+                        if changed:
+                            async_thread.run(db.update_settings("manual_sort_list"))
+                        self.sorted_games_ids = globals.settings.manual_sort_list
+                    case 1:
+                        changed = False
+                        reminders = {k: v for k, v in globals.games.items() if v.reminder}
+                        for id in list(globals.settings.manual_sort_list_reminders):
+                            if id not in reminders:
+                                globals.settings.manual_sort_list_reminders.remove(id)
+                                changed = True
+                        for id in reminders:
+                            if id not in globals.settings.manual_sort_list_reminders:
+                                globals.settings.manual_sort_list_reminders.insert(0, id)
+                                changed = True
+                        if changed:
+                            async_thread.run(db.update_settings("manual_sort_list_reminders"))
+                        self.sorted_games_ids = globals.settings.manual_sort_list_reminders
+                    case 2:
+                        changed = False
+                        for id in list(globals.settings.manual_sort_list_favorites):
+                            if id not in globals.games:
+                                globals.settings.manual_sort_list_favorites.remove(id)
+                                changed = True
+                        for id in globals.games:
+                            if id not in globals.settings.manual_sort_list_favorites:
+                                globals.settings.manual_sort_list_favorites.insert(0, id)
+                                changed = True
+                        if changed:
+                            async_thread.run(db.update_settings("manual_sort_list_favorites"))
+                        self.sorted_games_ids = globals.settings.manual_sort_list_favorites
             else:
                 ids = list(globals.games)
                 for sort_spec in self.sorts:
@@ -2720,13 +2763,19 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
-            if not self.showing_reminders and globals.settings.reminders_in_filtered and self.add_box_text:
-                pass
-            else:
-                # this method modifies list in place, using filter() will create a new collection instead
-                # it's important because during manual sorting 'self.sorted_games_ids' actually references
-                # 'globals.settings.manual_sort_list' and both lists should receive same modifications
-                self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].reminder == self.showing_reminders]
+            match self.selected_screen:
+                case 0:
+                    if not globals.settings.reminders_in_filtered or not self.add_box_text:
+                        # this method modifies list in place, using filter() will create a new collection instead
+                        # it's important because during manual sorting 'self.sorted_games_ids' actually references
+                        # 'globals.settings.manual_sort_list' and both lists should receive same modifications
+                        self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if not globals.games[id].reminder]
+                    if not globals.settings.favorites_in_filtered or not self.add_box_text:
+                        self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if not globals.games[id].favorite]
+                case 1:
+                    self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].reminder]
+                case 2:
+                    self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].favorite]
             keep_ids = set()
             for and_group in self.filters:
                 temp_sorted_games_ids = self.sorted_games_ids
@@ -2792,7 +2841,7 @@ class MainGUI():
 
     def handle_game_hitbox_events(self, game: Game, game_i: int = None):
         manual_sort = cols.manual_sort.enabled
-        not_filtering = len(self.filters) == 0 and not self.add_box_text
+        not_filtering = not self.add_box_text
         hovered = imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM)
         # first condition to avoid index errors, second to clear hovered game if no longer hovered
         if self.hovered_game != game and hovered or self.hovered_game == game and not hovered and self.hovered_game_i == game_i:
@@ -2852,9 +2901,19 @@ class MainGUI():
                 if payload := imgui.accept_drag_drop_payload("game_i", flags=self.game_hitbox_drag_drop_flags):
                     payload = int.from_bytes(payload, sys.byteorder)
                     payload = payload - 1
-                    lst = globals.settings.manual_sort_list_reminders if self.showing_reminders else globals.settings.manual_sort_list
+                    lst, set_name = [], ""
+                    match self.selected_screen:
+                        case 0:
+                            lst = globals.settings.manual_sort_list
+                            set_name = "manual_sort_list"
+                        case 1:
+                            lst = globals.settings.manual_sort_list_reminders
+                            set_name = "manual_sort_list_reminders"
+                        case 2:
+                            lst = globals.settings.manual_sort_list_favorites
+                            set_name = "manual_sort_list_favorites"
                     lst[game_i], lst[payload] = lst[payload], lst[game_i]
-                    async_thread.run(db.update_settings("manual_sort_list_reminders" if self.showing_reminders else "manual_sort_list"))
+                    async_thread.run(db.update_settings(set_name))
                 imgui.end_drag_drop_target()
         context_id = f"###{game.id}_context"
         if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
@@ -3827,22 +3886,36 @@ class MainGUI():
 
         imgui.begin_child("Settings")
 
+        imgui.spacing()
+        imgui.spacing()
+
+        changed, value = utils.draw_segmented_button(["Tracker", "Reminders", "Favorites"], self.selected_screen, height=40)
+        if changed and self.selected_screen != value:
+            self.selected_screen = value
+            self.require_sort = True
+
         if draw_settings_section("Filter", collapsible=False):
             games = globals.games.values()
-            if self.showing_reminders:
-                draw_settings_label(f"Total reminders count: {len([g for g in games if g.reminder])}")
-            else:
-                draw_settings_label(f"Total games count: {len([g for g in games if not g.reminder])}")
+            total_count = 0
+            match self.selected_screen:
+                case 0:
+                    total_count = len([g for g in games if not g.reminder and not g.favorite])
+                case 1:
+                    total_count = len([g for g in games if g.reminder])
+                case 2:
+                    total_count = len([g for g in games if g.favorite])
+
+            draw_settings_label(f"Total count: {total_count}")
             imgui.text("")
             imgui.spacing()
 
             if self.selected_games_count:
-                draw_settings_label(f"Selected games count: {self.selected_games_count}")
+                draw_settings_label(f"Selected count: {self.selected_games_count}")
                 imgui.text("")
                 imgui.spacing()
 
             if self.add_box_text:
-                draw_settings_label(f"Filtered games count: {len(self.sorted_games_ids)}")
+                draw_settings_label(f"Filtered count: {len(self.sorted_games_ids)}")
                 imgui.text("")
                 imgui.spacing()
 
@@ -4198,12 +4271,22 @@ class MainGUI():
         if draw_settings_section("Reminders"):
             draw_settings_label(
                 "Appear in filtered results:",
-                "Reminders will always appear in filtered results.\n"
-                "Even if your reminders are hidden when you are applying filters.\n"
-                "Note, however, that your normal games will be excluded from results, if\n"
-                "you are applying filters to your reminders specifically (on reminders screen)."
+                "Reminders will always appear in filtered results on Tracker screen.\n"
+                "Handy shortcut if you don't want to switch screen after applying filters."
             )
             if draw_settings_checkbox("reminders_in_filtered"):
+                self.require_sort = True
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Favorites"):
+            draw_settings_label(
+                "Appear in filtered results:",
+                "Favorites will always appear in filtered results on Tracker screen.\n"
+                "Handy shortcut if you don't want to switch screen after applying filters."
+            )
+            if draw_settings_checkbox("favorites_in_filtered"):
                 self.require_sort = True
 
             imgui.end_table()
@@ -4585,16 +4668,6 @@ class MainGUI():
             )
             if imgui.button("Switch", width=right_width):
                 self.hide()
-
-            draw_settings_label(
-                "Reminders:",
-                "Games marked as reminders will be hidden from main game list, and will have different icon in browser. "
-                "They will get updates like regular games so you can still track changes. "
-                "Use them for the games you don't really care about, but want to keep an eye on. "
-            )
-            if imgui.button("Hide" if self.showing_reminders else "Show", width=right_width):
-                self.showing_reminders = not self.showing_reminders
-                self.require_sort = True
 
             imgui.end_table()
 

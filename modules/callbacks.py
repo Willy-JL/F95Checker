@@ -450,7 +450,7 @@ def remove_game(*games: list[Game], bypass_confirm=False):
         remove_callback()
 
 
-async def add_games(*threads: list[ThreadMatch | SearchResult], reminders=False):
+async def add_games(*threads: list[ThreadMatch | SearchResult], reminders=False, favorites=False):
     if not threads:
         return
     async def _add_games():
@@ -459,7 +459,13 @@ async def add_games(*threads: list[ThreadMatch | SearchResult], reminders=False)
         for thread in threads:
             if thread.id in globals.games:
                 if reminders:
+                    globals.games[thread.id].favorite = False
                     globals.games[thread.id].reminder = True
+                    globals.gui.require_sort = True
+                    continue
+                if favorites:
+                    globals.games[thread.id].reminder = False
+                    globals.games[thread.id].favorite = True
                     globals.gui.require_sort = True
                     continue
                 dupes.append(globals.games[thread.id].name)
@@ -470,6 +476,8 @@ async def add_games(*threads: list[ThreadMatch | SearchResult], reminders=False)
             added.append(game.name)
             if reminders:
                 game.reminder = True
+            if favorites:
+                game.favorite = True
             if globals.settings.mark_installed_after_add:
                 game.installed = game.version
             if globals.settings.select_executable_after_add:
