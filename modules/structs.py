@@ -929,6 +929,7 @@ class Settings:
     scroll_smooth               : bool
     scroll_smooth_speed         : float
     select_executable_after_add : bool
+    separate_sections_sorting   : bool
     show_remove_btn             : bool
     start_in_background         : bool
     start_refresh               : bool

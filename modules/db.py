@@ -172,6 +172,7 @@ async def connect():
             "scroll_smooth":               f'INTEGER DEFAULT {int(True)}',
             "scroll_smooth_speed":         f'REAL    DEFAULT 8.0',
             "select_executable_after_add": f'INTEGER DEFAULT {int(False)}',
+            "separate_sections_sorting":   f'INTEGER DEFAULT {int(False)}',
             "show_remove_btn":             f'INTEGER DEFAULT {int(False)}',
             "start_in_background":         f'INTEGER DEFAULT {int(False)}',
             "start_refresh":               f'INTEGER DEFAULT {int(False)}',

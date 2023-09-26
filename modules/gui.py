@@ -233,6 +233,7 @@ class Columns:
             short_header=True,
         )
 
+
 cols = Columns()
 
 
@@ -2925,8 +2926,17 @@ class MainGUI():
         ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
+        table_name = "game_list"
+        if globals.settings.separate_sections_sorting:
+            match self.selected_screen:
+                case Screen.Tracker:
+                    table_name = "tracker_view"
+                case Screen.Reminders:
+                    table_name = "reminders_view"
+                case Screen.Favorites:
+                    table_name = "favorites_view"
         if imgui.begin_table(
-            "###game_list",
+            f"###{table_name}",
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
@@ -4120,6 +4130,12 @@ class MainGUI():
             set.grid_columns = min(max(value, 1), 10)
             if changed:
                 async_thread.run(db.update_settings("grid_columns"))
+
+            draw_settings_label(
+                "Separate sections sorting:",
+                "Each section (Tracker, Reminders, Favorites) will have it's own table sorting preferences."
+            )
+            draw_settings_checkbox("separate_sections_sorting")
 
             draw_settings_label("Smooth scrolling:")
             draw_settings_checkbox("scroll_smooth")
