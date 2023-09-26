@@ -433,6 +433,7 @@ def remove_game(*games: list[Game], bypass_confirm=False):
             del globals.games[id]
             globals.gui.require_sort = True
             async_thread.run(db.remove_game(id))
+        globals.gui.selected_games_count = 0
     if not bypass_confirm and (len(games) > 1 or globals.settings.confirm_on_remove):
         buttons = {
             f"{icons.check} Yes": remove_callback,
