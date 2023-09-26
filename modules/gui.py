@@ -2926,17 +2926,8 @@ class MainGUI():
         ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
-        table_name = "game_list"
-        if globals.settings.separate_sections_sorting:
-            match self.selected_screen:
-                case Screen.Tracker:
-                    table_name = "tracker_view"
-                case Screen.Reminders:
-                    table_name = "reminders_view"
-                case Screen.Favorites:
-                    table_name = "favorites_view"
         if imgui.begin_table(
-            f"###{table_name}",
+            self.get_main_table_id(),
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
@@ -3053,11 +3044,23 @@ class MainGUI():
 
             imgui.end_table()
 
+    def get_main_table_id(self):
+        table_name = "###game_list"
+        if globals.settings.separate_sections_sorting:
+            match self.selected_screen:
+                case Screen.Tracker:
+                    table_name = "###tracker_view"
+                case Screen.Reminders:
+                    table_name = "###reminders_view"
+                case Screen.Favorites:
+                    table_name = "###favorites_view"
+        return table_name
+
     def tick_list_columns(self):
         # Hack: get sort and column specs for list mode in grid and kanban mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
-            "###game_list",
+            self.get_main_table_id(),
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=1
