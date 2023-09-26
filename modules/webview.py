@@ -135,7 +135,7 @@ def create(
                 addr.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addReminder({url!r});"))
                 menu.addAction(addr)
                 addf = QtGui.QAction(icon, "Add page to Favorites", menu)
-                addf.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addFavorit({url!r});"))
+                addf.triggered.connect(lambda _: app.window.webview.page.runJavaScript(f"addFavorite({url!r});"))
                 menu.addAction(addf)
             menu.exec(app.window.webview.mapToGlobal(pos))
         app.window.webview.customContextMenuRequested.connect(custom_context_menu_requested)

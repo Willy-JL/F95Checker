@@ -68,7 +68,6 @@ def start():
                         case _:
                             self.send_resp(404)
                             return
-                    self.send_resp(200)
                 except Exception:
                     self.send_resp(500)
 
