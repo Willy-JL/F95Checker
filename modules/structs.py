@@ -283,6 +283,13 @@ DisplayMode = IntEnumHack("DisplayMode", [
 ])
 
 
+Screen = IntEnumHack("Screen", [
+    "Tracker",
+    "Reminders",
+    "Favorites"
+])
+
+
 Status = IntEnumHack("Status", [
     ("Normal",    (1, {"color" : (0.95, 0.95, 0.95), "icon": "lightning_bolt_circle"})),
     ("Completed", (2, {"color" : (0.00, 0.87, 0.00), "icon": "checkbox_marked_circle"})),

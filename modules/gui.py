@@ -33,6 +33,7 @@ from modules.structs import (
     SortSpec,
     TrayMsg,
     Browser,
+    Screen,
     Filter,
     MsgBox,
     Status,
@@ -312,7 +313,6 @@ class MainGUI():
         self.autocomplete_term = ""
         self.autocomplete_items = []
         self.selected_games_count = 0
-        self.selected_screen: int = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.hovered_game_i: int = None
@@ -334,6 +334,7 @@ class MainGUI():
         self.bg_mode_notifs_timer: float = None
         self.temp_image_cycle_pause: bool = False
         self.image_carousel_prev_time: float = 0.0
+        self.selected_screen: Screen = Screen.Tracker
         self.hovered_game_image_prev_time: float = 0.0
 
         # Setup Qt objects
@@ -1286,56 +1287,6 @@ class MainGUI():
                 text = "\n".join(_url(game) for game in globals.games.values() if game.selected if game.url)
             callbacks.clipboard_copy(text)
 
-    def draw_game_reminder_button(self, game: Game, label_off="", label_on="", selectable=False):
-        if game:
-            if selectable:
-                clicked = imgui.selectable(label_on if game.reminder else label_off, False)[0]
-            else:
-                clicked = imgui.button(label_on if game.reminder else label_off)
-            if clicked:
-                game.favorite = False
-                game.reminder = not game.reminder
-        else:
-            if imgui.small_button(icons.check):
-                for game in globals.games.values():
-                    if game.selected:
-                        game.reminder = True
-                        game.favorite = False
-            imgui.same_line()
-            if imgui.small_button(icons.close):
-                for game in globals.games.values():
-                    if game.selected:
-                        game.reminder = False
-                        game.favorite = False
-            imgui.same_line()
-            imgui.text(label_off + " ")
-        self.require_sort = True
-
-    def draw_game_favorite_button(self, game: Game, label_off="", label_on="", selectable=False):
-        if game:
-            if selectable:
-                clicked = imgui.selectable(label_on if game.favorite else label_off, False)[0]
-            else:
-                clicked = imgui.button(label_on if game.favorite else label_off)
-            if clicked:
-                game.reminder = False
-                game.favorite = not game.favorite
-        else:
-            if imgui.small_button(icons.check):
-                for game in globals.games.values():
-                    if game.selected:
-                        game.favorite = True
-                        game.reminder = False
-            imgui.same_line()
-            if imgui.small_button(icons.close):
-                for game in globals.games.values():
-                    if game.selected:
-                        game.favorite = False
-                        game.reminder = False
-            imgui.same_line()
-            imgui.text(label_off + " ")
-        self.require_sort = True
-
     def draw_game_archive_button(self, game: Game, label_off="", label_on="", selectable=False):
         if game:
             if selectable:
@@ -1370,6 +1321,39 @@ class MainGUI():
                 callbacks.remove_game(game)
             else:
                 callbacks.remove_game(*filter(lambda game: game.selected, globals.games.values()))
+
+    def draw_game_moveto_tracker_button(self, game: Game, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            if game:
+                callbacks.move_game_to_tracker(game)
+            else:
+                callbacks.move_game_to_tracker(*filter(lambda game: game.selected, globals.games.values()))
+
+    def draw_game_moveto_reminders_button(self, game: Game, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            if game:
+                callbacks.move_game_to_reminders(game)
+            else:
+                callbacks.move_game_to_reminders(*filter(lambda game: game.selected, globals.games.values()))
+
+    def draw_game_moveto_favorites_button(self, game: Game, label="", selectable=False):
+        if selectable:
+            clicked = imgui.selectable(label, False)[0]
+        else:
+            clicked = imgui.button(label)
+        if clicked:
+            if game:
+                callbacks.move_game_to_favorites(game)
+            else:
+                callbacks.move_game_to_favorites(*filter(lambda game: game.selected, globals.games.values()))
 
     def draw_game_add_exe_button(self, game: Game, label="", selectable=False):
         if selectable:
@@ -1513,8 +1497,11 @@ class MainGUI():
             self.draw_game_labels_select_widget(game)
             imgui.end_menu()
         imgui.separator()
-        self.draw_game_reminder_button(game, label_off=f"{icons.alert_box_outline} Reminder", label_on=f"{icons.heart_box_outline} Regular", selectable=True)
-        self.draw_game_favorite_button(game, label_off=f"{icons.star_outline} Favorite", label_on=f"{icons.heart_box_outline} Regular", selectable=True)
+        if imgui.begin_menu(f"{icons.swap_horizontal} Move to"):
+            self.draw_game_moveto_tracker_button(game, f"{icons.checkbox_outline} Tracker", selectable=True)
+            self.draw_game_moveto_reminders_button(game, f"{icons.alert_box_outline} Reminders", selectable=True)
+            self.draw_game_moveto_favorites_button(game, f"{icons.heart_box_outline} Favorites", selectable=True)
+            imgui.end_menu()
         self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive", selectable=True)
         self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove", selectable=True)
 
@@ -2691,7 +2678,7 @@ class MainGUI():
         if sorts.specs_dirty or self.require_sort:
             if manual_sort:
                 match self.selected_screen:
-                    case 0:
+                    case Screen.Tracker:
                         changed = False
                         for id in list(globals.settings.manual_sort_list):
                             if id not in globals.games:
@@ -2704,7 +2691,7 @@ class MainGUI():
                         if changed:
                             async_thread.run(db.update_settings("manual_sort_list"))
                         self.sorted_games_ids = globals.settings.manual_sort_list
-                    case 1:
+                    case Screen.Reminders:
                         changed = False
                         reminders = {k: v for k, v in globals.games.items() if v.reminder}
                         for id in list(globals.settings.manual_sort_list_reminders):
@@ -2718,7 +2705,7 @@ class MainGUI():
                         if changed:
                             async_thread.run(db.update_settings("manual_sort_list_reminders"))
                         self.sorted_games_ids = globals.settings.manual_sort_list_reminders
-                    case 2:
+                    case Screen.Favorites:
                         changed = False
                         for id in list(globals.settings.manual_sort_list_favorites):
                             if id not in globals.games:
@@ -2764,7 +2751,7 @@ class MainGUI():
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
             match self.selected_screen:
-                case 0:
+                case Screen.Tracker:
                     if not globals.settings.reminders_in_filtered or not self.add_box_text:
                         # this method modifies list in place, using filter() will create a new collection instead
                         # it's important because during manual sorting 'self.sorted_games_ids' actually references
@@ -2772,9 +2759,9 @@ class MainGUI():
                         self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if not globals.games[id].reminder]
                     if not globals.settings.favorites_in_filtered or not self.add_box_text:
                         self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if not globals.games[id].favorite]
-                case 1:
+                case Screen.Reminders:
                     self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].reminder]
-                case 2:
+                case Screen.Favorites:
                     self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].favorite]
             keep_ids = set()
             for and_group in self.filters:
@@ -2903,13 +2890,13 @@ class MainGUI():
                     payload = payload - 1
                     lst, set_name = [], ""
                     match self.selected_screen:
-                        case 0:
+                        case Screen.Tracker:
                             lst = globals.settings.manual_sort_list
                             set_name = "manual_sort_list"
-                        case 1:
+                        case Screen.Reminders:
                             lst = globals.settings.manual_sort_list_reminders
                             set_name = "manual_sort_list_reminders"
-                        case 2:
+                        case Screen.Favorites:
                             lst = globals.settings.manual_sort_list_favorites
                             set_name = "manual_sort_list_favorites"
                     lst[game_i], lst[payload] = lst[payload], lst[game_i]
@@ -3413,23 +3400,9 @@ class MainGUI():
     def draw_bottombar(self):
         new_display_mode = None
 
-        for display_mode in DisplayMode:
-            if globals.settings.display_mode is display_mode:
-                imgui.push_style_color(imgui.COLOR_BUTTON, *imgui.style.colors[imgui.COLOR_BUTTON_HOVERED])
-            if imgui.button(getattr(icons, display_mode.icon)):
-                new_display_mode = display_mode
-                self.switched_display_mode = True
-            if globals.settings.display_mode is display_mode:
-                imgui.pop_style_color()
-            imgui.same_line()
-
         if imgui.button(icons.archive_search_outline):
             utils.push_popup(self.draw_saved_search_popup)
         imgui.same_line()
-
-        if new_display_mode is not None:
-            globals.settings.display_mode = new_display_mode
-            async_thread.run(db.update_settings("display_mode"))
 
         if self.add_box_valid:
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
@@ -3886,41 +3859,67 @@ class MainGUI():
 
         imgui.begin_child("Settings")
 
-        imgui.spacing()
-        imgui.spacing()
-
-        changed, value = utils.draw_segmented_button(["Tracker", "Reminders", "Favorites"], self.selected_screen, height=40)
-        if changed and self.selected_screen != value:
-            self.selected_screen = value
-            self.require_sort = True
-
-        if draw_settings_section("Filter", collapsible=False):
+        if draw_settings_section("Counters", collapsible=False):
             games = globals.games.values()
             total_count = 0
             match self.selected_screen:
-                case 0:
+                case Screen.Tracker:
                     total_count = len([g for g in games if not g.reminder and not g.favorite])
-                case 1:
+                case Screen.Reminders:
                     total_count = len([g for g in games if g.reminder])
-                case 2:
+                case Screen.Favorites:
                     total_count = len([g for g in games if g.favorite])
 
-            draw_settings_label(f"Total count: {total_count}")
-            imgui.text("")
+            draw_settings_label(f"Total: {total_count}")
             imgui.spacing()
 
             if self.selected_games_count:
-                draw_settings_label(f"Selected count: {self.selected_games_count}")
-                imgui.text("")
+                draw_settings_label(f"Selected: {self.selected_games_count}")
                 imgui.spacing()
 
             if self.add_box_text:
-                draw_settings_label(f"Filtered count: {len(self.sorted_games_ids)}")
-                imgui.text("")
+                draw_settings_label(f"Filtered: {len(self.sorted_games_ids)}")
                 imgui.spacing()
 
             imgui.end_table()
             imgui.spacing()
+
+        changed, value = utils.draw_segmented_button(["Tracker", "Reminders", "Favorites"], self.selected_screen.value - 1, height=40)
+        if changed and self.selected_screen.value - 1 != value:
+            match value:
+                case 0:
+                    self.selected_screen = Screen.Tracker
+                case 1:
+                    self.selected_screen = Screen.Reminders
+                case 2:
+                    self.selected_screen = Screen.Favorites
+            self.require_sort = True
+
+        imgui.spacing()
+
+        changed, value = utils.draw_segmented_button([
+            getattr(icons, DisplayMode.list.icon),
+            getattr(icons, DisplayMode.grid.icon),
+            getattr(icons, DisplayMode.kanban.icon)
+        ], globals.settings.display_mode.value - 1, height=30)
+        if changed and globals.settings.display_mode.value - 1 != value:
+            match value:
+                case 0:
+                    globals.settings.display_mode = DisplayMode.list
+                case 1:
+                    globals.settings.display_mode = DisplayMode.grid
+                case 2:
+                    globals.settings.display_mode = DisplayMode.kanban
+            async_thread.run(db.update_settings("display_mode"))
+            self.switched_display_mode = True
+
+        imgui.spacing()
+        imgui.spacing()
+
+        imgui.text("Preferences")
+
+        imgui.spacing()
+        imgui.spacing()
 
         if draw_settings_section("Browser"):
             draw_settings_label(

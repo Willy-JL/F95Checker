@@ -451,6 +451,30 @@ def remove_game(*games: list[Game], bypass_confirm=False):
         remove_callback()
 
 
+def move_game_to_tracker(*games: list[Game]):
+    for game in games:
+        game.reminder = False
+        game.favorite = False
+        globals.gui.require_sort = True
+    globals.gui.selected_games_count = 0
+
+
+def move_game_to_reminders(*games: list[Game]):
+    for game in games:
+        game.reminder = True
+        game.favorite = False
+        globals.gui.require_sort = True
+    globals.gui.selected_games_count = 0
+
+
+def move_game_to_favorites(*games: list[Game]):
+    for game in games:
+        game.favorite = True
+        game.reminder = False
+        globals.gui.require_sort = True
+    globals.gui.selected_games_count = 0
+
+
 async def add_games(*threads: list[ThreadMatch | SearchResult], reminders=False, favorites=False):
     if not threads:
         return
