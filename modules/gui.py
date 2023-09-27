@@ -17,6 +17,7 @@ import OpenGL
 import pickle
 import string
 import typing
+import random
 import imgui
 import time
 import glfw
@@ -1695,10 +1696,18 @@ class MainGUI():
             time_now_ms = imgui.get_time() * 1000
             if time_now_ms - self.image_carousel_prev_time > globals.settings.cycle_length:
                 self.image_carousel_prev_time = time_now_ms
-                if self.selected_image < len(all_images) - 1:
-                    self.selected_image += 1
+                final_index = len(all_images) - 1
+                if globals.settings.cycle_random_order:
+                    new_random_id = random.randint(0, final_index)
+                    while new_random_id == self.selected_image:
+                        new_random_id = random.randint(0, final_index)
+                    self.selected_image = new_random_id
                 else:
-                    self.selected_image = 0
+                    if self.selected_image < final_index:
+                        self.selected_image += 1
+                    else:
+                        self.selected_image = 0
+
         def popup_content():
             nonlocal popup_pos, popup_size, zoom_popup, all_images, selected_image
             # Image
@@ -2840,15 +2849,22 @@ class MainGUI():
             # Hover = image on refresh button and cycle
             self.hovered_game = game
             self.hovered_game_i = game_i
-            if globals.settings.cycle_images and globals.settings.cycle_on_hover:
+            if game.additional_images and globals.settings.cycle_images and globals.settings.cycle_on_hover:
                 imagehelper.redraw = True
                 time_now_ms = imgui.get_time() * 1000
                 if time_now_ms - self.hovered_game_image_prev_time > globals.settings.cycle_length:
                     self.hovered_game_image_prev_time = time_now_ms
-                    if self.hovered_game_image_idx < len([game.banner, *game.additional_images]) - 1:
-                        self.hovered_game_image_idx += 1
+                    final_index = len([game.banner, *game.additional_images]) - 1
+                    if globals.settings.cycle_random_order:
+                        new_random_id = random.randint(0, final_index)
+                        while new_random_id == self.hovered_game_image_idx:
+                            new_random_id = random.randint(0, final_index)
+                        self.hovered_game_image_idx = new_random_id
                     else:
-                        self.hovered_game_image_idx = 0
+                        if self.hovered_game_image_idx < final_index:
+                            self.hovered_game_image_idx += 1
+                        else:
+                            self.hovered_game_image_idx = 0
             else:
                 self.hovered_game_image_idx = 0
             if imgui.is_item_clicked():
@@ -4091,6 +4107,9 @@ class MainGUI():
             )
             draw_settings_checkbox("cycle_images")
 
+            if pop_disabled_cycle := not globals.settings.cycle_images:
+                imgui.push_disabled()
+
             draw_settings_label(
                 "Cycle on hover:",
                 "Cycle images when hovering game cell in grid or kanban.\n"
@@ -4100,6 +4119,13 @@ class MainGUI():
             draw_settings_checkbox("cycle_on_hover")
 
             draw_settings_label(
+                "Random cycle:",
+                "Cycle images in pseudo-random(read below) order.\n"
+                "Same image can't be shown twice in a row, but this is the only restriction currently implemented."
+            )
+            draw_settings_checkbox("cycle_random_order")
+
+            draw_settings_label(
                 "Cycle length:",
                 "How often to switch images. Default 2500 ms."
             )
@@ -4107,6 +4133,9 @@ class MainGUI():
             set.cycle_length = min(max(value, 100), 600000)
             if changed:
                 async_thread.run(db.update_settings("cycle_length"))
+
+            if pop_disabled_cycle:
+                imgui.pop_disabled()
 
             imgui.end_table()
             imgui.spacing()

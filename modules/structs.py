@@ -896,6 +896,7 @@ class Settings:
     cycle_images                : bool
     cycle_length                : int
     cycle_on_hover              : bool
+    cycle_random_order          : bool
     datestamp_format            : str
     default_exe_dir             : str
     display_mode                : DisplayMode
