@@ -13,9 +13,9 @@ Also, please read the [DISCLAIMER](https://github.com/littleraisins/F95CheckerX#
 - **Three different sections**:
   - `Tracker` for games you are closely following.
   - `Reminders` for games that you want to keep an eye on.
-  - `Favorites` for completed games that you want to keep in your collection.  
+  - `Favorites` for completed games that you want to keep in your collection.
   
-  :zap:***How to use***: Use the segmented button in the sidebar to switch between sections.
+  :zap:***How to use***: Use the segmented button in the sidebar to switch between sections. Toggle "Separate sections sorting" checkbox under "Interface" settings to apply sorting rules to each section independently.
 - **Powerful filtering**: Save different sets of filters, support for OR queries, and autocomplete.  
   :zap:***How to use***: Press `F1` when typing in search box to open help window.
 - **Multiple images per thread**: Add your own screenshots or automatically download thread attachments.  
