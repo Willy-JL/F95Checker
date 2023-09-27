@@ -134,6 +134,7 @@ render = async () => {
                     container.style.border = 'solid #262626';
                     container.style.borderRadius = '4px';
                     container.style.fontSize = 'larger';
+                    container.style.marginInlineEnd = '0';
                 }
 
                 if (!isImage && elem.children.length > 0) {
