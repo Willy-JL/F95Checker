@@ -401,7 +401,7 @@ Tag = IntEnumHack("Tag", [
     ("multiple-protagonist",   87),
     ("necrophilia",            88),
     ("no-sexual-content",      89),
-    ("netorare",               90),
+    ("ntr",                    90),
     ("oral-sex",               91),
     ("paranormal",             92),
     ("parody",                 93),
