@@ -1020,8 +1020,8 @@ class MainGUI():
             self.filters.append(flt)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_tag_widget(self, tag: Tag, setup=True):
-        quick_filter = globals.settings.quick_filters
+    def draw_tag_widget(self, tag: Tag, setup=True, qf_override=None):
+        quick_filter = qf_override if qf_override is not None else globals.settings.quick_filters
         if setup:
             self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         if imgui.small_button(tag.name) and quick_filter:
@@ -1421,7 +1421,7 @@ class MainGUI():
                 else:
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
-            self.draw_tag_widget(tag)
+            self.draw_tag_widget(tag, qf_override=False)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
