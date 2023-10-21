@@ -2332,6 +2332,8 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
+            imgui.text("littleraisins: Many contributions with fixes and features (see F95CheckerX)")
+            imgui.bullet()
             imgui.text("Sam: Added the version API for fast refreshing")
             imgui.bullet()
             imgui.text("GR3ee3N: Optimized build workflows and other PRs")

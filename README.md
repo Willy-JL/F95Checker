@@ -210,6 +210,8 @@ Supporters:
 
 Contributors:
 
+- [littleraisins](https://github.com/littleraisins): Many contributions with fixes and features (see [F95CheckerX](https://github.com/littleraisins/F95CheckerX))
+- [Sam](https://f95zone.to/members/7899/): Added the version API for fast refreshing
 - [GR3ee3N](https://github.com/GR3ee3N): Optimized build workflows and other PRs
 - [batblue](https://f95zone.to/members/4143766/): MacOS suppport and feedback guy
 - [unroot](https://f95zone.to/members/1585550/): Linux support and feedback guy
