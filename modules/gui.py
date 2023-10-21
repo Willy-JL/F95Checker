@@ -1651,13 +1651,20 @@ class MainGUI():
                 )
             else:
                 aspect_ratio = image.height / image.width
-                width = min(avail.x, image.width)
-                height = min(width * aspect_ratio, image.height)
-                if height > (new_height := avail.y * self.scaled(0.4)):
-                    height = new_height
+                out_height = (min(avail.y, self.scaled(690)) * self.scaled(0.4)) or 1
+                out_width = avail.x or 1
+                if aspect_ratio > (out_height / out_width):
+                    height = out_height
                     width = height * (1 / aspect_ratio)
-                if width < avail.x:
-                    imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
+                    margin_x = (out_width - width) / 2
+                    margin_y = 0
+                else:
+                    width = out_width
+                    height = width * aspect_ratio
+                    margin_x = 0
+                    margin_y = (out_height - height) / 2
+                prev_pos = imgui.get_cursor_pos()
+                imgui.set_cursor_pos((prev_pos.x + margin_x, prev_pos.y + margin_y))
                 image_pos = imgui.get_cursor_screen_pos()
 
                 imgui.begin_child("###image_zoomer", width=width, height=height + 1.0, flags=imgui.WINDOW_NO_SCROLLBAR)
@@ -1702,6 +1709,8 @@ class MainGUI():
                         image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
                 imgui.end_child()
+                imgui.set_cursor_pos(prev_pos)
+                imgui.dummy(out_width, out_height)
             if imgui.begin_popup_context_item("###image_context"):
                 if imgui.selectable(f"{icons.folder_open_outline} Set custom image", False)[0]:
                     def select_callback(selected):
