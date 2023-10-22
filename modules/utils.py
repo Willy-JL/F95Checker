@@ -375,32 +375,35 @@ def draw_segmented_button(labels: list[str], value: int, width: float = None, he
     b_height = height if height else imgui.get_frame_height()
     b_width = full_b_width / len(labels)
 
-    thickness = 2.0
-    pillpad = thickness + 0  # keep it just in case
+    thickness = imgui.style.frame_border_size
+    pillpad = math.ceil(thickness + 0) - 1  # Filled region slightly bigger and covered by lines to make up for float errors
     rounding = globals.settings.style_corner_radius
     text = imgui.get_color_u32_rgba(*globals.settings.style_text)
     border = imgui.get_color_u32_rgba(*globals.settings.style_border)
     accent = imgui.get_color_u32_rgba(*globals.settings.style_accent)
 
-    draw_list.add_rect(screen_pos[0], screen_pos[1], screen_pos[0] + full_b_width, screen_pos[1] + b_height, border, rounding=rounding, thickness=thickness, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+    ret = (False, 0)
 
     n = len(labels)
     for i, label in enumerate(labels):
         x1 = screen_pos[0] + b_width * i
-        if i != n - 1:
-            draw_list.add_line(x1 + b_width, screen_pos[1], x1 + b_width, screen_pos[1] + b_height, border, thickness=thickness)
         if i == value:
             if i == 0:
-                draw_list.add_rect_filled(x1 + pillpad, screen_pos[1] + pillpad, x1 + b_width - pillpad, screen_pos[1] + b_height - pillpad, accent, rounding=rounding / 2, flags=imgui.DRAW_ROUND_CORNERS_LEFT)
+                flags=imgui.DRAW_ROUND_CORNERS_LEFT
             elif i == n - 1:
-                draw_list.add_rect_filled(x1 + pillpad, screen_pos[1] + pillpad, x1 + b_width - pillpad, screen_pos[1] + b_height - pillpad, accent, rounding=rounding / 2, flags=imgui.DRAW_ROUND_CORNERS_RIGHT)
+                flags=imgui.DRAW_ROUND_CORNERS_RIGHT
             else:
-                draw_list.add_rect_filled(x1 + pillpad, screen_pos[1] + pillpad, x1 + b_width - pillpad, screen_pos[1] + b_height - pillpad, accent, rounding=rounding / 2, flags=imgui.DRAW_ROUND_CORNERS_NONE)
+                flags=imgui.DRAW_ROUND_CORNERS_NONE
+            draw_list.add_rect_filled(x1 + pillpad, screen_pos[1] + pillpad, x1 + b_width - (pillpad if i == n - 1 else 0), screen_pos[1] + b_height - pillpad, accent, rounding=rounding / 2, flags=flags)
+        if i != n - 1:
+            draw_list.add_line(x1 + b_width, screen_pos[1], x1 + b_width, screen_pos[1] + b_height - pillpad, border, thickness=thickness)
         while (label_size := imgui.calc_text_size(label)).x > b_width - imgui.STYLE_FRAME_PADDING:
             label = label[:-1]
         draw_list.add_text(x1 + (b_width - label_size.x) / 2, screen_pos[1] + (b_height - label_size.y) / 2, text, label)
         imgui.same_line(cursor_pos[0] + b_width * i)
         if imgui.invisible_button(f"###segmented_button_label_{label}", b_width, b_height):
-            return True, i
+            ret = (True, i)
 
-    return False, 0
+    draw_list.add_rect(screen_pos[0], screen_pos[1], screen_pos[0] + full_b_width, screen_pos[1] + b_height, border, rounding=rounding, thickness=thickness, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+
+    return ret

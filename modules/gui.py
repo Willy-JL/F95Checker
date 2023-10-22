@@ -3913,7 +3913,7 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
-        changed, value = utils.draw_segmented_button(["Tracker", "Reminders", "Favorites"], self.selected_screen.value - 1, height=40)
+        changed, value = utils.draw_segmented_button(["Tracker", "Reminders", "Favorites"], self.selected_screen.value - 1, height=36)
         if changed and self.selected_screen.value - 1 != value:
             match value:
                 case 0:
@@ -3930,7 +3930,7 @@ class MainGUI():
             getattr(icons, DisplayMode.list.icon),
             getattr(icons, DisplayMode.grid.icon),
             getattr(icons, DisplayMode.kanban.icon)
-        ], globals.settings.display_mode.value - 1, height=30)
+        ], globals.settings.display_mode.value - 1, height=28)
         if changed and globals.settings.display_mode.value - 1 != value:
             match value:
                 case 0:
