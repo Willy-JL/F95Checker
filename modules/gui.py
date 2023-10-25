@@ -312,6 +312,7 @@ class MainGUI():
         self.ghost_columns_enabled_count = 0
         self.sorted_games_ids: list[int] = []
         self.bg_mode_notifs_timer: float = None
+        self.triggered_connection_guard: bool = False
 
         # Setup Qt objects
         webview.config_qt_flags(globals.debug)
@@ -928,9 +929,19 @@ class MainGUI():
                             self.bg_mode_timer = time.time() + globals.settings.bg_refresh_interval * 60
                             self.tray.update_status()
                         elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
-                            # Run scheduled refresh
-                            self.bg_mode_timer = None
-                            utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
+                            if utils.is_connected():
+                                # Run scheduled refresh
+                                utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
+                                self.bg_mode_timer = None
+                                self.triggered_connection_guard = False
+                            elif not self.triggered_connection_guard:
+                                # Wait 10 seconds and try again
+                                self.bg_mode_timer = time.time() + 10
+                                self.triggered_connection_guard = True
+                            else:
+                                # No connection and triggered connection guard once
+                                # Resume background refresh at regular intervals
+                                self.bg_mode_timer = None
                         elif globals.settings.check_notifs:
                             if not self.bg_mode_notifs_timer and not utils.is_refreshing():
                                 # Schedule next notif check
