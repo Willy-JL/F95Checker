@@ -6,6 +6,7 @@ import functools
 import asyncio
 import typing
 import random
+import socket
 import imgui
 import time
 import math
@@ -341,3 +342,15 @@ def push_popup(*args, bottom=False, **kwargs):
     else:
         globals.popup_stack.append(popup)
     return popup
+
+
+def is_connected():
+    try:
+        # See if we can resolve the host name - tells us if there is a DNS listening
+        host = socket.gethostbyname("one.one.one.one")
+        # Connect to the host - tells us if the host is actually reachable
+        with socket.create_connection((host, 80), 2):
+            return True
+    except Exception:
+        pass
+    return False
