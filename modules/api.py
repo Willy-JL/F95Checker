@@ -56,7 +56,7 @@ notif_endpoint      = host + "/conversations/popup?_xfToken={xf_token}&_xfRespon
 alerts_page         = host + "/account/alerts/"
 inbox_page          = host + "/conversations/"
 threads_page        = host + "/threads/"
-bookmarks_page      = host + "/account/bookmarks?difference={offset}"
+bookmarks_page      = host + "/account/bookmarks?difference=0&page={page}"
 watched_page        = host + "/watched/threads?unread=0&page={page}"
 qsearch_endpoint    = host + "/quicksearch"
 update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
@@ -432,11 +432,11 @@ async def import_f95_bookmarks():
     if not await assert_login():
         return
     globals.refresh_progress = 1
-    offset = 0
+    page = 0
     threads = []
     while True:
         globals.refresh_total += 1
-        res = await fetch("GET", bookmarks_page.format(offset=offset))
+        res = await fetch("GET", bookmarks_page.format(page=page))
         raise_f95zone_error(res)
         html = parser.html(res)
         bookmarks = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("listPlain"))
@@ -444,8 +444,9 @@ async def import_f95_bookmarks():
         if not bookmarks:
             break
         for title in bookmarks.find_all(parser.is_class("contentRow-title")):
-            offset += 1
             threads += utils.extract_thread_matches(title.find("a").get("href"))
+        page += 1
+
     if threads:
         await callbacks.add_games(*threads)
     else:
