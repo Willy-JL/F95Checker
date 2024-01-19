@@ -50,7 +50,10 @@ def image_ext(data: bytes):
 
 
 def custom_id():
-    return min(min(game.id for game in globals.games.values()), 0) - 1
+    if globals.games:
+        return min(min(game.id for game in globals.games.values()), 0) - 1
+    else:
+        return -1
 
 
 def is_uri(text: str):
