@@ -423,9 +423,9 @@ Tag = IntEnumHack("Tag", [
 
 
 ExeState = IntEnumHack("ExeState", [
-    "Invalid",
-    "Selected",
-    "Unset",
+    ("Invalid",  1),
+    ("Selected", 2),
+    ("Unset",    3),
 ])
 
 
@@ -454,9 +454,9 @@ FilterMode = IntEnumHack("FilterMode", [
 
 
 Category = IntEnumHack("Category", [
-    "Games",
-    "Media",
-    "Misc",
+    ("Games", 1),
+    ("Media", 2),
+    ("Misc",  3),
 ])
 
 
