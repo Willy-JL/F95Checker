@@ -30,6 +30,11 @@ def _():
             if process.is_file():
                 _os.environ["QTWEBENGINEPROCESS_PATH"] = str(process)
 
+    # Fix PIL image loading
+    from PIL import ImageFile, PngImagePlugin
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    PngImagePlugin.MAX_TEXT_CHUNK *= 10
+
     # Optimize OpenGL
     import OpenGL
     for option in ("ERROR_LOGGING", "ERROR_CHECKING", "CONTEXT_CHECKING"):

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
 import OpenGL.GL as gl
-from PIL import Image, ImageFile
+from PIL import Image
 import concurrent
 import functools
 import asyncio
@@ -43,7 +43,6 @@ def map_range(in_value: float, in_start: float, in_end: float, out_start: float,
 
 def image_ext(data: bytes):
     try:
-        ImageFile.LOAD_TRUNCATED_IMAGES = True
         ext = str(Image.open(io.BytesIO(data)).format or "img").lower()
     except Exception:
         ext = "img"
