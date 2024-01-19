@@ -139,7 +139,9 @@ async def _launch_exe(executable: str):
             await default_open(executable)
         return
 
-    exe = pathlib.Path(executable).absolute()
+    exe = pathlib.Path(executable)
+    if globals.settings.default_exe_dir.get(globals.os) and not exe.is_absolute():
+        exe = pathlib.Path(globals.settings.default_exe_dir.get(globals.os)) / exe
     if not exe.is_file():
         raise FileNotFoundError()
 
@@ -245,7 +247,10 @@ async def _open_folder(executable: str):
     if utils.is_uri(executable):
         return
 
-    folder = pathlib.Path(executable).absolute().parent
+    exe = pathlib.Path(executable)
+    if globals.settings.default_exe_dir.get(globals.os) and not exe.is_absolute():
+        exe = pathlib.Path(globals.settings.default_exe_dir.get(globals.os)) / exe
+    folder = exe.parent
     if not folder.is_dir():
         raise FileNotFoundError()
 

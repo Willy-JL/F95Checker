@@ -6,6 +6,7 @@ import functools
 import aiofiles
 import asyncio
 import weakref
+import pathlib
 import hashlib
 import typing
 import queue
@@ -738,12 +739,36 @@ class Game:
 
     def validate_executables(self):
         from modules import globals, utils
-        self.executables_valids = [utils.is_uri(executable) or os.path.isfile(executable) for executable in self.executables]
+        if globals.settings.default_exe_dir.get(globals.os):
+            changed = False
+            executables_valids = []
+            base = pathlib.Path(globals.settings.default_exe_dir.get(globals.os))
+            for i, executable in enumerate(self.executables):
+                exe = pathlib.Path(executable)
+                if exe.is_absolute():
+                    if base in exe.parents:
+                        self.executables[i] = str(exe.relative_to(base))
+                        changed = True
+                    executables_valids.append(exe.is_file())
+                else:
+                    executables_valids.append((base / exe).is_file())
+            self.executables_valids = executables_valids
+            if changed:
+                from modules import async_thread, db
+                async_thread.run(db.update_game(self, "executables"))
+        else:
+            self.executables_valids = [utils.is_uri(executable) or os.path.isfile(executable) for executable in self.executables]
         self.executables_valid = all(self.executables_valids)
         if globals.gui:
             globals.gui.require_sort = True
 
     def add_executable(self, executable: str):
+        from modules import globals
+        if globals.settings.default_exe_dir.get(globals.os):
+            base = pathlib.Path(globals.settings.default_exe_dir.get(globals.os))
+            exe = pathlib.Path(executable)
+            if base in exe.parents:
+                executable = str(exe.relative_to(base))
         if executable in self.executables:
             return
         self.executables.append(executable)

@@ -3864,13 +3864,16 @@ class MainGUI():
 
             draw_settings_label(
                 "Set exe dir:",
-                "This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all "
-                f"your games in the same folder (as you should).\n\nCurrent value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
+                "This setting indicates what folder you keep all your games in (if you're organized). Executables inside this folder are "
+                "remembered relatively, this means you can select the executables with this setting on, then move your entire folder, update this "
+                f"setting, and all the executables are still valid.\n\nCurrent value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
             )
             if imgui.button("Choose", width=right_width):
                 def select_callback(selected):
                     set.default_exe_dir[globals.os] = selected or ""
                     async_thread.run(db.update_settings("default_exe_dir"))
+                    for game in globals.games.values():
+                        game.validate_executables()
                 utils.push_popup(filepicker.DirPicker(
                     title="Select or drop default exe dir",
                     start_dir=set.default_exe_dir.get(globals.os),
