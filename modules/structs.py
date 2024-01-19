@@ -748,7 +748,7 @@ class Game:
                 exe = pathlib.Path(executable)
                 if exe.is_absolute():
                     if base in exe.parents:
-                        self.executables[i] = str(exe.relative_to(base))
+                        self.executables[i] = exe.relative_to(base).as_posix()
                         changed = True
                     executables_valids.append(exe.is_file())
                 else:
@@ -765,11 +765,12 @@ class Game:
 
     def add_executable(self, executable: str):
         from modules import globals
+        exe = pathlib.Path(executable)
         if globals.settings.default_exe_dir.get(globals.os):
             base = pathlib.Path(globals.settings.default_exe_dir.get(globals.os))
-            exe = pathlib.Path(executable)
             if base in exe.parents:
-                executable = str(exe.relative_to(base))
+                exe = exe.relative_to(base)
+        executable = exe.as_posix()
         if executable in self.executables:
             return
         self.executables.append(executable)
