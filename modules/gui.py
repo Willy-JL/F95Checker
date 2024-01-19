@@ -2440,6 +2440,8 @@ class MainGUI():
                 match flt.mode.value:
                     case FilterMode.Archived.value:
                         key = lambda id: flt.invert != (globals.games[id].archived is True)
+                    case FilterMode.Custom.value:
+                        key = lambda id: flt.invert != (globals.games[id].custom is True)
                     case FilterMode.Exe_State.value:
                         key = lambda id: flt.invert != (
                             (not globals.games[id].executables) if flt.match is ExeState.Unset else
@@ -3269,7 +3271,7 @@ class MainGUI():
             draw_settings_label("Add filter:")
             changed, value = imgui.combo("###add_filter", 0, FilterMode._member_names_)
             if changed and value > 0:
-                flt = Filter(FilterMode(value + 1))
+                flt = Filter(FilterMode[FilterMode._member_names_[value]])
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
                         flt.match = ExeState[ExeState._member_names_[0]]

@@ -437,18 +437,19 @@ MsgBox = IntEnumHack("MsgBox", [
 
 
 FilterMode = IntEnumHack("FilterMode", [
-    "Choose",
-    "Archived",
-    "Exe State",
-    "Installed",
-    "Label",
-    "Played",
-    "Rating",
-    "Score",
-    "Status",
-    "Tag",
-    "Type",
-    "Updated",
+    ("Choose",    1),
+    ("Archived",  2),
+    ("Custom",    13),
+    ("Exe State", 3),
+    ("Installed", 4),
+    ("Label",     5),
+    ("Played",    6),
+    ("Rating",    7),
+    ("Score",     8),
+    ("Status",    9),
+    ("Tag",       10),
+    ("Type",      11),
+    ("Updated",   12),
 ])
 
 
