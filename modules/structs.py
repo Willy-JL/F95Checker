@@ -254,9 +254,9 @@ class IntEnumHack(enum.IntEnum):
 
 
 Os = IntEnumHack("Os", [
-    "Windows",
-    "Linux",
-    "MacOS",
+    ("Windows", 1),
+    ("Linux",   2),
+    ("MacOS",   3),
 ])
 
 
@@ -575,7 +575,7 @@ class Settings:
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
     datestamp_format            : str
-    default_exe_dir             : str
+    default_exe_dir             : dict[Os, str]
     display_mode                : DisplayMode
     fit_images                  : bool
     grid_columns                : int
@@ -614,6 +614,12 @@ class Settings:
     zoom_area                   : int
     zoom_times                  : float
     zoom_enabled                : bool
+
+    def __post_init__(self):
+        if "" in self.default_exe_dir:
+            from modules import globals
+            self.default_exe_dir[globals.os] = self.default_exe_dir[""]
+            del self.default_exe_dir[""]
 
 
 from modules import (

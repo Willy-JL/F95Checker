@@ -107,7 +107,7 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
             callback(selected)
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
-        start_dir=globals.settings.default_exe_dir,
+        start_dir=globals.settings.default_exe_dir.get(globals.os),
         callback=select_callback,
         buttons=[use_uri]
     ).tick)

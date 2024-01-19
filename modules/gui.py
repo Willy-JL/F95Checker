@@ -1719,7 +1719,7 @@ class MainGUI():
                             game.set_image_sync(pathlib.Path(selected).read_bytes())
                     utils.push_popup(filepicker.FilePicker(
                         title=f"Select or drop image for {game.name}",
-                        start_dir=globals.settings.default_exe_dir,
+                        start_dir=globals.settings.default_exe_dir.get(globals.os),
                         callback=select_callback
                     ).tick)
                 if imgui.selectable(f"{icons.trash_can_outline} Reset image", False)[0]:
@@ -3865,15 +3865,15 @@ class MainGUI():
             draw_settings_label(
                 "Set exe dir:",
                 "This setting indicates what folder will be shown by default when selecting the executable for a game. This can be useful if you keep all "
-                f"your games in the same folder (as you should).\n\nCurrent value: {set.default_exe_dir or 'Unset'}"
+                f"your games in the same folder (as you should).\n\nCurrent value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
             )
             if imgui.button("Choose", width=right_width):
                 def select_callback(selected):
-                    set.default_exe_dir = selected or ""
+                    set.default_exe_dir[globals.os] = selected or ""
                     async_thread.run(db.update_settings("default_exe_dir"))
                 utils.push_popup(filepicker.DirPicker(
                     title="Select or drop default exe dir",
-                    start_dir=set.default_exe_dir,
+                    start_dir=set.default_exe_dir.get(globals.os),
                     callback=select_callback
                 ).tick)
 

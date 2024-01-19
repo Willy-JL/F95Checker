@@ -137,7 +137,7 @@ async def connect():
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
-            "default_exe_dir":             f'TEXT    DEFAULT ""',
+            "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
@@ -268,6 +268,15 @@ async def close():
 
 def sql_to_py(value: str | int | float, data_type: typing.Type):
     match getattr(data_type, "__name__", None):
+        case "dict":
+            try:
+                value = data_type(json.loads(value))
+                if data_type_args := getattr(data_type, "__args__", None):
+                    key_type = data_type_args[0]
+                    value_type = data_type_args[1]
+                    value = data_type((key_type(int(k) if (type(k) is str and k.isdigit()) else k), value_type(v)) for k, v in value.items())
+            except json.JSONDecodeError:
+                value = data_type([("", value)]) if value else data_type()
         case "list" | "tuple":
             if isinstance(value, str) and getattr(data_type, "__args__", [None])[0] is float:
                 value = colors.hex_to_rgba_0_1(value)
@@ -341,6 +350,10 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
         value = value.hash
     elif type(value) is bool:
         value = int(value)
+    elif isinstance(value, dict):
+        value = value.copy()
+        value = {getattr(k, "value", getattr(k, "id", k)): getattr(v, "value", getattr(v, "id", v)) for k, v in value.items()}
+        value = json.dumps(value)
     elif isinstance(value, list):
         value = value.copy()
         value = [getattr(item, "value", getattr(item, "id", item)) for item in value]
