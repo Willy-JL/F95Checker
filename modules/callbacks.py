@@ -145,6 +145,10 @@ async def _launch_exe(executable: str):
     if not exe.is_file():
         raise FileNotFoundError()
 
+    if exe.suffix == ".html":
+        open_webpage(exe.as_uri())
+        return
+
     if globals.os is Os.Windows:
         # Open with default app
         await default_open(str(exe))
