@@ -101,7 +101,11 @@ def create(
     app.window.webview.page = app.window.webview.page()
     app.window.webview.history = app.window.webview.page.history()
     app.window.webview.profile = app.window.webview.page.profile()
+    app.window.webview.settings = app.window.webview.page.settings()
     app.window.webview.cookieStore = app.window.webview.profile.cookieStore()
+
+    app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
+    app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
 
     if title:
         app.window.setWindowTitle(title)
