@@ -745,6 +745,9 @@ class Game:
             executables_valids = []
             base = pathlib.Path(globals.settings.default_exe_dir.get(globals.os))
             for i, executable in enumerate(self.executables):
+                if utils.is_uri(executable):
+                    executables_valids.append(True)
+                    continue
                 exe = pathlib.Path(executable)
                 if exe.is_absolute():
                     if base in exe.parents:
