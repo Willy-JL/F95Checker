@@ -767,13 +767,14 @@ class Game:
             globals.gui.require_sort = True
 
     def add_executable(self, executable: str):
-        from modules import globals
-        exe = pathlib.Path(executable)
-        if globals.settings.default_exe_dir.get(globals.os):
-            base = pathlib.Path(globals.settings.default_exe_dir.get(globals.os))
-            if base in exe.parents:
-                exe = exe.relative_to(base)
-        executable = exe.as_posix()
+        from modules import globals, utils
+        if not utils.is_uri(executable):
+            exe = pathlib.Path(executable)
+            if globals.settings.default_exe_dir.get(globals.os):
+                base = pathlib.Path(globals.settings.default_exe_dir.get(globals.os))
+                if base in exe.parents:
+                    exe = exe.relative_to(base)
+            executable = exe.as_posix()
         if executable in self.executables:
             return
         self.executables.append(executable)
