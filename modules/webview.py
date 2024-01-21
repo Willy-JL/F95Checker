@@ -8,12 +8,12 @@ import os
 # applications so we need to run a dedicated multiprocess
 
 
-def config_qt_flags(debug: bool):
-    # Linux had issues with blank login pages and broken contexts, these helped out
-    # and might also prevent further problems on other platforms
+def config_qt_flags(debug: bool, software: bool):
+    # Linux had issues with blank login pages and broken contexts, software mode
+    # helped out and might also prevent problems on other platforms
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join((
         "--no-sandbox",
-        "--disable-gpu",
+        *(("--disable-gpu",) if software else ()),
         *((
             "--enable-logging",
             "--log-level=0",
@@ -21,7 +21,7 @@ def config_qt_flags(debug: bool):
             "--disable-logging",
         )),
     ))
-    os.environ["QMLSCENE_DEVICE"] = "softwarecontext"
+    if software: os.environ["QMLSCENE_DEVICE"] = "softwarecontext"
     QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
 
 
@@ -33,6 +33,7 @@ def kwargs():
     )
     return dict(
         debug=globals.debug,
+        software=globals.settings.software_webview,
         icon=str(globals.gui.icon_path),
         icon_font=str(icons.font_path),
         extension=str(globals.self_path / "extension/integrated.js"),
@@ -49,6 +50,7 @@ def create(
     size: tuple[int, int] = None,
     pos: tuple[int, int] = None,
     debug: bool,
+    software: bool,
     icon: str,
     icon_font: str,
     extension: str,
@@ -56,7 +58,7 @@ def create(
     col_accent: str,
     col_text: str
 ):
-    config_qt_flags(debug)
+    config_qt_flags(debug, software)
     app = QtWidgets.QApplication(sys.argv)
     icon_font = QtGui.QFontDatabase.applicationFontFamilies(QtGui.QFontDatabase.addApplicationFont(icon_font))[0]
     app.window = QtWidgets.QWidget()

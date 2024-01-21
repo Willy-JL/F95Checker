@@ -314,7 +314,7 @@ class MainGUI():
         self.bg_mode_notifs_timer: float = None
 
         # Setup Qt objects
-        webview.config_qt_flags(globals.debug)
+        webview.config_qt_flags(globals.debug, globals.settings.software_webview)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
 
@@ -3480,6 +3480,13 @@ class MainGUI():
                 "allowing you to see links and spoiler content without actually logging in."
             )
             draw_settings_checkbox("browser_html")
+
+            draw_settings_label(
+                "Software Webview:",
+                "Forces software mode for integrated browser webview, disables GPU acceleration. Enable if you have issues with "
+                "the integrated browser not rendering correctly."
+            )
+            draw_settings_checkbox("software_webview")
 
             if set.browser.integrated:
                 imgui.pop_disabled()

@@ -161,6 +161,7 @@ async def connect():
             "scroll_smooth_speed":         f'REAL    DEFAULT 8.0',
             "select_executable_after_add": f'INTEGER DEFAULT {int(False)}',
             "show_remove_btn":             f'INTEGER DEFAULT {int(False)}',
+            "software_webview":            f'INTEGER DEFAULT {int(False)}',
             "start_in_background":         f'INTEGER DEFAULT {int(False)}',
             "start_refresh":               f'INTEGER DEFAULT {int(False)}',
             "style_accent":                f'TEXT    DEFAULT "{DefaultStyle.accent}"',
