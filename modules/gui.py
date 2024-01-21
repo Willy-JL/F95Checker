@@ -1034,6 +1034,7 @@ class MainGUI():
     def draw_label_widget(self, label: Label, short=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(label.color, interaction=quick_filter)
+        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(label.color))
         if imgui.small_button(label.short_name if short else label.name) and quick_filter:
             flt = Filter(FilterMode.Label)
             flt.match = label
@@ -1044,6 +1045,7 @@ class MainGUI():
             self.draw_label_widget(label, short=False)
             imgui.pop_font()
             imgui.end_tooltip()
+        imgui.pop_style_color()
         self.end_framed_text(interaction=quick_filter)
 
     def draw_status_widget(self, status: Status):
