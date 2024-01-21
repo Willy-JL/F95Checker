@@ -89,7 +89,7 @@ def start():
         try:
             socketserver.TCPServer.allow_reuse_address = True
             socketserver.TCPServer.allow_reuse_port = True
-            server = socketserver.TCPServer(("localhost", globals.rpc_port), RPCHandler)
+            server = socketserver.TCPServer(("127.0.0.1", globals.rpc_port), RPCHandler)
         except Exception:
             raise msgbox.Exc(
                 "RPC server error",

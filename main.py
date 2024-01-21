@@ -8,6 +8,7 @@ release = False
 build_number = 0
 version_name = f"{version}{'' if release else ' beta'}{'' if release or not build_number else ' ' + str(build_number)}"
 rpc_port = 57095
+rpc_url = f"http://127.0.0.1:{rpc_port}"
 
 frozen = getattr(sys, "frozen", False)
 self_path = pathlib.Path(sys.executable if frozen else __file__).parent
@@ -59,7 +60,7 @@ def lock_singleton():
         else:
             try:
                 from urllib import request
-                request.urlopen(request.Request(f"http://localhost:{rpc_port}/window/show", method="POST"))
+                request.urlopen(request.Request(rpc_url + "/window/show", method="POST"))
             except Exception:
                 pass
 

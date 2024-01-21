@@ -1,5 +1,5 @@
 const rpcPort = 57095;
-const rpcURL = `http://localhost:${rpcPort}`;
+const rpcURL = `http://127.0.0.1:${rpcPort}`;
 let games = [];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

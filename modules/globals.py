@@ -12,12 +12,13 @@ release = None
 build_number = None
 version_name = None
 rpc_port = None
+rpc_url = None
 frozen = None
 self_path = None
 debug = None
 def _():
-    global version, release, build_number, version_name, rpc_port, frozen, self_path, debug
-    from main import version, release, build_number, version_name, rpc_port, frozen, self_path, debug
+    global version, release, build_number, version_name, rpc_port, rpc_url, frozen, self_path, debug
+    from main import version, release, build_number, version_name, rpc_port, rpc_url, frozen, self_path, debug
 
     # Fix frozen load paths
     if frozen:
