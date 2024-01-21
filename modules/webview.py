@@ -106,6 +106,8 @@ def create(
 
     app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
     app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+    app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, True)
+    app.setWheelScrollLines(app.wheelScrollLines() * 2)
 
     if title:
         app.window.setWindowTitle(title)
