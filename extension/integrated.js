@@ -6,18 +6,19 @@
 // Also now this script doesn't do anything on its own, it only defines the functions
 // It is up to the WebView to invoke them when appropriate
 
-rpcPort = 57095;
-rpcURL = `http://localhost:${rpcPort}`;
-games = [];
+var games = [];
 
-sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-rpcCall = async (method, path, body) => {
+var rpcCall = async (method, path, body) => {
     try {
-        const res = await fetch(`${rpcURL}${path}`, {
-            method: method,
-            body: body,
-        });
+        const res = await (new Promise((resolve) => {
+            new QWebChannel(qt.webChannelTransport, (channel) => {
+                channel.objects.rpcproxy.handle(method, path, body, (ret) => {
+                    resolve(new Response(ret.body, ret));
+                });
+            });
+        }));
         if (!res.ok) {
             throw res.status;
         }
@@ -25,21 +26,21 @@ rpcCall = async (method, path, body) => {
     } catch {}
 };
 
-getData = async () => {
+var getData = async () => {
     let res = null;
 
     res = await rpcCall('GET', '/games');
     games = res ? await res.json() : [];
 };
 
-addGame = async (url) => {
+var addGame = async (url) => {
     await rpcCall('POST', '/games/add', JSON.stringify([url]));
     await sleep(0.5 * 1000);
     await updateIcons();
 };
 
 // Add icons for games, reminders, etc.
-updateIcons = async () => {
+var updateIcons = async () => {
     await getData();
     const extractThreadId = (url) => {
         const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
@@ -70,7 +71,7 @@ updateIcons = async () => {
         document.querySelectorAll('.f95checker-library-icons').forEach((e) => e.remove());
     };
     const addHrefIcons = () => {
-        for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
+        for (const elem of document.querySelectorAll('a[href*="/threads/"]')) {
             const id = extractThreadId(elem.href);
 
             if (!id || ![...games].includes(id)) {

@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtGui, QtWidgets, QtNetwork, QtWebEngineCore, QtWebEngineWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets, QtNetwork, QtWebChannel, QtWebEngineCore, QtWebEngineWidgets
 import pathlib
 import json
 import sys
@@ -115,7 +115,31 @@ def create(
         app.window.webview.titleChanged.connect(title_changed)
 
     if extension:
-        extension = pathlib.Path(extension).read_text()
+        qwebchanneljsfile = QtCore.QFile(":/qtwebchannel/qwebchannel.js")
+        qwebchanneljsfile.open(QtCore.QFile.OpenModeFlag.ReadOnly)
+        qwebchanneljs = qwebchanneljsfile.readAll().data().decode('utf-8')
+        qwebchanneljsfile.close()
+        extension = qwebchanneljs + pathlib.Path(extension).read_text()
+        from modules import async_thread
+        import aiohttp
+        async_thread.setup()
+        class RPCProxy(QtCore.QObject):
+            def __init__(self):
+                super().__init__()
+                self.session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
+            @QtCore.pyqtSlot(QtCore.QVariant, QtCore.QVariant, QtCore.QVariant, result=QtCore.QVariant)
+            def handle(self, method, path, body):
+                import main
+                if body and not isinstance(body, bytes):
+                    body = body.encode()
+                async def _handle():
+                    async with self.session.request(method, main.rpc_url + path, data=body) as req:
+                        return {"status": req.status, "body": (await req.read()).decode()}
+                return async_thread.wait(_handle())
+        app.window.webview.rpcproxy = RPCProxy()
+        app.window.webview.channel = QtWebChannel.QWebChannel(app.window.webview)
+        app.window.webview.channel.registerObject('rpcproxy', app.window.webview.rpcproxy)
+        app.window.webview.page.setWebChannel(app.window.webview.channel)
         app.window.webview.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         def custom_context_menu_requested(pos: QtCore.QPoint):
             menu = app.window.webview.createStandardContextMenu()
