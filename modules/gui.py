@@ -3531,15 +3531,15 @@ class MainGUI():
             )
             draw_settings_checkbox("browser_html")
 
+            if set.browser.integrated:
+                imgui.pop_disabled()
+
             draw_settings_label(
                 "Software Webview:",
                 "Forces software mode for integrated browser webview, disables GPU acceleration. Enable if you have issues with "
                 "the integrated browser not rendering correctly."
             )
             draw_settings_checkbox("software_webview")
-
-            if set.browser.integrated:
-                imgui.pop_disabled()
 
             draw_settings_label("Copy game links as BBcode:")
             draw_settings_checkbox("copy_urls_as_bbcode")
