@@ -2744,15 +2744,6 @@ class MainGUI():
         checkboxes = cols.finished.enabled + cols.installed.enabled
         buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
         action_items = checkboxes + buttons
-        data_rows = (
-            cols.developer.enabled +
-            cols.score.enabled +
-            cols.last_updated.enabled +
-            cols.last_played.enabled +
-            cols.added_on.enabled +
-            cols.rating.enabled +
-            cols.notes.enabled
-        )
         bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
 
         min_width = (
@@ -2778,16 +2769,13 @@ class MainGUI():
         )
 
         frame_height = imgui.get_frame_height()
-        line_height = imgui.get_text_line_height()
-        data_height = data_rows * line_height
-        badge_wrap = side_indent + line_height
-        dev_wrap = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x * 2
+        badge_wrap = side_indent + imgui.get_text_line_height()
 
-        config = (side_indent, action_items, data_rows, bg_col, frame_height, data_height, badge_wrap, dev_wrap)
+        config = (side_indent, action_items, bg_col, frame_height, badge_wrap)
         return min_width, config
 
     def draw_game_cell(self, game: Game, game_i: int | None, draw_list, cell_width: float, img_height: float, config: tuple):
-        (side_indent, action_items, data_rows, bg_col, frame_height, data_height, badge_wrap, dev_wrap) = config
+        (side_indent, action_items, bg_col, frame_height, badge_wrap) = config
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
@@ -2906,46 +2894,47 @@ class MainGUI():
             else:
                 # Skip if outside view
                 imgui.dummy(0, frame_height)
+        # Cluster data
+        cluster = False
         if game.labels:
-            self.draw_game_labels_widget(game, small=True, align=True)
-        if data_rows:
-            if imgui.is_rect_visible(cell_width, data_height):
-                # Developer
-                if cols.developer.enabled:
-                    imgui.text_disabled("Developer:")
-                    imgui.same_line()
-                    utils.wrap_text(game.developer or "Unknown", width=cell_width - 2 * side_indent, offset=dev_wrap)
-                # Forum Score
-                if cols.score.enabled:
-                    imgui.text_disabled("Forum Score:")
-                    imgui.same_line()
-                    imgui.text(f"{game.score:.1f}/5")
-                # Last Updated
-                if cols.last_updated.enabled:
-                    imgui.text_disabled("Last Updated:")
-                    imgui.same_line()
-                    imgui.text(game.last_updated.display or "Unknown")
-                # Last Played
-                if cols.last_played.enabled:
-                    imgui.text_disabled("Last Played:")
-                    imgui.same_line()
-                    imgui.text(game.last_played.display or "Never")
-                # Added On
-                if cols.added_on.enabled:
-                    imgui.text_disabled("Added On:")
-                    imgui.same_line()
-                    imgui.text(game.added_on.display)
-                # Rating
-                if cols.rating.enabled:
-                    imgui.text_disabled("Rating:")
-                    imgui.same_line()
-                    self.draw_game_rating_widget(game)
-                # Notes
-                if cols.notes.enabled:
-                    self.draw_game_notes_widget(game, multiline=False, width=cell_width - 2 * side_indent)
+            self.draw_game_labels_widget(game, short=True, align=False)
+            imgui.same_line()
+            cluster = True
+        pad = 3 * imgui.style.item_spacing.x
+        def _cluster_text(icon, text):
+            nonlocal cluster
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(icon + text[:10]).x + pad:
+                imgui.dummy(0, 0)
+            imgui.text_disabled(icon)
+            imgui.same_line()
+            utils.wrap_text(text, width=cell_width - side_indent, offset=imgui.get_cursor_pos_x() - pos.x)
+            imgui.same_line(spacing=pad)
+            cluster = True
+        if cols.developer.enabled:
+            _cluster_text(cols.developer.name[0], game.developer)
+        if cols.score.enabled:
+            _cluster_text(cols.score.name[0], f"{game.score:.1f}")
+        if cols.last_updated.enabled:
+            _cluster_text(cols.last_updated.name[0], game.last_updated.display or "Unknown")
+        if cols.last_played.enabled:
+            _cluster_text(cols.last_played.name[0], game.last_played.display or "Never")
+        if cols.added_on.enabled:
+            _cluster_text(cols.added_on.name[0], game.added_on.display)
+        if cols.rating.enabled:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.star * 5).x + pad:
+                imgui.dummy(0, 0)
+            self.draw_game_rating_widget(game)
+            imgui.same_line(spacing=pad)
+            cluster = True
+        if cluster:
+            imgui.dummy(0, 0)
+        # Notes line
+        if cols.notes.enabled:
+            if imgui.is_rect_visible(cell_width, frame_height):
+                self.draw_game_notes_widget(game, multiline=False, width=cell_width - 2 * side_indent)
             else:
                 # Skip if outside view
-                imgui.dummy(0, data_height)
+                imgui.dummy(0, frame_height)
         # Cell hitbox
         imgui.pop_text_wrap_pos()
         imgui.spacing()
