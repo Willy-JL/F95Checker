@@ -637,6 +637,7 @@ class MainGUI():
         size_15 = self.scaled(15 * font_scaling_factor)
         size_18 = self.scaled(18 * font_scaling_factor)
         size_22 = self.scaled(22 * font_scaling_factor)
+        size_28 = self.scaled(28 * font_scaling_factor)
         size_32 = self.scaled(32 * font_scaling_factor)
         size_69 = self.scaled(69 * font_scaling_factor)
         fonts = type("FontStore", (), {})()
@@ -649,11 +650,11 @@ class MainGUI():
         # Bold font + more glyphs + icons
         fonts.bold    = add_font(karlab_path, size_22, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_22, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                mdi_path,    size_22, font_config=mdi_config,   glyph_ranges=mdi_range)
+        add_font(                mdi_path,    size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Big font + more glyphs + icons
         fonts.big     = add_font(karlab_path, size_32, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_32, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                mdi_path,    size_32, font_config=mdi_config,   glyph_ranges=mdi_range)
+        add_font(                mdi_path,    size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Small font + more glyphs + icons
         fonts.small   = add_font(karlar_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_14, font_config=noto_config,  glyph_ranges=noto_range)
@@ -2835,20 +2836,16 @@ class MainGUI():
             self.draw_type_widget(game.type, wide=False)
             imgui.set_cursor_pos(old_pos)
         # Name
+        imgui.push_font(imgui.fonts.bold)
         if game.updated:
             self.draw_game_update_icon(game)
             imgui.same_line()
-        imgui.push_font(imgui.fonts.bold)
         self.draw_game_name_text(game)
-        imgui.pop_font()
         if game.notes:
             imgui.same_line()
             if imgui.get_content_region_available_width() < badge_wrap:
                 imgui.dummy(0, 0)
             imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-        if game.labels:
-            imgui.same_line()
-            self.draw_game_labels_widget(game, small=True, align=True)
         if cols.version.enabled:
             imgui.text_disabled(game.version)
         if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
@@ -2856,6 +2853,7 @@ class MainGUI():
             if imgui.get_content_region_available_width() < badge_wrap:
                 imgui.dummy(0, 0)
             self.draw_status_widget(game.status)
+        imgui.pop_font()
         if action_items:
             if imgui.is_rect_visible(cell_width, frame_height):
                 # Play Button
@@ -2898,6 +2896,8 @@ class MainGUI():
             else:
                 # Skip if outside view
                 imgui.dummy(0, frame_height)
+        if game.labels:
+            self.draw_game_labels_widget(game, small=True, align=True)
         if data_rows:
             if imgui.is_rect_visible(cell_width, data_height):
                 # Developer
