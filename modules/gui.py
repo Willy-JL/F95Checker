@@ -2823,19 +2823,29 @@ class MainGUI():
         imgui.indent(side_indent)
         imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
         imgui.spacing()
-        # Remove button
-        if showed_img and globals.settings.show_remove_btn:
+        imgui.spacing()
+        # Image overlays
+        if showed_img:
             old_pos = imgui.get_cursor_pos()
-            imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
-            self.draw_game_remove_button(game, icons.trash_can_outline)
+            # Remove button
+            if globals.settings.show_remove_btn:
+                imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + imgui.style.item_spacing.y))
+                self.draw_game_remove_button(game, icons.trash_can_outline)
+            # Type
+            if cols.type.enabled:
+                imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + img_height + imgui.style.item_spacing.y - frame_height / 2))
+                self.draw_type_widget(game.type, wide=False)
+            # Version
+            if cols.version.enabled:
+                cut = len(game.version)
+                while (w := imgui.calc_text_size(game.version[:cut]).x) > cell_width / 2:
+                    cut -= 1
+                imgui.set_cursor_pos((pos.x + cell_width - side_indent - imgui.style.item_spacing.x - w, pos.y + img_height + imgui.style.item_spacing.y - frame_height / 2))
+                self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=False)
+                imgui.small_button(game.version[:cut])
+                self.end_framed_text(interaction=False)
             imgui.set_cursor_pos(old_pos)
-        # Type
-        if showed_img and cols.type.enabled:
-            old_pos = imgui.get_cursor_pos()
-            imgui.set_cursor_pos((pos.x + imgui.style.item_spacing.x, pos.y + img_height - frame_height))
-            self.draw_type_widget(game.type, wide=False)
-            imgui.set_cursor_pos(old_pos)
-        # Name
+        # Name line
         imgui.push_font(imgui.fonts.bold)
         if game.updated:
             self.draw_game_update_icon(game)
@@ -2846,14 +2856,13 @@ class MainGUI():
             if imgui.get_content_region_available_width() < badge_wrap:
                 imgui.dummy(0, 0)
             imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-        if cols.version.enabled:
-            imgui.text_disabled(game.version)
         if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
             imgui.same_line()
             if imgui.get_content_region_available_width() < badge_wrap:
                 imgui.dummy(0, 0)
             self.draw_status_widget(game.status)
         imgui.pop_font()
+        # Buttons line
         if action_items:
             if imgui.is_rect_visible(cell_width, frame_height):
                 # Play Button
