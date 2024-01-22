@@ -613,17 +613,18 @@ class MainGUI():
         fb_w, fb_h = glfw.get_framebuffer_size(self.window)
         font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
         imgui.io.font_global_scale = 1 / font_scaling_factor
-        karla_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
-        meslo_path = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
-        noto_path  = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
-        mdi_path   = str(icons.font_path)
+        karlar_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
+        karlab_path = str(next(globals.self_path.glob("resources/fonts/Karla-Bold.*.ttf")))
+        meslo_path  = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
+        noto_path   = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
+        mdi_path    = str(icons.font_path)
         merge = dict(merge_mode=True)
         oversample = dict(oversample_h=2, oversample_v=2)
         karla_config = imgui.core.FontConfig(         glyph_offset_y=-0.5, **oversample)
         meslo_config = imgui.core.FontConfig(                              **oversample)
         noto_config  = imgui.core.FontConfig(**merge, glyph_offset_y=-0.5, **oversample)
         mdi_config   = imgui.core.FontConfig(**merge, glyph_offset_y=+1.0)
-        karla_range = imgui.core.GlyphRanges([0x1,            0x20ac,         0])
+        karla_range = imgui.core.GlyphRanges([0x1,            0x25ca,         0])
         meslo_range = imgui.core.GlyphRanges([0x1,            0x2e2e,         0])
         noto_range  = imgui.core.GlyphRanges([0x1,            0xfffd,         0])
         mdi_range   = imgui.core.GlyphRanges([icons.min_char, icons.max_char, 0])
@@ -635,27 +636,32 @@ class MainGUI():
         size_14 = self.scaled(14 * font_scaling_factor)
         size_15 = self.scaled(15 * font_scaling_factor)
         size_18 = self.scaled(18 * font_scaling_factor)
-        size_28 = self.scaled(28 * font_scaling_factor)
+        size_22 = self.scaled(22 * font_scaling_factor)
+        size_32 = self.scaled(32 * font_scaling_factor)
         size_69 = self.scaled(69 * font_scaling_factor)
         fonts = type("FontStore", (), {})()
         imgui.fonts = fonts
         add_font = imgui.io.fonts.add_font_from_file_ttf
         # Default font + more glyphs + icons
-        fonts.default = add_font(karla_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
-        add_font(                noto_path,  size_18, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                mdi_path,   size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
+        fonts.default = add_font(karlar_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                noto_path,   size_18, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                mdi_path,    size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
+        # Bold font + more glyphs + icons
+        fonts.bold    = add_font(karlab_path, size_22, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                noto_path,   size_22, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                mdi_path,    size_22, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Big font + more glyphs + icons
-        fonts.big     = add_font(karla_path, size_28, font_config=karla_config, glyph_ranges=karla_range)
-        add_font(                noto_path,  size_28, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                mdi_path,   size_28, font_config=mdi_config,   glyph_ranges=mdi_range)
-        # Big font + more glyphs + icons
-        fonts.small   = add_font(karla_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
-        add_font(                noto_path,  size_14, font_config=noto_config,  glyph_ranges=noto_range)
-        add_font(                mdi_path,   size_14, font_config=mdi_config,   glyph_ranges=mdi_range)
+        fonts.big     = add_font(karlab_path, size_32, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                noto_path,   size_32, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                mdi_path,    size_32, font_config=mdi_config,   glyph_ranges=mdi_range)
+        # Small font + more glyphs + icons
+        fonts.small   = add_font(karlar_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
+        add_font(                noto_path,   size_14, font_config=noto_config,  glyph_ranges=noto_range)
+        add_font(                mdi_path,    size_14, font_config=mdi_config,   glyph_ranges=mdi_range)
         # Monospace font for more info dropdowns
-        fonts.mono    = add_font(meslo_path, size_15, font_config=meslo_config, glyph_ranges=meslo_range)
+        fonts.mono    = add_font(meslo_path,  size_15, font_config=meslo_config, glyph_ranges=meslo_range)
         # MsgBox type icons/thumbnails
-        fonts.msgbox  = add_font(mdi_path,   size_69,                           glyph_ranges=msgbox_range)
+        fonts.msgbox  = add_font(mdi_path,    size_69,                           glyph_ranges=msgbox_range)
         try:
             tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
         except SystemError:
@@ -2832,7 +2838,9 @@ class MainGUI():
         if game.updated:
             self.draw_game_update_icon(game)
             imgui.same_line()
+        imgui.push_font(imgui.fonts.bold)
         self.draw_game_name_text(game)
+        imgui.pop_font()
         if game.notes:
             imgui.same_line()
             if imgui.get_content_region_available_width() < badge_wrap:
