@@ -176,14 +176,14 @@ async def connect():
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "zoom_area":                   f'INTEGER DEFAULT 50',
             "zoom_times":                  f'REAL    DEFAULT 4.0',
-            "zoom_enabled":                f'INTEGER DEFAULT {int(True)}'
+            "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',
         },
         renames=[
             ("grid_image_ratio",      "cell_image_ratio"),
             ("minimize_on_close",     "background_on_close"),
             ("start_in_tray",         "start_in_background"),
             ("tray_notifs_interval",  "bg_notifs_interval"),
-            ("tray_refresh_interval", "bg_refresh_interval")
+            ("tray_refresh_interval", "bg_refresh_interval"),
         ]
     )
     await connection.execute("""
@@ -223,12 +223,12 @@ async def connect():
             "labels":                      f'TEXT    DEFAULT "[]"',
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""',
-            "downloads":                   f'TEXT    DEFAULT "[]"'
+            "downloads":                   f'TEXT    DEFAULT "[]"',
         },
         renames=[
             ("executable", "executables"),
             ("last_full_refresh", "last_full_check"),
-            ("last_refresh_version", "last_check_version")
+            ("last_refresh_version", "last_check_version"),
         ]
     )
 
@@ -236,7 +236,7 @@ async def connect():
         table_name="cookies",
         columns={
             "key":                         f'TEXT    PRIMARY KEY',
-            "value":                       f'TEXT    DEFAULT ""'
+            "value":                       f'TEXT    DEFAULT ""',
         }
     )
     await create_table(
@@ -244,7 +244,7 @@ async def connect():
         columns={
             "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
             "name":                        f'TEXT    DEFAULT ""',
-            "color":                       f'TEXT    DEFAULT "#696969"'
+            "color":                       f'TEXT    DEFAULT "#696969"',
         }
     )
 
