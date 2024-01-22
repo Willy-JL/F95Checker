@@ -75,6 +75,7 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
             """)
             # has_columns is not updated because its not used later
             has_column_names[has_column_names.index(rename_old)] = rename_new
+    recreated = False
     for column_name, column_def in columns.items():
         if column_name not in has_column_names:
             # Column is missing, add it
@@ -86,7 +87,7 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
             has_column_def = has_column_defs[has_column_names.index(column_name)]  # (type, default)
             type_changed = not column_def.strip().lower().startswith(has_column_def[0].lower())
             default_changed = " default " in column_def.lower() and not re.search(r"[Dd][Ee][Ff][Aa][Uu][Ll][Tt]\s+?" + re.escape(str(has_column_def[1])), column_def)
-            if type_changed or default_changed:
+            if (type_changed or default_changed) and not recreated:
                 # Recreate table and transfer values
                 temp_column_list = ", ".join(columns.keys())
                 temp_table_name = f"{table_name}_temp_{utils.rand_num_str()}"
@@ -105,6 +106,7 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 await connection.execute(f"""
                     DROP TABLE {temp_table_name}
                 """)
+                recreated = True
             if type_changed and has_column_def[0].lower() == "integer" and column_def.strip().lower().startswith("text"):
                 # Check if this is boolean to string
                 cursor = await connection.execute(f"""
