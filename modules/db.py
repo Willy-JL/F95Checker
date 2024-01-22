@@ -226,7 +226,7 @@ async def connect():
             "last_played":                 f'INTEGER DEFAULT 0',
             "score":                       f'REAL    DEFAULT 0',
             "rating":                      f'INTEGER DEFAULT 0',
-            "played":                      f'INTEGER DEFAULT {int(False)}',
+            "finished":                    f'TEXT    DEFAULT ""',
             "installed":                   f'TEXT    DEFAULT ""',
             "updated":                     f'INTEGER DEFAULT NULL',
             "archived":                    f'INTEGER DEFAULT {int(False)}',
@@ -243,6 +243,7 @@ async def connect():
             ("executable", "executables"),
             ("last_full_refresh", "last_full_check"),
             ("last_refresh_version", "last_check_version"),
+            ("played", "finished"),
         ]
     )
 
@@ -698,8 +699,11 @@ async def migrate_legacy(config: str | pathlib.Path | dict):
                         values.append("")
 
                 if (played := game.get("played")) is not None:
-                    keys.append("played")
-                    values.append(int(played))
+                    keys.append("finished")
+                    if played:
+                        values.append(version)
+                    else:
+                        values.append("")
 
                 if (exe_path := game.get("exe_path")) is not None:
                     keys.append("executables")

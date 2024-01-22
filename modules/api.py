@@ -607,23 +607,24 @@ async def full_check(game: Game, version: str):
         (name, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
 
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
-        breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/played checkboxes
+        breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
         breaking_keep_old_image  = last_check_before("9.0",   game.last_check_version)  # Keep existing image files
 
         last_full_check = int(time.time())
         last_check_version = globals.version
 
-        # Skip update popup and don't reset played/installed checkboxes if refreshing with braking changes
-        played = game.played
+        # Skip update popup and don't reset finished/installed checkboxes if refreshing with braking changes
+        finished = game.finished
         installed = game.installed
         updated = game.updated
         if breaking_version_parsing or old_status is Status.Unchecked:
+            if old_version == finished:
+                finished = version  # Is breaking and was previously finished, mark again as finished
             if old_version == installed:
                 installed = version  # Is breaking and was previously installed, mark again as installed
             old_version = version  # Don't include version change in popup for simple parsing adjustments
         else:
             if version != old_version:
-                played = False  # Not breaking and version changed, remove played checkbox
                 if not game.archived:
                     updated = True
 
@@ -646,7 +647,7 @@ async def full_check(game: Game, version: str):
             game.last_full_check = last_full_check
             game.last_check_version = last_check_version
             game.score = score
-            game.played = played
+            game.finished = finished
             game.installed = installed
             game.updated = updated
             game.description = description

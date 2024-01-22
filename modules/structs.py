@@ -441,9 +441,9 @@ FilterMode = IntEnumHack("FilterMode", [
     ("Archived",  2),
     ("Custom",    13),
     ("Exe State", 3),
+    ("Finished",  6),
     ("Installed", 4),
     ("Label",     5),
-    ("Played",    6),
     ("Rating",    7),
     ("Score",     8),
     ("Status",    9),
@@ -681,7 +681,7 @@ class Game:
     last_played        : Datestamp
     score              : float
     rating             : int
-    played             : bool
+    finished           : str
     installed          : str
     updated            : bool | None
     archived           : bool
@@ -707,6 +707,10 @@ class Game:
             self.updated = bool(self.installed) and self.installed != self.version
         if self.image_url == "-":
             self.image_url = "missing"
+        if self.finished == "True" and self.installed != "True" and self.version != "True":
+            self.finished = (self.installed or self.version)
+        elif self.finished == "False" and self.installed != "False" and self.version != "False":
+            self.finished = ""
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executables()
@@ -828,7 +832,7 @@ class Game:
             "last_played",
             "score",
             "rating",
-            "played",
+            "finished",
             "installed",
             "updated",
             "archived",

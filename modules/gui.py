@@ -177,8 +177,8 @@ class Columns:
             sortable=True,
             resizable=False,
         )
-        self.played = self.Column(
-            self, f"{icons.flag_checkered} Played",
+        self.finished = self.Column(
+            self, f"{icons.flag_checkered} Finished",
             default=True,
             sortable=True,
             resizable=False,
@@ -1164,7 +1164,7 @@ class MainGUI():
             self.draw_game_archive_icon(game)
             imgui.same_line()
             imgui.text_disabled(game.name)
-        elif game.played:
+        elif game.finished == game.version:
             imgui.text(game.name)
         else:
             imgui.text_colored(game.name, *globals.settings.style_accent)
@@ -1177,21 +1177,28 @@ class MainGUI():
         else:
             return game.version
 
-    def draw_game_played_checkbox(self, game: Game, label=""):
+    def draw_game_finished_checkbox(self, game: Game, label=""):
         if game:
-            changed, value = imgui.checkbox(f"{label}###{game.id}_played", game.played)
+            if game.finished and game.finished == (game.installed or game.version):
+                checkbox = imgui.checkbox
+            else:
+                checkbox = imgui._checkbox
+            changed, _ = checkbox(f"{label}###{game.id}_finished", bool(game.finished))
             if changed:
-                game.played = value
+                if game.finished == (game.installed or game.version):
+                    game.finished = ""  # Finished -> Not finished
+                else:
+                    game.finished = (game.installed or game.version)  # Not finished -> Finished, Outdated finished -> Finished
         else:
             if imgui.small_button(icons.check):
                 for game in globals.games.values():
                     if game.selected:
-                        game.played = True
+                        game.finished = (game.installed or game.version)
             imgui.same_line()
             if imgui.small_button(icons.close):
                 for game in globals.games.values():
                     if game.selected:
-                        game.played = False
+                        game.finished = ""
             imgui.same_line()
             imgui.text(label + " ")
 
@@ -1437,7 +1444,7 @@ class MainGUI():
         self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes", selectable=True)
         self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
-        self.draw_game_played_checkbox(game, f"{icons.flag_checkered} Played")
+        self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
         self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
         imgui.separator()
         if not game:
@@ -1740,7 +1747,7 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_id_button(game, f"{icons.pound} ID")
             imgui.same_line()
-            self.draw_game_played_checkbox(game, f"{icons.flag_checkered} Played")
+            self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
             _10 = self.scaled(10)
             imgui.same_line(spacing=_10)
             self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
@@ -2416,8 +2423,8 @@ class MainGUI():
                             key = lambda id: - globals.games[id].last_played.value
                         case cols.added_on.index:
                             key = lambda id: - globals.games[id].added_on.value
-                        case cols.played.index:
-                            key = lambda id: not globals.games[id].played
+                        case cols.finished.index:
+                            key = lambda id: 2 if not globals.games[id].finished else 1 if globals.games[id].finished == (globals.games[id].installed or globals.games[id].version) else 0
                         case cols.installed.index:
                             key = lambda id: 2 if not globals.games[id].installed else 1 if globals.games[id].installed == globals.games[id].version else 0
                         case cols.rating.index:
@@ -2445,6 +2452,11 @@ class MainGUI():
                             (not globals.games[id].executables) if flt.match is ExeState.Unset else
                             (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid)))
                         )
+                    case FilterMode.Finished.value:
+                        key = lambda id: flt.invert != (
+                            (globals.games[id].finished != "") if flt.match else
+                            (globals.games[id].finished == (globals.games[id].installed or globals.games[id].version))
+                        )
                     case FilterMode.Installed.value:
                         key = lambda id: flt.invert != (
                             (globals.games[id].installed != "") if flt.match else
@@ -2452,8 +2464,6 @@ class MainGUI():
                         )
                     case FilterMode.Label.value:
                         key = lambda id: flt.invert != (flt.match in globals.games[id].labels)
-                    case FilterMode.Played.value:
-                        key = lambda id: flt.invert != (globals.games[id].played is True)
                     case FilterMode.Rating.value:
                         key = lambda id: flt.invert != (globals.games[id].rating == flt.match)
                     case FilterMode.Score.value:
@@ -2636,8 +2646,8 @@ class MainGUI():
                             imgui.text(game.last_played.display or "Never")
                         case cols.added_on.index:
                             imgui.text(game.added_on.display)
-                        case cols.played.index:
-                            self.draw_game_played_checkbox(game)
+                        case cols.finished.index:
+                            self.draw_game_finished_checkbox(game)
                         case cols.installed.index:
                             self.draw_game_installed_checkbox(game)
                         case cols.rating.index:
@@ -2697,7 +2707,7 @@ class MainGUI():
 
     def get_game_cell_config(self):
         side_indent = imgui.style.item_spacing.x * 2
-        checkboxes = cols.played.enabled + cols.installed.enabled
+        checkboxes = cols.finished.enabled + cols.installed.enabled
         buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
         action_items = checkboxes + buttons
         data_rows = (
@@ -2723,7 +2733,7 @@ class MainGUI():
                     f"{icons.folder_open_outline} Folder" * cols.open_folder.enabled +
                     f"{icons.open_in_new} Thread" * cols.open_thread.enabled +
                     f"{icons.content_copy} Link" * cols.copy_link.enabled +
-                    icons.flag_checkered * cols.played.enabled +
+                    icons.flag_checkered * cols.finished.enabled +
                     icons.cloud_download * cols.installed.enabled
                 ).x
             ),
@@ -2839,11 +2849,11 @@ class MainGUI():
                         imgui.same_line()
                     self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
                     did_newline = True
-                # Played
-                if cols.played.enabled:
+                # Finished
+                if cols.finished.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_played_checkbox(game, icons.flag_checkered)
+                    self.draw_game_finished_checkbox(game, icons.flag_checkered)
                     did_newline = True
                 # Installed
                 if cols.installed.enabled:
@@ -3273,6 +3283,8 @@ class MainGUI():
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
                         flt.match = ExeState[ExeState._member_names_[0]]
+                    case FilterMode.Finished.value:
+                        flt.match = True
                     case FilterMode.Installed.value:
                         flt.match = True
                     case FilterMode.Label.value:
@@ -3309,6 +3321,13 @@ class MainGUI():
                         changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, ExeState._member_names_)
                         if changed:
                             flt.match = ExeState[ExeState._member_names_[value]]
+                            self.require_sort = True
+                    case FilterMode.Finished.value:
+                        draw_settings_label("Include outdated:")
+                        imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
+                        changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
+                        if changed:
+                            flt.match = value
                             self.require_sort = True
                     case FilterMode.Installed.value:
                         draw_settings_label("Include outdated:")
