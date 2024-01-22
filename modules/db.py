@@ -52,20 +52,24 @@ def setup():
         async_thread.wait(close())
 
 
-async def create_table(table_name: str, columns: dict[str, str], renames: list[tuple[str, str]] = []):
-    await connection.execute(f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            {', '.join([f'{column_name} {column_def}' for column_name, column_def in columns.items()])}
-        )
-    """)
-    # Add missing and update existing columns for backwards compatibility
-    # Get table info
+async def get_table_info(table_name: str):
     cursor = await connection.execute(f"""
         PRAGMA table_info({table_name})
     """)
     has_columns = [tuple(row) for row in await cursor.fetchall()]  # (index, name, type, can_be_null, default, idk)
     has_column_names = [column[1] for column in has_columns]
     has_column_defs = [(column[2], column[4]) for column in has_columns]  # (type, default)
+    return has_column_names, has_column_defs
+
+
+async def create_table(table_name: str, columns: dict[str, str], renames: list[tuple[str, str]] = []):
+    await connection.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            {', '.join([f'{column_name} {column_def}' for column_name, column_def in columns.items()])}
+        )
+    """)
+    has_column_names, has_column_defs = await get_table_info(table_name)
+
     # Rename columns
     for rename_old, rename_new in renames:
         if rename_old in has_column_names and rename_new not in has_column_names:
@@ -73,58 +77,64 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 ALTER TABLE {table_name}
                 RENAME COLUMN {rename_old} TO {rename_new}
             """)
-            # has_columns is not updated because its not used later
             has_column_names[has_column_names.index(rename_old)] = rename_new
-    recreated = False
+
+    # Add columns
+    added = False
     for column_name, column_def in columns.items():
         if column_name not in has_column_names:
-            # Column is missing, add it
             await connection.execute(f"""
                 ALTER TABLE {table_name}
                 ADD COLUMN {column_name} {column_def}
             """)
-        else:
-            has_column_def = has_column_defs[has_column_names.index(column_name)]  # (type, default)
-            type_changed = not column_def.strip().lower().startswith(has_column_def[0].lower())
-            default_changed = " default " in column_def.lower() and not re.search(r"[Dd][Ee][Ff][Aa][Uu][Ll][Tt]\s+?" + re.escape(str(has_column_def[1])), column_def)
-            if (type_changed or default_changed) and not recreated:
-                # Recreate table and transfer values
-                temp_column_list = ", ".join(columns.keys())
-                temp_table_name = f"{table_name}_temp_{utils.rand_num_str()}"
+            added = True
+    if added:
+        has_column_names, has_column_defs = await get_table_info(table_name)
+
+    # Update column defs
+    recreated = False
+    for column_name, column_def in columns.items():
+        has_column_def = has_column_defs[has_column_names.index(column_name)]  # (type, default)
+        type_changed = not column_def.strip().lower().startswith(has_column_def[0].lower())
+        default_changed = " default " in column_def.lower() and not re.search(r"[Dd][Ee][Ff][Aa][Uu][Ll][Tt]\s+?" + re.escape(str(has_column_def[1])), column_def)
+        if (type_changed or default_changed) and not recreated:
+            # Recreate table and transfer values
+            temp_column_list = ", ".join(columns.keys())
+            temp_table_name = f"{table_name}_temp_{utils.rand_num_str()}"
+            await connection.execute(f"""
+                ALTER TABLE {table_name}
+                RENAME TO {temp_table_name}
+            """)
+            await create_table(table_name, columns, renames)
+            await connection.execute(f"""
+                INSERT INTO {table_name}
+                ({temp_column_list})
+                SELECT
+                {temp_column_list}
+                FROM {temp_table_name};
+            """)
+            await connection.execute(f"""
+                DROP TABLE {temp_table_name}
+            """)
+            recreated = True
+        if type_changed and has_column_def[0].lower() == "integer" and column_def.strip().lower().startswith("text"):
+            # Check if this is boolean to string
+            cursor = await connection.execute(f"""
+                SELECT {column_name}
+                FROM {table_name}
+            """)
+            if all(value[0] in ("0", "1") for value in await cursor.fetchall()):
+                # All 0 or 1, convert to boolean names
                 await connection.execute(f"""
-                    ALTER TABLE {table_name}
-                    RENAME TO {temp_table_name}
-                """)
-                await create_table(table_name, columns, renames)
-                await connection.execute(f"""
-                    INSERT INTO {table_name}
-                    ({temp_column_list})
-                    SELECT
-                    {temp_column_list}
-                    FROM {temp_table_name};
+                    UPDATE {table_name}
+                    SET
+                        {column_name} = REPLACE({column_name}, '0', 'False')
                 """)
                 await connection.execute(f"""
-                    DROP TABLE {temp_table_name}
+                    UPDATE {table_name}
+                    SET
+                        {column_name} = REPLACE({column_name}, '1', 'True')
                 """)
-                recreated = True
-            if type_changed and has_column_def[0].lower() == "integer" and column_def.strip().lower().startswith("text"):
-                # Check if this is boolean to string
-                cursor = await connection.execute(f"""
-                    SELECT {column_name}
-                    FROM {table_name}
-                """)
-                if all(value[0] in ("0", "1") for value in await cursor.fetchall()):
-                    # All 0 or 1, convert to boolean names
-                    await connection.execute(f"""
-                        UPDATE {table_name}
-                        SET
-                            {column_name} = REPLACE({column_name}, '0', 'False')
-                    """)
-                    await connection.execute(f"""
-                        UPDATE {table_name}
-                        SET
-                            {column_name} = REPLACE({column_name}, '1', 'True')
-                    """)
 
 
 async def connect():
