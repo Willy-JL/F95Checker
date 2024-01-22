@@ -1538,20 +1538,21 @@ class MainGUI():
         imgui.dummy(0, 0)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_game_labels_widget(self, game: Game, wrap=True, small=False, align=False):
+    def draw_game_labels_widget(self, game: Game, wrap=True, small=False, short=False, align=False):
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
         if small:
+            short = True
             imgui.push_font(imgui.fonts.small)
             if align:
                 imgui.push_y(self.scaled(2.5))
                 popped_y = False
         for label in game.labels:
-            if wrap and imgui.get_content_region_available_width() < imgui.calc_text_size(label.short_name if small else label.name).x + pad:
+            if wrap and imgui.get_content_region_available_width() < imgui.calc_text_size(label.short_name if short else label.name).x + pad:
                 if small and align and not popped_y:
                     imgui.pop_y()
                     popped_y = True
                 imgui.dummy(0, 0)
-            self.draw_label_widget(label, short=small)
+            self.draw_label_widget(label, short=short)
             imgui.same_line()
         if small and align and not popped_y:
             imgui.pop_y()
