@@ -240,7 +240,7 @@ def _scaled(mult: float, size: int | float):
 class MainGUI():
     def __init__(self):
         # Constants
-        self.sidebar_size = 230
+        self.sidebar_size = 234
         self.window_flags: int = (
             imgui.WINDOW_NO_MOVE |
             imgui.WINDOW_NO_RESIZE |
@@ -882,8 +882,8 @@ class MainGUI():
                         text_y = size.y - text_size.y - _6
 
                         # Sidebar
-                        imgui.same_line(spacing=1)
-                        imgui.begin_child("###sidebar_frame", width=sidebar_size - 1, height=-text_size.y)
+                        imgui.same_line(spacing=imgui.style.item_spacing.x)
+                        imgui.begin_child("###sidebar_frame", width=sidebar_size - imgui.style.item_spacing.x + 1, height=-text_size.y)
                         self.draw_sidebar()
                         imgui.end_child()
 
