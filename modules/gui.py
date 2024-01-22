@@ -1075,10 +1075,14 @@ class MainGUI():
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+            imgui.text_unformatted("This game has been updated!")
+            imgui.text_disabled("Installed:")
+            imgui.same_line()
+            imgui.text(game.installed or 'N/A')
+            imgui.text_disabled("Latest:")
+            imgui.same_line()
+            imgui.text(game.version)
             imgui.text_unformatted(
-                "This game has been updated!\n"
-                f"Installed version: {game.installed or 'N/A'}\n"
-                f"Latest version: {game.version}\n"
                 "Middle click to remove the update marker, alternatively\n"
                 "mark as installed to do the same."
             )
@@ -1171,24 +1175,31 @@ class MainGUI():
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             callbacks.clipboard_copy(game.name)
 
-    def get_game_version_text(self, game: Game):
-        if game.installed and game.installed != game.version:
-            return f"{icons.cloud_download} {game.installed}  |  {icons.star_shooting} {game.version}"
-        else:
-            return game.version
-
     def draw_game_finished_checkbox(self, game: Game, label=""):
         if game:
-            if game.finished and game.finished == (game.installed or game.version):
+            installed_finished = game.finished == (game.installed or game.version)
+            if installed_finished:
                 checkbox = imgui.checkbox
             else:
                 checkbox = imgui._checkbox
             changed, _ = checkbox(f"{label}###{game.id}_finished", bool(game.finished))
             if changed:
-                if game.finished == (game.installed or game.version):
+                if installed_finished:
                     game.finished = ""  # Finished -> Not finished
                 else:
                     game.finished = (game.installed or game.version)  # Not finished -> Finished, Outdated finished -> Finished
+            if game.finished and not installed_finished and imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+                imgui.text_disabled("Finished:")
+                imgui.same_line()
+                imgui.text(game.finished)
+                imgui.text_disabled("Installed:")
+                imgui.same_line()
+                imgui.text(game.installed or 'N/A')
+                imgui.text_unformatted("Click to mark installed as finished.")
+                imgui.pop_text_wrap_pos()
+                imgui.end_tooltip()
         else:
             if imgui.small_button(icons.check):
                 for game in globals.games.values():
@@ -1204,17 +1215,30 @@ class MainGUI():
 
     def draw_game_installed_checkbox(self, game: Game, label=""):
         if game:
-            if game.installed and game.installed == game.version:
+            latest_installed = game.installed == game.version
+            if latest_installed:
                 checkbox = imgui.checkbox
             else:
                 checkbox = imgui._checkbox
             changed, _ = checkbox(f"{label}###{game.id}_installed", bool(game.installed))
             if changed:
-                if game.installed == game.version:
+                if latest_installed:
                     game.installed = ""  # Latest installed -> Not installed
                 else:
                     game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
                     game.updated = False
+            if game.installed and not latest_installed and imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+                imgui.text_disabled("Installed:")
+                imgui.same_line()
+                imgui.text(game.installed or 'N/A')
+                imgui.text_disabled("Latest:")
+                imgui.same_line()
+                imgui.text(game.version)
+                imgui.text_unformatted("Click to mark latest as installed.")
+                imgui.pop_text_wrap_pos()
+                imgui.end_tooltip()
         else:
             if imgui.small_button(icons.check):
                 for game in globals.games.values():
@@ -1762,7 +1786,7 @@ class MainGUI():
                 self.draw_game_update_icon(game)
                 imgui.same_line()
             offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
-            utils.wrap_text(self.get_game_version_text(game), width=offset + imgui.get_content_region_available_width(), offset=offset)
+            utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             imgui.text_disabled("Developer:")
             imgui.same_line()
@@ -2637,7 +2661,7 @@ class MainGUI():
                                 self.draw_status_widget(game.status)
                             if cols.version.enabled:
                                 imgui.same_line()
-                                imgui.text_disabled(self.get_game_version_text(game))
+                                imgui.text_disabled(game.version)
                         case cols.developer.index:
                             imgui.text(game.developer or "Unknown")
                         case cols.last_updated.index:
@@ -2816,7 +2840,7 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_labels_widget(game, small=True, align=True)
         if cols.version.enabled:
-            imgui.text_disabled(self.get_game_version_text(game))
+            imgui.text_disabled(game.version)
         if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
             imgui.same_line()
             if imgui.get_content_region_available_width() < badge_wrap:
