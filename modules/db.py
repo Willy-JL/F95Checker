@@ -75,7 +75,6 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
             """)
             # has_columns is not updated because its not used later
             has_column_names[has_column_names.index(rename_old)] = rename_new
-    recreate = False
     for column_name, column_def in columns.items():
         if column_name not in has_column_names:
             # Column is missing, add it
@@ -85,32 +84,47 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
             """)
         else:
             has_column_def = has_column_defs[has_column_names.index(column_name)]  # (type, default)
-            if not column_def.strip().lower().startswith(has_column_def[0].lower()):
-                raise Exception(
-                    f"Existing database column '{column_name}' has incorrect "
-                    f"type ({column_def.strip()[:column_def.strip().find(' ')]} != {has_column_def[0]})"
-                )
-            if " default " in column_def.lower() and not re.search(r"[Dd][Ee][Ff][Aa][Uu][Ll][Tt]\s+?" + re.escape(str(has_column_def[1])), column_def):
-                # Default is different, recreate table and transfer values
-                recreate = True
-    if recreate:
-        temp_column_list = ", ".join(columns.keys())
-        temp_table_name = f"{table_name}_temp_{utils.rand_num_str()}"
-        await connection.execute(f"""
-            ALTER TABLE {table_name}
-            RENAME TO {temp_table_name}
-        """)
-        await create_table(table_name, columns, renames)
-        await connection.execute(f"""
-            INSERT INTO {table_name}
-            ({temp_column_list})
-            SELECT
-            {temp_column_list}
-            FROM {temp_table_name};
-        """)
-        await connection.execute(f"""
-            DROP TABLE {temp_table_name}
-        """)
+            type_changed = not column_def.strip().lower().startswith(has_column_def[0].lower())
+            default_changed = " default " in column_def.lower() and not re.search(r"[Dd][Ee][Ff][Aa][Uu][Ll][Tt]\s+?" + re.escape(str(has_column_def[1])), column_def)
+            if type_changed or default_changed:
+                # Recreate column and transfer values
+                temp_column_name = f"{column_name}_temp_{utils.rand_num_str()}"
+                await connection.execute(f"""
+                    ALTER TABLE {table_name}
+                    RENAME COLUMN {column_name} TO {temp_column_name}
+                """)
+                await connection.execute(f"""
+                    ALTER TABLE {table_name}
+                    ADD COLUMN {column_name} {column_def}
+                """)
+                # Dangerous, check the casts when changing new types
+                await connection.execute(f"""
+                    UPDATE {table_name}
+                    SET
+                        {column_name} = {temp_column_name}
+                """)
+                await connection.execute(f"""
+                    ALTER TABLE {table_name}
+                    DROP COLUMN {temp_column_name}
+                """)
+            if type_changed and has_column_def[0].lower() == "integer" and column_def.strip().lower().startswith("text"):
+                # Check if this is boolean to string
+                cursor = await connection.execute(f"""
+                    SELECT {column_name}
+                    FROM {table_name}
+                """)
+                if all(value[0] in ("0", "1") for value in await cursor.fetchall()):
+                    # All 0 or 1, convert to boolean names
+                    await connection.execute(f"""
+                        UPDATE {table_name}
+                        SET
+                            {column_name} = REPLACE({column_name}, '0', 'False')
+                    """)
+                    await connection.execute(f"""
+                        UPDATE {table_name}
+                        SET
+                            {column_name} = REPLACE({column_name}, '1', 'True')
+                    """)
 
 
 async def connect():
