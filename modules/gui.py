@@ -427,6 +427,8 @@ class MainGUI():
         imgui.style.frame_border_size = 1.6
         imgui.style.colors[imgui.COLOR_TABLE_BORDER_STRONG] = (0, 0, 0, 0)
         self.refresh_styles()
+        # No redundant vprintf
+        imgui.text = imgui.text_unformatted
         # Custom checkbox style
         imgui._checkbox = imgui.checkbox
         def checkbox(label: str, state: bool):
@@ -980,7 +982,7 @@ class MainGUI():
         if force or imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-            imgui.text_unformatted(hover_text)
+            imgui.text(hover_text)
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
 
@@ -1084,14 +1086,14 @@ class MainGUI():
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-            imgui.text_unformatted("This game has been updated!")
+            imgui.text("This game has been updated!")
             imgui.text_disabled("Installed:")
             imgui.same_line()
             imgui.text(game.installed or 'N/A')
             imgui.text_disabled("Latest:")
             imgui.same_line()
             imgui.text(game.version)
-            imgui.text_unformatted(
+            imgui.text(
                 "Middle click to remove the update marker, alternatively\n"
                 "mark as installed to do the same."
             )
@@ -1115,7 +1117,7 @@ class MainGUI():
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-            imgui.text_unformatted(
+            imgui.text(
                 "This game is archived!\n"
                 "In this state you won't receive update notifications for\n"
                 "this game and it will stay at the bottom of the list.\n"
@@ -1206,7 +1208,7 @@ class MainGUI():
                 imgui.text_disabled("Installed:")
                 imgui.same_line()
                 imgui.text(game.installed or 'N/A')
-                imgui.text_unformatted("Click to mark installed as finished.")
+                imgui.text("Click to mark installed as finished.")
                 imgui.pop_text_wrap_pos()
                 imgui.end_tooltip()
         else:
@@ -1245,7 +1247,7 @@ class MainGUI():
                 imgui.text_disabled("Latest:")
                 imgui.same_line()
                 imgui.text(game.version)
-                imgui.text_unformatted("Click to mark latest as installed.")
+                imgui.text("Click to mark latest as installed.")
                 imgui.pop_text_wrap_pos()
                 imgui.end_tooltip()
         else:
@@ -1404,7 +1406,7 @@ class MainGUI():
             callbacks.clipboard_copy(str(game.id))
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
-            imgui.text_unformatted(
+            imgui.text(
                 f"Thread ID: {game.id}\n"
                 "Click to copy!"
             )
@@ -1832,7 +1834,7 @@ class MainGUI():
                 game.last_played = time.time()
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
-                imgui.text_unformatted("Click to set as played right now!")
+                imgui.text("Click to set as played right now!")
                 imgui.end_tooltip()
 
             imgui.text_disabled("Added On:")
@@ -1857,7 +1859,7 @@ class MainGUI():
                     if imgui.button(icons.folder_remove_outline):
                         game.remove_executable(executable)
                     imgui.same_line()
-                    imgui.text_unformatted(executable)
+                    imgui.text(executable)
 
             imgui.text_disabled("Manage Exes:")
             imgui.same_line()
@@ -1877,7 +1879,7 @@ class MainGUI():
                 ) + " Changelog###changelog")[0]:
                     imgui.spacing()
                     if game.changelog:
-                        imgui.text_unformatted(game.changelog)
+                        imgui.text(game.changelog)
                     else:
                         imgui.text_disabled("Either this game doesn't have a changelog, or the thread is not formatted properly!")
                     imgui.end_tab_item()
@@ -1888,7 +1890,7 @@ class MainGUI():
                 ) + " Description###description")[0]:
                     imgui.spacing()
                     if game.description:
-                        imgui.text_unformatted(game.description)
+                        imgui.text(game.description)
                     else:
                         imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
@@ -2008,7 +2010,7 @@ class MainGUI():
                         for name, mirrors in game.downloads:
                             if mirrors:
                                 can_add_spacing = True
-                                imgui.text_unformatted(name + ":")
+                                imgui.text(name + ":")
                                 for mirror, link in mirrors:
                                     imgui.same_line()
                                     if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.link + mirror).x + _20:
@@ -2030,7 +2032,7 @@ class MainGUI():
                             else:
                                 if can_add_spacing:
                                     imgui.text("")
-                                imgui.text_unformatted(name)
+                                imgui.text(name)
                                 imgui.spacing()
                                 imgui.spacing()
                                 can_add_spacing = False
@@ -2080,7 +2082,7 @@ class MainGUI():
                     icons.puzzle_remove_outline
                 ) + " Custom###custom")[0]:
                     if game.custom:
-                        imgui.text_unformatted(
+                        imgui.text(
                             "This is a custom game. You can edit all its details below (except downloads). "
                             "If you wish to convert it back to a F95Zone game, then make sure to fill the "
                             "game url with a valid F95Zone thread url before pressing the button below."
@@ -2237,7 +2239,7 @@ class MainGUI():
 
                         imgui.pop_item_width()
                     else:
-                        imgui.text_unformatted(
+                        imgui.text(
                             "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95Zone. "
                             "This is useful for games that have been removed for breaking forum rules, or for adding games from other platforms to your library. Custom "
                             "games allow you to edit all their details (except downloads) that would normally be fetched from F95Zone."

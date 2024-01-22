@@ -35,7 +35,7 @@ def msgbox(title: str, msg: str, level: MsgBox = None, buttons: dict[str, typing
             msg_size_y += imgui.get_text_line_height_with_spacing() + imgui.get_frame_height_with_spacing()
         if icon and (diff := icon_size.y - msg_size_y) > 0:
             imgui.dummy(0, diff / 2 - imgui.style.item_spacing.y)
-        imgui.text_unformatted(msg)
+        imgui.text(msg)
         if more:
             imgui.text("")
             if imgui.tree_node("More info", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
