@@ -2040,9 +2040,9 @@ class MainGUI():
                 ) + " Custom###custom")[0]:
                     if game.custom:
                         imgui.text_unformatted(
-                            "This is a custom game. You can edit its core details below while status, last updated and downloads are disabled. Personal attributes and "
-                            "features still work as normal. If you wish to convert it back to a F95Zone game, then make sure to fill the game url with a valid F95Zone "
-                            "thread url before pressing the button below."
+                            "This is a custom game. You can edit all its details below (except downloads). "
+                            "If you wish to convert it back to a F95Zone game, then make sure to fill the "
+                            "game url with a valid F95Zone thread url before pressing the button below."
                         )
                         if imgui.button(f"{icons.puzzle_remove} Convert to F95Zone game"):
                             callbacks.convert_custom_to_f95zone(game)
@@ -2199,9 +2199,7 @@ class MainGUI():
                         imgui.text_unformatted(
                             "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95Zone. "
                             "This is useful for games that have been removed for breaking forum rules, or for adding games from other platforms to your library. Custom "
-                            "games allow you to edit their core details (name, version, developer, type, url, score, updated, description, changelog and tags), while "
-                            "some others (status, last updated and downloads) will be overridden / reset. Personal attributes and features (last played, rating, "
-                            "played, installed, archiving, executables, labels and notes) will keep working as usual."
+                            "games allow you to edit all their details (except downloads) that would normally be fetched from F95Zone."
                         )
                         if imgui.button(f"{icons.puzzle_check} Convert to custom game"):
                             callbacks.convert_f95zone_to_custom(game)
