@@ -2487,10 +2487,8 @@ class MainGUI():
                             key = lambda id: - globals.games[id].added_on.value
                         case cols.finished.index:
                             key = lambda id: 2 if not globals.games[id].finished else 1 if globals.games[id].finished == (globals.games[id].installed or globals.games[id].version) else 0
-                            # key = lambda id: 2 if globals.games[id].finished == (globals.games[id].installed or globals.games[id].version) else 1 if globals.games[id].finished else 0
                         case cols.installed.index:
                             key = lambda id: 2 if not globals.games[id].installed else 1 if globals.games[id].installed == globals.games[id].version else 0
-                            # key = lambda id: 2 if globals.games[id].installed == globals.games[id].version else 1 if globals.games[id].installed else 0
                         case cols.rating.index:
                             key = lambda id: - globals.games[id].rating
                         case cols.notes.index:
@@ -4032,6 +4030,7 @@ class MainGUI():
                 game_id = async_thread.wait(db.add_game(custom=True))
                 async_thread.wait(db.load_games(game_id))
                 game = globals.games[game_id]
+                utils.push_popup(self.draw_game_info_popup, game, None)
                 if globals.settings.mark_installed_after_add:
                     game.installed = game.version
                 if globals.settings.select_executable_after_add:
