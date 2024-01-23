@@ -168,12 +168,12 @@ class Columns:
             resizable=False,
         )
         self.last_played = self.Column(
-            self, f"{icons.motion_play_outline} Last Played",
+            self, f"{icons.play} Last Played",
             sortable=True,
             resizable=False,
         )
         self.added_on = self.Column(
-            self, f"{icons.book_clock} Added On",
+            self, f"{icons.plus} Added On",
             sortable=True,
             resizable=False,
         )
