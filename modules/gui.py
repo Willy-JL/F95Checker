@@ -1397,7 +1397,23 @@ class MainGUI():
             clicked = imgui.button(label)
         if game and not game.executables:
             imgui.pop_alpha()
-        if clicked:
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            def _exe(exe):
+                if utils.is_uri(exe):
+                    return exe
+                exe = pathlib.Path(exe)
+                if globals.settings.default_exe_dir.get(globals.os) and not exe.is_absolute():
+                    exe = pathlib.Path(globals.settings.default_exe_dir.get(globals.os)) / exe
+                return str(exe)
+            if game:
+                if executable:
+                    text = _exe(executable)
+                else:
+                    text = "\n".join(_exe(exe) for exe in game.executables)
+            else:
+                text = "\n".join("\n".join(_exe(exe) for exe in game.executables) for game in globals.games.values() if game.selected)
+            callbacks.clipboard_copy(text)
+        elif clicked:
             if game:
                 callbacks.open_game_folder(game, executable=executable)
             else:
@@ -2471,8 +2487,10 @@ class MainGUI():
                             key = lambda id: - globals.games[id].added_on.value
                         case cols.finished.index:
                             key = lambda id: 2 if not globals.games[id].finished else 1 if globals.games[id].finished == (globals.games[id].installed or globals.games[id].version) else 0
+                            # key = lambda id: 2 if globals.games[id].finished == (globals.games[id].installed or globals.games[id].version) else 1 if globals.games[id].finished else 0
                         case cols.installed.index:
                             key = lambda id: 2 if not globals.games[id].installed else 1 if globals.games[id].installed == globals.games[id].version else 0
+                            # key = lambda id: 2 if globals.games[id].installed == globals.games[id].version else 1 if globals.games[id].installed else 0
                         case cols.rating.index:
                             key = lambda id: - globals.games[id].rating
                         case cols.notes.index:
