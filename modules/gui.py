@@ -2928,11 +2928,13 @@ class MainGUI():
             imgui.same_line()
             cluster = True
         pad = 3 * imgui.style.item_spacing.x
-        def _cluster_text(icon, text):
+        def _cluster_text(name, text):
             nonlocal cluster
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(icon + text[:10]).x + pad:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(name[0] + text[:10]).x + pad:
                 imgui.dummy(0, 0)
-            imgui.text_disabled(icon)
+            imgui.text_disabled(name[0])
+            if imgui.is_item_hovered():
+                imgui.set_tooltip(name[2:])
             imgui.same_line()
             utils.wrap_text(text, width=cell_width - side_indent, offset=imgui.get_cursor_pos_x() - pos.x)
             imgui.same_line(spacing=pad)
@@ -2940,29 +2942,29 @@ class MainGUI():
         if cols.finished_version.enabled or cols.installed_version.enabled:
             if cols.version.enabled:
                 if cols.finished_version.enabled and game.finished and game.finished != (game.installed or game.version):
-                    _cluster_text(cols.finished_version.name[0], game.finished)
+                    _cluster_text(cols.finished_version.name, game.finished)
                 if cols.installed_version.enabled and game.installed and game.installed != game.version:
-                    _cluster_text(cols.installed_version.name[0], game.installed)
+                    _cluster_text(cols.installed_version.name, game.installed)
             elif game.finished == game.installed != "":
                 if cols.finished_version.enabled:
-                    _cluster_text(cols.finished_version.name[0], game.finished)
+                    _cluster_text(cols.finished_version.name, game.finished)
                 elif cols.installed_version.enabled:
-                    _cluster_text(cols.installed_version.name[0], game.installed)
+                    _cluster_text(cols.installed_version.name, game.installed)
             else:
                 if cols.finished_version.enabled and game.finished:
-                    _cluster_text(cols.finished_version.name[0], game.finished)
+                    _cluster_text(cols.finished_version.name, game.finished)
                 if cols.installed_version.enabled and game.installed:
-                    _cluster_text(cols.installed_version.name[0], game.installed)
+                    _cluster_text(cols.installed_version.name, game.installed)
         if cols.developer.enabled:
-            _cluster_text(cols.developer.name[0], game.developer)
+            _cluster_text(cols.developer.name, game.developer)
         if cols.score.enabled:
-            _cluster_text(cols.score.name[0], f"{game.score:.1f}")
+            _cluster_text(cols.score.name, f"{game.score:.1f}")
         if cols.last_updated.enabled:
-            _cluster_text(cols.last_updated.name[0], game.last_updated.display or "Unknown")
+            _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
         if cols.last_played.enabled:
-            _cluster_text(cols.last_played.name[0], game.last_played.display or "Never")
+            _cluster_text(cols.last_played.name, game.last_played.display or "Never")
         if cols.added_on.enabled:
-            _cluster_text(cols.added_on.name[0], game.added_on.display)
+            _cluster_text(cols.added_on.name, game.added_on.display)
         if cols.rating.enabled:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.star * 5).x + pad:
                 imgui.dummy(0, 0)
