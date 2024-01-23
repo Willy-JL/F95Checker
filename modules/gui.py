@@ -2877,6 +2877,8 @@ class MainGUI():
                 imgui.set_cursor_pos((pos.x + cell_width - side_indent - imgui.style.item_spacing.x - w, pos.y + img_height + imgui.style.item_spacing.y - frame_height / 2))
                 self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=False)
                 imgui.small_button(game.version[:cut])
+                if imgui.is_item_hovered() and cut != len(game.version):
+                    imgui.set_tooltip(game.version)
                 self.end_framed_text(interaction=False)
             imgui.set_cursor_pos(old_pos)
         # Name line
