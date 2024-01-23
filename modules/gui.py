@@ -1011,6 +1011,14 @@ class MainGUI():
             imgui.pop_no_interaction()
             imgui.pop_style_color()
 
+    def get_type_label_width(self):
+        if self.type_label_width is None:
+            self.type_label_width = 0
+            for name in Type._member_names_:
+                self.type_label_width = max(self.type_label_width, imgui.calc_text_size(name).x)
+            self.type_label_width += 8
+        return self.type_label_width
+
     def draw_type_widget(self, type: Type, wide=True, align=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(type.color, interaction=quick_filter)
@@ -1018,14 +1026,9 @@ class MainGUI():
             x_padding = 4
             backup_y_padding = imgui.style.frame_padding.y
             imgui.push_style_var(imgui.STYLE_FRAME_PADDING, (x_padding, 0))
-            if self.type_label_width is None:
-                self.type_label_width = 0
-                for name in Type._member_names_:
-                    self.type_label_width = max(self.type_label_width, imgui.calc_text_size(name).x)
-                self.type_label_width += 2 * x_padding
             if align:
                 imgui.push_y(backup_y_padding)
-            clicked = imgui.button(type.name, width=self.type_label_width)
+            clicked = imgui.button(type.name, width=self.get_type_label_width())
             if align:
                 imgui.pop_y()
             imgui.pop_style_var()
