@@ -5,6 +5,9 @@ let games = [];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const rpcCall = async (method, path, body, tabId) => {
+    if(typeof method !== "string" || typeof path !== "string" || (typeof body !== "string" && body !== null)) {
+        return {};
+    }
     try {
         const res = await fetch(`${rpcURL}${path}`, {
             method: method,
@@ -31,7 +34,7 @@ const rpcCall = async (method, path, body, tabId) => {
 const getData = async () => {
     let res = null;
 
-    res = await rpcCall('GET', '/games');
+    res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
 };
 

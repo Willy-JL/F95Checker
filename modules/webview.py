@@ -133,9 +133,11 @@ def create(
                 self.session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
             @QtCore.pyqtSlot(QtCore.QVariant, QtCore.QVariant, QtCore.QVariant, result=QtCore.QVariant)
             def handle(self, method, path, body):
-                import main
-                if body and not isinstance(body, bytes):
+                if body is not None:
+                    if not isinstance(body, str):
+                        return {}
                     body = body.encode()
+                import main
                 async def _handle():
                     async with self.session.request(method, main.rpc_url + path, data=body) as req:
                         return {"status": req.status, "body": (await req.read()).decode()}

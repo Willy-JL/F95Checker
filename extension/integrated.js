@@ -11,6 +11,9 @@ var games = [];
 var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 var rpcCall = async (method, path, body) => {
+    if(typeof method !== "string" || typeof path !== "string" || (typeof body !== "string" && body !== null)) {
+        return {};
+    }
     try {
         const res = await (new Promise((resolve) => {
             new QWebChannel(qt.webChannelTransport, (channel) => {
@@ -29,7 +32,7 @@ var rpcCall = async (method, path, body) => {
 var getData = async () => {
     let res = null;
 
-    res = await rpcCall('GET', '/games');
+    res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
 };
 
