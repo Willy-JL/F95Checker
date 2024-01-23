@@ -2659,7 +2659,7 @@ class MainGUI():
                     imgui.table_set_column_index(column.index)
                     match column.index:
                         case cols.play_button.index:
-                            self.draw_game_play_button(game, icons.play)
+                            self.draw_game_play_button(game, cols.play_button.name[0])
                         case cols.type.index:
                             self.draw_type_widget(game.type, align=True)
                         case cols.name.index:
@@ -2718,11 +2718,11 @@ class MainGUI():
                                 notes_width = imgui.get_content_region_available_width() - 2 * imgui.style.item_spacing.x
                             self.draw_game_notes_widget(game, multiline=False, width=notes_width)
                         case cols.open_thread.index:
-                            self.draw_game_open_thread_button(game, icons.open_in_new)
+                            self.draw_game_open_thread_button(game, cols.open_thread.name[0])
                         case cols.copy_link.index:
-                            self.draw_game_copy_link_button(game, icons.content_copy)
+                            self.draw_game_copy_link_button(game, cols.copy_link.name[0])
                         case cols.open_folder.index:
-                            self.draw_game_open_folder_button(game, icons.folder_open_outline)
+                            self.draw_game_open_folder_button(game, cols.open_folder.name[0])
                         case cols.status_standalone.index:
                             self.draw_status_widget(game.status)
                         case cols.score.index:
@@ -2781,12 +2781,12 @@ class MainGUI():
                 imgui.style.item_inner_spacing.x * checkboxes +  # Checkbox to label spacing * 2 checkboxes
                 imgui.get_frame_height() * checkboxes +          # (Checkbox height = width) * 2 checkboxes
                 imgui.calc_text_size(                            # Text
-                    f"{icons.play} Play" * cols.play_button.enabled +
-                    f"{icons.folder_open_outline} Folder" * cols.open_folder.enabled +
-                    f"{icons.open_in_new} Thread" * cols.open_thread.enabled +
-                    f"{icons.content_copy} Link" * cols.copy_link.enabled +
-                    icons.flag_checkered * cols.finished.enabled +
-                    icons.cloud_download * cols.installed.enabled
+                    f"{cols.play_button.name[0]} Play" * cols.play_button.enabled +
+                    f"{cols.open_folder.name[0]} Folder" * cols.open_folder.enabled +
+                    f"{cols.open_thread.name[0]} Thread" * cols.open_thread.enabled +
+                    f"{cols.copy_link.name[0]} Link" * cols.copy_link.enabled +
+                    cols.finished.name[0] * cols.finished.enabled +
+                    cols.installed.name[0] * cols.installed.enabled
                 ).x
             ),
             (
@@ -2886,37 +2886,37 @@ class MainGUI():
                 if cols.play_button.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_play_button(game, f"{icons.play} Play")
+                    self.draw_game_play_button(game, f"{cols.play_button.name[0]} Play")
                     did_newline = True
                 # Open Folder
                 if cols.open_folder.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Folder")
+                    self.draw_game_open_folder_button(game, f"{cols.open_folder.name[0]} Folder")
                     did_newline = True
                 # Open Thread
                 if cols.open_thread.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_open_thread_button(game, f"{icons.open_in_new} Thread")
+                    self.draw_game_open_thread_button(game, f"{cols.open_thread.name[0]} Thread")
                     did_newline = True
                 # Copy Link
                 if cols.copy_link.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
+                    self.draw_game_copy_link_button(game, f"{cols.copy_link.name[0]} Link")
                     did_newline = True
                 # Finished
                 if cols.finished.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_finished_checkbox(game, icons.flag_checkered)
+                    self.draw_game_finished_checkbox(game, cols.finished.name[0])
                     did_newline = True
                 # Installed
                 if cols.installed.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_installed_checkbox(game, icons.cloud_download)
+                    self.draw_game_installed_checkbox(game, cols.installed.name[0])
                     did_newline = True
             else:
                 # Skip if outside view
