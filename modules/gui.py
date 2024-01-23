@@ -2794,35 +2794,59 @@ class MainGUI():
         action_items = checkboxes + buttons
         bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
 
-        min_width = (
-            side_indent * 2 +  # Side indent * 2 sides
-            max((
-                imgui.style.item_spacing.x * action_items +      # Spacing * 6 action items
-                imgui.style.frame_padding.x * 2 * buttons +      # Button padding * 2 sides * 4 buttons
-                imgui.style.item_inner_spacing.x * checkboxes +  # Checkbox to label spacing * 2 checkboxes
-                imgui.get_frame_height() * checkboxes +          # (Checkbox height = width) * 2 checkboxes
-                imgui.calc_text_size(                            # Text
-                    f"{cols.play_button.name[0]} Play" * cols.play_button.enabled +
-                    f"{cols.open_folder.name[0]} Folder" * cols.open_folder.enabled +
-                    f"{cols.open_thread.name[0]} Thread" * cols.open_thread.enabled +
-                    f"{cols.copy_link.name[0]} Link" * cols.copy_link.enabled +
-                    cols.finished.name[0] * cols.finished.enabled +
-                    cols.installed.name[0] * cols.installed.enabled
-                ).x
+        actions_width = (
+            imgui.style.item_spacing.x * action_items +      # Spacing * 6 action items
+            imgui.style.frame_padding.x * 2 * buttons +      # Button padding * 2 sides * 4 buttons
+            imgui.style.item_inner_spacing.x * checkboxes +  # Checkbox to label spacing * 2 checkboxes
+            imgui.get_frame_height() * checkboxes +          # (Checkbox height = width) * 2 checkboxes
+            imgui.calc_text_size(                            # Text
+                cols.play_button.name[0] * cols.play_button.enabled +
+                cols.open_folder.name[0] * cols.open_folder.enabled +
+                cols.open_thread.name[0] * cols.open_thread.enabled +
+                cols.copy_link.name[0] * cols.copy_link.enabled +
+                cols.finished.name[0] * cols.finished.enabled +
+                cols.installed.name[0] * cols.installed.enabled
+            ).x
+        )
+
+        base_width = max(
+            (  # Type / Version line
+                2 * self.get_type_label_width()
             ),
-            (
-                imgui.style.item_spacing.x * 2 +  # Between text * 2
-                imgui.calc_text_size("Last Updated:00/00/0000").x  # Text
-            ))
+            (  # Clustered data
+                imgui.style.item_spacing.x +  # Between text
+                imgui.calc_text_size(f"{cols.last_updated.name[0]}00/00/0000").x  # Text
+            )
+        )
+
+        min_cell_width = (
+            side_indent * 2 +  # Side indent * 2 sides
+            max(actions_width, base_width)
+        )
+
+        min_expand_width = (
+            side_indent * 2 +  # Side indent * 2 sides
+            max(
+                (  # Expanded actions text
+                    actions_width +
+                    imgui.calc_text_size(
+                        " Play" * cols.play_button.enabled +
+                        " Folder" * cols.open_folder.enabled +
+                        " Thread" * cols.open_thread.enabled +
+                        " Link" * cols.copy_link.enabled
+                    ).x
+                ),
+                base_width
+            )
         )
 
         frame_height = imgui.get_frame_height()
         badge_wrap = side_indent + imgui.get_text_line_height()
 
         config = (side_indent, action_items, bg_col, frame_height, badge_wrap)
-        return min_width, config
+        return min_cell_width, min_expand_width, config
 
-    def draw_game_cell(self, game: Game, game_i: int | None, draw_list, cell_width: float, img_height: float, config: tuple):
+    def draw_game_cell(self, game: Game, game_i: int | None, draw_list, cell_width: float, expand: bool, img_height: float, config: tuple):
         (side_indent, action_items, bg_col, frame_height, badge_wrap) = config
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
@@ -2909,25 +2933,25 @@ class MainGUI():
                 if cols.play_button.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_play_button(game, f"{cols.play_button.name[0]} Play")
+                    self.draw_game_play_button(game, f"{cols.play_button.name[0]}{' Play' if expand else ''}")
                     did_newline = True
                 # Open Folder
                 if cols.open_folder.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_open_folder_button(game, f"{cols.open_folder.name[0]} Folder")
+                    self.draw_game_open_folder_button(game, f"{cols.open_folder.name[0]}{' Folder' if expand else ''}")
                     did_newline = True
                 # Open Thread
                 if cols.open_thread.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_open_thread_button(game, f"{cols.open_thread.name[0]} Thread")
+                    self.draw_game_open_thread_button(game, f"{cols.open_thread.name[0]}{' Thread' if expand else ''}")
                     did_newline = True
                 # Copy Link
                 if cols.copy_link.enabled:
                     if did_newline:
                         imgui.same_line()
-                    self.draw_game_copy_link_button(game, f"{cols.copy_link.name[0]} Link")
+                    self.draw_game_copy_link_button(game, f"{cols.copy_link.name[0]}{' Link' if expand else ''}")
                     did_newline = True
                 # Finished
                 if cols.finished.enabled:
@@ -3033,12 +3057,13 @@ class MainGUI():
     def draw_games_grid(self):
         # Configure table
         self.tick_list_columns()
-        min_cell_width, cell_config = self.get_game_cell_config()
+        min_cell_width, min_expand_width, cell_config = self.get_game_cell_config()
         padding = self.scaled(8)
         avail = imgui.get_content_region_available_width()
         column_count = globals.settings.grid_columns
         while (cell_width := (avail - padding * 2 * column_count) / column_count) < min_cell_width and column_count > 1:
             column_count -= 1
+        expand = cell_width > min_expand_width
         img_height = cell_width / globals.settings.cell_image_ratio
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
         if imgui.begin_table(
@@ -3057,7 +3082,7 @@ class MainGUI():
             for game_i, id in enumerate(self.sorted_games_ids):
                 game = globals.games[id]
                 imgui.table_next_column()
-                self.draw_game_cell(game, game_i, draw_list, cell_width, img_height, cell_config)
+                self.draw_game_cell(game, game_i, draw_list, cell_width, expand, img_height, cell_config)
 
             imgui.end_table()
         imgui.pop_style_var()
@@ -3065,7 +3090,7 @@ class MainGUI():
     def draw_games_kanban(self):
         # Configure table
         self.tick_list_columns()
-        cell_width, cell_config = self.get_game_cell_config()
+        cell_width, _, cell_config = self.get_game_cell_config()
         padding = self.scaled(4)
         imgui.push_style_var(imgui.STYLE_CELL_PADDING, (padding, padding))
         img_height = cell_width / globals.settings.cell_image_ratio
@@ -3121,7 +3146,7 @@ class MainGUI():
                             continue
                     elif label not in game.labels:
                         continue
-                    self.draw_game_cell(game, None, draw_list, cell_width, img_height, cell_config)
+                    self.draw_game_cell(game, None, draw_list, cell_width, False, img_height, cell_config)
                     wrap -= 1
                     if wrap:
                         imgui.same_line()
