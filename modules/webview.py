@@ -106,6 +106,11 @@ def create(
     app.window.webview.settings = app.window.webview.page.settings()
     app.window.webview.cookieStore = app.window.webview.profile.cookieStore()
 
+    def closeEvent(close: QtGui.QCloseEvent):
+        close.accept()
+        app.window.webview.page.deleteLater()
+    app.window.closeEvent = closeEvent
+
     app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
     app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
     app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, True)
