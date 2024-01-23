@@ -122,9 +122,17 @@ class Columns:
             ghost=True,
         )
         self.version = self.Column(
-            self, f"{icons.counter} Version",
+            self, f"{icons.star_shooting} Version",
             ghost=True,
             default=True,
+        )
+        self.finished_version = self.Column(
+            self, f"{icons.flag_checkered} Finished Version",
+            ghost=True,
+        )
+        self.installed_version = self.Column(
+            self, f"{icons.cloud_download} Installed Version",
+            ghost=True,
         )
         self.status = self.Column(
             self, f"{icons.checkbox_marked_circle} Status (after name)",
@@ -2671,9 +2679,26 @@ class MainGUI():
                             if cols.status.enabled and game.status is not Status.Normal:
                                 imgui.same_line()
                                 self.draw_status_widget(game.status)
-                            if cols.version.enabled:
+                            if cols.version.enabled or cols.finished_version.enabled or cols.installed_version.enabled:
                                 imgui.same_line()
-                                imgui.text_disabled(game.version)
+                                versions = []
+                                if cols.version.enabled:
+                                    if cols.finished_version.enabled and game.finished and game.finished != (game.installed or game.version):
+                                        versions.append(f"{cols.finished_version.name[0]} {game.finished}")
+                                    if cols.installed_version.enabled and game.installed and game.installed != game.version:
+                                        versions.append(f"{cols.installed_version.name[0]} {game.installed}")
+                                    versions.append(f"{cols.version.name[0]} {game.version}")
+                                elif game.finished == game.installed != "":
+                                    if cols.finished_version.enabled:
+                                        versions.append(f"{cols.finished_version.name[0]} {game.finished}")
+                                    elif cols.installed_version.enabled:
+                                        versions.append(f"{cols.installed_version.name[0]} {game.installed}")
+                                else:
+                                    if cols.finished_version.enabled and game.finished:
+                                        versions.append(f"{cols.finished_version.name[0]} {game.finished}")
+                                    if cols.installed_version.enabled and game.installed:
+                                        versions.append(f"{cols.installed_version.name[0]} {game.installed}")
+                                imgui.text_disabled("  |  ".join(versions))
                         case cols.developer.index:
                             imgui.text(game.developer or "Unknown")
                         case cols.last_updated.index:
@@ -2912,6 +2937,22 @@ class MainGUI():
             utils.wrap_text(text, width=cell_width - side_indent, offset=imgui.get_cursor_pos_x() - pos.x)
             imgui.same_line(spacing=pad)
             cluster = True
+        if cols.finished_version.enabled or cols.installed_version.enabled:
+            if cols.version.enabled:
+                if cols.finished_version.enabled and game.finished and game.finished != (game.installed or game.version):
+                    _cluster_text(cols.finished_version.name[0], game.finished)
+                if cols.installed_version.enabled and game.installed and game.installed != game.version:
+                    _cluster_text(cols.installed_version.name[0], game.installed)
+            elif game.finished == game.installed != "":
+                if cols.finished_version.enabled:
+                    _cluster_text(cols.finished_version.name[0], game.finished)
+                elif cols.installed_version.enabled:
+                    _cluster_text(cols.installed_version.name[0], game.installed)
+            else:
+                if cols.finished_version.enabled and game.finished:
+                    _cluster_text(cols.finished_version.name[0], game.finished)
+                if cols.installed_version.enabled and game.installed:
+                    _cluster_text(cols.installed_version.name[0], game.installed)
         if cols.developer.enabled:
             _cluster_text(cols.developer.name[0], game.developer)
         if cols.score.enabled:
