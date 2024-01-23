@@ -249,6 +249,10 @@ class MainGUI():
             imgui.WINDOW_NO_SCROLLBAR |
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
+        self.tabbar_flags: int = (
+            imgui.TAB_BAR_REORDERABLE |
+            imgui.TAB_BAR_FITTING_POLICY_SCROLL
+        )
         self.game_list_table_flags: int = (
             imgui.TABLE_SCROLL_Y |
             imgui.TABLE_HIDEABLE |
@@ -301,7 +305,9 @@ class MainGUI():
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.sorts: list[SortSpec] = []
-        self.filters: list[Filter] = []
+        self.active_set: str = None
+        self.filter_sets: dict[str, list[Filter]] = None
+        self.new_filter_sets: dict[str, list[Filter]] | None = None
         self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
@@ -370,7 +376,7 @@ class MainGUI():
         glfw.swap_interval(globals.settings.vsync_ratio)
         self.refresh_fonts()
 
-        self.load_filters()
+        self.load_filter_sets()
 
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
@@ -677,16 +683,30 @@ class MainGUI():
         self.impl.refresh_font_texture()
         self.type_label_width = None
 
-    def save_filters(self):
-        with open(globals.data_path / "filters.pkl", "wb") as file:
-            pickle.dump(self.filters, file)
+    def save_filter_sets(self):
+        with open(globals.data_path / "filters2.pkl", "wb") as file:
+            pickle.dump(self.filter_sets, file)
 
-    def load_filters(self):
+    def load_filter_sets(self):
         try:
-            with open(globals.data_path / "filters.pkl", "rb") as file:
-                self.filters = pickle.load(file)
+            with open(globals.data_path / "filters2.pkl", "rb") as file:
+                self.filter_sets = pickle.load(file)
+                self.active_set = next(iter(self.filter_sets))
         except Exception:
-            self.filters = []
+            self.filter_sets = {"Filter set 1": []}
+            self.active_set = "Filter set 1"
+
+    def get_new_filter_set_name(self):
+        return f"Filter set {len(self.filter_sets) + 1}"
+
+    def get_filters(self):
+        return self.filter_sets.get(self.active_set, [])
+
+    def add_filter(self, flt: Filter):
+        self.filter_sets.get(self.active_set, []).append(flt)
+
+    def remove_filter(self, flt: Filter):
+        self.filter_sets.get(self.active_set, []).remove(flt)
 
     def close(self, *_, **__):
         glfw.set_window_should_close(self.window, True)
@@ -863,6 +883,20 @@ class MainGUI():
                         # Main pane
                         imgui.begin_child("###main_frame", width=-sidebar_size)
                         self.hovered_game = None
+                        # Tabbar
+                        if self.new_filter_sets:
+                            self.filter_sets = self.new_filter_sets.copy()
+                            self.new_filter_sets = None
+                        if len(self.filter_sets) > 1:
+                            if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
+                                for set_name in self.filter_sets.keys():
+                                    if imgui.begin_tab_item(set_name).selected:
+                                        self.active_set = set_name
+                                        imgui.end_tab_item()
+                                    if imgui.begin_popup_context_item(f"###{set_name}_context"):
+                                        self.draw_filter_set_context_menu(set_name)
+                                        imgui.end_popup()
+                                imgui.end_tab_bar()
                         # Games container
                         match globals.settings.display_mode.value:
                             case DisplayMode.list.value:
@@ -956,7 +990,7 @@ class MainGUI():
                         time.sleep(1 / 3)
         finally:
             # Main loop over, cleanup and close
-            self.save_filters()
+            self.save_filter_sets()
             imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
             ini = imgui.save_ini_settings_to_memory()
             try:
@@ -1026,7 +1060,7 @@ class MainGUI():
         if clicked and quick_filter:
             flt = Filter(FilterMode.Type)
             flt.match = type
-            self.filters.append(flt)
+            self.add_filter(flt)
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, setup=True, qf_override=None):
@@ -1036,7 +1070,7 @@ class MainGUI():
         if imgui.small_button(tag.name) and quick_filter:
             flt = Filter(FilterMode.Tag)
             flt.match = tag
-            self.filters.append(flt)
+            self.add_filter(flt)
         if setup:
             self.end_framed_text(interaction=quick_filter)
 
@@ -1047,7 +1081,7 @@ class MainGUI():
         if imgui.small_button(label.short_name if short else label.name) and quick_filter:
             flt = Filter(FilterMode.Label)
             flt.match = label
-            self.filters.append(flt)
+            self.add_filter(flt)
         if short and imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_font(imgui.fonts.default)
@@ -1068,7 +1102,7 @@ class MainGUI():
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
                 flt = Filter(FilterMode.Status)
                 flt.match = status
-                self.filters.append(flt)
+                self.add_filter(flt)
             imgui.end_group()
 
     def draw_game_update_icon(self, game: Game):
@@ -1081,7 +1115,7 @@ class MainGUI():
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
                 flt = Filter(FilterMode.Updated)
-                self.filters.append(flt)
+                self.add_filter(flt)
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -1112,7 +1146,7 @@ class MainGUI():
             imgui.set_cursor_pos(pos)
             if imgui.invisible_button("", *imgui.get_item_rect_size()):
                 flt = Filter(FilterMode.Archived)
-                self.filters.append(flt)
+                self.add_filter(flt)
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
@@ -1464,6 +1498,17 @@ class MainGUI():
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
             self.draw_tag_widget(tag, qf_override=False)
+
+    def draw_filter_set_context_menu(self, set_name: str):
+        if imgui.selectable(f"{icons.pencil} Rename", False)[0]:
+            # TODO: do the thing
+            print(f"Renaming: {set_name}")
+        if imgui.selectable(f"{icons.trash_can_outline} Delete set", False)[0]:
+            self.new_filter_sets = self.filter_sets.copy()
+            self.new_filter_sets.pop(set_name)
+            # TODO: implement smart shifting behaviour for tabs on delete
+            if self.active_set == set_name:
+                self.active_set = next(iter(self.new_filter_sets))
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -2424,8 +2469,8 @@ class MainGUI():
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
             self.require_sort = True
-        if self.prev_filters != self.filters:
-            self.prev_filters = self.filters.copy()
+        if self.prev_filters != self.get_filters():
+            self.prev_filters = self.get_filters().copy()
             self.require_sort = True
         if sorts.specs_count > 0:
             self.sorts = []
@@ -2477,7 +2522,7 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
-            for flt in self.filters:
+            for flt in self.get_filters():
                 match flt.mode.value:
                     case FilterMode.Archived.value:
                         key = lambda id: flt.invert != (globals.games[id].archived is True)
@@ -2534,7 +2579,7 @@ class MainGUI():
 
     def handle_game_hitbox_events(self, game: Game, game_i: int = None):
         manual_sort = cols.manual_sort.enabled
-        not_filtering = len(self.filters) == 0 and not self.add_box_text
+        not_filtering = len(self.get_filters()) == 0 and not self.add_box_text
         if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
             # Hover = image on refresh button
             self.hovered_game = game
@@ -3306,10 +3351,15 @@ class MainGUI():
                 imgui.text("")
                 imgui.spacing()
 
-            if len(self.filters) > 0 or self.add_box_text:
+            if len(self.get_filters()) > 0 or self.add_box_text:
                 draw_settings_label(f"Filtered games count: {len(self.sorted_games_ids)}")
                 imgui.text("")
                 imgui.spacing()
+
+            # TODO: move this button somewhere else, or make it full width
+            if imgui.button("New filter set"):
+                name = self.get_new_filter_set_name()
+                self.filter_sets[name] = []
 
             draw_settings_label("Add filter:")
             changed, value = imgui.combo("###add_filter", 0, FilterMode._member_names_)
@@ -3335,11 +3385,11 @@ class MainGUI():
                         flt.match = Tag[Tag._member_names_[0]]
                     case FilterMode.Type.value:
                         flt.match = Type[Type._member_names_[0]]
-                self.filters.append(flt)
+                self.add_filter(flt)
 
             text_width = imgui.calc_text_size("Invrt ").x
             buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
-            for flt in self.filters:
+            for flt in self.get_filters():
                 imgui.text("")
                 draw_settings_label(f"Filter by {flt.mode.name}:")
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
@@ -3348,7 +3398,7 @@ class MainGUI():
                     self.require_sort = True
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
-                    self.filters.remove(flt)
+                    self.remove_filter(flt)
 
                 match flt.mode.value:
                     case FilterMode.Exe_State.value:
@@ -3762,7 +3812,7 @@ class MainGUI():
                 if imgui.button(icons.filter_plus_outline, width=frame_height):
                     flt = Filter(FilterMode.Label)
                     flt.match = label
-                    self.filters.append(flt)
+                    self.add_filter(flt)
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
                     async_thread.run(db.remove_label(label))
