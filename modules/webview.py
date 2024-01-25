@@ -267,11 +267,13 @@ def create(
     return app
 
 
-def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
+def open(url: str, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
     app = create(**kwargs)
     url = QtCore.QUrl(url)
-    for key, value in cookies.items():
-        app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
+    if cookies and cookies_domain:
+        cookies_domain = QtCore.QUrl("https://" + cookies_domain)
+        for key, value in cookies.items():
+            app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     app.window.webview.setUrl(url)
     app.window.show()
     app.exec()
