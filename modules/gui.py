@@ -2985,6 +2985,22 @@ class MainGUI():
             utils.wrap_text(text, width=cell_width - side_indent, offset=imgui.get_cursor_pos_x() - pos.x)
             imgui.same_line(spacing=pad)
             cluster = True
+        if cols.score.enabled:
+            _cluster_text(cols.score.name, f"{game.score:.1f}")
+        if cols.last_updated.enabled:
+            _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
+        if cols.last_played.enabled:
+            _cluster_text(cols.last_played.name, game.last_played.display or "Never")
+        if cols.added_on.enabled:
+            _cluster_text(cols.added_on.name, game.added_on.display)
+        if cols.rating.enabled:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.star * 5).x + pad:
+                imgui.dummy(0, 0)
+            self.draw_game_rating_widget(game)
+            imgui.same_line(spacing=pad)
+            cluster = True
+        if cols.developer.enabled:
+            _cluster_text(cols.developer.name, game.developer)
         if cols.finished_version.enabled or cols.installed_version.enabled:
             if cols.version.enabled:
                 if cols.finished_version.enabled and game.finished and game.finished != (game.installed or game.version):
@@ -3001,22 +3017,6 @@ class MainGUI():
                     _cluster_text(cols.finished_version.name, game.finished)
                 if cols.installed_version.enabled and game.installed:
                     _cluster_text(cols.installed_version.name, game.installed)
-        if cols.developer.enabled:
-            _cluster_text(cols.developer.name, game.developer)
-        if cols.score.enabled:
-            _cluster_text(cols.score.name, f"{game.score:.1f}")
-        if cols.last_updated.enabled:
-            _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
-        if cols.last_played.enabled:
-            _cluster_text(cols.last_played.name, game.last_played.display or "Never")
-        if cols.added_on.enabled:
-            _cluster_text(cols.added_on.name, game.added_on.display)
-        if cols.rating.enabled:
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.star * 5).x + pad:
-                imgui.dummy(0, 0)
-            self.draw_game_rating_widget(game)
-            imgui.same_line(spacing=pad)
-            cluster = True
         if cluster:
             imgui.dummy(0, 0)
         # Notes line
