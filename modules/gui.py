@@ -2224,11 +2224,11 @@ class MainGUI():
                             for _ in range(5):
                                 try:
                                     date = date.replace(day=day, month=month, year=year)
-                                except ValueError:
+                                    game.last_updated = parser.datestamp(date.timestamp())
+                                except (ValueError, OSError):
                                     day -= 1
                                     continue
                                 break
-                            game.last_updated = parser.datestamp(date.timestamp())
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Type:")
                         imgui.same_line()
