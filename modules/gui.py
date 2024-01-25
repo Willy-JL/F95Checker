@@ -3560,9 +3560,6 @@ class MainGUI():
                 set.browser = Browser.get(Browser.avail_list[value])
                 async_thread.run(db.update_settings("browser"))
 
-            if set.browser.integrated:
-                imgui.push_disabled()
-
             if set.browser.custom:
                 draw_settings_label("Custom browser:")
                 if imgui.button("Configure", width=right_width):
@@ -3623,9 +3620,6 @@ class MainGUI():
                 "allowing you to see links and spoiler content without actually logging in."
             )
             draw_settings_checkbox("browser_html")
-
-            if set.browser.integrated:
-                imgui.pop_disabled()
 
             draw_settings_label(
                 "Software Webview:",
