@@ -2793,12 +2793,13 @@ class MainGUI():
         buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
         action_items = checkboxes + buttons
         bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
+        frame_height = imgui.get_frame_height()
 
         actions_width = (
             imgui.style.item_spacing.x * action_items +      # Spacing * 6 action items
             imgui.style.frame_padding.x * 2 * buttons +      # Button padding * 2 sides * 4 buttons
             imgui.style.item_inner_spacing.x * checkboxes +  # Checkbox to label spacing * 2 checkboxes
-            imgui.get_frame_height() * checkboxes +          # (Checkbox height = width) * 2 checkboxes
+            frame_height * checkboxes +          # (Checkbox height = width) * 2 checkboxes
             imgui.calc_text_size(                            # Text
                 cols.play_button.name[0] * cols.play_button.enabled +
                 cols.open_folder.name[0] * cols.open_folder.enabled +
@@ -2840,14 +2841,11 @@ class MainGUI():
             )
         )
 
-        frame_height = imgui.get_frame_height()
-        badge_wrap = side_indent + imgui.get_text_line_height()
-
-        config = (side_indent, action_items, bg_col, frame_height, badge_wrap)
+        config = (side_indent, action_items, bg_col, frame_height)
         return min_cell_width, min_expand_width, config
 
     def draw_game_cell(self, game: Game, game_i: int | None, draw_list, cell_width: float, expand: bool, img_height: float, config: tuple):
-        (side_indent, action_items, bg_col, frame_height, badge_wrap) = config
+        (side_indent, action_items, bg_col, frame_height) = config
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
