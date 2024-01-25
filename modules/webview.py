@@ -34,6 +34,7 @@ def kwargs():
     return dict(
         debug=globals.debug,
         software=globals.settings.software_webview,
+        private=globals.settings.browser_private,
         icon=str(globals.gui.icon_path),
         icon_font=str(icons.font_path),
         extension=str(globals.self_path / "extension/integrated.js"),
@@ -51,6 +52,7 @@ def create(
     pos: tuple[int, int] = None,
     debug: bool,
     software: bool,
+    private: bool,
     icon: str,
     icon_font: str,
     extension: str,
@@ -99,12 +101,17 @@ def create(
     app.window.controls.progress.setMaximum(100)
     app.window.controls.layout().addWidget(app.window.controls.progress)
 
-    app.window.webview = QtWebEngineWidgets.QWebEngineView(QtWebEngineCore.QWebEngineProfile(app.window), app.window)
+    app.window.webview = QtWebEngineWidgets.QWebEngineView(QtWebEngineCore.QWebEngineProfile(None if private else "F95Checker", app.window), app.window)
     app.window.webview.page = app.window.webview.page()
     app.window.webview.history = app.window.webview.page.history()
     app.window.webview.profile = app.window.webview.page.profile()
     app.window.webview.settings = app.window.webview.page.settings()
     app.window.webview.cookieStore = app.window.webview.profile.cookieStore()
+
+    def closeEvent(close: QtGui.QCloseEvent):
+        close.accept()
+        app.window.webview.page.deleteLater()
+    app.window.closeEvent = closeEvent
 
     app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
     app.window.webview.settings.setAttribute(QtWebEngineCore.QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
@@ -262,18 +269,20 @@ def create(
     return app
 
 
-def open(url: str, *, cookies: dict[str, str] = {}, **kwargs):
+def open(url: str, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
     app = create(**kwargs)
     url = QtCore.QUrl(url)
-    for key, value in cookies.items():
-        app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
+    if cookies and cookies_domain:
+        cookies_domain = QtCore.QUrl("https://" + cookies_domain)
+        for key, value in cookies.items():
+            app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     app.window.webview.setUrl(url)
     app.window.show()
     app.exec()
 
 
 def cookies(url: str, **kwargs):
-    app = create(**kwargs | dict(buttons=False, extension=False))
+    app = create(**kwargs | dict(buttons=False, extension=False, private=True))
     url = QtCore.QUrl(url)
     def on_cookie_add(cookie: QtNetwork.QNetworkCookie):
         name = cookie.name().data().decode('utf-8')
@@ -287,7 +296,7 @@ def cookies(url: str, **kwargs):
 
 
 def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = {}, **kwargs):
-    app = create(**kwargs | dict(buttons=False, extension=False))
+    app = create(**kwargs | dict(buttons=False, extension=False, private=True))
     url = QtCore.QUrl(url)
     for key, value in cookies.items():
         app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)

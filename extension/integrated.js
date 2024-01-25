@@ -30,9 +30,7 @@ var rpcCall = async (method, path, body) => {
 };
 
 var getData = async () => {
-    let res = null;
-
-    res = await rpcCall('GET', '/games', null);
+    const res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
 };
 
@@ -113,15 +111,15 @@ var updateIcons = async () => {
             if (!isImage && elem.children.length > 0) {
                 // Search page
                 try {
-                    whitespaces = elem.querySelectorAll('span.label-append');
-                    lastWhitespace = whitespaces[whitespaces.length - 1];
+                    const whitespaces = elem.querySelectorAll('span.label-append');
+                    const lastWhitespace = whitespaces[whitespaces.length - 1];
                     lastWhitespace.insertAdjacentElement('afterend', container);
                 } catch (e) {
                     continue;
                 }
             } else if (elem.classList.contains('resource-tile_link')) {
                 // To accomodate all tile layouts on latest updates page
-                thumb = elem.querySelector('div.resource-tile_thumb');
+                const thumb = elem.querySelector('div.resource-tile_thumb');
                 thumb.insertAdjacentElement('beforebegin', container);
             } else {
                 // Everywhere else
