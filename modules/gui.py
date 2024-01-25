@@ -251,6 +251,7 @@ class MainGUI():
         )
         self.tabbar_flags: int = (
             imgui.TAB_BAR_REORDERABLE |
+            imgui.TAB_BAR_AUTO_SELECT_NEW_TABS |
             imgui.TAB_BAR_FITTING_POLICY_SCROLL
         )
         self.game_list_table_flags: int = (
@@ -305,6 +306,7 @@ class MainGUI():
         self.game_hitbox_click = False
         self.hovered_game: Game = None
         self.sorts: list[SortSpec] = []
+        self.prev_set: str = None
         self.active_set: str = None
         self.filter_sets: dict[str, list[Filter]] = None
         self.new_filter_sets: dict[str, list[Filter]] | None = None
@@ -693,11 +695,16 @@ class MainGUI():
                 self.filter_sets = pickle.load(file)
                 self.active_set = next(iter(self.filter_sets))
         except Exception:
-            self.filter_sets = {"Filter set 1": []}
-            self.active_set = "Filter set 1"
+            self.filter_sets = {"Set 1": []}
+            self.active_set = "Set 1"
 
     def get_new_filter_set_name(self):
-        return f"Filter set {len(self.filter_sets) + 1}"
+        init_len = len(self.filter_sets)
+        while True:
+            init_len += 1
+            name = f"Set {init_len}"
+            if name not in self.filter_sets:
+                return name
 
     def get_filters(self):
         return self.filter_sets.get(self.active_set, [])
@@ -1501,14 +1508,46 @@ class MainGUI():
 
     def draw_filter_set_context_menu(self, set_name: str):
         if imgui.selectable(f"{icons.pencil} Rename", False)[0]:
-            # TODO: do the thing
-            print(f"Renaming: {set_name}")
+            utils.push_popup(self.draw_filter_set_rename_popup, set_name)
+        imgui.separator()
         if imgui.selectable(f"{icons.trash_can_outline} Delete set", False)[0]:
             self.new_filter_sets = self.filter_sets.copy()
             self.new_filter_sets.pop(set_name)
-            # TODO: implement smart shifting behaviour for tabs on delete
             if self.active_set == set_name:
                 self.active_set = next(iter(self.new_filter_sets))
+
+    def draw_filter_set_rename_popup(self, old_name: str, popup_uuid: str = ""):
+        title = f"Rename \"{old_name}\""
+        button = f"{icons.content_save_outline} Save"
+        min_w = imgui.calc_text_size(title).x + imgui.calc_text_size(button).x
+        new_name = ""
+        def popup_content():
+            nonlocal new_name
+            imgui.dummy(self.scaled(min_w + 20), self.scaled(0))
+            imgui.set_next_item_width(-(imgui.calc_text_size(button).x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
+            activated, new_name = imgui.input_text_with_hint(
+                "###filter_set_rename",
+                "New name...",
+                new_name,
+                flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
+            )
+            imgui.same_line()
+            new_name = new_name.strip()
+            conflict = bool(old_name == new_name or new_name in self.filter_sets)
+            if conflict:
+                imgui.push_disabled()
+            if imgui.button(button) or (activated and not conflict):
+                self.new_filter_sets = {new_name if k == old_name else k:v for k,v in self.filter_sets.items()}
+                if self.active_set == old_name:
+                    self.active_set = new_name
+                return True
+            if conflict:
+                imgui.pop_disabled()
+            if conflict:
+                imgui.push_style_color(imgui.COLOR_TEXT, 0.8, 0.8, 0.0, 1.0)
+                imgui.text(f"{icons.alert_circle_outline} Name conflict")
+                imgui.pop_style_color()
+        return utils.popup(title, popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -2469,6 +2508,9 @@ class MainGUI():
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
             self.require_sort = True
+        if self.prev_set != self.active_set:
+            self.prev_set = self.active_set
+            self.require_sort = True
         if self.prev_filters != self.get_filters():
             self.prev_filters = self.get_filters().copy()
             self.require_sort = True
@@ -3356,8 +3398,8 @@ class MainGUI():
                 imgui.text("")
                 imgui.spacing()
 
-            # TODO: move this button somewhere else, or make it full width
-            if imgui.button("New filter set"):
+            draw_settings_label("New filter set:")
+            if imgui.button("Create", width=right_width):
                 name = self.get_new_filter_set_name()
                 self.filter_sets[name] = []
 
