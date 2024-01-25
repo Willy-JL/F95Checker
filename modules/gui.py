@@ -2910,20 +2910,7 @@ class MainGUI():
             imgui.set_cursor_pos(old_pos)
         # Name line
         imgui.push_font(imgui.fonts.bold)
-        if game.updated:
-            self.draw_game_update_icon(game)
-            imgui.same_line()
         self.draw_game_name_text(game)
-        if game.notes:
-            imgui.same_line()
-            if imgui.get_content_region_available_width() < badge_wrap:
-                imgui.dummy(0, 0)
-            imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-        if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
-            imgui.same_line()
-            if imgui.get_content_region_available_width() < badge_wrap:
-                imgui.dummy(0, 0)
-            self.draw_status_widget(game.status)
         imgui.pop_font()
         # Buttons line
         if action_items:
@@ -2970,6 +2957,18 @@ class MainGUI():
                 imgui.dummy(0, frame_height)
         # Cluster data
         cluster = False
+        if game.updated:
+            self.draw_game_update_icon(game)
+            imgui.same_line()
+            cluster = True
+        if game.notes:
+            imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+            imgui.same_line()
+            cluster = True
+        if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
+            self.draw_status_widget(game.status)
+            imgui.same_line()
+            cluster = True
         if game.labels:
             self.draw_game_labels_widget(game, short=True, align=False)
             imgui.same_line()
