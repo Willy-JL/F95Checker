@@ -357,7 +357,7 @@ async def download_webpage(url: str):
                 elem.attrs[key] = host + value
     with tempfile.NamedTemporaryFile("wb", prefix=webpage_prefix, suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
-    return f.name
+    return pathlib.Path(f.name).as_uri()
 
 
 def cleanup_webpages():
