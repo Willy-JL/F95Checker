@@ -1705,6 +1705,7 @@ class MainGUI():
             # Image
             image = game.image
             avail = imgui.get_content_region_available()
+            close_image = False
             if image.missing:
                 text = "Image missing!"
                 width = imgui.calc_text_size(text).x
@@ -1780,9 +1781,7 @@ class MainGUI():
                         imgui.begin_tooltip()
                         image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
-                imgui.end_child()
-                imgui.set_cursor_pos(prev_pos)
-                imgui.dummy(out_width, out_height)
+                close_image = True
             if imgui.begin_popup_context_item("###image_context"):
                 if imgui.selectable(f"{icons.folder_open_outline} Set custom image", False)[0]:
                     def select_callback(selected):
@@ -1798,6 +1797,10 @@ class MainGUI():
                     game.delete_images()
                     game.refresh_image()
                 imgui.end_popup()
+            if close_image:
+                imgui.end_child()
+                imgui.set_cursor_pos(prev_pos)
+                imgui.dummy(out_width, out_height)
             imgui.push_text_wrap_pos()
 
             imgui.push_font(imgui.fonts.big)
