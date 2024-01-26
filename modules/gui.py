@@ -259,7 +259,6 @@ class MainGUI():
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
         self.tabbar_flags: int = (
-            imgui.TAB_BAR_REORDERABLE |
             imgui.TAB_BAR_AUTO_SELECT_NEW_TABS |
             imgui.TAB_BAR_FITTING_POLICY_SCROLL
         )
@@ -311,7 +310,6 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
-        self.current_tab: Tab = None
         self.selected_games_count = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
@@ -777,6 +775,7 @@ class MainGUI():
         win_hovered = None
         prev_cursor = None
         prev_hidden = None
+        select_tab = True
         draw_next = 5.0
         size = (0, 0)
         cursor = -1
@@ -879,19 +878,22 @@ class MainGUI():
                         imgui.begin_child("###main_frame", width=-sidebar_size)
                         self.hovered_game = None
                         # Tabbar
-                        new_tab = self.current_tab
+                        current_tab = globals.settings.display_tab
+                        new_tab = current_tab
                         if Tab.instances:
                             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                                 if imgui.begin_tab_item(f"Default###tab_-1")[0]:
                                     new_tab = None
                                     imgui.end_tab_item()
                                 for tab in Tab.instances:
-                                    if imgui.begin_tab_item(f"{tab.name or 'New Tab'}###tab_{tab.id}", True)[0]:
+                                    if imgui.begin_tab_item(f"{tab.name or 'New Tab'}###tab_{tab.id}", flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is current_tab else 0)[0]:
                                         new_tab = tab
                                         imgui.end_tab_item()
                                 imgui.end_tab_bar()
-                        if new_tab is not self.current_tab:
-                            self.current_tab = new_tab
+                        select_tab = False
+                        if new_tab is not current_tab:
+                            globals.settings.display_tab = new_tab
+                            async_thread.run(db.update_settings("display_tab"))
                             self.require_sort = True
                         # Games container
                         match globals.settings.display_mode.value:
@@ -1506,7 +1508,7 @@ class MainGUI():
             imgui.text_disabled("Make some labels first!")
 
     def draw_game_tab_select_widget(self, game: Game):
-        current_tab = game.tab if game else self.current_tab
+        current_tab = game.tab if game else globals.settings.display_tab
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
@@ -2569,7 +2571,7 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
-            self.sorted_games_ids = list(filter(lambda id: globals.games[id].tab is self.current_tab, self.sorted_games_ids))
+            self.sorted_games_ids = list(filter(lambda id: globals.games[id].tab is globals.settings.display_tab, self.sorted_games_ids))
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Archived.value:

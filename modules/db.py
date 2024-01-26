@@ -161,6 +161,7 @@ async def connect():
             "check_notifs":                f'INTEGER DEFAULT {int(True)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
+            "display_tab":                 f'INTEGER DEFAULT NULL',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
@@ -357,12 +358,6 @@ async def load_games(id: int = None):
 async def load():
     cursor = await connection.execute("""
         SELECT *
-        FROM settings
-    """)
-    globals.settings = row_to_cls(await cursor.fetchone(), Settings)
-
-    cursor = await connection.execute("""
-        SELECT *
         FROM labels
     """)
     for label in await cursor.fetchall():
@@ -375,6 +370,14 @@ async def load():
     for tab in await cursor.fetchall():
         Tab.add(row_to_cls(tab, Tab))
 
+    # Settings need Tabs to be loaded
+    cursor = await connection.execute("""
+        SELECT *
+        FROM settings
+    """)
+    globals.settings = row_to_cls(await cursor.fetchone(), Settings)
+
+    # Games need Tabs and Labels to be loaded
     globals.games = {}
     await load_games()
 
@@ -557,6 +560,10 @@ async def delete_tab(tab: Tab):
     for game in globals.games.values():
         if game.tab is tab:
             game.tab = None
+    if globals.settings.display_tab is tab:
+        globals.settings.display_tab = None
+        await update_settings("display_tab")
+        globals.gui.require_sort = True
     Tab.remove(tab)
 
 
