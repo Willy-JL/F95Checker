@@ -703,6 +703,8 @@ class Game:
         self._did_init = True
         if self.custom is None:
             self.custom = bool(self.status is Status.Custom)
+        if self.id < 0:
+            self.custom = True
         if self.updated is None:
             self.updated = bool(self.installed) and self.installed != self.version
         if self.image_url == "-":
