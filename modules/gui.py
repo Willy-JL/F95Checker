@@ -1927,7 +1927,7 @@ class MainGUI():
                         imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
                     imgui.end_tab_item()
 
-                if imgui.begin_tab_item(icons.tray_arrow_down + " Downloads###downloads")[0]:
+                if not game.custom and imgui.begin_tab_item(icons.tray_arrow_down + " Downloads###downloads")[0]:
                     imgui.spacing()
                     imgui.text("RPDL Torrents:")
                     imgui.same_line()
