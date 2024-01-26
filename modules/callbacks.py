@@ -459,7 +459,7 @@ def remove_game(*games: list[Game], bypass_confirm=False):
             game.delete_images()
             del globals.games[id]
             globals.gui.require_sort = True
-            async_thread.run(db.remove_game(id))
+            async_thread.run(db.delete_game(id))
     if not bypass_confirm and (len(games) > 1 or globals.settings.confirm_on_remove):
         buttons = {
             f"{icons.check} Yes": remove_callback,
@@ -487,7 +487,7 @@ async def add_games(*threads: list[ThreadMatch | SearchResult]):
             if thread.id in globals.games:
                 dupes.append(globals.games[thread.id].name)
                 continue
-            await db.add_game(thread)
+            await db.create_game(thread)
             await db.load_games(thread.id)
             game = globals.games[thread.id]
             added.append(game.name)

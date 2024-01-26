@@ -445,14 +445,14 @@ async def update_settings(*keys: list[str]):
     """, tuple(values))
 
 
-async def remove_game(id: int):
+async def delete_game(id: int):
     await connection.execute(f"""
         DELETE FROM games
         WHERE id={id}
     """)
 
 
-async def add_game(thread: ThreadMatch | SearchResult = None, custom=False):
+async def create_game(thread: ThreadMatch | SearchResult = None, custom=False):
     if custom:
         game_id = utils.custom_id()
         await connection.execute(f"""
@@ -487,7 +487,7 @@ async def update_label(label: Label, *keys: list[str]):
     """, tuple(values))
 
 
-async def remove_label(label: Label):
+async def delete_label(label: Label):
     await connection.execute(f"""
         DELETE FROM labels
         WHERE id={label.id}
@@ -501,7 +501,7 @@ async def remove_label(label: Label):
     Label.remove(label)
 
 
-async def add_label():
+async def create_label():
     cursor = await connection.execute(f"""
         INSERT INTO labels
         DEFAULT VALUES
@@ -511,7 +511,9 @@ async def add_label():
         FROM labels
         WHERE id={cursor.lastrowid}
     """)
-    Label.add(row_to_cls(await cursor.fetchone(), Label))
+    label = row_to_cls(await cursor.fetchone(), Label)
+    Label.add(label)
+    return label
 
 
 async def update_cookies(new_cookies: dict[str, str]):

@@ -3850,11 +3850,11 @@ class MainGUI():
                     self.filters.append(flt)
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
-                    async_thread.run(db.remove_label(label))
+                    async_thread.run(db.delete_label(label))
 
             draw_settings_label("New label:")
             if imgui.button("Add", width=right_width):
-                async_thread.run(db.add_label())
+                async_thread.run(db.create_label())
 
             imgui.end_table()
             imgui.spacing()
@@ -4051,7 +4051,7 @@ class MainGUI():
                 "yourself. You can later convert a custom game to an F95Zone game from the info popup."
             )
             if imgui.button("Add", width=right_width):
-                game_id = async_thread.wait(db.add_game(custom=True))
+                game_id = async_thread.wait(db.create_game(custom=True))
                 async_thread.wait(db.load_games(game_id))
                 game = globals.games[game_id]
                 utils.push_popup(self.draw_game_info_popup, game, None)
