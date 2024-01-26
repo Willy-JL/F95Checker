@@ -878,23 +878,8 @@ class MainGUI():
                         imgui.begin_child("###main_frame", width=-sidebar_size)
                         self.hovered_game = None
                         # Tabbar
-                        current_tab = globals.settings.display_tab
-                        new_tab = current_tab
-                        if Tab.instances:
-                            if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
-                                if imgui.begin_tab_item(f"Default###tab_-1")[0]:
-                                    new_tab = None
-                                    imgui.end_tab_item()
-                                for tab in Tab.instances:
-                                    if imgui.begin_tab_item(f"{tab.name or 'New Tab'}###tab_{tab.id}", flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is current_tab else 0)[0]:
-                                        new_tab = tab
-                                        imgui.end_tab_item()
-                                imgui.end_tab_bar()
+                        self.draw_tabbar(select_tab)
                         select_tab = False
-                        if new_tab is not current_tab:
-                            globals.settings.display_tab = new_tab
-                            async_thread.run(db.update_settings("display_tab"))
-                            self.require_sort = True
                         # Games container
                         match globals.settings.display_mode.value:
                             case DisplayMode.list.value:
@@ -2512,6 +2497,40 @@ class MainGUI():
                 imgui.same_line(spacing=16)
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
+    def draw_tabbar(self, select_tab: bool = False):
+        current_tab = globals.settings.display_tab
+        new_tab = current_tab
+        if Tab.instances:
+            if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
+                if imgui.begin_tab_item(f"Default###tab_-1")[0]:
+                    new_tab = None
+                    imgui.end_tab_item()
+                for tab in Tab.instances:
+                    if imgui.begin_tab_item(
+                        f"{tab.name or 'New Tab'}###tab_{tab.id}",
+                        flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is current_tab else 0
+                    )[0]:
+                        new_tab = tab
+                        imgui.end_tab_item()
+                    if imgui.begin_popup_context_item(f"###tab_{tab.id}_context"):
+                        imgui.set_next_item_width(imgui.get_content_region_available_width())
+                        changed, value = imgui.input_text_with_hint(f"###tab_name_{tab.id}", "Tab name", tab.name)
+                        setter_extra = lambda _=None: async_thread.run(db.update_tab(tab, "name"))
+                        if changed:
+                            tab.name = value
+                            setter_extra()
+                        if imgui.begin_popup_context_item(f"###tab_name_{tab.id}_context"):
+                            utils.text_context(tab, "name", setter_extra)
+                            imgui.end_popup()
+                        if imgui.selectable(f"{icons.trash_can_outline} Close (keeps games)", False)[0]:
+                            async_thread.run(db.delete_tab(tab))
+                        imgui.end_popup()
+                imgui.end_tab_bar()
+        if new_tab is not current_tab:
+            globals.settings.display_tab = new_tab
+            async_thread.run(db.update_settings("display_tab"))
+            self.require_sort = True
 
     def sort_games(self, sorts: imgui.core._ImGuiTableSortSpecs):
         manual_sort = cols.manual_sort.enabled
