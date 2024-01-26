@@ -493,9 +493,9 @@ class Label:
 
     @classmethod
     def get(cls, id: int):
-        for label in cls.instances:
-            if label.id == id:
-                return label
+        for self in cls.instances:
+            if self.id == id:
+                return self
 
     @classmethod
     def remove(cls, self):
