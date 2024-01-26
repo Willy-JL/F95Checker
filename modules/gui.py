@@ -38,6 +38,7 @@ from modules.structs import (
     Type,
     Game,
     Tag,
+    Tab,
     Os,
 )
 from modules import (
@@ -257,6 +258,11 @@ class MainGUI():
             imgui.WINDOW_NO_SCROLLBAR |
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
+        self.tabbar_flags: int = (
+            imgui.TAB_BAR_REORDERABLE |
+            imgui.TAB_BAR_AUTO_SELECT_NEW_TABS |
+            imgui.TAB_BAR_FITTING_POLICY_SCROLL
+        )
         self.game_list_table_flags: int = (
             imgui.TABLE_SCROLL_Y |
             imgui.TABLE_HIDEABLE |
@@ -305,6 +311,7 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
+        self.current_tab: Tab = None
         self.selected_games_count = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
@@ -871,6 +878,21 @@ class MainGUI():
                         # Main pane
                         imgui.begin_child("###main_frame", width=-sidebar_size)
                         self.hovered_game = None
+                        # Tabbar
+                        new_tab = self.current_tab
+                        if Tab.instances:
+                            if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
+                                if imgui.begin_tab_item(f"Default###tab_-1")[0]:
+                                    new_tab = None
+                                    imgui.end_tab_item()
+                                for tab in Tab.instances:
+                                    if imgui.begin_tab_item(f"{tab.name or 'New Tab'}###tab_{tab.id}", True)[0]:
+                                        new_tab = tab
+                                        imgui.end_tab_item()
+                                imgui.end_tab_bar()
+                        if new_tab is not self.current_tab:
+                            self.current_tab = new_tab
+                            self.require_sort = True
                         # Games container
                         match globals.settings.display_mode.value:
                             case DisplayMode.list.value:
@@ -1483,6 +1505,41 @@ class MainGUI():
         else:
             imgui.text_disabled("Make some labels first!")
 
+    def draw_game_tab_select_widget(self, game: Game):
+        current_tab = game.tab if game else self.current_tab
+        new_tab = current_tab
+        if current_tab is None:
+            imgui.push_disabled()
+        if imgui.selectable(f"{icons.tab_unselected} Default###move_tab_-1", False)[0]:
+            new_tab = None
+        if current_tab is None:
+            imgui.pop_disabled()
+        for tab in Tab.instances:
+            if current_tab is tab:
+                imgui.push_disabled()
+            if imgui.selectable(f"{tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
+                new_tab = tab
+            if current_tab is tab:
+                imgui.pop_disabled()
+        if imgui.selectable(f"{icons.tab_plus} New tab###move_tab_-2", False)[0]:
+            def _new_tab(future: asyncio.Future):
+                nonlocal game
+                tab = future.result()
+                if game:
+                    game.tab = tab
+                else:
+                    for game in globals.games.values():
+                        if game.selected:
+                            game.tab = tab
+            async_thread.run(db.create_tab()).add_done_callback(_new_tab)
+        if new_tab is not current_tab:
+            if game:
+                game.tab = new_tab
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        game.tab = new_tab
+
     def draw_game_tags_select_widget(self, game: Game):
         for tag in Tag:
             changed, value = imgui.checkbox(f"###{game.id}_tag_{tag.value}", tag in game.tags)
@@ -1517,6 +1574,9 @@ class MainGUI():
         self.draw_game_rating_widget(game)
         if imgui.begin_menu(f"{icons.label_multiple_outline} Labels"):
             self.draw_game_labels_select_widget(game)
+            imgui.end_menu()
+        if imgui.begin_menu(f"{icons.tab} Move to Tab"):
+            self.draw_game_tab_select_widget(game)
             imgui.end_menu()
         imgui.separator()
         self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive", selectable=True)
@@ -2509,6 +2569,7 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
+            self.sorted_games_ids = list(filter(lambda id: globals.games[id].tab is self.current_tab, self.sorted_games_ids))
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Archived.value:

@@ -25,6 +25,7 @@ from modules.structs import (
     Label,
     Type,
     Game,
+    Tab,
 )
 from modules import (
     globals,
@@ -245,6 +246,7 @@ async def connect():
             "changelog":                   f'TEXT    DEFAULT ""',
             "tags":                        f'TEXT    DEFAULT "[]"',
             "labels":                      f'TEXT    DEFAULT "[]"',
+            "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""',
             "downloads":                   f'TEXT    DEFAULT "[]"',
@@ -270,6 +272,13 @@ async def connect():
             "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
             "name":                        f'TEXT    DEFAULT ""',
             "color":                       f'TEXT    DEFAULT "#696969"',
+        }
+    )
+    await create_table(
+        table_name="tabs",
+        columns={
+            "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
+            "name":                        f'TEXT    DEFAULT ""',
         }
     )
 
@@ -359,6 +368,13 @@ async def load():
     for label in await cursor.fetchall():
         Label.add(row_to_cls(label, Label))
 
+    cursor = await connection.execute("""
+        SELECT *
+        FROM tabs
+    """)
+    for tab in await cursor.fetchall():
+        Tab.add(row_to_cls(tab, Tab))
+
     globals.games = {}
     await load_games()
 
@@ -374,6 +390,8 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
         value = value.value
     elif hasattr(value, "hash"):
         value = value.hash
+    elif hasattr(value, "id"):
+        value = value.id
     elif type(value) is bool:
         value = int(value)
     elif isinstance(value, dict):
@@ -514,6 +532,47 @@ async def create_label():
     label = row_to_cls(await cursor.fetchone(), Label)
     Label.add(label)
     return label
+
+
+async def update_tab(tab: Tab, *keys: list[str]):
+    values = []
+
+    for key in keys:
+        value = py_to_sql(getattr(tab, key))
+        values.append(value)
+
+    await connection.execute(f"""
+        UPDATE tabs
+        SET
+            {", ".join(f"{key} = ?" for key in keys)}
+        WHERE id={tab.id}
+    """, tuple(values))
+
+
+async def delete_tab(tab: Tab):
+    await connection.execute(f"""
+        DELETE FROM tabs
+        WHERE id={tab.id}
+    """)
+    for game in globals.games.values():
+        if game.tab is tab:
+            game.tab = None
+    Tab.remove(tab)
+
+
+async def create_tab():
+    cursor = await connection.execute(f"""
+        INSERT INTO tabs
+        DEFAULT VALUES
+    """)
+    cursor = await connection.execute(f"""
+        SELECT *
+        FROM tabs
+        WHERE id={cursor.lastrowid}
+    """)
+    tab = row_to_cls(await cursor.fetchone(), Tab)
+    Tab.add(tab)
+    return tab
 
 
 async def update_cookies(new_cookies: dict[str, str]):

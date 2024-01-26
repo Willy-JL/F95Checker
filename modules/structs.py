@@ -504,6 +504,34 @@ class Label:
 
 
 @dataclasses.dataclass
+class Tab:
+    id: int
+    name: str
+    instances: typing.ClassVar = []
+
+    @classmethod
+    def add(cls, *args, **kwargs):
+        if args and isinstance(obj := args[0], cls):
+            self = obj
+        else:
+            self = cls(*args, **kwargs)
+        if self in cls.instances:
+            return
+        cls.instances.append(self)
+
+    @classmethod
+    def get(cls, id: int):
+        for self in cls.instances:
+            if self.id == id:
+                return self
+
+    @classmethod
+    def remove(cls, self):
+        while self in cls.instances:
+            cls.instances.remove(self)
+
+
+@dataclasses.dataclass
 class Browser:
     name: str
     hash: int = None
@@ -690,6 +718,7 @@ class Game:
     changelog          : str
     tags               : tuple[Tag]
     labels             : list[Label.get]
+    tab                : Tab.get
     notes              : str
     image_url          : str
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
@@ -843,6 +872,7 @@ class Game:
             "changelog",
             "tags",
             "labels",
+            "tab",
             "notes",
             "image_url",
             "downloads"
