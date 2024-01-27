@@ -5,6 +5,7 @@ import plistlib
 import pathlib
 import asyncio
 import typing
+import string
 import shlex
 import imgui
 import json
@@ -105,9 +106,17 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
             game.add_executable(selected)
         if callback:
             callback(selected)
+    start_dir = globals.settings.default_exe_dir.get(globals.os)
+    if start_dir:
+        start_dir = pathlib.Path(start_dir)
+        game_dir = "".join(char for char in game.name.replace("&", "and") if char in (string.ascii_letters + string.digits + " "))
+        game_dir = re.sub(r" +", r" ", game_dir).strip()
+        game_dir = start_dir / game_dir
+        if game_dir.is_dir():
+            start_dir = game_dir
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
-        start_dir=globals.settings.default_exe_dir.get(globals.os),
+        start_dir=start_dir,
         callback=select_callback,
         buttons=[use_uri]
     ).tick)
