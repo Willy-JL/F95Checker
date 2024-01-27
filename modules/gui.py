@@ -1686,6 +1686,12 @@ class MainGUI():
                 imgui.same_line()
                 imgui.text(game.last_updated.display)
 
+                if Tab.instances:
+                    imgui.spacing()
+                    imgui.text_disabled("Tab: ")
+                    imgui.same_line()
+                    imgui.text((game.tab.name or "New Tab") if game.tab else "Default")
+
                 for attr, offset in (("name", name_offset), ("version", version_offset)):
                     old_val =  getattr(old_game, attr) or "Unknown"
                     new_val =  getattr(game, attr) or "Unknown"
