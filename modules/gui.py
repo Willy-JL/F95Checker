@@ -2645,6 +2645,10 @@ class MainGUI():
                     game.selected = False
             sorts.specs_dirty = False
             self.require_sort = False
+        if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
+            selected = not any(globals.games[id].selected for id in self.sorted_games_ids)
+            for id in self.sorted_games_ids:
+                globals.games[id].selected = selected
 
     def handle_game_hitbox_events(self, game: Game, game_i: int = None):
         manual_sort = cols.manual_sort.enabled
