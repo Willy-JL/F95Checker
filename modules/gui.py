@@ -2541,6 +2541,8 @@ class MainGUI():
                         imgui.end_popup()
                 imgui.end_tab_bar()
         if new_tab is not self.current_tab:
+            for game in globals.games.values():
+                game.selected = False
             self.current_tab = new_tab
             globals.settings.display_tab = new_tab
             async_thread.run(db.update_settings("display_tab"))
