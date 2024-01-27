@@ -91,10 +91,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                     continue
                 value_html += text
             value_html = fixed_newlines(value_html)
-        if len(value_regex) > len(value_html):
-            return value_regex
-        else:
-            return value_html
+        return value_html, value_regex
     def get_game_downloads(*names: list[str]):
         for name in names:
             if elem := post.find(is_text(name)):
@@ -306,9 +303,19 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         elif elem := head.find(is_class("bratr-rating")):
             score = float(re.search(r"(\d(?:\.\d\d?)?)", elem.get("title")).group(1))
 
-        description = get_long_game_attr("overview", "story")
-
-        changelog = get_long_game_attr("changelog", "change-log", "change log")
+        description_html, description_regex = get_long_game_attr("overview", "story")
+        changelog_html, changelog_regex = get_long_game_attr("changelog", "change-log", "change log")
+        if len(description_regex) > len(description_html):
+            if description_html and description_regex in changelog_html + changelog_regex:
+                description = description_html
+            else:
+                description = description_regex
+        else:
+            if description_regex and description_html in changelog_html + changelog_regex:
+                description = description_regex
+            else:
+                description = description_html
+        changelog = changelog_regex if len(changelog_regex) > len(changelog_html) else changelog_html
 
         tags = []
         if (taglist := head.find(is_class("js-tagList"))) is not None:
