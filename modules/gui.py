@@ -1507,14 +1507,8 @@ class MainGUI():
             if current_tab is tab:
                 imgui.pop_disabled()
         if imgui.selectable(f"{icons.tab_plus} New Tab###move_tab_-2", False)[0]:
-            tab = async_thread.wait(db.create_tab())
-            if game:
-                game.tab = tab
-            else:
-                for game in globals.games.values():
-                    if game.selected:
-                        game.tab = tab
-            globals.settings.display_tab = tab
+            new_tab = async_thread.wait(db.create_tab())
+            globals.settings.display_tab = new_tab
             async_thread.run(db.update_settings("display_tab"))
             self.recalculate_ids = True
             imgui.close_current_popup()
@@ -2670,14 +2664,14 @@ class MainGUI():
                 tab: list(filter(lambda id: tab is globals.games[id].tab, base_ids))
                 for tab in (None, *Tab.instances)
             }
-            tab_games_ids = self.show_games_ids[globals.settings.display_tab]
+            tab_games_ids = self.show_games_ids[self.current_tab]
             # Deselect things that arent't visible anymore
             for game in globals.games.values():
                 if game.selected and game.id not in tab_games_ids:
                     game.selected = False
             sorts.specs_dirty = False
         else:
-            tab_games_ids = self.show_games_ids[globals.settings.display_tab]
+            tab_games_ids = self.show_games_ids[self.current_tab]
         if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
             selected = not any(globals.games[id].selected for id in tab_games_ids)
             for id in tab_games_ids:
@@ -2695,7 +2689,7 @@ class MainGUI():
                 if imgui.is_key_down(glfw.KEY_LEFT_SHIFT):
                     # Shift + Left click = multi select
                     if self.selected_games_count and self.last_selected_game.selected:
-                        tab_games_ids = self.show_games_ids[globals.settings.display_tab]
+                        tab_games_ids = self.show_games_ids[self.current_tab]
                         start = tab_games_ids.index(self.last_selected_game.id)
                         end = tab_games_ids.index(game.id)
                         if start > end:
@@ -2713,7 +2707,7 @@ class MainGUI():
                             game.selected = False
                     else:
                         # Left click = open game info popup
-                        utils.push_popup(self.draw_game_info_popup, game, self.show_games_ids[globals.settings.display_tab].copy())
+                        utils.push_popup(self.draw_game_info_popup, game, self.show_games_ids[self.current_tab].copy())
         # Left click drag = swap if in manual sort mode
         if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
             self.game_hitbox_click = False
@@ -2787,7 +2781,7 @@ class MainGUI():
             self.sync_scroll()
             frame_height = imgui.get_frame_height()
             notes_width = None
-            for id in self.show_games_ids[globals.settings.display_tab]:
+            for id in self.show_games_ids[self.current_tab]:
                 game = globals.games[id]
                 imgui.table_next_row()
                 imgui.table_set_column_index(cols.separator.index)
@@ -3200,7 +3194,7 @@ class MainGUI():
             # Loop cells
             self.sync_scroll()
             draw_list = imgui.get_window_draw_list()
-            for id in self.show_games_ids[globals.settings.display_tab]:
+            for id in self.show_games_ids[self.current_tab]:
                 game = globals.games[id]
                 imgui.table_next_column()
                 self.draw_game_cell(game, True, draw_list, cell_width, expand, img_height, cell_config)
@@ -3235,7 +3229,7 @@ class MainGUI():
             for label in Label.instances:
                 imgui.table_setup_column(label.name, imgui.TABLE_COLUMN_WIDTH_STRETCH)
             imgui.table_setup_column("Not Labelled", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-            tab_games_ids = self.show_games_ids[globals.settings.display_tab]
+            tab_games_ids = self.show_games_ids[self.current_tab]
 
             # Column headers
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
@@ -3520,7 +3514,7 @@ class MainGUI():
                 imgui.spacing()
 
             if not Tab.instances and (len(self.filters) > 0 or self.add_box_text):
-                draw_settings_label(f"Filtered games count: {len(self.show_games_ids[globals.settings.display_tab])}")
+                draw_settings_label(f"Filtered games count: {sum(len(ids) for ids in self.show_games_ids.values())}")
                 imgui.text("")
                 imgui.spacing()
 
