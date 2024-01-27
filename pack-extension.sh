@@ -3,6 +3,7 @@
 fontname=materialdesignicons-webfont.7.4.47.ttf
 
 cp ./resources/fonts/$fontname ./extension/chrome/icons
+cp ./resources/fonts/$fontname ./extension/firefox/icons
 cd ./extension/
 rm ./chrome.zip || true
 rm ./firefox.zip || true
@@ -12,3 +13,4 @@ cd ../firefox/
 zip -r ../firefox.zip *
 cd ..
 rm ./chrome/icons/$fontname
+rm ./firefox/icons/$fontname
