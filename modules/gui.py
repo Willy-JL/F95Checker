@@ -1196,8 +1196,6 @@ class MainGUI():
 
     def draw_game_name_text(self, game: Game):
         if game.archived:
-            self.draw_game_archive_icon(game)
-            imgui.same_line()
             imgui.text_disabled(game.name)
         elif game.finished == game.version:
             imgui.text(game.name)
@@ -2807,6 +2805,9 @@ class MainGUI():
                             if globals.settings.show_remove_btn:
                                 self.draw_game_remove_button(game, icons.trash_can_outline)
                                 imgui.same_line()
+                            if game.archived:
+                                self.draw_game_archive_icon(game)
+                                imgui.same_line()
                             if game.updated:
                                 self.draw_game_update_icon(game)
                                 imgui.same_line()
@@ -3075,6 +3076,10 @@ class MainGUI():
                 imgui.dummy(0, frame_height)
         # Cluster data
         cluster = False
+        if game.archived:
+            self.draw_game_archive_icon(game)
+            imgui.same_line()
+            cluster = True
         if game.updated:
             self.draw_game_update_icon(game)
             imgui.same_line()
