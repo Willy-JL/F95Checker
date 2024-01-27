@@ -280,6 +280,8 @@ async def connect():
         columns={
             "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
             "name":                        f'TEXT    DEFAULT ""',
+            "icon":                        f'TEXT    DEFAULT "{Tab.default_icon()}"',
+            "color":                       f'TEXT    DEFAULT NULL',
         }
     )
 
@@ -326,7 +328,9 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
                     value = data_type(x for x in (content_type(x) for x in value) if x is not None)
         case _:
             if isinstance(data_type, types.UnionType):
-                if not (getattr(data_type, "__args__", [None])[-1] is types.NoneType and value is None):
+                if re.fullmatch(r'^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})', str(value)):
+                    value = colors.hex_to_rgba_0_1(value)
+                elif not (getattr(data_type, "__args__", [None])[-1] is types.NoneType and value is None):
                     value = data_type.__args__[0](value)
                 else:
                     value = None

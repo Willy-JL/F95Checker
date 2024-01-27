@@ -507,6 +507,8 @@ class Label:
 class Tab:
     id: int
     name: str
+    icon: str
+    color: tuple[float] | None
     instances: typing.ClassVar = []
 
     @classmethod
@@ -529,6 +531,10 @@ class Tab:
     def remove(cls, self):
         while self in cls.instances:
             cls.instances.remove(self)
+
+    @classmethod
+    def default_icon(cls):
+        return "heart_box"
 
     def __hash__(self):
         return hash(self.id)

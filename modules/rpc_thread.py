@@ -5,8 +5,10 @@ import threading
 import asyncio
 import json
 
+from modules.colors import rgba_0_1_to_hex
 from modules.structs import (
     MsgBox,
+    Tab
 )
 from modules import (
     globals,
@@ -55,7 +57,12 @@ def start():
                 try:
                     match self.path:
                         case "/games":
-                            self.send_json(200, list(globals.games))
+                            self.send_json(200, [{
+                                    "id": g.id,
+                                    "icon": g.tab.icon if g.tab else Tab.default_icon(),
+                                    "color": rgba_0_1_to_hex(g.tab.color) if g.tab and g.tab.color else "#FD5555"
+                                } for g in globals.games.values()
+                            ])
                             return
                         case _:
                             self.send_resp(404)

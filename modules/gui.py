@@ -2502,16 +2502,24 @@ class MainGUI():
         new_tab = None
         if Tab.instances:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
-                if imgui.begin_tab_item(f"Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
+                if imgui.begin_tab_item(f"{getattr(icons, Tab.default_icon())} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
+                    if tab.color:
+                        imgui.push_style_color(imgui.COLOR_TAB, *tab.color[:3], 0.5)
+                        imgui.push_style_color(imgui.COLOR_TAB_ACTIVE, *tab.color)
+                        imgui.push_style_color(imgui.COLOR_TAB_HOVERED, *tab.color)
+                        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(tab.color))
+                    icon = getattr(icons, tab.icon, icons.help_rhombus_outline)
                     if imgui.begin_tab_item(
-                        f"{tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
+                        f"{icon} {tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
                         flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is display_tab else 0
                     )[0]:
                         new_tab = tab
                         imgui.end_tab_item()
+                    if tab.color:
+                        imgui.pop_style_color(4)
                     if imgui.begin_popup_context_item(f"###tab_{tab.id}_context"):
                         imgui.set_next_item_width(imgui.get_content_region_available_width())
                         changed, value = imgui.input_text_with_hint(f"###tab_name_{tab.id}", "Tab name", tab.name)
@@ -2522,6 +2530,34 @@ class MainGUI():
                         if imgui.begin_popup_context_item(f"###tab_name_{tab.id}_context"):
                             utils.text_context(tab, "name", setter_extra)
                             imgui.end_popup()
+                        if imgui.button(icon):
+                            imgui.open_popup("###tab_icon_picker")
+                        if imgui.begin_popup("###tab_icon_picker"):
+                            search = ""
+                            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+                            _, search = imgui.input_text_with_hint(f"###tab_icons_search", "Search icons...", search)
+                            imgui.begin_child(f"###tab_icons_frame", width=globals.gui.scaled(350), height=imgui.io.display_size.y * 0.5)
+                            for name, icon in icons.names.items():
+                                if not search or search in name:
+                                    if imgui.selectable(f"{icon}  {name}")[0]:
+                                        tab.icon = name.replace("-", "_")
+                                        async_thread.run(db.update_tab(tab, "icon"))
+                            imgui.end_child()
+                            imgui.end_popup()
+                        imgui.same_line()
+                        if imgui.button("Reset icon", width=imgui.get_content_region_available_width()):
+                            tab.icon = Tab.default_icon()
+                            async_thread.run(db.update_tab(tab, "icon"))
+                        color = tab.color[:3] if tab.color else (0.0, 0.0, 0.0)
+                        changed, value = imgui.color_edit3(f"###tab_color_{tab.id}", *color, flags=imgui.COLOR_EDIT_NO_INPUTS)
+                        if changed:
+                            tab.color = (*value, 1.0)
+                            async_thread.run(db.update_tab(tab, "color"))
+                        imgui.same_line()
+                        if imgui.button("Reset color", width=imgui.get_content_region_available_width()):
+                            tab.color = None
+                            async_thread.run(db.update_tab(tab, "color"))
+                        imgui.spacing()
                         if imgui.selectable(f"{icons.trash_can_outline} Close (keeps games)", False)[0]:
                             close_callback = lambda: async_thread.run(db.delete_tab(tab))
                             if globals.settings.confirm_on_remove:

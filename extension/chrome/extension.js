@@ -75,18 +75,16 @@ const updateIcons = async (tabId) => {
                 c.style.marginInlineEnd = '4px';
                 return c;
             };
-            const gamesIcon = () => {
+            const createIcon = (gameId) => {
                 const icon = document.createElement('i');
-                icon.style.fontFamily = "'Font Awesome 5 Pro'";
-                icon.style.fontSize = '120%';
-                icon.style.position = 'relative';
-                icon.style.verticalAlign = 'bottom';
-                icon.classList.add('fa', 'fa-heart-square');
+                let game = games.find(g => g.id === gameId)
+                let iconName = game.icon.replace(/_/g, '-');
+                icon.classList.add('mdi', `mdi-${iconName}`);
                 icon.setAttribute('title', 'This game is present in your F95Checker library!');
                 icon.addEventListener('click', () =>
                     alert('This game is present in your F95Checker library!')
                 );
-                icon.style.color = '#FD5555';
+                icon.style.color = game.color;
                 return icon;
             };
             const removeOldIcons = () => {
@@ -96,7 +94,7 @@ const updateIcons = async (tabId) => {
                 for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
                     const id = extractThreadId(elem.href);
 
-                    if (!id || ![...games].includes(id)) {
+                    if (!id || !games.map(g => g.id).includes(id)) {
                         continue;
                     }
 
@@ -116,7 +114,7 @@ const updateIcons = async (tabId) => {
                     }
 
                     const container = createContainer();
-                    if (games.includes(id)) container.prepend(gamesIcon());
+                    if (games.map(g => g.id).includes(id)) container.prepend(createIcon(id));
 
                     if (isImage) {
                         container.style.position = 'absolute';
@@ -126,7 +124,6 @@ const updateIcons = async (tabId) => {
                         container.style.background = '#262626';
                         container.style.border = 'solid #262626';
                         container.style.borderRadius = '4px';
-                        container.style.fontSize = 'larger';
                     }
 
                     if (!isImage && elem.children.length > 0) {
@@ -153,7 +150,7 @@ const updateIcons = async (tabId) => {
                 const container = createContainer();
                 const title = document.getElementsByClassName('p-title-value')[0];
                 if (title) {
-                    if (games.includes(id)) container.prepend(gamesIcon());
+                    if (games.map(g => g.id).includes(id)) container.prepend(createIcon(id));
                     if (container.firstChild)
                         title.insertBefore(
                             container,
