@@ -804,7 +804,7 @@ class Game:
             self.executables_valids = [utils.is_uri(executable) or os.path.isfile(executable) for executable in self.executables]
         self.executables_valid = all(self.executables_valids)
         if globals.gui:
-            globals.gui.require_sort = True
+            globals.gui.recalculate_ids = True
 
     def add_executable(self, executable: str):
         from modules import globals, utils
@@ -841,7 +841,7 @@ class Game:
         from modules import globals, async_thread, db
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
-            globals.gui.require_sort = True
+            globals.gui.recalculate_ids = True
 
     def remove_label(self, label: Label):
         while label in self.labels:
@@ -849,7 +849,7 @@ class Game:
         from modules import globals, async_thread, db
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
-            globals.gui.require_sort = True
+            globals.gui.recalculate_ids = True
 
     def __setattr__(self, name: str, value: typing.Any):
         if self._did_init and name in [
@@ -888,7 +888,7 @@ class Game:
             from modules import globals, async_thread, db
             async_thread.run(db.update_game(self, name))
             if globals.gui:
-                globals.gui.require_sort = True
+                globals.gui.recalculate_ids = True
             return
         super().__setattr__(name, value)
         if name == "selected":

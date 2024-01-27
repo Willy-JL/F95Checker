@@ -259,7 +259,6 @@ class MainGUI():
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
         self.tabbar_flags: int = (
-            imgui.TAB_BAR_AUTO_SELECT_NEW_TABS |
             imgui.TAB_BAR_FITTING_POLICY_SCROLL
         )
         self.game_list_table_flags: int = (
@@ -304,12 +303,13 @@ class MainGUI():
         self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
-        self.require_sort = True
         self.repeat_chars = False
         self.scroll_percent = 0.0
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
+        self.recalculate_ids = True
+        self.current_tab: Tab = None
         self.selected_games_count = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
@@ -775,7 +775,6 @@ class MainGUI():
         win_hovered = None
         prev_cursor = None
         prev_hidden = None
-        select_tab = True
         draw_next = 5.0
         size = (0, 0)
         cursor = -1
@@ -827,8 +826,8 @@ class MainGUI():
                     # Redraw only when needed
                     draw = False
                     draw = draw or api.updating
-                    draw = draw or self.require_sort
                     draw = draw or imagehelper.redraw
+                    draw = draw or self.recalculate_ids
                     draw = draw or size != self.prev_size
                     draw = draw or prev_hidden != self.hidden
                     draw = draw or prev_focused != self.focused
@@ -878,8 +877,7 @@ class MainGUI():
                         imgui.begin_child("###main_frame", width=-sidebar_size)
                         self.hovered_game = None
                         # Tabbar
-                        self.draw_tabbar(select_tab)
-                        select_tab = False
+                        self.draw_tabbar()
                         # Games container
                         match globals.settings.display_mode.value:
                             case DisplayMode.list.value:
@@ -1493,7 +1491,7 @@ class MainGUI():
             imgui.text_disabled("Make some labels first!")
 
     def draw_game_tab_select_widget(self, game: Game):
-        current_tab = game.tab if game else globals.settings.display_tab
+        current_tab = game.tab if game else self.current_tab
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
@@ -1509,16 +1507,16 @@ class MainGUI():
             if current_tab is tab:
                 imgui.pop_disabled()
         if imgui.selectable(f"{icons.tab_plus} New Tab###move_tab_-2", False)[0]:
-            def _new_tab(future: asyncio.Future):
-                nonlocal game
-                tab = future.result()
-                if game:
-                    game.tab = tab
-                else:
-                    for game in globals.games.values():
-                        if game.selected:
-                            game.tab = tab
-            async_thread.run(db.create_tab()).add_done_callback(_new_tab)
+            tab = async_thread.wait(db.create_tab())
+            if game:
+                game.tab = tab
+            else:
+                for game in globals.games.values():
+                    if game.selected:
+                        game.tab = tab
+            globals.settings.display_tab = tab
+            async_thread.run(db.update_settings("display_tab"))
+            self.recalculate_ids = True
         if new_tab is not current_tab:
             if game:
                 game.tab = new_tab
@@ -1541,7 +1539,7 @@ class MainGUI():
     def draw_game_context_menu(self, game: Game = None):
         if not game:
             imgui.text(f"Selected games: {self.selected_games_count}")
-        self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.show_games_ids[globals.settings.display_tab])
+        self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.show_games_ids[self.current_tab])
         self.draw_game_recheck_button(game, f"{icons.reload_alert} Full Recheck", selectable=True)
         imgui.separator()
         self.draw_game_play_button(game, f"{icons.play} Play", selectable=True)
@@ -2503,9 +2501,10 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
-    def draw_tabbar(self, select_tab: bool = False):
-        current_tab = globals.settings.display_tab
-        new_tab = current_tab
+    def draw_tabbar(self):
+        display_tab = globals.settings.display_tab
+        select_tab = self.current_tab is not display_tab
+        new_tab = None
         if Tab.instances:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 if imgui.begin_tab_item(f"Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
@@ -2514,7 +2513,7 @@ class MainGUI():
                 for tab in Tab.instances:
                     if imgui.begin_tab_item(
                         f"{tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
-                        flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is current_tab else 0
+                        flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is display_tab else 0
                     )[0]:
                         new_tab = tab
                         imgui.end_tab_item()
@@ -2542,24 +2541,25 @@ class MainGUI():
                             )
                         imgui.end_popup()
                 imgui.end_tab_bar()
-        if new_tab is not current_tab:
+        if new_tab is not self.current_tab:
+            self.current_tab = new_tab
             globals.settings.display_tab = new_tab
             async_thread.run(db.update_settings("display_tab"))
-            self.require_sort = True
 
-    def sort_games(self, sorts: imgui.core._ImGuiTableSortSpecs):
+    def calculate_ids(self, sorts: imgui.core._ImGuiTableSortSpecs):
         manual_sort = cols.manual_sort.enabled
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
-            self.require_sort = True
+            self.recalculate_ids = True
         if self.prev_filters != self.filters:
             self.prev_filters = self.filters.copy()
-            self.require_sort = True
+            self.recalculate_ids = True
         if sorts.specs_count > 0:
             self.sorts = []
             for sort_spec in sorts.specs:
                 self.sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
-        if sorts.specs_dirty or self.require_sort:
+        if sorts.specs_dirty or self.recalculate_ids:
+            self.recalculate_ids = False
             # Pick base ID list
             if manual_sort:
                 changed = False
@@ -2671,7 +2671,6 @@ class MainGUI():
                 if game.selected and game.id not in tab_games_ids:
                     game.selected = False
             sorts.specs_dirty = False
-            self.require_sort = False
         else:
             tab_games_ids = self.show_games_ids[globals.settings.display_tab]
         if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
@@ -2726,7 +2725,7 @@ class MainGUI():
                     switch = lst.index(game.id)
                     lst[switch], lst[payload] = lst[payload], lst[switch]
                     async_thread.run(db.update_settings("manual_sort_list"))
-                    self.require_sort = True
+                    self.recalculate_ids = True
                 imgui.end_drag_drop_target()
         context_id = f"###{game.id}_context"
         if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
@@ -2771,7 +2770,7 @@ class MainGUI():
                 if column is cols.manual_sort:
                     can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
-            self.sort_games(imgui.table_get_sort_specs())
+            self.calculate_ids(imgui.table_get_sort_specs())
 
             # Column headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
@@ -2903,7 +2902,7 @@ class MainGUI():
                 # Set sorting condition
                 if column is cols.manual_sort:
                     can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
-            self.sort_games(imgui.table_get_sort_specs())
+            self.calculate_ids(imgui.table_get_sort_specs())
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
@@ -3324,7 +3323,7 @@ class MainGUI():
             changed = True
         def setter_extra(_=None):
             self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
-            self.require_sort = True
+            self.recalculate_ids = True
         if changed:
             setter_extra()
         if imgui.begin_popup_context_item("###bottombar_context"):
@@ -3350,7 +3349,7 @@ class MainGUI():
                 async_thread.run(callbacks.add_games(*utils.extract_thread_matches(self.add_box_text)))
                 self.add_box_text = ""
                 self.add_box_valid = False
-                self.require_sort = True
+                self.recalculate_ids = True
         elif activated:
             async def _search_and_add(query: str):
                 login = None
@@ -3391,7 +3390,7 @@ class MainGUI():
             async_thread.run(_search_and_add(self.add_box_text))
             self.add_box_text = ""
             self.add_box_valid = False
-            self.require_sort = True
+            self.recalculate_ids = True
 
     def draw_sidebar(self):
         set = globals.settings
@@ -3554,7 +3553,7 @@ class MainGUI():
                 imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
                 if imgui.button((icons.invert_colors if flt.invert else icons.invert_colors_off) + "Invrt", width=frame_height + text_width):
                     flt.invert = not flt.invert
-                    self.require_sort = True
+                    self.recalculate_ids = True
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline, width=frame_height):
                     self.filters.remove(flt)
@@ -3565,21 +3564,21 @@ class MainGUI():
                         changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, ExeState._member_names_)
                         if changed:
                             flt.match = ExeState[ExeState._member_names_[value]]
-                            self.require_sort = True
+                            self.recalculate_ids = True
                     case FilterMode.Finished.value:
                         draw_settings_label("Include outdated:")
                         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                         changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
                         if changed:
                             flt.match = value
-                            self.require_sort = True
+                            self.recalculate_ids = True
                     case FilterMode.Installed.value:
                         draw_settings_label("Include outdated:")
                         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + checkbox_offset)
                         changed, value = imgui.checkbox(f"###filter_{flt.id}_value", flt.match)
                         if changed:
                             flt.match = value
-                            self.require_sort = True
+                            self.recalculate_ids = True
                     case FilterMode.Label.value:
                         if Label.instances:
                             if flt.match is None:
@@ -3591,7 +3590,7 @@ class MainGUI():
                                     pos = imgui.get_cursor_pos()
                                     if imgui.selectable(f"###filter_{flt.id}_value_{label.id}", selected)[0]:
                                         flt.match = label
-                                        self.require_sort = True
+                                        self.recalculate_ids = True
                                     if selected:
                                         imgui.set_item_default_focus()
                                     imgui.set_cursor_pos(pos)
@@ -3606,14 +3605,14 @@ class MainGUI():
                         changed, value = ratingwidget.ratingwidget(f"filter_{flt.id}_value", flt.match)
                         if changed:
                             flt.match = value
-                            self.require_sort = True
+                            self.recalculate_ids = True
                         imgui.spacing()
                     case FilterMode.Score.value:
                         draw_settings_label("Score value:")
                         changed, value = imgui.drag_float(f"###filter_{flt.id}_value", flt.match, change_speed=0.01, min_value=0, max_value=5, format="%.1f/5")
                         if changed:
                             flt.match = value
-                            self.require_sort = True
+                            self.recalculate_ids = True
                     case FilterMode.Status.value:
                         draw_settings_label("Status value:")
                         if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
@@ -3622,7 +3621,7 @@ class MainGUI():
                                 pos = imgui.get_cursor_pos()
                                 if imgui.selectable(f"###filter_{flt.id}_value_{status.value}", selected)[0]:
                                     flt.match = status
-                                    self.require_sort = True
+                                    self.recalculate_ids = True
                                 if selected:
                                     imgui.set_item_default_focus()
                                 imgui.set_cursor_pos(pos)
@@ -3638,7 +3637,7 @@ class MainGUI():
                                 pos = imgui.get_cursor_pos()
                                 if imgui.selectable(f"###filter_{flt.id}_value_{tag.value}", selected)[0]:
                                     flt.match = tag
-                                    self.require_sort = True
+                                    self.recalculate_ids = True
                                 if selected:
                                     imgui.set_item_default_focus()
                                 imgui.set_cursor_pos(pos)
@@ -3656,7 +3655,7 @@ class MainGUI():
                                 pos = imgui.get_cursor_pos()
                                 if imgui.selectable(f"###filter_{flt.id}_value_{type.value}", selected)[0]:
                                     flt.match = type
-                                    self.require_sort = True
+                                    self.recalculate_ids = True
                                 if selected:
                                     imgui.set_item_default_focus()
                                 imgui.set_cursor_pos(pos)

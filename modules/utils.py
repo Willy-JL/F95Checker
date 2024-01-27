@@ -84,7 +84,7 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
     def done_callback(future: asyncio.Future):
         globals.refresh_task = None
         globals.gui.tray.update_status()
-        globals.gui.require_sort = True
+        globals.gui.recalculate_ids = True
         if (globals.gui.hidden or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
             globals.gui.tray.push_msg(
                 title="Updates",

@@ -563,8 +563,9 @@ async def delete_tab(tab: Tab):
     if globals.settings.display_tab is tab:
         globals.settings.display_tab = None
         await update_settings("display_tab")
-        globals.gui.require_sort = True
     Tab.remove(tab)
+    if globals.gui:
+        globals.gui.recalculate_ids = True
 
 
 async def create_tab():
