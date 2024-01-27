@@ -177,6 +177,13 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 name += elem.text
         name = fixed_spaces(sanitize_whitespace(re.search(r"^\s*(.*?)(?:\s*\[.*?\]\s*)*$", name).group(1)))
 
+        thread_version = get_game_attr("version", "game version", "mod version")
+        if not thread_version:
+            if match := re.search(r"(?:\[.+?\] - )*.+?\[(.+?)\]", html.title.text):
+                thread_version = fixed_spaces(sanitize_whitespace(match.group(1)))
+        if not thread_version:
+            thread_version = None
+
         developer = get_game_attr(
             "developer/publisher",
             "developer & publisher",
@@ -332,7 +339,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             return e
 
-    ret = (name, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads)
+    ret = (name, thread_version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads)
     if pipe:
         pipe.put_nowait(ret)
     else:

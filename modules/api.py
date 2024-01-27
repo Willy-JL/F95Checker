@@ -64,6 +64,7 @@ update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases
 updating = False
 session: aiohttp.ClientSession = None
 full_interval = int(dt.timedelta(days=7).total_seconds())
+part_interval = int(dt.timedelta(days=2).total_seconds())
 webpage_prefix = "F95Checker-Temp-"
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
@@ -537,12 +538,16 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
 
             version = versions.get(str(game.id))
             if not version or version == "Unknown":
-                version = "N/A"
+                version = None
+                # Full check games with no version data more often
+                interval = part_interval
+            else:
+                interval = full_interval
 
             this_full = full or (
-                version != game.version or
                 game.status is Status.Unchecked or
-                (game.last_full_check < time.time() - full_interval) or
+                (version and version != game.version) or
+                (game.last_full_check < time.time() - interval) or
                 (game.image.missing and game.image_url != "missing") or
                 last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
             )
@@ -604,7 +609,12 @@ async def full_check(game: Game, version: str):
             ret = parse(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
+        (name, thread_version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
+        if not version:
+            if thread_version:
+                version = thread_version
+            else:
+                version = "N/A"
 
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
