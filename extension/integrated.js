@@ -32,6 +32,7 @@ var rpcCall = async (method, path, body) => {
 var getData = async () => {
     const res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
+    games = games.map(g => g.id)
 };
 
 var addGame = async (url) => {
