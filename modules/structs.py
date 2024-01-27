@@ -530,6 +530,9 @@ class Tab:
         while self in cls.instances:
             cls.instances.remove(self)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 @dataclasses.dataclass
 class Browser:

@@ -323,7 +323,7 @@ class MainGUI():
         self.last_selected_game: Game = None
         self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
-        self.sorted_games_ids: list[int] = []
+        self.show_games_ids: dict[Tab, list[int]] = {}
         self.bg_mode_notifs_timer: float = None
 
         # Setup Qt objects
@@ -1541,7 +1541,7 @@ class MainGUI():
     def draw_game_context_menu(self, game: Game = None):
         if not game:
             imgui.text(f"Selected games: {self.selected_games_count}")
-        self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.sorted_games_ids)
+        self.draw_game_more_info_button(game, f"{icons.information_outline} More Info", selectable=True, carousel_ids=self.show_games_ids[globals.settings.display_tab])
         self.draw_game_recheck_button(game, f"{icons.reload_alert} Full Recheck", selectable=True)
         imgui.separator()
         self.draw_game_play_button(game, f"{icons.play} Play", selectable=True)
@@ -2508,12 +2508,12 @@ class MainGUI():
         new_tab = current_tab
         if Tab.instances:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
-                if imgui.begin_tab_item(f"Default###tab_-1")[0]:
+                if imgui.begin_tab_item(f"Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
                     if imgui.begin_tab_item(
-                        f"{tab.name or 'New Tab'}###tab_{tab.id}",
+                        f"{tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
                         flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is current_tab else 0
                     )[0]:
                         new_tab = tab
@@ -2560,9 +2560,10 @@ class MainGUI():
             for sort_spec in sorts.specs:
                 self.sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
         if sorts.specs_dirty or self.require_sort:
+            # Pick base ID list
             if manual_sort:
                 changed = False
-                for id in list(globals.settings.manual_sort_list):
+                for id in globals.settings.manual_sort_list.copy():
                     if id not in globals.games:
                         globals.settings.manual_sort_list.remove(id)
                         changed = True
@@ -2572,40 +2573,10 @@ class MainGUI():
                         changed = True
                 if changed:
                     async_thread.run(db.update_settings("manual_sort_list"))
-                self.sorted_games_ids = globals.settings.manual_sort_list
+                base_ids = globals.settings.manual_sort_list
             else:
-                ids = list(globals.games)
-                for sort_spec in self.sorts:
-                    match sort_spec.index:
-                        case cols.type.index:
-                            key = lambda id: globals.games[id].type.name
-                        case cols.developer.index:
-                            key = lambda id: globals.games[id].developer.lower()
-                        case cols.last_updated.index:
-                            key = lambda id: - globals.games[id].last_updated.value
-                        case cols.last_played.index:
-                            key = lambda id: - globals.games[id].last_played.value
-                        case cols.added_on.index:
-                            key = lambda id: - globals.games[id].added_on.value
-                        case cols.finished.index:
-                            key = lambda id: 2 if not globals.games[id].finished else 1 if globals.games[id].finished == (globals.games[id].installed or globals.games[id].version) else 0
-                        case cols.installed.index:
-                            key = lambda id: 2 if not globals.games[id].installed else 1 if globals.games[id].installed == globals.games[id].version else 0
-                        case cols.rating.index:
-                            key = lambda id: - globals.games[id].rating
-                        case cols.notes.index:
-                            key = lambda id: globals.games[id].notes.lower() or "z"
-                        case cols.status_standalone.index:
-                            key = lambda id: globals.games[id].status.value
-                        case cols.score.index:
-                            key = lambda id: - globals.games[id].score
-                        case _:  # Name and all others
-                            key = lambda id: globals.games[id].name.lower()
-                    ids.sort(key=key, reverse=sort_spec.reverse)
-                self.sorted_games_ids = ids
-                self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
-                self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
-            self.sorted_games_ids = list(filter(lambda id: globals.games[id].tab is globals.settings.display_tab, self.sorted_games_ids))
+                base_ids = globals.games.keys()
+            # Filter globally by filters
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Archived.value:
@@ -2644,25 +2615,68 @@ class MainGUI():
                     case _:
                         key = None
                 if key is not None:
-                    self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
+                    base_ids = filter(key, base_ids)
+            # Filter globally by search
             if self.add_box_text:
                 if self.add_box_valid:
-                    matches = [match.id for match in utils.extract_thread_matches(self.add_box_text)]
-                    self.sorted_games_ids = list(filter(lambda id: id in matches, self.sorted_games_ids))
+                    id_matches = [match.id for match in utils.extract_thread_matches(self.add_box_text)]
+                    base_ids = filter(lambda id: id in id_matches, base_ids)
                 else:
                     search = self.add_box_text.lower()
                     def key(id):
                         game = globals.games[id]
                         return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
-                    self.sorted_games_ids = list(filter(key, self.sorted_games_ids))
+                    base_ids = filter(key, base_ids)
+            # Finally resolve the iterators (was lazy up until now)
+            base_ids = list(base_ids)
+            # Sort globally by sortspecs
+            if not manual_sort:
+                for sort_spec in self.sorts:
+                    match sort_spec.index:
+                        case cols.type.index:
+                            key = lambda id: globals.games[id].type.name
+                        case cols.developer.index:
+                            key = lambda id: globals.games[id].developer.lower()
+                        case cols.last_updated.index:
+                            key = lambda id: - globals.games[id].last_updated.value
+                        case cols.last_played.index:
+                            key = lambda id: - globals.games[id].last_played.value
+                        case cols.added_on.index:
+                            key = lambda id: - globals.games[id].added_on.value
+                        case cols.finished.index:
+                            key = lambda id: 2 if not globals.games[id].finished else 1 if globals.games[id].finished == (globals.games[id].installed or globals.games[id].version) else 0
+                        case cols.installed.index:
+                            key = lambda id: 2 if not globals.games[id].installed else 1 if globals.games[id].installed == globals.games[id].version else 0
+                        case cols.rating.index:
+                            key = lambda id: - globals.games[id].rating
+                        case cols.notes.index:
+                            key = lambda id: globals.games[id].notes.lower() or "z"
+                        case cols.status_standalone.index:
+                            key = lambda id: globals.games[id].status.value
+                        case cols.score.index:
+                            key = lambda id: - globals.games[id].score
+                        case _:  # Name and all others
+                            key = lambda id: globals.games[id].name.lower()
+                    base_ids.sort(key=key, reverse=sort_spec.reverse)
+                base_ids.sort(key=lambda id: globals.games[id].archived)
+                base_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
+            # Loop all tabs and filter by them
+            self.show_games_ids = {
+                tab: list(filter(lambda id: tab is globals.games[id].tab, base_ids))
+                for tab in (None, *Tab.instances)
+            }
+            tab_games_ids = self.show_games_ids[globals.settings.display_tab]
+            # Deselect things that arent't visible anymore
             for game in globals.games.values():
-                if game.selected and game.id not in self.sorted_games_ids:
+                if game.selected and game.id not in tab_games_ids:
                     game.selected = False
             sorts.specs_dirty = False
             self.require_sort = False
+        else:
+            tab_games_ids = self.show_games_ids[globals.settings.display_tab]
         if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
-            selected = not any(globals.games[id].selected for id in self.sorted_games_ids)
-            for id in self.sorted_games_ids:
+            selected = not any(globals.games[id].selected for id in tab_games_ids)
+            for id in tab_games_ids:
                 globals.games[id].selected = selected
 
     def handle_game_hitbox_events(self, game: Game, drag_drop: bool = False):
@@ -2677,11 +2691,12 @@ class MainGUI():
                 if imgui.is_key_down(glfw.KEY_LEFT_SHIFT):
                     # Shift + Left click = multi select
                     if self.selected_games_count and self.last_selected_game.selected:
-                        start = self.sorted_games_ids.index(self.last_selected_game.id)
-                        end = self.sorted_games_ids.index(game.id)
+                        tab_games_ids = self.show_games_ids[globals.settings.display_tab]
+                        start = tab_games_ids.index(self.last_selected_game.id)
+                        end = tab_games_ids.index(game.id)
                         if start > end:
                             start, end = end, start
-                        for select in self.sorted_games_ids[start:end + 1]:
+                        for select in tab_games_ids[start:end + 1]:
                             globals.games[select].selected = True
                     else:
                         game.selected = True
@@ -2694,7 +2709,7 @@ class MainGUI():
                             game.selected = False
                     else:
                         # Left click = open game info popup
-                        utils.push_popup(self.draw_game_info_popup, game, self.sorted_games_ids.copy())
+                        utils.push_popup(self.draw_game_info_popup, game, self.show_games_ids[globals.settings.display_tab].copy())
         # Left click drag = swap if in manual sort mode
         if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
             self.game_hitbox_click = False
@@ -2768,7 +2783,7 @@ class MainGUI():
             self.sync_scroll()
             frame_height = imgui.get_frame_height()
             notes_width = None
-            for id in self.sorted_games_ids:
+            for id in self.show_games_ids[globals.settings.display_tab]:
                 game = globals.games[id]
                 imgui.table_next_row()
                 imgui.table_set_column_index(cols.separator.index)
@@ -3181,7 +3196,7 @@ class MainGUI():
             # Loop cells
             self.sync_scroll()
             draw_list = imgui.get_window_draw_list()
-            for id in self.sorted_games_ids:
+            for id in self.show_games_ids[globals.settings.display_tab]:
                 game = globals.games[id]
                 imgui.table_next_column()
                 self.draw_game_cell(game, True, draw_list, cell_width, expand, img_height, cell_config)
@@ -3216,6 +3231,7 @@ class MainGUI():
             for label in Label.instances:
                 imgui.table_setup_column(label.name, imgui.TABLE_COLUMN_WIDTH_STRETCH)
             imgui.table_setup_column("Not Labelled", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            tab_games_ids = self.show_games_ids[globals.settings.display_tab]
 
             # Column headers
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
@@ -3223,13 +3239,13 @@ class MainGUI():
             for label_i, label in enumerate(Label.instances):
                 imgui.table_set_column_index(label_i)
                 count = 0
-                for id in self.sorted_games_ids:
+                for id in tab_games_ids:
                     if label in globals.games[id].labels:
                         count += 1
                 imgui.table_header(f"{label.name} ({count})")
             imgui.table_set_column_index(not_labelled)
             count = 0
-            for id in self.sorted_games_ids:
+            for id in tab_games_ids:
                 if not globals.games[id].labels:
                     count += 1
             imgui.table_header(f"Not Labelled ({count})")
@@ -3241,7 +3257,7 @@ class MainGUI():
                 draw_list = imgui.get_window_draw_list()
                 wrap = cells_per_column
                 imgui.begin_group()
-                for id in self.sorted_games_ids:
+                for id in tab_games_ids:
                     game = globals.games[id]
                     if label_i == not_labelled:
                         if game.labels:
@@ -3499,8 +3515,8 @@ class MainGUI():
                 imgui.text("")
                 imgui.spacing()
 
-            if len(self.filters) > 0 or self.add_box_text:
-                draw_settings_label(f"Filtered games count: {len(self.sorted_games_ids)}")
+            if not Tab.instances and (len(self.filters) > 0 or self.add_box_text):
+                draw_settings_label(f"Filtered games count: {len(self.show_games_ids[globals.settings.display_tab])}")
                 imgui.text("")
                 imgui.spacing()
 
