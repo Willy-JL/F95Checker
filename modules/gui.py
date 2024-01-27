@@ -2524,7 +2524,17 @@ class MainGUI():
                             utils.text_context(tab, "name", setter_extra)
                             imgui.end_popup()
                         if imgui.selectable(f"{icons.trash_can_outline} Close (keeps games)", False)[0]:
-                            async_thread.run(db.delete_tab(tab))
+                            buttons = {
+                                f"{icons.check} Yes": lambda: async_thread.run(db.delete_tab(tab)),
+                                f"{icons.cancel} No": None
+                            }
+                            utils.push_popup(
+                                msgbox.msgbox, f"Close tab '{tab.name or 'New Tab'}'",
+                                "Are you sure you want to close this tab?\n"
+                                "The games will go back to Default tab.",
+                                MsgBox.warn,
+                                buttons
+                            )
                         imgui.end_popup()
                 imgui.end_tab_bar()
         if new_tab is not current_tab:
