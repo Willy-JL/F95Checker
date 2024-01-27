@@ -1517,6 +1517,7 @@ class MainGUI():
             globals.settings.display_tab = tab
             async_thread.run(db.update_settings("display_tab"))
             self.recalculate_ids = True
+            imgui.close_current_popup()
         if new_tab is not current_tab:
             if game:
                 game.tab = new_tab
