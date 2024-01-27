@@ -1508,7 +1508,7 @@ class MainGUI():
                 new_tab = tab
             if current_tab is tab:
                 imgui.pop_disabled()
-        if imgui.selectable(f"{icons.tab_plus} New tab###move_tab_-2", False)[0]:
+        if imgui.selectable(f"{icons.tab_plus} New Tab###move_tab_-2", False)[0]:
             def _new_tab(future: asyncio.Future):
                 nonlocal game
                 tab = future.result()
@@ -1843,7 +1843,6 @@ class MainGUI():
                             game.set_image_sync(pathlib.Path(selected).read_bytes())
                     utils.push_popup(filepicker.FilePicker(
                         title=f"Select or drop image for {game.name}",
-                        start_dir=globals.settings.default_exe_dir.get(globals.os),
                         callback=select_callback
                     ).tick)
                 if imgui.selectable(f"{icons.trash_can_outline} Reset image", False)[0]:
