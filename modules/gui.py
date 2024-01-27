@@ -2665,9 +2665,8 @@ class MainGUI():
             for id in self.sorted_games_ids:
                 globals.games[id].selected = selected
 
-    def handle_game_hitbox_events(self, game: Game, game_i: int = None):
+    def handle_game_hitbox_events(self, game: Game, drag_drop: bool = False):
         manual_sort = cols.manual_sort.enabled
-        not_filtering = len(self.filters) == 0 and not self.add_box_text
         if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
             # Hover = image on refresh button
             self.hovered_game = game
@@ -2699,18 +2698,20 @@ class MainGUI():
         # Left click drag = swap if in manual sort mode
         if imgui.begin_drag_drop_source(flags=self.game_hitbox_drag_drop_flags):
             self.game_hitbox_click = False
-            payload = (game_i or 0) + 1
+            payload = (globals.settings.manual_sort_list.index(game.id) if manual_sort else 0) + 1
             payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
-            imgui.set_drag_drop_payload("game_i", payload)
+            imgui.set_drag_drop_payload("manual_swap", payload)
             imgui.end_drag_drop_source()
-        if game_i is not None and manual_sort and not_filtering:
+        if drag_drop and manual_sort:
             if imgui.begin_drag_drop_target():
-                if payload := imgui.accept_drag_drop_payload("game_i", flags=self.game_hitbox_drag_drop_flags):
+                if payload := imgui.accept_drag_drop_payload("manual_swap", flags=self.game_hitbox_drag_drop_flags):
                     payload = int.from_bytes(payload, sys.byteorder)
                     payload = payload - 1
                     lst = globals.settings.manual_sort_list
-                    lst[game_i], lst[payload] = lst[payload], lst[game_i]
+                    switch = lst.index(game.id)
+                    lst[switch], lst[payload] = lst[payload], lst[switch]
                     async_thread.run(db.update_settings("manual_sort_list"))
+                    self.require_sort = True
                 imgui.end_drag_drop_target()
         context_id = f"###{game.id}_context"
         if (imgui.is_topmost() or imgui.is_popup_open(context_id)) and imgui.begin_popup_context_item(context_id):
@@ -2767,7 +2768,7 @@ class MainGUI():
             self.sync_scroll()
             frame_height = imgui.get_frame_height()
             notes_width = None
-            for game_i, id in enumerate(self.sorted_games_ids):
+            for id in self.sorted_games_ids:
                 game = globals.games[id]
                 imgui.table_next_row()
                 imgui.table_set_column_index(cols.separator.index)
@@ -2866,7 +2867,7 @@ class MainGUI():
                 imgui.push_alpha(0.25)
                 imgui.selectable(f"###{game.id}_hitbox", False, flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS, height=frame_height)
                 imgui.pop_alpha()
-                self.handle_game_hitbox_events(game, game_i)
+                self.handle_game_hitbox_events(game, drag_drop=True)
 
             imgui.end_table()
 
@@ -2948,7 +2949,7 @@ class MainGUI():
         config = (side_indent, action_items, bg_col, frame_height)
         return min_cell_width, min_expand_width, config
 
-    def draw_game_cell(self, game: Game, game_i: int | None, draw_list, cell_width: float, expand: bool, img_height: float, config: tuple):
+    def draw_game_cell(self, game: Game, drag_drop: bool, draw_list, cell_width: float, expand: bool, img_height: float, config: tuple):
         (side_indent, action_items, bg_col, frame_height) = config
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
@@ -3139,7 +3140,7 @@ class MainGUI():
         if imgui.is_rect_visible(cell_width, cell_height):
             # Skip if outside view
             imgui.invisible_button(f"###{game.id}_hitbox", cell_width, cell_height)
-            self.handle_game_hitbox_events(game, game_i)
+            self.handle_game_hitbox_events(game, drag_drop=drag_drop)
             pos = imgui.get_item_rect_min()
             pos2 = imgui.get_item_rect_max()
             if game.selected:
@@ -3180,10 +3181,10 @@ class MainGUI():
             # Loop cells
             self.sync_scroll()
             draw_list = imgui.get_window_draw_list()
-            for game_i, id in enumerate(self.sorted_games_ids):
+            for id in self.sorted_games_ids:
                 game = globals.games[id]
                 imgui.table_next_column()
-                self.draw_game_cell(game, game_i, draw_list, cell_width, expand, img_height, cell_config)
+                self.draw_game_cell(game, True, draw_list, cell_width, expand, img_height, cell_config)
 
             imgui.end_table()
         imgui.pop_style_var()
@@ -3247,7 +3248,7 @@ class MainGUI():
                             continue
                     elif label not in game.labels:
                         continue
-                    self.draw_game_cell(game, None, draw_list, cell_width, False, img_height, cell_config)
+                    self.draw_game_cell(game, False, draw_list, cell_width, False, img_height, cell_config)
                     wrap -= 1
                     if wrap:
                         imgui.same_line()
