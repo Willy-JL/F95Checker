@@ -71,8 +71,7 @@ const updateIcons = async (tabId) => {
             const createContainer = () => {
                 const c = document.createElement('div');
                 c.classList.add('f95checker-library-icons');
-                c.style.display = 'inline';
-                c.style.marginInlineEnd = '4px';
+                c.style.display = 'inline-block';
                 return c;
             };
             const createIcon = (gameId) => {
@@ -85,8 +84,14 @@ const updateIcons = async (tabId) => {
                     alert('This game is present in your F95Checker library!')
                 );
                 icon.style.color = game.color;
-                return icon;
+                return [icon, game.color];
             };
+            const createNbsp = () => {
+                const span = document.createElement('span');
+                span.style.display = 'inline-block';
+                span.innerHTML = '&nbsp;';
+                return span
+            }
             const removeOldIcons = () => {
                 document.querySelectorAll('.f95checker-library-icons').forEach((e) => e.remove());
             };
@@ -114,7 +119,8 @@ const updateIcons = async (tabId) => {
                     }
 
                     const container = createContainer();
-                    if (games.map(g => g.id).includes(id)) container.prepend(createIcon(id));
+                    const [icon, color] = createIcon(id);
+                    if (games.map(g => g.id).includes(id)) container.prepend(icon);
 
                     if (isImage) {
                         container.style.position = 'absolute';
@@ -124,13 +130,18 @@ const updateIcons = async (tabId) => {
                         container.style.background = '#262626';
                         container.style.border = 'solid #262626';
                         container.style.borderRadius = '4px';
+                        container.style.fontSize = '1.5em';
+                        container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`
                     }
 
                     if (!isImage && elem.children.length > 0) {
                         // Search page
                         try {
+                            container.style.fontSize = '1.2em';
+                            container.style.verticalAlign = '-2px';
                             const whitespaces = elem.querySelectorAll('span.label-append');
                             const lastWhitespace = whitespaces[whitespaces.length - 1];
+                            lastWhitespace.insertAdjacentElement('afterend', createNbsp());
                             lastWhitespace.insertAdjacentElement('afterend', container);
                         } catch (e) {
                             continue;
@@ -141,19 +152,31 @@ const updateIcons = async (tabId) => {
                         thumb.insertAdjacentElement('beforebegin', container);
                     } else {
                         // Everywhere else
+                        container.style.fontSize = '1.2em';
+                        container.style.verticalAlign = '-2px';
                         elem.insertAdjacentElement('beforebegin', container);
+                        elem.insertAdjacentElement('beforebegin', createNbsp());
                     }
                 }
             };
             const addPageIcon = () => {
                 const id = extractThreadId(document.location);
                 const container = createContainer();
+                container.style.fontSize = '1.3em';
+                container.style.verticalAlign = '-3px';
                 const title = document.getElementsByClassName('p-title-value')[0];
                 if (title) {
-                    if (games.map(g => g.id).includes(id)) container.prepend(createIcon(id));
+                    if (games.map(g => g.id).includes(id)) {
+                        const [icon, _] = createIcon(id);
+                        container.prepend(icon);
+                    };
                     if (container.firstChild)
                         title.insertBefore(
                             container,
+                            title.childNodes[title.childNodes.length - 1]
+                        );
+                        title.insertBefore(
+                            createNbsp(),
                             title.childNodes[title.childNodes.length - 1]
                         );
                 }
