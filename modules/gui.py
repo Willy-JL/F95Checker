@@ -2513,7 +2513,7 @@ class MainGUI():
                     if imgui.begin_popup_context_item(f"###tab_{tab.id}_context"):
                         imgui.set_next_item_width(imgui.get_content_region_available_width())
                         changed, value = imgui.input_text_with_hint(f"###tab_name_{tab.id}", "Tab name", tab.name)
-                        setter_extra = lambda _=None: async_thread.run(db.update_tab(tab, "name"))
+                        setter_extra = functools.partial(lambda t, _=None: async_thread.run(db.update_tab(t, "name")), tab)
                         if changed:
                             tab.name = value
                             setter_extra()
@@ -2521,7 +2521,7 @@ class MainGUI():
                             utils.text_context(tab, "name", setter_extra)
                             imgui.end_popup()
                         if imgui.selectable(f"{icons.trash_can_outline} Close (keeps games)", False)[0]:
-                            close_callback = lambda: async_thread.run(db.delete_tab(tab))
+                            close_callback = functools.partial(lambda t: async_thread.run(db.delete_tab(t)), tab)
                             if globals.settings.confirm_on_remove:
                                 buttons = {
                                     f"{icons.check} Yes": close_callback,
@@ -2579,42 +2579,42 @@ class MainGUI():
             for flt in self.filters:
                 match flt.mode.value:
                     case FilterMode.Archived.value:
-                        key = lambda id: flt.invert != (globals.games[id].archived is True)
+                        key = lambda game, f: (game.archived is True)
                     case FilterMode.Custom.value:
-                        key = lambda id: flt.invert != (globals.games[id].custom is True)
+                        key = lambda game, f: (game.custom is True)
                     case FilterMode.Exe_State.value:
-                        key = lambda id: flt.invert != (
-                            (not globals.games[id].executables) if flt.match is ExeState.Unset else
-                            (bool(globals.games[id].executables) and (globals.games[id].executables_valid != (flt.match is ExeState.Invalid)))
+                        key = lambda game, f: (
+                            (not game.executables) if f.match is ExeState.Unset else
+                            (bool(game.executables) and (game.executables_valid != (f.match is ExeState.Invalid)))
                         )
                     case FilterMode.Finished.value:
-                        key = lambda id: flt.invert != (
-                            (globals.games[id].finished != "") if flt.match else
-                            (globals.games[id].finished == (globals.games[id].installed or globals.games[id].version))
+                        key = lambda game, f: (
+                            (game.finished != "") if f.match else
+                            (game.finished == (game.installed or game.version))
                         )
                     case FilterMode.Installed.value:
-                        key = lambda id: flt.invert != (
-                            (globals.games[id].installed != "") if flt.match else
-                            (globals.games[id].installed == globals.games[id].version)
+                        key = lambda game, f: (
+                            (game.installed != "") if f.match else
+                            (game.installed == game.version)
                         )
                     case FilterMode.Label.value:
-                        key = lambda id: flt.invert != (flt.match in globals.games[id].labels)
+                        key = lambda game, f: (f.match in game.labels)
                     case FilterMode.Rating.value:
-                        key = lambda id: flt.invert != (globals.games[id].rating == flt.match)
+                        key = lambda game, f: (game.rating == f.match)
                     case FilterMode.Score.value:
-                        key = lambda id: flt.invert != (globals.games[id].score >= flt.match)
+                        key = lambda game, f: (game.score >= f.match)
                     case FilterMode.Status.value:
-                        key = lambda id: flt.invert != (globals.games[id].status is flt.match)
+                        key = lambda game, f: (game.status is f.match)
                     case FilterMode.Tag.value:
-                        key = lambda id: flt.invert != (flt.match in globals.games[id].tags)
+                        key = lambda game, f: (f.match in game.tags)
                     case FilterMode.Type.value:
-                        key = lambda id: flt.invert != (globals.games[id].type is flt.match)
+                        key = lambda game, f: (game.type is f.match)
                     case FilterMode.Updated.value:
-                        key = lambda id: flt.invert != (globals.games[id].updated is True)
+                        key = lambda game, f: (game.updated is True)
                     case _:
                         key = None
                 if key is not None:
-                    base_ids = filter(key, base_ids)
+                    base_ids = filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), flt, key), base_ids)
             # Filter globally by search
             if self.add_box_text:
                 if self.add_box_valid:
@@ -2626,7 +2626,7 @@ class MainGUI():
                         game = globals.games[id]
                         return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
                     base_ids = filter(key, base_ids)
-            # Finally resolve the iterators (was lazy up until now)
+            # Finally consume the iterators (was lazy up until now)
             base_ids = list(base_ids)
             # Sort globally by sortspecs
             if not manual_sort:
