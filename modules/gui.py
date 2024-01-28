@@ -1495,14 +1495,14 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{icons.tab_unselected} Default###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{getattr(icons, Tab.default_icon())} Default###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
         for tab in Tab.instances:
             if current_tab is tab:
                 imgui.push_disabled()
-            if imgui.selectable(f"{tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
+            if imgui.selectable(f"{getattr(icons, tab.icon, icons.help_rhombus_outline)} {tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
                 new_tab = tab
             if current_tab is tab:
                 imgui.pop_disabled()
