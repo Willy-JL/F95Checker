@@ -132,7 +132,7 @@ class Columns:
             ghost=True,
         )
         self.installed_version = self.Column(
-            self, f"{icons.folder_download} Installed Version",
+            self, f"{icons.download} Installed Version",
             ghost=True,
         )
         self.status = self.Column(
@@ -194,7 +194,7 @@ class Columns:
             short_header=True,
         )
         self.installed = self.Column(
-            self, f"{icons.folder_download} Installed",
+            self, f"{icons.download} Installed",
             default=True,
             sortable=True,
             resizable=False,
@@ -1544,7 +1544,7 @@ class MainGUI():
         self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
         self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
-        self.draw_game_installed_checkbox(game, f"{icons.folder_download} Installed")
+        self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
         imgui.separator()
         if not game:
             imgui.text("Set:")
@@ -1861,7 +1861,7 @@ class MainGUI():
             self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
             _10 = self.scaled(10)
             imgui.same_line(spacing=_10)
-            self.draw_game_installed_checkbox(game, f"{icons.folder_download} Installed")
+            self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
             imgui.same_line(spacing=_10)
             self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
             imgui.same_line()
