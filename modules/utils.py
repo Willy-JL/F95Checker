@@ -63,6 +63,7 @@ def is_uri(text: str):
 
 def is_refreshing():
     if globals.refresh_task and not globals.refresh_task.done():
+        globals.gui.tray.animate_icon()
         return True
     return False
 
