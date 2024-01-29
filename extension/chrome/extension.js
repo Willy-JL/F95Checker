@@ -38,7 +38,11 @@ const getData = async () => {
     games = res ? await res.json() : [];
     res = await rpcCall('GET', '/settings', null);
     settings = res ? await res.json() : {
-        "icon_glow": true
+        "icon_glow": true,
+        "highlight_tags": false,
+        "tags_positive": [],
+        "tags_negative": [],
+        "tags_critical": [],
     };
 };
 
@@ -197,11 +201,61 @@ const updateIcons = async (tabId) => {
                     };
                 }
             };
+            const installHighlighterMutationObservers = () => {
+                const tiles = document.querySelectorAll('div.resource-tile_body');
+                tiles.forEach((tile) => {
+                    const observer = new MutationObserver(highlightTags);
+                    observer.observe(tile, { attributes: true, subtree: true });
+                });
+            }
+            const highlightTags = () => {
+                // Latest Updates
+                const hoveredTiles = document.querySelectorAll('div.resource-tile-hover');
+                hoveredTiles.forEach((tile) => {
+                    const tagsWrapper = tile.querySelector('div.resource-tile_tags');
+                    if (!tagsWrapper) return;
+                    const tagSpans = tagsWrapper.querySelectorAll('span');
+                    tagSpans.forEach((span) => {
+                        const name = span.innerText;
+                        if (settings.tags_positive.includes(name)) {
+                            span.style.backgroundColor = '#006600';
+                        }
+                        if (settings.tags_negative.includes(name)) {
+                            span.style.backgroundColor = '#990000';
+                        }
+                        if (settings.tags_critical.includes(name)) {
+                            span.style.backgroundColor = '#000000';
+                        }
+                    });
+                });
+                // Thread
+                const tagLinks = document.querySelectorAll('a.tagItem');
+                tagLinks.forEach((link) => {
+                    const name = link.innerText;
+                    if (settings.tags_positive.includes(name)) {
+                        link.style.color = 'white';
+                        link.style.backgroundColor = '#006600';
+                    }
+                    if (settings.tags_negative.includes(name)) {
+                        link.style.color = 'white';
+                        link.style.backgroundColor = '#990000';
+                    }
+                    if (settings.tags_critical.includes(name)) {
+                        link.style.color = 'white';
+                        link.style.backgroundColor = '#000000';
+                        link.style.border = '1px solid #ffffff55';
+                    }
+                });
+            };
             const doUpdate = () => {
                 injectCustomWebfont();
                 removeOldIcons();
                 addHrefIcons();
                 addPageIcon();
+                if (settings.highlight_tags) {
+                    installHighlighterMutationObservers();
+                    highlightTags();
+                }
             };
             const installMutationObservers = () => {
                 const latest = document.getElementById('latest-page_items-wrap');

@@ -3912,6 +3912,9 @@ class MainGUI():
             )
             draw_settings_checkbox("ext_icon_glow")
 
+            draw_settings_label("Highlight tags:")
+            draw_settings_checkbox("ext_highlight_tags")
+
             imgui.end_table()
             imgui.spacing()
 

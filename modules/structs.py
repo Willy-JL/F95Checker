@@ -620,6 +620,7 @@ class Settings:
     default_exe_dir             : dict[Os, str]
     display_mode                : DisplayMode
     ext_icon_glow               : bool
+    ext_highlight_tags          : bool
     fit_images                  : bool
     filter_all_tabs             : bool
     grid_columns                : int

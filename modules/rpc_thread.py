@@ -79,7 +79,11 @@ def start():
                             return
                         case "/settings":
                             self.send_json(200, {
-                                "icon_glow": globals.settings.ext_icon_glow
+                                "icon_glow": globals.settings.ext_icon_glow,
+                                "highlight_tags": globals.settings.ext_highlight_tags,
+                                "tags_positive": list(map(lambda t: t.text, globals.settings.tags_positive)),
+                                "tags_negative": list(map(lambda t: t.text, globals.settings.tags_negative)),
+                                "tags_critical": list(map(lambda t: t.text, globals.settings.tags_critical)),
                             })
                             return
                         case "/assets/mdi-webfont.ttf":
