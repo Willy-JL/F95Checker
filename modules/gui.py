@@ -1500,7 +1500,7 @@ class MainGUI():
         for tab in Tab.instances:
             if current_tab is tab:
                 imgui.push_disabled()
-            if imgui.selectable(f"{tab.icon or icons.help_rhombus} {tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
+            if imgui.selectable(f"{tab.icon} {tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
                 new_tab = tab
             if current_tab is tab:
                 imgui.pop_disabled()
@@ -2509,9 +2509,8 @@ class MainGUI():
                         imgui.push_style_color(imgui.COLOR_TAB_ACTIVE, *tab.color)
                         imgui.push_style_color(imgui.COLOR_TAB_HOVERED, *tab.color)
                         imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(tab.color))
-                    icon = tab.icon or icons.help_rhombus
                     if imgui.begin_tab_item(
-                        f"{icon} {tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
+                        f"{tab.icon} {tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
                         flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is display_tab else 0
                     )[0]:
                         new_tab = tab
@@ -2528,7 +2527,7 @@ class MainGUI():
                         if imgui.begin_popup_context_item(f"###tab_name_{tab.id}_context"):
                             utils.text_context(tab, "name", setter_extra)
                             imgui.end_popup()
-                        if imgui.button(icon):
+                        if imgui.button(tab.icon):
                             imgui.open_popup(f"###tab_icon_{tab.id}")
                         if imgui.begin_popup(f"###tab_icon_{tab.id}"):
                             search = ""
