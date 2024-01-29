@@ -18,7 +18,7 @@ var rpcCall = async (method, path, body) => {
         const res = await (new Promise((resolve) => {
             new QWebChannel(qt.webChannelTransport, (channel) => {
                 channel.objects.rpcproxy.handle(method, path, body, (ret) => {
-                    resolve(new Response(ret.body, ret));
+                    resolve(new Response(atob(ret.body), ret));
                 });
             });
         }));
