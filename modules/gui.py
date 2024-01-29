@@ -2534,7 +2534,7 @@ class MainGUI():
                             search = ""
                             imgui.set_next_item_width(-imgui.FLOAT_MIN)
                             _, search = imgui.input_text_with_hint(f"###tab_icons_{tab.id}_search", "Search icons...", search)
-                            imgui.begin_child(f"###tab_icons_{tab.id}_frame", width=globals.gui.scaled(350), height=imgui.io.display_size.y * 0.5)
+                            imgui.begin_child(f"###tab_icons_{tab.id}_frame", width=self.scaled(350), height=imgui.io.display_size.y * 0.5)
                             for name, icon in icons.names.items():
                                 if not search or search in name:
                                     if imgui.selectable(f"{icon}  {name}")[0]:
