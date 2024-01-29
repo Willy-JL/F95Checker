@@ -1050,8 +1050,16 @@ class MainGUI():
             self.filters.append(flt)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_tag_widget(self, tag: Tag, color: tuple[float] = (0.3, 0.3, 0.3, 1.0), non_interactive=False):
+    def draw_tag_widget(self, tag: Tag, non_interactive=False):
         interaction = False if non_interactive else globals.settings.quick_filters
+        color = (0.3, 0.3, 0.3, 1.0)
+        if globals.settings.highlight_tags:
+            if tag in globals.settings.tags_positive:
+                color = (0.6, 0.0, 0.0, 1.0)
+            if tag in globals.settings.tags_negative:
+                color = (0.0, 0.6, 0.0, 1.0)
+            if tag in globals.settings.tags_critical:
+                color = (0.0, 0.0, 0.0, 1.0)
         self.begin_framed_text(color, interaction=interaction)
         if imgui.small_button(tag.text) and interaction:
             flt = Filter(FilterMode.Tag)
@@ -1614,7 +1622,6 @@ class MainGUI():
                 imgui.end_popup()
 
     def draw_game_tags_widget(self, game: Game):
-        quick_filter = globals.settings.quick_filters
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
@@ -4024,6 +4031,9 @@ class MainGUI():
                 "label widgets, and status and update icons."
             )
             draw_settings_checkbox("quick_filters")
+
+            draw_settings_label("Highlight tags:")
+            draw_settings_checkbox("highlight_tags")
 
             draw_settings_label("Tags to highlight:")
             if imgui.button("Select", width=right_width):

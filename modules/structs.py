@@ -625,6 +625,7 @@ class Settings:
     filter_all_tabs             : bool
     grid_columns                : int
     hide_empty_tabs             : bool
+    highlight_tags              : bool
     ignore_semaphore_timeouts   : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp
