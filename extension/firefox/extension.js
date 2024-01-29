@@ -130,7 +130,7 @@ const updateIcons = async (tabId) => {
 
                     const container = createContainer();
                     const [icon, color] = createIcon(id);
-                    if (games.map(g => g.id).includes(id)) container.prepend(icon);
+                    container.prepend(icon);
 
                     if (isImage) {
                         container.style.position = 'absolute';
