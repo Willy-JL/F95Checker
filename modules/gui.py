@@ -2516,6 +2516,67 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
+    def draw_tag_preferences_popup(self, popup_uuid: str = ""):
+        def popup_content():
+            imgui.dummy(self.scaled(400), self.scaled(0))
+            if imgui.begin_tab_bar("###tag_preferences_tabbar"):
+                for group in ("tags_positive", "tags_negative", "tags_critical"):
+                    match group:
+                        case "tags_positive":
+                            color = (0.0, 0.6, 0.0, 1.0)
+                            label = f"{icons.thumb_up_outline} Positive"
+                            tag_list = globals.settings.tags_positive
+                        case "tags_negative":
+                            color = (0.6, 0.0, 0.0, 1.0)
+                            label = f"{icons.thumb_down_outline} Negative"
+                            tag_list = globals.settings.tags_negative
+                        case "tags_critical":
+                            color = (0.0, 0.0, 0.0, 1.0)
+                            label = f"{icons.cancel} Critical"
+                            tag_list = globals.settings.tags_critical
+                    if imgui.begin_tab_item(label)[0]:
+                        imgui.spacing()
+                        if imgui.button("Add"):
+                            imgui.open_popup(f"###{group}_search")
+                        if imgui.begin_popup(f"###{group}_search"):
+                            search = ""
+                            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+                            _, search = imgui.input_text_with_hint(f"###{group}_search_input", "Search tags...", search)
+                            imgui.begin_child(f"###{group}_search_frame", width=self.scaled(250), height=imgui.io.display_size.y * 0.35)
+                            for tag in Tag:
+                                if not search or search in tag.text:
+                                    if imgui.selectable(tag.text)[0]:
+                                        try:
+                                            globals.settings.tags_positive.remove(tag)
+                                            globals.settings.tags_negative.remove(tag)
+                                            globals.settings.tags_critical.remove(tag)
+                                        except ValueError:
+                                            pass
+                                        tag_list.append(tag)
+                                        async_thread.run(db.update_settings(group))
+                            imgui.end_child()
+                            imgui.end_popup()
+                        imgui.same_line()
+                        imgui.text_disabled("Click tag to remove it")
+                        imgui.spacing()
+                        if tag_list:
+                            self.begin_framed_text(color, interaction=True)
+                            pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
+                            for tag in tag_list:
+                                if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
+                                    imgui.dummy(0, 0)
+                                if imgui.small_button(tag.text):
+                                    tag_list.remove(tag)
+                                    async_thread.run(db.update_settings(group))
+                                imgui.same_line()
+                            imgui.dummy(0, 0)
+                            self.end_framed_text(interaction=True)
+                        else:
+                            imgui.text_disabled("None yet.")
+                        imgui.end_tab_item()
+                imgui.end_tab_bar()
+        return utils.popup("Tag preferences", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
     def draw_tabbar(self):
         display_tab = globals.settings.display_tab
         select_tab = self.current_tab is not display_tab
@@ -3964,6 +4025,10 @@ class MainGUI():
                 "label widgets, and status and update icons."
             )
             draw_settings_checkbox("quick_filters")
+
+            draw_settings_label("Tags to highlight:")
+            if imgui.button("Select", width=right_width):
+                utils.push_popup(self.draw_tag_preferences_popup)
 
             draw_settings_label(
                 "Time format:",

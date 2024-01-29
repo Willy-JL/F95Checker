@@ -655,6 +655,9 @@ class Settings:
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
     timestamp_format            : str
+    tags_positive               : list[Tag]
+    tags_negative               : list[Tag]
+    tags_critical               : list[Tag]
     use_parser_processes        : bool
     vsync_ratio                 : int
     zoom_area                   : int
