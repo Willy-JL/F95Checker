@@ -619,6 +619,7 @@ class Settings:
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
     display_mode                : DisplayMode
+    ext_icon_glow               : bool
     fit_images                  : bool
     filter_all_tabs             : bool
     grid_columns                : int

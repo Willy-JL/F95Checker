@@ -165,6 +165,7 @@ async def connect():
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
+            "ext_icon_glow":               f'INTEGER DEFAULT {int(True)}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "filter_all_tabs":             f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',

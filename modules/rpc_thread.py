@@ -77,6 +77,11 @@ def start():
                                 } for g in globals.games.values()
                             ])
                             return
+                        case "/settings":
+                            self.send_json(200, {
+                                "icon_glow": globals.settings.ext_icon_glow
+                            })
+                            return
                         case "/assets/mdi-webfont.ttf":
                             self.send_resp(200, "font/ttf", headers={"Cache-Control": "public, max-age=3600"})
                             self.wfile.write(mdi_webfont)

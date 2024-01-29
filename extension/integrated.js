@@ -7,6 +7,7 @@
 // It is up to the WebView to invoke them when appropriate
 
 var games = [];
+var settings = {};
 
 var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -30,8 +31,13 @@ var rpcCall = async (method, path, body) => {
 };
 
 var getData = async () => {
-    const res = await rpcCall('GET', '/games', null);
+    let res;
+    res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
+    res = await rpcCall('GET', '/settings', null);
+    settings = res ? await res.json() : {
+        "icon_glow": true
+    };
 };
 
 var addGame = async (url) => {
@@ -137,7 +143,9 @@ var updateIcons = async () => {
                 container.style.border = 'solid #262626';
                 container.style.borderRadius = '4px';
                 container.style.fontSize = '1.5em';
-                container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
+                if (settings.icon_glow) {
+                    container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
+                }
             }
 
             if (!isImage && elem.children.length > 0) {

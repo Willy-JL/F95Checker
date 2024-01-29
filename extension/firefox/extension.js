@@ -1,6 +1,7 @@
 const rpcPort = 57095;
 const rpcURL = `http://127.0.0.1:${rpcPort}`;
 let games = [];
+let settings = {};
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -32,8 +33,13 @@ const rpcCall = async (method, path, body, tabId) => {
 };
 
 const getData = async () => {
-    const res = await rpcCall('GET', '/games', null);
+    let res;
+    res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
+    res = await rpcCall('GET', '/settings', null);
+    settings = res ? await res.json() : {
+        "icon_glow": true
+    };
 };
 
 const addGame = async (url, tabId) => {
@@ -47,7 +53,7 @@ const updateIcons = async (tabId) => {
     await getData();
     chrome.scripting.executeScript({
         target: { tabId: tabId },
-        func: (games, rpcURL) => {
+        func: (games, settings, rpcURL) => {
             const injectCustomWebfont = () => {
                 const styleTag = document.createElement('style');
                 const cssContent = String.raw`
@@ -140,7 +146,9 @@ const updateIcons = async (tabId) => {
                         container.style.border = 'solid #262626';
                         container.style.borderRadius = '4px';
                         container.style.fontSize = '1.5em';
-                        container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
+                        if (settings.icon_glow) {
+                            container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
+                        }
                     }
 
                     if (!isImage && elem.children.length > 0) {
@@ -205,7 +213,7 @@ const updateIcons = async (tabId) => {
             installMutationObservers();
             doUpdate();
         },
-        args: [games, rpcURL],
+        args: [games, settings, rpcURL],
     });
 };
 

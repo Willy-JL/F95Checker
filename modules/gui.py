@@ -3844,6 +3844,16 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
+        if draw_settings_section("Extension"):
+            draw_settings_label(
+                "Icon glow:",
+                "Icons in some locations will cast colored shadow to improve visibility."
+            )
+            draw_settings_checkbox("ext_icon_glow")
+
+            imgui.end_table()
+            imgui.spacing()
+
         if draw_settings_section("Images"):
             draw_settings_label(
                 "Cell ratio:",
