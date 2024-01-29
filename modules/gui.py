@@ -1077,6 +1077,14 @@ class MainGUI():
         imgui.pop_style_color()
         self.end_framed_text(interaction=quick_filter)
 
+    def draw_tab_widget(self, tab: Tab):
+        color = (tab and tab.color) or globals.settings.style_accent
+        self.begin_framed_text(color, interaction=False)
+        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color))
+        imgui.small_button(f"{(tab and tab.icon) or Tab.default_icon} {(tab and (tab.name or 'New Tab')) or 'Default'}")
+        imgui.pop_style_color()
+        self.end_framed_text(interaction=False)
+
     def draw_status_widget(self, status: Status):
         quick_filter = globals.settings.quick_filters
         if quick_filter:
@@ -1502,8 +1510,17 @@ class MainGUI():
         for tab in Tab.instances:
             if current_tab is tab:
                 imgui.push_disabled()
-            if imgui.selectable(f"{tab.icon} {tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
+            color = (tab and tab.color) or globals.settings.style_accent
+            imgui.push_style_color(imgui.COLOR_HEADER_HOVERED, *color)
+            pos = imgui.get_cursor_pos()
+            if imgui.selectable(f"###move_tab_{tab.id}", False)[0]:
                 new_tab = tab
+            imgui.set_cursor_pos(pos)
+            if imgui.is_item_hovered():
+                imgui.pop_style_color()
+                imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color))
+            imgui.text(f"{tab.icon} {tab.name or 'New Tab'}")
+            imgui.pop_style_color()
             if current_tab is tab:
                 imgui.pop_disabled()
         if imgui.selectable(f"{icons.tab_plus} New Tab###move_tab_-2", False)[0]:
@@ -1683,7 +1700,7 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text_disabled("Tab: ")
                     imgui.same_line()
-                    imgui.text((game.tab.name or "New Tab") if game.tab else "Default")
+                    self.draw_tab_widget(game.tab)
 
                 for attr, offset in (("name", name_offset), ("version", version_offset)):
                     old_val =  getattr(old_game, attr) or "Unknown"
@@ -2567,7 +2584,7 @@ class MainGUI():
                                     f"{icons.cancel} No": None
                                 }
                                 utils.push_popup(
-                                    msgbox.msgbox, f"Close tab '{tab.name or 'New Tab'}'",
+                                    msgbox.msgbox, f"Close tab {tab.icon} {tab.name or 'New Tab'}",
                                     "Are you sure you want to close this tab?\n"
                                     "The games will go back to Default tab.",
                                     MsgBox.warn,
