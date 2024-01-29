@@ -134,10 +134,11 @@ const updateIcons = async (tabId) => {
                     if (isImage) {
                         container.style.position = 'absolute';
                         container.style.zIndex = '50';
-                        container.style.right = '5px';
+                        container.style.left = '5px';
                         container.style.top = '5px';
+                        container.style.width = '28px';
+                        container.style.textAlign = 'center';
                         container.style.background = '#262626';
-                        container.style.border = 'solid #262626';
                         container.style.borderRadius = '4px';
                         container.style.fontSize = '1.5em';
                         container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
