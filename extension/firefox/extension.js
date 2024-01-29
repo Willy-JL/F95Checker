@@ -47,14 +47,13 @@ const updateIcons = async (tabId) => {
     await getData();
     chrome.scripting.executeScript({
         target: { tabId: tabId },
-        func: (games) => {
+        func: (games, rpcURL) => {
             const injectCustomWebfont = () => {
                 const styleTag = document.createElement('style');
-                const font_url = chrome.runtime.getURL('materialdesignicons-webfont.ttf');
                 const cssContent = String.raw`
                     @font-face{
                         font-family: "MDI Custom";
-                        src: url('${font_url}') format('truetype');
+                        src: url('${rpcURL}/assets/mdi-webfont.ttf') format('truetype');
                         font-weight: normal;
                         font-style: normal;
                     }
@@ -206,7 +205,7 @@ const updateIcons = async (tabId) => {
             installMutationObservers();
             doUpdate();
         },
-        args: [games],
+        args: [games, rpcURL],
     });
 };
 

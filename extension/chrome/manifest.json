@@ -30,11 +30,5 @@
         "contextMenus",
         "webNavigation"
     ],
-    "host_permissions": ["*://*.f95zone.to/*"],
-    "web_accessible_resources": [
-        {
-            "resources": ["materialdesignicons-webfont.ttf"],
-            "matches": ["*://*.f95zone.to/*"]
-        }
-    ]
+    "host_permissions": ["*://*.f95zone.to/*"]
 }

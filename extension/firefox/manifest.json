@@ -30,6 +30,5 @@
         "contextMenus",
         "webNavigation",
         "*://*.f95zone.to/*"
-    ],
-    "web_accessible_resources": ["materialdesignicons-webfont.ttf"]
+    ]
 }

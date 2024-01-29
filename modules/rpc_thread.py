@@ -16,6 +16,7 @@ from modules import (
     msgbox,
     colors,
     utils,
+    icons,
     error,
 )
 
@@ -39,18 +40,30 @@ def start():
     def run_loop():
         global server
 
+        mdi_webfont = icons.font_path.read_bytes()
+
         class RPCHandler(http.server.SimpleHTTPRequestHandler):
             if not globals.debug:
                 log_message = lambda *_, **__: None
 
-            def send_resp(self, code: int):
+            def do_OPTIONS(self):
+                self.send_response(200, "ok")
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'GET. POST, OPTIONS')
+                self.send_header("Access-Control-Allow-Headers", "X-Requested-With")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.end_headers()
+
+            def send_resp(self, code: int, content_type: str = "application/octet-stream", headers: dict[str, str] = {}):
                 self.send_response(code)
                 self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Type", content_type)
+                for key, value in headers.items():
+                    self.send_header(key, value)
                 self.end_headers()
 
             def send_json(self, code: int, data: list | dict):
-                self.send_resp(code)
+                self.send_resp(code, "application/json")
                 self.wfile.write(json.dumps(data).encode())
 
             def do_GET(self):
@@ -64,6 +77,9 @@ def start():
                                 } for g in globals.games.values()
                             ])
                             return
+                        case "/assets/mdi-webfont.ttf":
+                            self.send_resp(200, "font/ttf", headers={"Cache-Control": "public, max-age=3600"})
+                            self.wfile.write(mdi_webfont)
                         case _:
                             self.send_resp(404)
                             return
