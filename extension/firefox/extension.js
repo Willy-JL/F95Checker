@@ -86,7 +86,7 @@ const updateIcons = async (tabId) => {
             };
             const createIcon = (gameId) => {
                 const icon = document.createElement('i');
-                let game = games.find(g => g.id === gameId)
+                const game = games.find(g => g.id === gameId)
                 icon.classList.add('mdi');
                 icon.style.setProperty('--mdi-i', `'${game.icon}'`);
                 icon.setAttribute('title', 'This game is present in your F95Checker library!');
