@@ -622,6 +622,7 @@ class Settings:
     fit_images                  : bool
     filter_all_tabs             : bool
     grid_columns                : int
+    hide_empty_tabs             : bool
     ignore_semaphore_timeouts   : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp

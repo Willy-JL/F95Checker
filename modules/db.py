@@ -168,6 +168,7 @@ async def connect():
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "filter_all_tabs":             f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
+            "hide_empty_tabs":             f'INTEGER DEFAULT {int(False)}',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',
             "last_successful_refresh":     f'INTEGER DEFAULT 0',

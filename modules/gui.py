@@ -2522,17 +2522,22 @@ class MainGUI():
         new_tab = None
         if Tab.instances and globals.settings.filter_all_tabs != self.filtering:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
-                if imgui.begin_tab_item(f"{Tab.default_icon} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
+                hide = globals.settings.hide_empty_tabs
+                count = len(self.show_games_ids.get(None, ()))
+                if (count or not hide) and imgui.begin_tab_item(f"{Tab.default_icon} Default ({count})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
+                    count = len(self.show_games_ids.get(tab, ()))
+                    if hide and not count:
+                        continue
                     if tab.color:
                         imgui.push_style_color(imgui.COLOR_TAB, *tab.color[:3], 0.5)
                         imgui.push_style_color(imgui.COLOR_TAB_ACTIVE, *tab.color)
                         imgui.push_style_color(imgui.COLOR_TAB_HOVERED, *tab.color)
                         imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(tab.color))
                     if imgui.begin_tab_item(
-                        f"{tab.icon} {tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
+                        f"{tab.icon} {tab.name or 'New Tab'} ({count})###tab_{tab.id}",
                         flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is display_tab else 0
                     )[0]:
                         new_tab = tab
@@ -4236,6 +4241,9 @@ class MainGUI():
 
             draw_settings_label("Confirm when removing:")
             draw_settings_checkbox("confirm_on_remove")
+
+            draw_settings_label("Hide empty tabs:")
+            draw_settings_checkbox("hide_empty_tabs")
 
             draw_settings_label(
                 "RPC enabled:",
