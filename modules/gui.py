@@ -2520,7 +2520,7 @@ class MainGUI():
         display_tab = globals.settings.display_tab
         select_tab = self.current_tab is not display_tab
         new_tab = None
-        if Tab.instances and globals.settings.filter_all_tabs != self.filtering:
+        if Tab.instances and not (globals.settings.filter_all_tabs and self.filtering):
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 hide = globals.settings.hide_empty_tabs
                 count = len(self.show_games_ids.get(None, ()))
