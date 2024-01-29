@@ -166,6 +166,7 @@ async def connect():
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
+            "filter_all_tabs":             f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',

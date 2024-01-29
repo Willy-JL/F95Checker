@@ -300,6 +300,7 @@ class MainGUI():
         self.hidden = False
         self.focused = True
         self.minimized = False
+        self.filtering = False
         self.add_box_text = ""
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
@@ -2519,7 +2520,7 @@ class MainGUI():
         display_tab = globals.settings.display_tab
         select_tab = self.current_tab is not display_tab
         new_tab = None
-        if Tab.instances:
+        if Tab.instances and globals.settings.filter_all_tabs != self.filtering:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 if imgui.begin_tab_item(f"{Tab.default_icon} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
                     new_tab = None
@@ -2639,6 +2640,7 @@ class MainGUI():
                 base_ids = globals.settings.manual_sort_list
             else:
                 base_ids = globals.games.keys()
+            filtering = False
             # Filter globally by filters
             for flt in self.filters:
                 match flt.mode.value:
@@ -2679,17 +2681,21 @@ class MainGUI():
                         key = None
                 if key is not None:
                     base_ids = filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), flt, key), base_ids)
+                    filtering = True
             # Filter globally by search
             if self.add_box_text:
                 if self.add_box_valid:
                     id_matches = [match.id for match in utils.extract_thread_matches(self.add_box_text)]
                     base_ids = filter(lambda id: id in id_matches, base_ids)
+                    filtering = True
                 else:
                     search = self.add_box_text.lower()
                     def key(id):
                         game = globals.games[id]
                         return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
                     base_ids = filter(key, base_ids)
+                    filtering = True
+            self.filtering = filtering
             # Finally consume the iterators (was lazy up until now)
             base_ids = list(base_ids)
             # Sort globally by sortspecs
@@ -2725,7 +2731,10 @@ class MainGUI():
                 base_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
             # Loop all tabs and filter by them
             self.show_games_ids = {
-                tab: list(filter(lambda id: tab is globals.games[id].tab, base_ids))
+                tab: (
+                    base_ids if filtering and globals.settings.filter_all_tabs else
+                    list(filter(lambda id: tab is globals.games[id].tab, base_ids))
+                )
                 for tab in (None, *Tab.instances)
             }
             tab_games_ids = self.show_games_ids[self.current_tab]
@@ -3584,8 +3593,17 @@ class MainGUI():
                 imgui.text("")
                 imgui.spacing()
 
-            if not Tab.instances and (len(self.filters) > 0 or self.add_box_text):
-                draw_settings_label(f"Filtered games count: {sum(len(ids) for ids in self.show_games_ids.values())}")
+            if self.filtering:
+                if Tab.instances:
+                    draw_settings_label("Filter all tabs:")
+                    if draw_settings_checkbox("filter_all_tabs"):
+                        self.recalculate_ids = True
+                    if globals.settings.filter_all_tabs:
+                        draw_settings_label(f"Total filtered count: {len(self.show_games_ids.get(None, ()))}")
+                    else:
+                        draw_settings_label(f"Total filtered count: {sum(len(ids) for ids in self.show_games_ids.values())}")
+                else:
+                    draw_settings_label(f"Filtered games count: {len(self.show_games_ids.get(None, ()))}")
                 imgui.text("")
                 imgui.spacing()
 
