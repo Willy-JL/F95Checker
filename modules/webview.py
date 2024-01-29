@@ -1,5 +1,6 @@
 from PyQt6 import QtCore, QtGui, QtWidgets, QtNetwork, QtWebChannel, QtWebEngineCore, QtWebEngineWidgets
 import pathlib
+import base64
 import json
 import sys
 import os
@@ -147,7 +148,7 @@ def create(
                 import main
                 async def _handle():
                     async with self.session.request(method, main.rpc_url + path, data=body) as req:
-                        return {"status": req.status, "body": (await req.read()).decode()}
+                        return {"status": req.status, "body": base64.b64encode(await req.read()).decode()}
                 return async_thread.wait(_handle())
         app.window.webview.rpcproxy = RPCProxy()
         app.window.webview.channel = QtWebChannel.QWebChannel(app.window.webview)

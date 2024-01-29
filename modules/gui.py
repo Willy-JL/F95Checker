@@ -132,7 +132,7 @@ class Columns:
             ghost=True,
         )
         self.installed_version = self.Column(
-            self, f"{icons.cloud_download} Installed Version",
+            self, f"{icons.download} Installed Version",
             ghost=True,
         )
         self.status = self.Column(
@@ -194,7 +194,7 @@ class Columns:
             short_header=True,
         )
         self.installed = self.Column(
-            self, f"{icons.cloud_download} Installed",
+            self, f"{icons.download} Installed",
             default=True,
             sortable=True,
             resizable=False,
@@ -1495,14 +1495,14 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{icons.tab_unselected} Default###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{Tab.default_icon} Default###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
         for tab in Tab.instances:
             if current_tab is tab:
                 imgui.push_disabled()
-            if imgui.selectable(f"{tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
+            if imgui.selectable(f"{tab.icon} {tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
                 new_tab = tab
             if current_tab is tab:
                 imgui.pop_disabled()
@@ -1546,7 +1546,7 @@ class MainGUI():
         self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder", selectable=True)
         imgui.separator()
         self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
-        self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
+        self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
         imgui.separator()
         if not game:
             imgui.text("Set:")
@@ -1863,7 +1863,7 @@ class MainGUI():
             self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
             _10 = self.scaled(10)
             imgui.same_line(spacing=_10)
-            self.draw_game_installed_checkbox(game, f"{icons.cloud_download} Installed")
+            self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
             imgui.same_line(spacing=_10)
             self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
             imgui.same_line()
@@ -2459,7 +2459,9 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
-            imgui.text("littleraisins: Many contributions with fixes and features (see F95CheckerX)")
+            imgui.text("r37r05p3C7: Tab idea and customization implementation")
+            imgui.bullet()
+            imgui.text("littleraisins: Fixes, features and misc ideas from the (defunct) 'X' fork")
             imgui.bullet()
             imgui.text("Sam: Added the version API for fast refreshing")
             imgui.bullet()
@@ -2502,16 +2504,23 @@ class MainGUI():
         new_tab = None
         if Tab.instances:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
-                if imgui.begin_tab_item(f"Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
+                if imgui.begin_tab_item(f"{Tab.default_icon} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
+                    if tab.color:
+                        imgui.push_style_color(imgui.COLOR_TAB, *tab.color[:3], 0.5)
+                        imgui.push_style_color(imgui.COLOR_TAB_ACTIVE, *tab.color)
+                        imgui.push_style_color(imgui.COLOR_TAB_HOVERED, *tab.color)
+                        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(tab.color))
                     if imgui.begin_tab_item(
-                        f"{tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
+                        f"{tab.icon} {tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
                         flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is display_tab else 0
                     )[0]:
                         new_tab = tab
                         imgui.end_tab_item()
+                    if tab.color:
+                        imgui.pop_style_color(4)
                     if imgui.begin_popup_context_item(f"###tab_{tab.id}_context"):
                         imgui.set_next_item_width(imgui.get_content_region_available_width())
                         changed, value = imgui.input_text_with_hint(f"###tab_name_{tab.id}", "Tab name", tab.name)
@@ -2522,6 +2531,34 @@ class MainGUI():
                         if imgui.begin_popup_context_item(f"###tab_name_{tab.id}_context"):
                             utils.text_context(tab, "name", setter_extra)
                             imgui.end_popup()
+                        if imgui.button(tab.icon):
+                            imgui.open_popup(f"###tab_icon_{tab.id}")
+                        if imgui.begin_popup(f"###tab_icon_{tab.id}"):
+                            search = ""
+                            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+                            _, search = imgui.input_text_with_hint(f"###tab_icons_{tab.id}_search", "Search icons...", search)
+                            imgui.begin_child(f"###tab_icons_{tab.id}_frame", width=self.scaled(350), height=imgui.io.display_size.y * 0.5)
+                            for name, icon in icons.names.items():
+                                if not search or search in name:
+                                    if imgui.selectable(f"{icon}  {name}")[0]:
+                                        tab.icon = icon
+                                        async_thread.run(db.update_tab(tab, "icon"))
+                            imgui.end_child()
+                            imgui.end_popup()
+                        imgui.same_line()
+                        if imgui.button("Reset icon", width=imgui.get_content_region_available_width()):
+                            tab.icon = Tab.default_icon
+                            async_thread.run(db.update_tab(tab, "icon"))
+                        color = tab.color[:3] if tab.color else (0.0, 0.0, 0.0)
+                        changed, value = imgui.color_edit3(f"###tab_color_{tab.id}", *color, flags=imgui.COLOR_EDIT_NO_INPUTS)
+                        if changed:
+                            tab.color = (*value, 1.0)
+                            async_thread.run(db.update_tab(tab, "color"))
+                        imgui.same_line()
+                        if imgui.button("Reset color", width=imgui.get_content_region_available_width()):
+                            tab.color = None
+                            async_thread.run(db.update_tab(tab, "color"))
+                        imgui.spacing()
                         if imgui.selectable(f"{icons.trash_can_outline} Close (keeps games)", False)[0]:
                             close_callback = functools.partial(lambda t: async_thread.run(db.delete_tab(t)), tab)
                             if globals.settings.confirm_on_remove:
