@@ -238,7 +238,7 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
                     imgui.end_popup()
                 imgui.begin_child(f"###text_context_icons_frame", width=globals.gui.scaled(350), height=imgui.io.display_size.y * 0.5)
                 for name, icon in icons.names.items():
-                    if not search._ or search._ in name:
+                    if not search._ or search._ in name or search._ in icon:
                         if imgui.selectable(f"{icon}  {name}", False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]:
                             setter(getter() + icon)
                 imgui.end_child()

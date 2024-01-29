@@ -2538,8 +2538,12 @@ class MainGUI():
                         imgui.end_tab_item()
                     if tab.color:
                         imgui.pop_style_color(4)
-                    if imgui.begin_popup_context_item(f"###tab_{tab.id}_context"):
+                    context_id = f"###tab_{tab.id}_context"
+                    set_focus = not imgui.is_popup_open(context_id)
+                    if imgui.begin_popup_context_item(context_id):
                         imgui.set_next_item_width(imgui.get_content_region_available_width())
+                        if set_focus:
+                            imgui.set_keyboard_focus_here()
                         changed, value = imgui.input_text_with_hint(f"###tab_name_{tab.id}", "Tab name", tab.name)
                         setter_extra = functools.partial(lambda t, _=None: async_thread.run(db.update_tab(t, "name")), tab)
                         if changed:
@@ -2548,18 +2552,23 @@ class MainGUI():
                         if imgui.begin_popup_context_item(f"###tab_name_{tab.id}_context"):
                             utils.text_context(tab, "name", setter_extra)
                             imgui.end_popup()
+                        set_focus = False
                         if imgui.button(tab.icon):
                             imgui.open_popup(f"###tab_icon_{tab.id}")
+                            set_focus = True
                         if imgui.begin_popup(f"###tab_icon_{tab.id}"):
                             search = ""
                             imgui.set_next_item_width(-imgui.FLOAT_MIN)
+                            if set_focus:
+                                imgui.set_keyboard_focus_here()
                             _, search = imgui.input_text_with_hint(f"###tab_icons_{tab.id}_search", "Search icons...", search)
-                            imgui.begin_child(f"###tab_icons_{tab.id}_frame", width=self.scaled(350), height=imgui.io.display_size.y * 0.5)
+                            imgui.begin_child(f"###tab_icons_{tab.id}_frame", width=self.scaled(250), height=imgui.io.display_size.y * 0.35)
                             for name, icon in icons.names.items():
-                                if not search or search in name:
+                                if not search or search in name or search in icon:
                                     if imgui.selectable(f"{icon}  {name}")[0]:
                                         tab.icon = icon
                                         async_thread.run(db.update_tab(tab, "icon"))
+                                        imgui.close_current_popup()
                             imgui.end_child()
                             imgui.end_popup()
                         imgui.same_line()
@@ -2575,8 +2584,7 @@ class MainGUI():
                         if imgui.button("Reset color", width=imgui.get_content_region_available_width()):
                             tab.color = None
                             async_thread.run(db.update_tab(tab, "color"))
-                        imgui.spacing()
-                        if imgui.selectable(f"{icons.trash_can_outline} Close (keeps games)", False)[0]:
+                        if imgui.button(f"{icons.trash_can_outline} Close (keeps games)"):
                             close_callback = functools.partial(lambda t: async_thread.run(db.delete_tab(t)), tab)
                             if globals.settings.confirm_on_remove:
                                 buttons = {
