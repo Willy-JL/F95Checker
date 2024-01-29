@@ -31,5 +31,5 @@
         "webNavigation",
         "*://*.f95zone.to/*"
     ],
-    "web_accessible_resources": ["icons/materialdesignicons-webfont.7.4.47.ttf"]
+    "web_accessible_resources": ["materialdesignicons-webfont.ttf"]
 }

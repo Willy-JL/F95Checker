@@ -1,9 +1,9 @@
 #!/bin/bash
 
-fontname=materialdesignicons-webfont.7.4.47.ttf
+icons=materialdesignicons-webfont
 
-cp ./resources/fonts/$fontname ./extension/chrome/icons
-cp ./resources/fonts/$fontname ./extension/firefox/icons
+cp ./resources/fonts/$icons.*.ttf ./extension/chrome/$icons.ttf
+cp ./resources/fonts/$icons.*.ttf ./extension/firefox/$icons.ttf
 cd ./extension/
 rm ./chrome.zip || true
 rm ./firefox.zip || true
@@ -12,5 +12,5 @@ zip -r ../chrome.zip *
 cd ../firefox/
 zip -r ../firefox.zip *
 cd ..
-rm ./chrome/icons/$fontname
-rm ./firefox/icons/$fontname
+rm ./chrome/$icons.ttf
+rm ./firefox/$icons.ttf

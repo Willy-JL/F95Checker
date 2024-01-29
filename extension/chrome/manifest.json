@@ -33,7 +33,7 @@
     "host_permissions": ["*://*.f95zone.to/*"],
     "web_accessible_resources": [
         {
-            "resources": ["icons/materialdesignicons-webfont.7.4.47.ttf"],
+            "resources": ["materialdesignicons-webfont.ttf"],
             "matches": ["*://*.f95zone.to/*"]
         }
     ]

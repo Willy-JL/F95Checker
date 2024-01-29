@@ -50,7 +50,7 @@ const updateIcons = async (tabId) => {
         func: (games) => {
             const injectCustomWebfont = () => {
                 const styleTag = document.createElement('style');
-                const font_url = chrome.runtime.getURL("icons/materialdesignicons-webfont.7.4.47.ttf");
+                const font_url = chrome.runtime.getURL("materialdesignicons-webfont.ttf");
                 const cssContent = String.raw`
                     @font-face{
                         font-family: "MDI Custom";
