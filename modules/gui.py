@@ -3788,7 +3788,7 @@ class MainGUI():
                             imgui.end_combo()
                     case FilterMode.Tag.value:
                         draw_settings_label("Tag value:")
-                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.text):
                             for tag in Tag:
                                 selected = tag is flt.match
                                 pos = imgui.get_cursor_pos()
