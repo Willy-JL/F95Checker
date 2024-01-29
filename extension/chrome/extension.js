@@ -5,7 +5,7 @@ let games = [];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const rpcCall = async (method, path, body, tabId) => {
-    if(typeof method !== "string" || typeof path !== "string" || (typeof body !== "string" && body !== null)) {
+    if(typeof method !== 'string' || typeof path !== 'string' || (typeof body !== 'string' && body !== null)) {
         return {};
     }
     try {
@@ -50,7 +50,7 @@ const updateIcons = async (tabId) => {
         func: (games) => {
             const injectCustomWebfont = () => {
                 const styleTag = document.createElement('style');
-                const font_url = chrome.runtime.getURL("materialdesignicons-webfont.ttf");
+                const font_url = chrome.runtime.getURL('materialdesignicons-webfont.ttf');
                 const cssContent = String.raw`
                     @font-face{
                         font-family: "MDI Custom";
@@ -86,7 +86,7 @@ const updateIcons = async (tabId) => {
             };
             const createIcon = (gameId) => {
                 const icon = document.createElement('i');
-                const game = games.find(g => g.id === gameId)
+                const game = games.find(g => g.id === gameId);
                 icon.classList.add('mdi');
                 icon.style.setProperty('--mdi-i', `'${game.icon}'`);
                 icon.setAttribute('title', 'This game is present in your F95Checker library!');
@@ -100,13 +100,13 @@ const updateIcons = async (tabId) => {
                 const span = document.createElement('span');
                 span.style.display = 'inline-block';
                 span.innerHTML = '&nbsp;';
-                return span
-            }
+                return span;
+            };
             const removeOldIcons = () => {
                 document.querySelectorAll('.f95checker-library-icons').forEach((e) => e.remove());
             };
             const addHrefIcons = () => {
-                for (elem of document.querySelectorAll('a[href*="/threads/"]')) {
+                for (const elem of document.querySelectorAll('a[href*="/threads/"]')) {
                     const id = extractThreadId(elem.href);
 
                     if (!id || !games.map(g => g.id).includes(id)) {
@@ -141,7 +141,7 @@ const updateIcons = async (tabId) => {
                         container.style.border = 'solid #262626';
                         container.style.borderRadius = '4px';
                         container.style.fontSize = '1.5em';
-                        container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`
+                        container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
                     }
 
                     if (!isImage && elem.children.length > 0) {
@@ -179,8 +179,6 @@ const updateIcons = async (tabId) => {
                     if (games.map(g => g.id).includes(id)) {
                         const [icon, _] = createIcon(id);
                         container.prepend(icon);
-                    };
-                    if (container.firstChild)
                         title.insertBefore(
                             container,
                             title.childNodes[title.childNodes.length - 1]
@@ -189,6 +187,7 @@ const updateIcons = async (tabId) => {
                             createNbsp(),
                             title.childNodes[title.childNodes.length - 1]
                         );
+                    };
                 }
             };
             const doUpdate = () => {

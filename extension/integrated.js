@@ -11,7 +11,7 @@ var games = [];
 var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 var rpcCall = async (method, path, body) => {
-    if(typeof method !== "string" || typeof path !== "string" || (typeof body !== "string" && body !== null)) {
+    if(typeof method !== 'string' || typeof path !== 'string' || (typeof body !== 'string' && body !== null)) {
         return {};
     }
     try {
@@ -32,7 +32,6 @@ var rpcCall = async (method, path, body) => {
 var getData = async () => {
     const res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
-    games = games.map(g => g.id)
 };
 
 var addGame = async (url) => {
@@ -44,6 +43,32 @@ var addGame = async (url) => {
 // Add icons for games, reminders, etc.
 var updateIcons = async () => {
     await getData();
+    const injectCustomWebfont = () => {
+        const styleTag = document.createElement('style');
+        const font_url = chrome.runtime.getURL('materialdesignicons-webfont.ttf'); // FIXME
+        const cssContent = String.raw`
+            @font-face{
+                font-family: "MDI Custom";
+                src: url('${font_url}') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+            .mdi:before {
+                display: inline-block;
+                font: normal normal normal 24px/1 "MDI Custom";
+                font-size: inherit;
+                text-rendering: auto;
+                line-height: inherit;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            .mdi::before {
+                content: var(--mdi-i);
+            }
+        `;
+        styleTag.appendChild(document.createTextNode(cssContent));
+        document.head.appendChild(styleTag);
+    };
     const extractThreadId = (url) => {
         const match = /threads\/(?:(?:[^\.\/]*)\.)?(\d+)/.exec(url);
         return match ? parseInt(match[1]) : null;
@@ -51,23 +76,26 @@ var updateIcons = async () => {
     const createContainer = () => {
         const c = document.createElement('div');
         c.classList.add('f95checker-library-icons');
-        c.style.display = 'inline';
-        c.style.marginInlineEnd = '4px';
+        c.style.display = 'inline-block';
         return c;
     };
-    const gamesIcon = () => {
+    const createIcon = (gameId) => {
         const icon = document.createElement('i');
-        icon.style.fontFamily = "'Font Awesome 5 Pro'";
-        icon.style.fontSize = '120%';
-        icon.style.position = 'relative';
-        icon.style.verticalAlign = 'bottom';
-        icon.classList.add('fa', 'fa-heart-square');
+        const game = games.find(g => g.id === gameId);
+        icon.classList.add('mdi');
+        icon.style.setProperty('--mdi-i', `'${game.icon}'`);
         icon.setAttribute('title', 'This game is present in your F95Checker library!');
         icon.addEventListener('click', () =>
             alert('This game is present in your F95Checker library!')
         );
-        icon.style.color = '#FD5555';
-        return icon;
+        icon.style.color = game.color;
+        return [icon, game.color];
+    };
+    const createNbsp = () => {
+        const span = document.createElement('span');
+        span.style.display = 'inline-block';
+        span.innerHTML = '&nbsp;';
+        return span;
     };
     const removeOldIcons = () => {
         document.querySelectorAll('.f95checker-library-icons').forEach((e) => e.remove());
@@ -76,7 +104,7 @@ var updateIcons = async () => {
         for (const elem of document.querySelectorAll('a[href*="/threads/"]')) {
             const id = extractThreadId(elem.href);
 
-            if (!id || ![...games].includes(id)) {
+            if (!id || !games.map(g => g.id).includes(id)) {
                 continue;
             }
 
@@ -96,7 +124,8 @@ var updateIcons = async () => {
             }
 
             const container = createContainer();
-            if (games.includes(id)) container.prepend(gamesIcon());
+            const [icon, color] = createIcon(id);
+            container.prepend(icon);
 
             if (isImage) {
                 container.style.position = 'absolute';
@@ -106,14 +135,18 @@ var updateIcons = async () => {
                 container.style.background = '#262626';
                 container.style.border = 'solid #262626';
                 container.style.borderRadius = '4px';
-                container.style.fontSize = 'larger';
+                container.style.fontSize = '1.5em';
+                container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
             }
 
             if (!isImage && elem.children.length > 0) {
                 // Search page
                 try {
+                    container.style.fontSize = '1.2em';
+                    container.style.verticalAlign = '-2px';
                     const whitespaces = elem.querySelectorAll('span.label-append');
                     const lastWhitespace = whitespaces[whitespaces.length - 1];
+                    lastWhitespace.insertAdjacentElement('afterend', createNbsp());
                     lastWhitespace.insertAdjacentElement('afterend', container);
                 } catch (e) {
                     continue;
@@ -124,21 +157,36 @@ var updateIcons = async () => {
                 thumb.insertAdjacentElement('beforebegin', container);
             } else {
                 // Everywhere else
+                container.style.fontSize = '1.2em';
+                container.style.verticalAlign = '-2px';
                 elem.insertAdjacentElement('beforebegin', container);
+                elem.insertAdjacentElement('beforebegin', createNbsp());
             }
         }
     };
     const addPageIcon = () => {
         const id = extractThreadId(document.location);
         const container = createContainer();
+        container.style.fontSize = '1.3em';
+        container.style.verticalAlign = '-3px';
         const title = document.getElementsByClassName('p-title-value')[0];
         if (title) {
-            if (games.includes(id)) container.prepend(gamesIcon());
-            if (container.firstChild)
-                title.insertBefore(container, title.childNodes[title.childNodes.length - 1]);
+            if (games.map(g => g.id).includes(id)) {
+                const [icon, _] = createIcon(id);
+                container.prepend(icon);
+                title.insertBefore(
+                    container,
+                    title.childNodes[title.childNodes.length - 1]
+                );
+                title.insertBefore(
+                    createNbsp(),
+                    title.childNodes[title.childNodes.length - 1]
+                );
+            };
         }
     };
     const doUpdate = () => {
+        injectCustomWebfont();
         removeOldIcons();
         addHrefIcons();
         addPageIcon();
