@@ -1050,16 +1050,14 @@ class MainGUI():
             self.filters.append(flt)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_tag_widget(self, tag: Tag, setup=True, qf_override=None):
-        quick_filter = qf_override if qf_override is not None else globals.settings.quick_filters
-        if setup:
-            self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
-        if imgui.small_button(tag.name) and quick_filter:
+    def draw_tag_widget(self, tag: Tag, color: tuple[float] = (0.3, 0.3, 0.3, 1.0), non_interactive=False):
+        interaction = False if non_interactive else globals.settings.quick_filters
+        self.begin_framed_text(color, interaction=interaction)
+        if imgui.small_button(tag.text) and interaction:
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
-        if setup:
-            self.end_framed_text(interaction=quick_filter)
+        self.end_framed_text(interaction=interaction)
 
     def draw_label_widget(self, label: Label, short=False):
         quick_filter = globals.settings.quick_filters
@@ -1547,7 +1545,7 @@ class MainGUI():
                 else:
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
-            self.draw_tag_widget(tag, qf_override=False)
+            self.draw_tag_widget(tag, non_interactive=True)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -1617,15 +1615,13 @@ class MainGUI():
 
     def draw_game_tags_widget(self, game: Game):
         quick_filter = globals.settings.quick_filters
-        self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
                 imgui.dummy(0, 0)
-            self.draw_tag_widget(tag, setup=False)
+            self.draw_tag_widget(tag)
             imgui.same_line()
         imgui.dummy(0, 0)
-        self.end_framed_text(interaction=quick_filter)
 
     def draw_game_labels_widget(self, game: Game, wrap=True, small=False, short=False, align=False):
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
