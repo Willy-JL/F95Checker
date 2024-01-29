@@ -315,6 +315,7 @@ class MainGUI():
         self.hovered_game: Game = None
         self.sorts: list[SortSpec] = []
         self.filters: list[Filter] = []
+        self.poll_chars: list[int] = []
         self.refresh_ratio_smooth = 0.0
         self.bg_mode_timer: float = None
         self.input_chars: list[int] = []
@@ -706,7 +707,7 @@ class MainGUI():
 
     def char_callback(self, window: glfw._GLFWwindow, char: int):
         self.impl.char_callback(window, char)
-        self.input_chars.append(char)
+        self.poll_chars.append(char)
 
     def close_callback(self, window: glfw._GLFWwindow):
         if globals.settings.background_on_close:
@@ -799,6 +800,7 @@ class MainGUI():
                     self.repeat_chars = False
                 self.input_chars.clear()
                 glfw.poll_events()
+                self.input_chars, self.poll_chars = self.poll_chars, self.input_chars
                 self.impl.process_inputs()
                 # Window state handling
                 size = imgui.io.display_size
