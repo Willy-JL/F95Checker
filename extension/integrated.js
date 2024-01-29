@@ -43,9 +43,10 @@ var addGame = async (url) => {
 // Add icons for games, reminders, etc.
 var updateIcons = async () => {
     await getData();
+    const font = await (await rpcCall('GET', '/assets/mdi-webfont.ttf', null)).text();
+    const font_url = `data:@font/ttf;base64,${btoa(font)}`;
     const injectCustomWebfont = () => {
         const styleTag = document.createElement('style');
-        const font_url = chrome.runtime.getURL('materialdesignicons-webfont.ttf'); // FIXME
         const cssContent = String.raw`
             @font-face{
                 font-family: "MDI Custom";
