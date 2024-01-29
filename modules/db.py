@@ -305,33 +305,39 @@ async def close():
 
 
 def sql_to_py(value: str | int | float, data_type: typing.Type):
+    args = getattr(data_type, "__args__", None)
     match getattr(data_type, "__name__", None):
         case "dict":
             try:
                 value = data_type(json.loads(value))
-                if data_type_args := getattr(data_type, "__args__", None):
-                    key_type = data_type_args[0]
-                    value_type = data_type_args[1]
+                if args:
+                    key_type = args[0]
+                    value_type = args[1]
                     value = data_type((key_type(int(k) if (type(k) is str and k.isdigit()) else k), value_type(v)) for k, v in value.items())
             except json.JSONDecodeError:
                 value = data_type([("", value)]) if value else data_type()
         case "list" | "tuple":
-            if isinstance(value, str) and getattr(data_type, "__args__", [None])[0] is float:
+            if isinstance(value, str) and args and args[0] is float and re.fullmatch(r'^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})', value):
                 value = colors.hex_to_rgba_0_1(value)
             else:
                 try:
                     value = data_type(json.loads(value))
                 except json.JSONDecodeError:
                     value = data_type([value]) if value else data_type()
-                if data_type_args := getattr(data_type, "__args__", None):
-                    content_type = data_type_args[0]
+                if args:
+                    content_type = args[0]
                     value = data_type(x for x in (content_type(x) for x in value) if x is not None)
         case _:
             if isinstance(data_type, types.UnionType):
-                if re.fullmatch(r'^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})', str(value)):
+                if (
+                    isinstance(value, str) and args and
+                    getattr(args[0], "__name__", None) == "tuple" and
+                    getattr(args[0], "__args__", [None])[0] is float and
+                    re.fullmatch(r'^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})', value)
+                ):
                     value = colors.hex_to_rgba_0_1(value)
-                elif not (getattr(data_type, "__args__", [None])[-1] is types.NoneType and value is None):
-                    value = data_type.__args__[0](value)
+                elif args and not (args[-1] is types.NoneType and value is None):
+                    value = args[0](value)
                 else:
                     value = None
             else:
