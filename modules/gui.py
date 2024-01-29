@@ -1493,14 +1493,14 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{getattr(icons, Tab.default_icon)} Default###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{Tab.default_icon} Default###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
         for tab in Tab.instances:
             if current_tab is tab:
                 imgui.push_disabled()
-            if imgui.selectable(f"{getattr(icons, tab.icon, icons.help_rhombus_outline)} {tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
+            if imgui.selectable(f"{tab.icon or icons.help_rhombus} {tab.name or 'New Tab'}###move_tab_{tab.id}", False)[0]:
                 new_tab = tab
             if current_tab is tab:
                 imgui.pop_disabled()
@@ -2500,7 +2500,7 @@ class MainGUI():
         new_tab = None
         if Tab.instances:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
-                if imgui.begin_tab_item(f"{getattr(icons, Tab.default_icon)} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
+                if imgui.begin_tab_item(f"{Tab.default_icon} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
@@ -2509,7 +2509,7 @@ class MainGUI():
                         imgui.push_style_color(imgui.COLOR_TAB_ACTIVE, *tab.color)
                         imgui.push_style_color(imgui.COLOR_TAB_HOVERED, *tab.color)
                         imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(tab.color))
-                    icon = getattr(icons, tab.icon, icons.help_rhombus_outline)
+                    icon = tab.icon or icons.help_rhombus
                     if imgui.begin_tab_item(
                         f"{icon} {tab.name or 'New Tab'} ({len(self.show_games_ids.get(tab, ()))})###tab_{tab.id}",
                         flags=imgui.TAB_ITEM_SET_SELECTED if select_tab and tab is display_tab else 0
@@ -2538,7 +2538,7 @@ class MainGUI():
                             for name, icon in icons.names.items():
                                 if not search or search in name:
                                     if imgui.selectable(f"{icon}  {name}")[0]:
-                                        tab.icon = name.replace("-", "_")
+                                        tab.icon = icon
                                         async_thread.run(db.update_tab(tab, "icon"))
                             imgui.end_child()
                             imgui.end_popup()

@@ -535,7 +535,8 @@ class Tab:
     @classmethod
     @property
     def default_icon(cls):
-        return "heart_box"
+        from modules import icons
+        return icons.heart_box
 
     def __hash__(self):
         return hash(self.id)
