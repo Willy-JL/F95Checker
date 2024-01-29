@@ -1493,7 +1493,7 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{getattr(icons, Tab.default_icon())} Default###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{getattr(icons, Tab.default_icon)} Default###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
@@ -2500,7 +2500,7 @@ class MainGUI():
         new_tab = None
         if Tab.instances:
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
-                if imgui.begin_tab_item(f"{getattr(icons, Tab.default_icon())} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
+                if imgui.begin_tab_item(f"{getattr(icons, Tab.default_icon)} Default ({len(self.show_games_ids.get(None, ()))})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
@@ -2544,7 +2544,7 @@ class MainGUI():
                             imgui.end_popup()
                         imgui.same_line()
                         if imgui.button("Reset icon", width=imgui.get_content_region_available_width()):
-                            tab.icon = Tab.default_icon()
+                            tab.icon = Tab.default_icon
                             async_thread.run(db.update_tab(tab, "icon"))
                         color = tab.color[:3] if tab.color else (0.0, 0.0, 0.0)
                         changed, value = imgui.color_edit3(f"###tab_color_{tab.id}", *color, flags=imgui.COLOR_EDIT_NO_INPUTS)

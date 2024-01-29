@@ -533,6 +533,7 @@ class Tab:
             cls.instances.remove(self)
 
     @classmethod
+    @property
     def default_icon(cls):
         return "heart_box"
 
