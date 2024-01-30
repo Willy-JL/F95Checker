@@ -9,6 +9,7 @@ import weakref
 import pathlib
 import hashlib
 import typing
+import icons
 import queue
 import enum
 import json
@@ -542,15 +543,19 @@ class Tab:
     @classmethod
     @property
     def default_icon(cls):
-        from modules import icons
         return icons.heart_box
 
     @classmethod
     @property
+    def default_icon_new(cls):
+        return icons.alert_decagram
+
+    @classmethod
+    @property
     def default_tab_label(cls):
-        from modules import icons, globals
+        from modules import globals
         if globals.settings.default_tab_is_new:
-            return f"{icons.alert_decagram} New"
+            return f"{cls.default_icon_new} New"
         else:
             return f"{cls.default_icon} Default"
 
