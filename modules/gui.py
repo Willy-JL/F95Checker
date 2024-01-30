@@ -2523,20 +2523,13 @@ class MainGUI():
         def popup_content():
             imgui.dummy(self.scaled(400), self.scaled(0))
             if imgui.begin_tab_bar("###tag_preferences_tabbar"):
-                for group in ("tags_positive", "tags_negative", "tags_critical"):
-                    match group:
-                        case "tags_positive":
-                            color = (0.0, 0.6, 0.0, 1.0)
-                            label = f"{icons.thumb_up_outline} Positive"
-                            tag_list = globals.settings.tags_positive
-                        case "tags_negative":
-                            color = (0.6, 0.0, 0.0, 1.0)
-                            label = f"{icons.thumb_down_outline} Negative"
-                            tag_list = globals.settings.tags_negative
-                        case "tags_critical":
-                            color = (0.0, 0.0, 0.0, 1.0)
-                            label = f"{icons.cancel} Critical"
-                            tag_list = globals.settings.tags_critical
+                groups = {
+                    "tags_positive": ((0.0, 0.6, 0.0), f"{icons.thumb_up_outline} Positive"),
+                    "tags_negative": ((0.6, 0.0, 0.0), f"{icons.thumb_down_outline} Negative"),
+                    "tags_critical": ((0.0, 0.0, 0.0), f"{icons.cancel} Critical"),
+                }
+                for group, (color, label) in groups.items():
+                    tag_list = getattr(globals.settings, group)
                     if imgui.begin_tab_item(label)[0]:
                         imgui.spacing()
                         if imgui.button("Add"):
