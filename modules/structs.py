@@ -422,6 +422,13 @@ Tag = IntEnumHack("Tag", [
 ])
 
 
+TagHighlight = IntEnumHack("TagHighlight", [
+    ("Positive", (1, {"color": (0.0, 0.6, 0.0, 1.0)})),
+    ("Negative", (2, {"color": (0.6, 0.0, 0.0, 1.0)})),
+    ("Critical", (3, {"color": (0.0, 0.0, 0.0, 1.0)})),
+])
+
+
 ExeState = IntEnumHack("ExeState", [
     ("Invalid",  1),
     ("Selected", 2),
@@ -657,9 +664,7 @@ class Settings:
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
     timestamp_format            : str
-    tags_positive               : list[Tag]
-    tags_negative               : list[Tag]
-    tags_critical               : list[Tag]
+    tags_highlights             : dict[Tag, TagHighlight]
     use_parser_processes        : bool
     vsync_ratio                 : int
     zoom_area                   : int

@@ -22,6 +22,7 @@ import glfw
 import sys
 
 from modules.structs import (
+    TagHighlight,
     DefaultStyle,
     DisplayMode,
     FilterMode,
@@ -1050,21 +1051,28 @@ class MainGUI():
             self.filters.append(flt)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_tag_widget(self, tag: Tag, non_interactive=False):
-        interaction = False if non_interactive else globals.settings.quick_filters
+    def draw_tag_widget(self, tag: Tag, quick_filter=True, change_highlight=True):
+        quick_filter = quick_filter and globals.settings.quick_filters
+        interaction = quick_filter or change_highlight
         color = (0.3, 0.3, 0.3, 1.0)
         if globals.settings.highlight_tags:
-            if tag in globals.settings.tags_positive:
-                color = (0.0, 0.6, 0.0, 1.0)
-            if tag in globals.settings.tags_negative:
-                color = (0.6, 0.0, 0.0, 1.0)
-            if tag in globals.settings.tags_critical:
-                color = (0.0, 0.0, 0.0, 1.0)
+            if highlight := globals.settings.tags_highlights.get(tag):
+                color = highlight.color
         self.begin_framed_text(color, interaction=interaction)
-        if imgui.small_button(tag.text) and interaction:
+        if imgui.small_button(tag.text) and quick_filter:
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_RIGHT) and change_highlight:
+            if tag not in globals.settings.tags_highlights:
+                globals.settings.tags_highlights[tag] = TagHighlight[TagHighlight._member_names_[0]]
+            else:
+                highlight = globals.settings.tags_highlights[tag]
+                if highlight is TagHighlight[TagHighlight._member_names_[-1]]:
+                    del globals.settings.tags_highlights[tag]
+                else:
+                    globals.settings.tags_highlights[tag] = TagHighlight(highlight + 1)
+            async_thread.run(db.update_settings("tags_highlights"))
         self.end_framed_text(interaction=interaction)
 
     def draw_label_widget(self, label: Label, short=False):
@@ -1553,7 +1561,7 @@ class MainGUI():
                 else:
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
-            self.draw_tag_widget(tag, non_interactive=True)
+            self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -2519,59 +2527,22 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
-    def draw_tag_preferences_popup(self, popup_uuid: str = ""):
+    def draw_tag_highlights_popup(self, popup_uuid: str = ""):
         def popup_content():
-            imgui.dummy(self.scaled(400), self.scaled(0))
-            if imgui.begin_tab_bar("###tag_preferences_tabbar"):
-                groups = {
-                    "tags_positive": ((0.0, 0.6, 0.0), f"{icons.thumb_up_outline} Positive"),
-                    "tags_negative": ((0.6, 0.0, 0.0), f"{icons.thumb_down_outline} Negative"),
-                    "tags_critical": ((0.0, 0.0, 0.0), f"{icons.cancel} Critical"),
-                }
-                for group, (color, label) in groups.items():
-                    tag_list = getattr(globals.settings, group)
-                    if imgui.begin_tab_item(label)[0]:
-                        imgui.spacing()
-                        if imgui.button("Add"):
-                            imgui.open_popup(f"###{group}_search")
-                        if imgui.begin_popup(f"###{group}_search"):
-                            search = ""
-                            imgui.set_next_item_width(-imgui.FLOAT_MIN)
-                            _, search = imgui.input_text_with_hint(f"###{group}_search_input", "Search tags...", search)
-                            imgui.begin_child(f"###{group}_search_frame", width=self.scaled(250), height=imgui.io.display_size.y * 0.35)
-                            for tag in Tag:
-                                if not search or search in tag.text:
-                                    if imgui.selectable(tag.text)[0]:
-                                        for g in groups:
-                                            l = getattr(globals.settings, g)
-                                            if tag in l:
-                                                l.remove(tag)
-                                                async_thread.run(db.update_settings(g))
-                                        tag_list.append(tag)
-                                        async_thread.run(db.update_settings(group))
-                            imgui.end_child()
-                            imgui.end_popup()
-                        imgui.same_line()
-                        imgui.text_disabled("Click tag to remove it")
-                        imgui.spacing()
-                        if tag_list:
-                            tag_list.sort(key=lambda t: t.text)
-                            self.begin_framed_text(color, interaction=True)
-                            pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
-                            for tag in tag_list:
-                                if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
-                                    imgui.dummy(0, 0)
-                                if imgui.small_button(tag.text):
-                                    tag_list.remove(tag)
-                                    async_thread.run(db.update_settings(group))
-                                imgui.same_line()
-                            imgui.dummy(0, 0)
-                            self.end_framed_text(interaction=True)
-                        else:
-                            imgui.text_disabled("None yet.")
-                        imgui.end_tab_item()
-                imgui.end_tab_bar()
-        return utils.popup("Tag preferences", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+            imgui.text_disabled("Right click tags to cycle highlighting options")
+            search = ""
+            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+            _, search = imgui.input_text_with_hint(f"###tag_highlights_input", "Search tags...", search)
+            imgui.begin_child(f"###tag_highlights_frame", width=min(imgui.io.display_size.x * 0.5, self.scaled(600)), height=imgui.io.display_size.y * 0.5)
+            pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
+            for tag in Tag:
+                if not search or search in tag.text or search in tag.name:
+                    if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
+                        imgui.dummy(0, 0)
+                    self.draw_tag_widget(tag, quick_filter=False)
+                imgui.same_line()
+            imgui.end_child()
+        return utils.popup("Tag highlight preferences", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def draw_tabbar(self):
         display_tab = globals.settings.display_tab
@@ -3791,7 +3762,7 @@ class MainGUI():
                                 if selected:
                                     imgui.set_item_default_focus()
                                 imgui.set_cursor_pos(pos)
-                                self.draw_tag_widget(tag)
+                                self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
                             imgui.end_combo()
                     case FilterMode.Type.value:
                         draw_settings_label("Type value:")
@@ -4033,7 +4004,7 @@ class MainGUI():
 
             draw_settings_label("Tags to highlight:")
             if imgui.button("Select", width=right_width):
-                utils.push_popup(self.draw_tag_preferences_popup)
+                utils.push_popup(self.draw_tag_highlights_popup)
 
             draw_settings_label(
                 "Time format:",

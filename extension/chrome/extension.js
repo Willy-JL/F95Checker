@@ -40,9 +40,7 @@ const getData = async () => {
     settings = res ? await res.json() : {
         "icon_glow": true,
         "highlight_tags": false,
-        "tags_positive": [],
-        "tags_negative": [],
-        "tags_critical": [],
+        "tags_highlights": {},
     };
 };
 
@@ -217,14 +215,11 @@ const updateIcons = async (tabId) => {
                     const tagSpans = tagsWrapper.querySelectorAll('span');
                     tagSpans.forEach((span) => {
                         const name = span.innerText;
-                        if (settings.tags_positive.includes(name)) {
-                            span.style.backgroundColor = '#006600';
-                        }
-                        if (settings.tags_negative.includes(name)) {
-                            span.style.backgroundColor = '#990000';
-                        }
-                        if (settings.tags_critical.includes(name)) {
-                            span.style.backgroundColor = '#000000';
+                        if (settings.tags_highlights.hasOwnProperty(name)) {
+                            const highlight = settings.tags_highlights[name];
+                            span.style.color = highlightColors[highlight].text;
+                            span.style.backgroundColor = highlightColors[highlight].background;
+                            span.style.border = highlightColors[highlight].border;
                         }
                     });
                 });
@@ -232,18 +227,11 @@ const updateIcons = async (tabId) => {
                 const tagLinks = document.querySelectorAll('a.tagItem');
                 tagLinks.forEach((link) => {
                     const name = link.innerText;
-                    if (settings.tags_positive.includes(name)) {
-                        link.style.color = 'white';
-                        link.style.backgroundColor = '#006600';
-                    }
-                    if (settings.tags_negative.includes(name)) {
-                        link.style.color = 'white';
-                        link.style.backgroundColor = '#990000';
-                    }
-                    if (settings.tags_critical.includes(name)) {
-                        link.style.color = 'white';
-                        link.style.backgroundColor = '#000000';
-                        link.style.border = '1px solid #ffffff55';
+                    if (settings.tags_highlights.hasOwnProperty(name)) {
+                        const highlight = settings.tags_highlights[name];
+                        link.style.color = highlightColors[highlight].text;
+                        link.style.backgroundColor = highlightColors[highlight].background;
+                        link.style.border = highlightColors[highlight].border;
                     }
                 });
             };

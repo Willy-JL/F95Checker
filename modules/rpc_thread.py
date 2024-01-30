@@ -81,9 +81,7 @@ def start():
                             self.send_json(200, {
                                 "icon_glow": globals.settings.ext_icon_glow,
                                 "highlight_tags": globals.settings.ext_highlight_tags,
-                                "tags_positive": [t.text for t in globals.settings.tags_positive],
-                                "tags_negative": [t.text for t in globals.settings.tags_negative],
-                                "tags_critical": [t.text for t in globals.settings.tags_critical],
+                                "tags_highlights": {t.text: h.value for t, h in globals.settings.tags_highlights.items()},
                             })
                             return
                         case "/assets/mdi-webfont.ttf":
