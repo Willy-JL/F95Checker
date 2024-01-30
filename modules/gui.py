@@ -1114,7 +1114,6 @@ class MainGUI():
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
-            imgui.push_font(imgui.fonts.default)
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
             imgui.text("This game has been updated!")
             imgui.text_disabled("Installed:")
@@ -1128,7 +1127,6 @@ class MainGUI():
                 "mark as installed to do the same."
             )
             imgui.pop_text_wrap_pos()
-            imgui.pop_font()
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             game.updated = False
@@ -1742,7 +1740,7 @@ class MainGUI():
                 self.draw_game_more_info_button(game, f"{icons.information_outline} Info", carousel_ids=sorted_ids)
 
                 imgui.end_group()
-                height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
+                height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)

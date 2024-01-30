@@ -80,6 +80,7 @@ def start():
                         case "/assets/mdi-webfont.ttf":
                             self.send_resp(200, "font/ttf", headers={"Cache-Control": "public, max-age=3600"})
                             self.wfile.write(mdi_webfont)
+                            return
                         case _:
                             self.send_resp(404)
                             return
