@@ -2396,7 +2396,7 @@ class MainGUI():
                         idx = 0
                     change_id = carousel_ids[idx]
                 if change_id is not None:
-                    utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids)
+                    utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids).uuid = popup_uuid
                     return 1, True
         return return_args
 
