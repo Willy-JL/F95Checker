@@ -105,7 +105,8 @@ def start():
                         case "/games/add":
                             urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                             if matches := utils.extract_thread_matches("\n".join(urls)):
-                                globals.gui.show()
+                                if not globals.settings.ext_background_add:
+                                    globals.gui.show()
                                 async def _add_game():
                                     await asyncio.sleep(0.1)
                                     await callbacks.add_games(*matches)
