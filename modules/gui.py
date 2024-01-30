@@ -919,6 +919,8 @@ class MainGUI():
                         imgui.set_cursor_screen_pos((text_x - _3, text_y))
                         if imgui.invisible_button("", width=text_size.x + _6, height=text_size.y + _3):
                             utils.push_popup(self.draw_about_popup)
+                        elif imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+                            callbacks.open_webpage(api.host)
                         imgui.set_cursor_screen_pos((text_x, text_y))
                         imgui.text(text)
 
