@@ -1055,9 +1055,9 @@ class MainGUI():
         color = (0.3, 0.3, 0.3, 1.0)
         if globals.settings.highlight_tags:
             if tag in globals.settings.tags_positive:
-                color = (0.6, 0.0, 0.0, 1.0)
-            if tag in globals.settings.tags_negative:
                 color = (0.0, 0.6, 0.0, 1.0)
+            if tag in globals.settings.tags_negative:
+                color = (0.6, 0.0, 0.0, 1.0)
             if tag in globals.settings.tags_critical:
                 color = (0.0, 0.0, 0.0, 1.0)
         self.begin_framed_text(color, interaction=interaction)
