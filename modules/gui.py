@@ -3382,9 +3382,13 @@ class MainGUI():
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
         any_active_old = imgui.is_any_item_active()
         any_active = False
+        def setter_extra(_=None):
+            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
+            self.recalculate_ids = True
         if not globals.popup_stack and not any_active_old and (self.input_chars or any(imgui.io.keys_down)):
             if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
                 self.add_box_text = self.add_box_text[:-1]
+                setter_extra()
             if self.input_chars:
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
@@ -3396,17 +3400,14 @@ class MainGUI():
             flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
         )
         changed = value != self.add_box_text
-        self.add_box_text = value
-        activated = bool(activated and self.add_box_text)
+        activated = bool(activated and value)
         any_active = any_active or imgui.is_any_item_active()
         if any_active_old != any_active and imgui.is_key_pressed(glfw.KEY_ESCAPE):
             # Changed active state, and escape is pressed, so clear textbox
-            self.add_box_text = ""
+            value = ""
             changed = True
-        def setter_extra(_=None):
-            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
-            self.recalculate_ids = True
         if changed:
+            self.add_box_text = value
             setter_extra()
         if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
