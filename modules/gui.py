@@ -3886,6 +3886,12 @@ class MainGUI():
             )
             draw_settings_checkbox("ext_highlight_tags")
 
+            draw_settings_label(
+                "Add in the background:",
+                "Don't open F95Checker window after adding a game."
+            )
+            draw_settings_checkbox("ext_background_add")
+
             imgui.end_table()
             imgui.spacing()
 

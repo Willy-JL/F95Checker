@@ -628,6 +628,7 @@ class Settings:
     display_mode                : DisplayMode
     ext_icon_glow               : bool
     ext_highlight_tags          : bool
+    ext_background_add          : bool
     fit_images                  : bool
     filter_all_tabs             : bool
     grid_columns                : int
