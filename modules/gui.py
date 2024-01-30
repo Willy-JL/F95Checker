@@ -2569,6 +2569,7 @@ class MainGUI():
                         imgui.text_disabled("Click tag to remove it")
                         imgui.spacing()
                         if tag_list:
+                            tag_list.sort(key=lambda t: t.text)
                             self.begin_framed_text(color, interaction=True)
                             pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
                             for tag in tag_list:
