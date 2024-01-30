@@ -2488,7 +2488,7 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
-            imgui.text("r37r05p3C7: Tab idea and customization implementation")
+            imgui.text("r37r05p3C7: Tab idea and customization, many extension features")
             imgui.bullet()
             imgui.text("littleraisins: Fixes, features and misc ideas from the (defunct) 'X' fork")
             imgui.bullet()
