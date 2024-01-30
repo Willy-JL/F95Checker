@@ -2551,7 +2551,13 @@ class MainGUI():
                                     if imgui.selectable(tag.text)[0]:
                                         try:
                                             globals.settings.tags_positive.remove(tag)
+                                        except ValueError:
+                                            pass
+                                        try:
                                             globals.settings.tags_negative.remove(tag)
+                                        except ValueError:
+                                            pass
+                                        try:
                                             globals.settings.tags_critical.remove(tag)
                                         except ValueError:
                                             pass
