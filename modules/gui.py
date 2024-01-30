@@ -2542,18 +2542,11 @@ class MainGUI():
                             for tag in Tag:
                                 if not search or search in tag.text:
                                     if imgui.selectable(tag.text)[0]:
-                                        try:
-                                            globals.settings.tags_positive.remove(tag)
-                                        except ValueError:
-                                            pass
-                                        try:
-                                            globals.settings.tags_negative.remove(tag)
-                                        except ValueError:
-                                            pass
-                                        try:
-                                            globals.settings.tags_critical.remove(tag)
-                                        except ValueError:
-                                            pass
+                                        for g in groups:
+                                            l = getattr(globals.settings, g)
+                                            if tag in l:
+                                                l.remove(tag)
+                                                async_thread.run(db.update_settings(g))
                                         tag_list.append(tag)
                                         async_thread.run(db.update_settings(group))
                             imgui.end_child()
