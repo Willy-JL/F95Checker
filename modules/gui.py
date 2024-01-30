@@ -22,6 +22,7 @@ import glfw
 import sys
 
 from modules.structs import (
+    TagHighlight,
     DefaultStyle,
     DisplayMode,
     FilterMode,
@@ -1050,16 +1051,29 @@ class MainGUI():
             self.filters.append(flt)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_tag_widget(self, tag: Tag, setup=True, qf_override=None):
-        quick_filter = qf_override if qf_override is not None else globals.settings.quick_filters
-        if setup:
-            self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
-        if imgui.small_button(tag.name) and quick_filter:
+    def draw_tag_widget(self, tag: Tag, quick_filter=True, change_highlight=True):
+        quick_filter = quick_filter and globals.settings.quick_filters
+        interaction = quick_filter or change_highlight
+        color = (0.3, 0.3, 0.3, 1.0)
+        if globals.settings.highlight_tags:
+            if highlight := globals.settings.tags_highlights.get(tag):
+                color = highlight.color
+        self.begin_framed_text(color, interaction=interaction)
+        if imgui.small_button(tag.text) and quick_filter:
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
-        if setup:
-            self.end_framed_text(interaction=quick_filter)
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_RIGHT) and change_highlight:
+            if tag not in globals.settings.tags_highlights:
+                globals.settings.tags_highlights[tag] = TagHighlight[TagHighlight._member_names_[0]]
+            else:
+                highlight = globals.settings.tags_highlights[tag]
+                if highlight is TagHighlight[TagHighlight._member_names_[-1]]:
+                    del globals.settings.tags_highlights[tag]
+                else:
+                    globals.settings.tags_highlights[tag] = TagHighlight(highlight + 1)
+            async_thread.run(db.update_settings("tags_highlights"))
+        self.end_framed_text(interaction=interaction)
 
     def draw_label_widget(self, label: Label, short=False):
         quick_filter = globals.settings.quick_filters
@@ -1545,7 +1559,7 @@ class MainGUI():
                 else:
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
-            self.draw_tag_widget(tag, qf_override=False)
+            self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -1614,16 +1628,13 @@ class MainGUI():
                 imgui.end_popup()
 
     def draw_game_tags_widget(self, game: Game):
-        quick_filter = globals.settings.quick_filters
-        self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
                 imgui.dummy(0, 0)
-            self.draw_tag_widget(tag, setup=False)
+            self.draw_tag_widget(tag)
             imgui.same_line()
         imgui.dummy(0, 0)
-        self.end_framed_text(interaction=quick_filter)
 
     def draw_game_labels_widget(self, game: Game, wrap=True, small=False, short=False, align=False):
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
@@ -2475,7 +2486,7 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
-            imgui.text("r37r05p3C7: Tab idea and customization implementation")
+            imgui.text("r37r05p3C7: Tab idea and customization, many extension features")
             imgui.bullet()
             imgui.text("littleraisins: Fixes, features and misc ideas from the (defunct) 'X' fork")
             imgui.bullet()
@@ -2513,6 +2524,23 @@ class MainGUI():
                 imgui.same_line(spacing=16)
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
+    def draw_tag_highlights_popup(self, popup_uuid: str = ""):
+        def popup_content():
+            imgui.text_disabled("Right click tags to cycle highlighting options")
+            search = ""
+            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+            _, search = imgui.input_text_with_hint(f"###tag_highlights_input", "Search tags...", search)
+            imgui.begin_child(f"###tag_highlights_frame", width=min(imgui.io.display_size.x * 0.5, self.scaled(600)), height=imgui.io.display_size.y * 0.5)
+            pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
+            for tag in Tag:
+                if not search or search in tag.text or search in tag.name:
+                    if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
+                        imgui.dummy(0, 0)
+                    self.draw_tag_widget(tag, quick_filter=False)
+                imgui.same_line()
+            imgui.end_child()
+        return utils.popup("Tag highlight preferences", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def draw_tabbar(self):
         display_tab = globals.settings.display_tab
@@ -3723,7 +3751,7 @@ class MainGUI():
                             imgui.end_combo()
                     case FilterMode.Tag.value:
                         draw_settings_label("Tag value:")
-                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.text):
                             for tag in Tag:
                                 selected = tag is flt.match
                                 pos = imgui.get_cursor_pos()
@@ -3733,7 +3761,7 @@ class MainGUI():
                                 if selected:
                                     imgui.set_item_default_focus()
                                 imgui.set_cursor_pos(pos)
-                                self.draw_tag_widget(tag)
+                                self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
                             imgui.end_combo()
                     case FilterMode.Type.value:
                         draw_settings_label("Type value:")
@@ -3839,6 +3867,22 @@ class MainGUI():
 
             draw_settings_label("Copy game links as BBcode:")
             draw_settings_checkbox("copy_urls_as_bbcode")
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Extension"):
+            draw_settings_label(
+                "Icon glow:",
+                "Icons in some locations will cast colored shadow to improve visibility."
+            )
+            draw_settings_checkbox("ext_icon_glow")
+
+            draw_settings_label(
+                "Highlight tags:",
+                "To change tag preferences go to 'Interface' > 'Tags to highlight'"
+            )
+            draw_settings_checkbox("ext_highlight_tags")
 
             imgui.end_table()
             imgui.spacing()
@@ -3953,6 +3997,13 @@ class MainGUI():
                 "label widgets, and status and update icons."
             )
             draw_settings_checkbox("quick_filters")
+
+            draw_settings_label("Highlight tags:")
+            draw_settings_checkbox("highlight_tags")
+
+            draw_settings_label("Tags to highlight:")
+            if imgui.button("Select", width=right_width):
+                utils.push_popup(self.draw_tag_highlights_popup)
 
             draw_settings_label(
                 "Time format:",

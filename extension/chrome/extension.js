@@ -1,6 +1,7 @@
 const rpcPort = 57095;
 const rpcURL = `http://127.0.0.1:${rpcPort}`;
 let games = [];
+let settings = {};
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -32,8 +33,15 @@ const rpcCall = async (method, path, body, tabId) => {
 };
 
 const getData = async () => {
-    const res = await rpcCall('GET', '/games', null);
+    let res;
+    res = await rpcCall('GET', '/games', null);
     games = res ? await res.json() : [];
+    res = await rpcCall('GET', '/settings', null);
+    settings = res ? await res.json() : {
+        "icon_glow": true,
+        "highlight_tags": false,
+        "tags_highlights": {},
+    };
 };
 
 const addGame = async (url, tabId) => {
@@ -47,7 +55,7 @@ const updateIcons = async (tabId) => {
     await getData();
     chrome.scripting.executeScript({
         target: { tabId: tabId },
-        func: (games, rpcURL) => {
+        func: (games, settings, rpcURL) => {
             const injectCustomWebfont = () => {
                 const styleTag = document.createElement('style');
                 const cssContent = String.raw`
@@ -141,7 +149,9 @@ const updateIcons = async (tabId) => {
                         container.style.background = '#262626';
                         container.style.borderRadius = '4px';
                         container.style.fontSize = '1.5em';
-                        container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
+                        if (settings.icon_glow) {
+                            container.style.boxShadow = `0px 0px 30px 30px ${color.slice(0, 7)}bb`;
+                        }
                     }
 
                     if (!isImage && elem.children.length > 0) {
@@ -190,11 +200,51 @@ const updateIcons = async (tabId) => {
                     };
                 }
             };
+            const installHighlighterMutationObservers = () => {
+                const tiles = document.querySelectorAll('div.resource-tile_body');
+                tiles.forEach((tile) => {
+                    const observer = new MutationObserver(highlightTags);
+                    observer.observe(tile, { attributes: true, subtree: true });
+                });
+            }
+            const highlightTags = () => {
+                // Latest Updates
+                const hoveredTiles = document.querySelectorAll('div.resource-tile-hover');
+                hoveredTiles.forEach((tile) => {
+                    const tagsWrapper = tile.querySelector('div.resource-tile_tags');
+                    if (!tagsWrapper) return;
+                    const tagSpans = tagsWrapper.querySelectorAll('span');
+                    tagSpans.forEach((span) => {
+                        const name = span.innerText;
+                        if (settings.tags_highlights.hasOwnProperty(name)) {
+                            const highlight = settings.tags_highlights[name];
+                            span.style.color = highlightColors[highlight].text;
+                            span.style.backgroundColor = highlightColors[highlight].background;
+                            span.style.border = highlightColors[highlight].border;
+                        }
+                    });
+                });
+                // Thread
+                const tagLinks = document.querySelectorAll('a.tagItem');
+                tagLinks.forEach((link) => {
+                    const name = link.innerText;
+                    if (settings.tags_highlights.hasOwnProperty(name)) {
+                        const highlight = settings.tags_highlights[name];
+                        link.style.color = highlightColors[highlight].text;
+                        link.style.backgroundColor = highlightColors[highlight].background;
+                        link.style.border = highlightColors[highlight].border;
+                    }
+                });
+            };
             const doUpdate = () => {
                 injectCustomWebfont();
                 removeOldIcons();
                 addHrefIcons();
                 addPageIcon();
+                if (settings.highlight_tags) {
+                    installHighlighterMutationObservers();
+                    highlightTags();
+                }
             };
             const installMutationObservers = () => {
                 const latest = document.getElementById('latest-page_items-wrap');
@@ -206,7 +256,7 @@ const updateIcons = async (tabId) => {
             installMutationObservers();
             doUpdate();
         },
-        args: [games, rpcURL],
+        args: [games, settings, rpcURL],
     });
 };
 
