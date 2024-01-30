@@ -9,7 +9,6 @@ import weakref
 import pathlib
 import hashlib
 import typing
-import icons
 import queue
 import enum
 import json
@@ -543,11 +542,13 @@ class Tab:
     @classmethod
     @property
     def default_icon(cls):
+        from modules import icons
         return icons.heart_box
 
     @classmethod
     @property
     def default_icon_new(cls):
+        from modules import icons
         return icons.alert_decagram
 
     @classmethod
