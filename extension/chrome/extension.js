@@ -208,6 +208,11 @@ const updateIcons = async (tabId) => {
                 });
             }
             const highlightTags = () => {
+                const highlightColors = {
+                    1: {text: 'white', background: '#006600', border: '1px solid #ffffff55'}, // Positive
+                    2: {text: 'white', background: '#990000', border: '1px solid #ffffff55'}, // Negative
+                    3: {text: 'white', background: '#000000', border: '1px solid #ffffff55'}, // Critical
+                };
                 // Latest Updates
                 const hoveredTiles = document.querySelectorAll('div.resource-tile-hover');
                 hoveredTiles.forEach((tile) => {
