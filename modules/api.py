@@ -444,10 +444,9 @@ async def import_f95_bookmarks():
         globals.refresh_progress += 1
         if not bookmarks:
             break
+        page += 1
         for title in bookmarks.find_all(parser.is_class("contentRow-title")):
             threads += utils.extract_thread_matches(title.find("a").get("href"))
-        page += 1
-
     if threads:
         await callbacks.add_games(*threads)
     else:

@@ -1128,7 +1128,6 @@ class MainGUI():
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
-            imgui.push_font(imgui.fonts.default)
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
             imgui.text("This game has been updated!")
             imgui.text_disabled("Installed:")
@@ -1142,7 +1141,6 @@ class MainGUI():
                 "mark as installed to do the same."
             )
             imgui.pop_text_wrap_pos()
-            imgui.pop_font()
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             game.updated = False
@@ -1753,7 +1751,7 @@ class MainGUI():
                 self.draw_game_more_info_button(game, f"{icons.information_outline} Info", carousel_ids=sorted_ids)
 
                 imgui.end_group()
-                height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
+                height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
@@ -2548,7 +2546,7 @@ class MainGUI():
         display_tab = globals.settings.display_tab
         select_tab = self.current_tab is not display_tab
         new_tab = None
-        if Tab.instances and globals.settings.filter_all_tabs != self.filtering:
+        if Tab.instances and not (globals.settings.filter_all_tabs and self.filtering):
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 hide = globals.settings.hide_empty_tabs
                 count = len(self.show_games_ids.get(None, ()))
@@ -3127,11 +3125,11 @@ class MainGUI():
                 while (w := imgui.calc_text_size(game.version[:cut]).x) > cell_width / 2:
                     cut -= 1
                 imgui.set_cursor_pos((pos.x + cell_width - side_indent - imgui.style.item_spacing.x - w, pos.y + img_height + imgui.style.item_spacing.y - frame_height / 2))
-                self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=False)
+                self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=True)
                 imgui.small_button(game.version[:cut])
                 if imgui.is_item_hovered() and cut != len(game.version):
                     imgui.set_tooltip(game.version)
-                self.end_framed_text(interaction=False)
+                self.end_framed_text(interaction=True)
             imgui.set_cursor_pos(old_pos)
         # Name line
         imgui.push_font(imgui.fonts.bold)
@@ -3412,9 +3410,13 @@ class MainGUI():
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
         any_active_old = imgui.is_any_item_active()
         any_active = False
+        def setter_extra(_=None):
+            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
+            self.recalculate_ids = True
         if not globals.popup_stack and not any_active_old and (self.input_chars or any(imgui.io.keys_down)):
             if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
                 self.add_box_text = self.add_box_text[:-1]
+                setter_extra()
             if self.input_chars:
                 self.repeat_chars = True
             imgui.set_keyboard_focus_here()
@@ -3426,17 +3428,14 @@ class MainGUI():
             flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
         )
         changed = value != self.add_box_text
-        self.add_box_text = value
-        activated = bool(activated and self.add_box_text)
+        activated = bool(activated and value)
         any_active = any_active or imgui.is_any_item_active()
         if any_active_old != any_active and imgui.is_key_pressed(glfw.KEY_ESCAPE):
             # Changed active state, and escape is pressed, so clear textbox
-            self.add_box_text = ""
+            value = ""
             changed = True
-        def setter_extra(_=None):
-            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
-            self.recalculate_ids = True
         if changed:
+            self.add_box_text = value
             setter_extra()
         if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
