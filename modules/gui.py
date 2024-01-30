@@ -1098,7 +1098,10 @@ class MainGUI():
         color = (tab and tab.color) or globals.settings.style_accent
         self.begin_framed_text(color, interaction=False)
         imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color))
-        imgui.small_button(f"{(tab and tab.icon) or Tab.default_icon} {(tab and (tab.name or 'New Tab')) or 'Default'}")
+        if (tab and tab.icon) and (tab and (tab.name or 'New Tab')):
+            imgui.small_button(f"{tab.icon} {tab.name or 'New Tab'}")
+        else:
+            imgui.small_button(f"{Tab.default_tab_label}")
         imgui.pop_style_color()
         self.end_framed_text(interaction=False)
 
@@ -1518,7 +1521,7 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{Tab.default_icon} Default###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{Tab.default_tab_label}###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
@@ -2552,7 +2555,7 @@ class MainGUI():
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 hide = globals.settings.hide_empty_tabs
                 count = len(self.show_games_ids.get(None, ()))
-                if (count or not hide) and imgui.begin_tab_item(f"{Tab.default_icon} Default ({count})###tab_-1")[0]:
+                if (count or not hide) and imgui.begin_tab_item(f"{Tab.default_tab_label} ({count})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
@@ -2628,7 +2631,7 @@ class MainGUI():
                                 utils.push_popup(
                                     msgbox.msgbox, f"Close tab {tab.icon} {tab.name or 'New Tab'}",
                                     "Are you sure you want to close this tab?\n"
-                                    "The games will go back to Default tab.",
+                                    f"The games will go back to {Tab.default_tab_label} tab.",
                                     MsgBox.warn,
                                     buttons
                                 )
@@ -4296,6 +4299,13 @@ class MainGUI():
 
             draw_settings_label("Hide empty tabs:")
             draw_settings_checkbox("hide_empty_tabs")
+
+            draw_settings_label(
+                f"Default {icons.arrow_left_right} New",
+                "Change Default tab to New.\n"
+                "Can be useful if you only store new games in default tab."
+            )
+            draw_settings_checkbox("default_tab_is_new")
 
             draw_settings_label(
                 "RPC enabled:",

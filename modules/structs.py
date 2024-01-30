@@ -545,6 +545,15 @@ class Tab:
         from modules import icons
         return icons.heart_box
 
+    @classmethod
+    @property
+    def default_tab_label(cls):
+        from modules import icons, globals
+        if globals.settings.default_tab_is_new:
+            return f"{icons.alert_decagram} New"
+        else:
+            return f"{cls.default_icon} Default"
+
     def __hash__(self):
         return hash(self.id)
 
@@ -625,6 +634,7 @@ class Settings:
     display_tab                 : Tab.get
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
+    default_tab_is_new          : bool
     display_mode                : DisplayMode
     ext_icon_glow               : bool
     ext_highlight_tags          : bool
