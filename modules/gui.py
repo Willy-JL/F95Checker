@@ -3629,9 +3629,6 @@ class MainGUI():
 
             if self.filtering:
                 if Tab.instances:
-                    draw_settings_label("Filter all tabs:")
-                    if draw_settings_checkbox("filter_all_tabs"):
-                        self.recalculate_ids = True
                     if globals.settings.filter_all_tabs:
                         draw_settings_label(f"Total filtered count: {len(self.show_games_ids.get(None, ()))}")
                     else:
@@ -4300,9 +4297,6 @@ class MainGUI():
             draw_settings_label("Confirm when removing:")
             draw_settings_checkbox("confirm_on_remove")
 
-            draw_settings_label("Hide empty tabs:")
-            draw_settings_checkbox("hide_empty_tabs")
-
             draw_settings_label(
                 "RPC enabled:",
                 f"The RPC allows other programs on your pc to interact with F95Checker via the api on {globals.rpc_url}. "
@@ -4497,6 +4491,17 @@ class MainGUI():
                     "style_text",
                     "style_text_dim",
                 ))
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Tabs"):
+            draw_settings_label("Filter all tabs:")
+            if draw_settings_checkbox("filter_all_tabs"):
+                self.recalculate_ids = True
+
+            draw_settings_label("Hide empty tabs:")
+            draw_settings_checkbox("hide_empty_tabs")
 
             imgui.end_table()
             imgui.spacing()
