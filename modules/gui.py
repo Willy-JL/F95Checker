@@ -2781,10 +2781,6 @@ class MainGUI():
             sorts.specs_dirty = False
         else:
             tab_games_ids = self.show_games_ids[self.current_tab]
-        if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
-            selected = not any(globals.games[id].selected for id in tab_games_ids)
-            for id in tab_games_ids:
-                globals.games[id].selected = selected
 
     def handle_game_hitbox_events(self, game: Game, drag_drop: bool = False):
         manual_sort = cols.manual_sort.enabled
@@ -3422,9 +3418,14 @@ class MainGUI():
             if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
                 self.add_box_text = self.add_box_text[:-1]
                 setter_extra()
+            if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
+                tab_games_ids = self.show_games_ids[self.current_tab]
+                selected = not any(globals.games[id].selected for id in tab_games_ids)
+                for id in tab_games_ids:
+                    globals.games[id].selected = selected
             if self.input_chars:
                 self.repeat_chars = True
-            imgui.set_keyboard_focus_here()
+                imgui.set_keyboard_focus_here()
             any_active = True
         activated, value = imgui.input_text_with_hint(
             "###bottombar",
@@ -3439,6 +3440,8 @@ class MainGUI():
             # Changed active state, and escape is pressed, so clear textbox
             value = ""
             changed = True
+            for game in globals.games.values():
+                game.selected = False
         if changed:
             self.add_box_text = value
             setter_extra()
