@@ -541,24 +541,18 @@ class Tab:
 
     @classmethod
     @property
-    def default_icon(cls):
+    def base_icon(cls):
         from modules import icons
         return icons.heart_box
 
     @classmethod
     @property
-    def default_icon_new(cls):
-        from modules import icons
-        return icons.alert_decagram
-
-    @classmethod
-    @property
-    def default_tab_label(cls):
-        from modules import globals
+    def first_tab_label(cls):
+        from modules import globals, icons
         if globals.settings.default_tab_is_new:
-            return f"{cls.default_icon_new} New"
+            return f"{icons.alert_decagram} New"
         else:
-            return f"{cls.default_icon} Default"
+            return f"{icons.heart_box} Default"
 
     def __hash__(self):
         return hash(self.id)
