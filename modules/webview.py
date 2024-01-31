@@ -296,11 +296,13 @@ def cookies(url: str, **kwargs):
     app.exec()
 
 
-def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = {}, **kwargs):
+def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
     app = create(**kwargs | dict(buttons=False, extension=False, private=True))
     url = QtCore.QUrl(url)
-    for key, value in cookies.items():
-        app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), url)
+    if cookies and cookies_domain:
+        cookies_domain = QtCore.QUrl("https://" + cookies_domain)
+        for key, value in cookies.items():
+            app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     def url_changed(new: QtCore.QUrl):
         if new != url and not new.url().startswith(url.url()):
             print(json.dumps(new.url()), flush=True)
