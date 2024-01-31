@@ -3632,9 +3632,6 @@ class MainGUI():
 
             if self.filtering:
                 if Tab.instances:
-                    draw_settings_label("Filter all tabs:")
-                    if draw_settings_checkbox("filter_all_tabs"):
-                        self.recalculate_ids = True
                     if globals.settings.filter_all_tabs:
                         draw_settings_label(f"Total filtered count: {len(self.show_games_ids.get(None, ()))}")
                     else:
@@ -3888,6 +3885,12 @@ class MainGUI():
                 "To change tag preferences go to 'Interface' > 'Tags to highlight'"
             )
             draw_settings_checkbox("ext_highlight_tags")
+
+            draw_settings_label(
+                "Add in the background:",
+                "Don't open F95Checker window after adding a game."
+            )
+            draw_settings_checkbox("ext_background_add")
 
             imgui.end_table()
             imgui.spacing()
@@ -4297,9 +4300,6 @@ class MainGUI():
             draw_settings_label("Confirm when removing:")
             draw_settings_checkbox("confirm_on_remove")
 
-            draw_settings_label("Hide empty tabs:")
-            draw_settings_checkbox("hide_empty_tabs")
-
             draw_settings_label(
                 f"Default {icons.arrow_left_right} New",
                 "Change Default tab to New.\n"
@@ -4501,6 +4501,17 @@ class MainGUI():
                     "style_text",
                     "style_text_dim",
                 ))
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Tabs"):
+            draw_settings_label("Filter all tabs:")
+            if draw_settings_checkbox("filter_all_tabs"):
+                self.recalculate_ids = True
+
+            draw_settings_label("Hide empty tabs:")
+            draw_settings_checkbox("hide_empty_tabs")
 
             imgui.end_table()
             imgui.spacing()
