@@ -541,9 +541,18 @@ class Tab:
 
     @classmethod
     @property
-    def default_icon(cls):
+    def base_icon(cls):
         from modules import icons
         return icons.heart_box
+
+    @classmethod
+    @property
+    def first_tab_label(cls):
+        from modules import globals, icons
+        if globals.settings.default_tab_is_new:
+            return f"{icons.alert_decagram} New"
+        else:
+            return f"{icons.heart_box} Default"
 
     def __hash__(self):
         return hash(self.id)
@@ -625,6 +634,7 @@ class Settings:
     display_tab                 : Tab.get
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
+    default_tab_is_new          : bool
     display_mode                : DisplayMode
     ext_icon_glow               : bool
     ext_highlight_tags          : bool
