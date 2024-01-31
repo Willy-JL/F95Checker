@@ -4301,13 +4301,6 @@ class MainGUI():
             draw_settings_checkbox("confirm_on_remove")
 
             draw_settings_label(
-                f"Default {icons.arrow_left_right} New",
-                "Change Default tab to New.\n"
-                "Can be useful if you only store new games in default tab."
-            )
-            draw_settings_checkbox("default_tab_is_new")
-
-            draw_settings_label(
                 "RPC enabled:",
                 f"The RPC allows other programs on your pc to interact with F95Checker via the api on {globals.rpc_url}. "
                 "Essentially this is what makes the web browser extension work. Disable this if you are having issues with the RPC, "
@@ -4512,6 +4505,13 @@ class MainGUI():
 
             draw_settings_label("Hide empty tabs:")
             draw_settings_checkbox("hide_empty_tabs")
+
+            draw_settings_label(
+                f"Default {icons.arrow_left_right} New",
+                "Change 'Default' tab to 'New'. Only a visual change.\n"
+                "Can be useful if you only store new games in default tab."
+            )
+            draw_settings_checkbox("default_tab_is_new")
 
             imgui.end_table()
             imgui.spacing()
