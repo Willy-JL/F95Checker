@@ -72,14 +72,22 @@ def start():
                         case "/games":
                             self.send_json(200, [{
                                     "id": g.id,
-                                    "icon": g.tab.icon if g.tab else Tab.default_icon,
+                                    "icon": g.tab.icon if g.tab else Tab.first_tab_label[0],
                                     "color": colors.rgba_0_1_to_hex(g.tab.color) if g.tab and g.tab.color else "#FD5555"
                                 } for g in globals.games.values()
                             ])
                             return
+                        case "/settings":
+                            self.send_json(200, {
+                                "icon_glow": globals.settings.ext_icon_glow,
+                                "highlight_tags": globals.settings.ext_highlight_tags,
+                                "tags_highlights": {t.text: h.value for t, h in globals.settings.tags_highlights.items()},
+                            })
+                            return
                         case "/assets/mdi-webfont.ttf":
                             self.send_resp(200, "font/ttf", headers={"Cache-Control": "public, max-age=3600"})
                             self.wfile.write(mdi_webfont)
+                            return
                         case _:
                             self.send_resp(404)
                             return
@@ -97,7 +105,8 @@ def start():
                         case "/games/add":
                             urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                             if matches := utils.extract_thread_matches("\n".join(urls)):
-                                globals.gui.show()
+                                if not globals.settings.ext_background_add:
+                                    globals.gui.show()
                                 async def _add_game():
                                     await asyncio.sleep(0.1)
                                     await callbacks.add_games(*matches)

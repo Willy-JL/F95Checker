@@ -22,6 +22,7 @@ import glfw
 import sys
 
 from modules.structs import (
+    TagHighlight,
     DefaultStyle,
     DisplayMode,
     FilterMode,
@@ -918,6 +919,8 @@ class MainGUI():
                         imgui.set_cursor_screen_pos((text_x - _3, text_y))
                         if imgui.invisible_button("", width=text_size.x + _6, height=text_size.y + _3):
                             utils.push_popup(self.draw_about_popup)
+                        elif imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+                            callbacks.open_webpage(api.host)
                         imgui.set_cursor_screen_pos((text_x, text_y))
                         imgui.text(text)
 
@@ -1050,16 +1053,29 @@ class MainGUI():
             self.filters.append(flt)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_tag_widget(self, tag: Tag, setup=True, qf_override=None):
-        quick_filter = qf_override if qf_override is not None else globals.settings.quick_filters
-        if setup:
-            self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
-        if imgui.small_button(tag.name) and quick_filter:
+    def draw_tag_widget(self, tag: Tag, quick_filter=True, change_highlight=True):
+        quick_filter = quick_filter and globals.settings.quick_filters
+        interaction = quick_filter or change_highlight
+        color = (0.3, 0.3, 0.3, 1.0)
+        if globals.settings.highlight_tags:
+            if highlight := globals.settings.tags_highlights.get(tag):
+                color = highlight.color
+        self.begin_framed_text(color, interaction=interaction)
+        if imgui.small_button(tag.text) and quick_filter:
             flt = Filter(FilterMode.Tag)
             flt.match = tag
             self.filters.append(flt)
-        if setup:
-            self.end_framed_text(interaction=quick_filter)
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_RIGHT) and change_highlight:
+            if tag not in globals.settings.tags_highlights:
+                globals.settings.tags_highlights[tag] = TagHighlight[TagHighlight._member_names_[0]]
+            else:
+                highlight = globals.settings.tags_highlights[tag]
+                if highlight is TagHighlight[TagHighlight._member_names_[-1]]:
+                    del globals.settings.tags_highlights[tag]
+                else:
+                    globals.settings.tags_highlights[tag] = TagHighlight(highlight + 1)
+            async_thread.run(db.update_settings("tags_highlights"))
+        self.end_framed_text(interaction=interaction)
 
     def draw_label_widget(self, label: Label, short=False):
         quick_filter = globals.settings.quick_filters
@@ -1082,7 +1098,10 @@ class MainGUI():
         color = (tab and tab.color) or globals.settings.style_accent
         self.begin_framed_text(color, interaction=False)
         imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color))
-        imgui.small_button(f"{(tab and tab.icon) or Tab.default_icon} {(tab and (tab.name or 'New Tab')) or 'Default'}")
+        if (tab and tab.icon) and (tab and (tab.name or 'New Tab')):
+            imgui.small_button(f"{tab.icon} {tab.name or 'New Tab'}")
+        else:
+            imgui.small_button(f"{Tab.first_tab_label}")
         imgui.pop_style_color()
         self.end_framed_text(interaction=False)
 
@@ -1114,7 +1133,6 @@ class MainGUI():
             imgui.end_group()
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
-            imgui.push_font(imgui.fonts.default)
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
             imgui.text("This game has been updated!")
             imgui.text_disabled("Installed:")
@@ -1128,7 +1146,6 @@ class MainGUI():
                 "mark as installed to do the same."
             )
             imgui.pop_text_wrap_pos()
-            imgui.pop_font()
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             game.updated = False
@@ -1504,7 +1521,7 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{Tab.default_icon} Default###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{Tab.first_tab_label}###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
@@ -1547,7 +1564,7 @@ class MainGUI():
                 else:
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
-            self.draw_tag_widget(tag, qf_override=False)
+            self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -1616,16 +1633,13 @@ class MainGUI():
                 imgui.end_popup()
 
     def draw_game_tags_widget(self, game: Game):
-        quick_filter = globals.settings.quick_filters
-        self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
         for tag in game.tags:
             if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
                 imgui.dummy(0, 0)
-            self.draw_tag_widget(tag, setup=False)
+            self.draw_tag_widget(tag)
             imgui.same_line()
         imgui.dummy(0, 0)
-        self.end_framed_text(interaction=quick_filter)
 
     def draw_game_labels_widget(self, game: Game, wrap=True, small=False, short=False, align=False):
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
@@ -1742,7 +1756,7 @@ class MainGUI():
                 self.draw_game_more_info_button(game, f"{icons.information_outline} Info", carousel_ids=sorted_ids)
 
                 imgui.end_group()
-                height =  imgui.get_item_rect_size().y + imgui.style.item_spacing.y
+                height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
                 game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
@@ -2385,7 +2399,7 @@ class MainGUI():
                         idx = 0
                     change_id = carousel_ids[idx]
                 if change_id is not None:
-                    utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids)
+                    utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids).uuid = popup_uuid
                     return 1, True
         return return_args
 
@@ -2477,7 +2491,7 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
-            imgui.text("r37r05p3C7: Tab idea and customization implementation")
+            imgui.text("r37r05p3C7: Tab idea and customization, many extension features")
             imgui.bullet()
             imgui.text("littleraisins: Fixes, features and misc ideas from the (defunct) 'X' fork")
             imgui.bullet()
@@ -2516,6 +2530,23 @@ class MainGUI():
             imgui.pop_text_wrap_pos()
         return utils.popup("About F95Checker", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
+    def draw_tag_highlights_popup(self, popup_uuid: str = ""):
+        def popup_content():
+            imgui.text_disabled("Right click tags to cycle highlighting options")
+            search = ""
+            imgui.set_next_item_width(-imgui.FLOAT_MIN)
+            _, search = imgui.input_text_with_hint(f"###tag_highlights_input", "Search tags...", search)
+            imgui.begin_child(f"###tag_highlights_frame", width=min(imgui.io.display_size.x * 0.5, self.scaled(600)), height=imgui.io.display_size.y * 0.5)
+            pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
+            for tag in Tag:
+                if not search or search in tag.text or search in tag.name:
+                    if imgui.get_content_region_available_width() < imgui.calc_text_size(tag.name).x + pad:
+                        imgui.dummy(0, 0)
+                    self.draw_tag_widget(tag, quick_filter=False)
+                imgui.same_line()
+            imgui.end_child()
+        return utils.popup("Tag highlight preferences", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+
     def draw_tabbar(self):
         display_tab = globals.settings.display_tab
         select_tab = self.current_tab is not display_tab
@@ -2524,7 +2555,7 @@ class MainGUI():
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 hide = globals.settings.hide_empty_tabs
                 count = len(self.show_games_ids.get(None, ()))
-                if (count or not hide) and imgui.begin_tab_item(f"{Tab.default_icon} Default ({count})###tab_-1")[0]:
+                if (count or not hide) and imgui.begin_tab_item(f"{Tab.first_tab_label} ({count})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
@@ -2579,7 +2610,7 @@ class MainGUI():
                             imgui.end_popup()
                         imgui.same_line()
                         if imgui.button("Reset icon", width=imgui.get_content_region_available_width()):
-                            tab.icon = Tab.default_icon
+                            tab.icon = Tab.base_icon
                             async_thread.run(db.update_tab(tab, "icon"))
                         color = tab.color[:3] if tab.color else (0.0, 0.0, 0.0)
                         changed, value = imgui.color_edit3(f"###tab_color_{tab.id}", *color, flags=imgui.COLOR_EDIT_NO_INPUTS)
@@ -2600,7 +2631,7 @@ class MainGUI():
                                 utils.push_popup(
                                     msgbox.msgbox, f"Close tab {tab.icon} {tab.name or 'New Tab'}",
                                     "Are you sure you want to close this tab?\n"
-                                    "The games will go back to Default tab.",
+                                    f"The games will go back to {Tab.first_tab_label} tab.",
                                     MsgBox.warn,
                                     buttons
                                 )
@@ -2750,10 +2781,6 @@ class MainGUI():
             sorts.specs_dirty = False
         else:
             tab_games_ids = self.show_games_ids[self.current_tab]
-        if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
-            selected = not any(globals.games[id].selected for id in tab_games_ids)
-            for id in tab_games_ids:
-                globals.games[id].selected = selected
 
     def handle_game_hitbox_events(self, game: Game, drag_drop: bool = False):
         manual_sort = cols.manual_sort.enabled
@@ -3384,12 +3411,21 @@ class MainGUI():
             imgui.set_next_item_width(-imgui.FLOAT_MIN)
         any_active_old = imgui.is_any_item_active()
         any_active = False
+        def setter_extra(_=None):
+            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
+            self.recalculate_ids = True
         if not globals.popup_stack and not any_active_old and (self.input_chars or any(imgui.io.keys_down)):
             if imgui.is_key_pressed(glfw.KEY_BACKSPACE):
                 self.add_box_text = self.add_box_text[:-1]
+                setter_extra()
+            if imgui.is_key_down(glfw.KEY_LEFT_CONTROL) and imgui.is_key_pressed(glfw.KEY_A):
+                tab_games_ids = self.show_games_ids[self.current_tab]
+                selected = not any(globals.games[id].selected for id in tab_games_ids)
+                for id in tab_games_ids:
+                    globals.games[id].selected = selected
             if self.input_chars:
                 self.repeat_chars = True
-            imgui.set_keyboard_focus_here()
+                imgui.set_keyboard_focus_here()
             any_active = True
         activated, value = imgui.input_text_with_hint(
             "###bottombar",
@@ -3398,17 +3434,16 @@ class MainGUI():
             flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
         )
         changed = value != self.add_box_text
-        self.add_box_text = value
-        activated = bool(activated and self.add_box_text)
+        activated = bool(activated and value)
         any_active = any_active or imgui.is_any_item_active()
         if any_active_old != any_active and imgui.is_key_pressed(glfw.KEY_ESCAPE):
             # Changed active state, and escape is pressed, so clear textbox
-            self.add_box_text = ""
+            value = ""
             changed = True
-        def setter_extra(_=None):
-            self.add_box_valid = len(utils.extract_thread_matches(self.add_box_text)) > 0
-            self.recalculate_ids = True
+            for game in globals.games.values():
+                game.selected = False
         if changed:
+            self.add_box_text = value
             setter_extra()
         if imgui.begin_popup_context_item("###bottombar_context"):
             # Right click = more options context menu
@@ -3600,9 +3635,6 @@ class MainGUI():
 
             if self.filtering:
                 if Tab.instances:
-                    draw_settings_label("Filter all tabs:")
-                    if draw_settings_checkbox("filter_all_tabs"):
-                        self.recalculate_ids = True
                     if globals.settings.filter_all_tabs:
                         draw_settings_label(f"Total filtered count: {len(self.show_games_ids.get(None, ()))}")
                     else:
@@ -3724,7 +3756,7 @@ class MainGUI():
                             imgui.end_combo()
                     case FilterMode.Tag.value:
                         draw_settings_label("Tag value:")
-                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.name):
+                        if imgui.begin_combo(f"###filter_{flt.id}_value", flt.match.text):
                             for tag in Tag:
                                 selected = tag is flt.match
                                 pos = imgui.get_cursor_pos()
@@ -3734,7 +3766,7 @@ class MainGUI():
                                 if selected:
                                     imgui.set_item_default_focus()
                                 imgui.set_cursor_pos(pos)
-                                self.draw_tag_widget(tag)
+                                self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
                             imgui.end_combo()
                     case FilterMode.Type.value:
                         draw_settings_label("Type value:")
@@ -3840,6 +3872,28 @@ class MainGUI():
 
             draw_settings_label("Copy game links as BBcode:")
             draw_settings_checkbox("copy_urls_as_bbcode")
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Extension"):
+            draw_settings_label(
+                "Icon glow:",
+                "Icons in some locations will cast colored shadow to improve visibility."
+            )
+            draw_settings_checkbox("ext_icon_glow")
+
+            draw_settings_label(
+                "Highlight tags:",
+                "To change tag preferences go to 'Interface' > 'Tags to highlight'"
+            )
+            draw_settings_checkbox("ext_highlight_tags")
+
+            draw_settings_label(
+                "Add in the background:",
+                "Don't open F95Checker window after adding a game."
+            )
+            draw_settings_checkbox("ext_background_add")
 
             imgui.end_table()
             imgui.spacing()
@@ -3954,6 +4008,13 @@ class MainGUI():
                 "label widgets, and status and update icons."
             )
             draw_settings_checkbox("quick_filters")
+
+            draw_settings_label("Highlight tags:")
+            draw_settings_checkbox("highlight_tags")
+
+            draw_settings_label("Tags to highlight:")
+            if imgui.button("Select", width=right_width):
+                utils.push_popup(self.draw_tag_highlights_popup)
 
             draw_settings_label(
                 "Time format:",
@@ -4242,9 +4303,6 @@ class MainGUI():
             draw_settings_label("Confirm when removing:")
             draw_settings_checkbox("confirm_on_remove")
 
-            draw_settings_label("Hide empty tabs:")
-            draw_settings_checkbox("hide_empty_tabs")
-
             draw_settings_label(
                 "RPC enabled:",
                 f"The RPC allows other programs on your pc to interact with F95Checker via the api on {globals.rpc_url}. "
@@ -4439,6 +4497,24 @@ class MainGUI():
                     "style_text",
                     "style_text_dim",
                 ))
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Tabs"):
+            draw_settings_label("Filter all tabs:")
+            if draw_settings_checkbox("filter_all_tabs"):
+                self.recalculate_ids = True
+
+            draw_settings_label("Hide empty tabs:")
+            draw_settings_checkbox("hide_empty_tabs")
+
+            draw_settings_label(
+                f"Default {icons.arrow_left_right} New",
+                "Change 'Default' tab to 'New'. Only a visual change.\n"
+                "Can be useful if you only store new games in default tab."
+            )
+            draw_settings_checkbox("default_tab_is_new")
 
             imgui.end_table()
             imgui.spacing()

@@ -164,11 +164,16 @@ async def connect():
             "display_tab":                 f'INTEGER DEFAULT NULL',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
+            "default_tab_is_new":          f'INTEGER DEFAULT {int(False)}',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
+            "ext_icon_glow":               f'INTEGER DEFAULT {int(True)}',
+            "ext_highlight_tags":          f'INTEGER DEFAULT {int(True)}',
+            "ext_background_add":          f'INTEGER DEFAULT {int(False)}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "filter_all_tabs":             f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
             "hide_empty_tabs":             f'INTEGER DEFAULT {int(False)}',
+            "highlight_tags":              f'INTEGER DEFAULT {int(True)}',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',
             "last_successful_refresh":     f'INTEGER DEFAULT 0',
@@ -200,6 +205,7 @@ async def connect():
             "style_text":                  f'TEXT    DEFAULT "{DefaultStyle.text}"',
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
+            "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "zoom_area":                   f'INTEGER DEFAULT 50',
@@ -282,7 +288,7 @@ async def connect():
         columns={
             "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
             "name":                        f'TEXT    DEFAULT ""',
-            "icon":                        f'TEXT    DEFAULT "{Tab.default_icon}"',
+            "icon":                        f'TEXT    DEFAULT "{Tab.base_icon}"',
             "color":                       f'TEXT    DEFAULT NULL',
         }
     )

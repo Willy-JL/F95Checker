@@ -211,7 +211,7 @@ Supporters:
 
 Contributors:
 
-- [r37r05p3C7](https://github.com/r37r05p3C7): Tab idea and customization implementation
+- [r37r05p3C7](https://github.com/r37r05p3C7): Tab idea and customization, many extension features
 - [littleraisins](https://github.com/littleraisins): Fixes, features and misc ideas from the (defunct) 'X' fork
 - [Sam](https://f95zone.to/members/7899/): Added the version API for fast refreshing
 - [GR3ee3N](https://github.com/GR3ee3N): Optimized build workflows and other PRs
