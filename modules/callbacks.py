@@ -163,14 +163,14 @@ async def _launch_exe(executable: str):
         await default_open(str(exe))
     else:
         mode = exe.stat().st_mode
-        executable = not (mode & stat.S_IEXEC < stat.S_IEXEC)
-        if not executable:
-            with exe.open("rb") as f:
-                # Check for shebang, exe and msi magic numbers
-                mark_exe = f.read(8).startswith((b"#!", b"MZ", b"ZM", b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"))
-            if mark_exe:
-                exe.chmod(mode | stat.S_IEXEC)
-                executable = True
+        exe_flag = not (mode & stat.S_IEXEC < stat.S_IEXEC)
+        with exe.open("rb") as f:
+            # Check for shebang, exe and msi magic numbers
+            exe_magic = f.read(8).startswith((b"#!", b"MZ", b"ZM", b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"))
+        if exe_magic and not exe_flag:
+            # Should be executable but isn't, fix it
+            exe.chmod(mode | stat.S_IEXEC)
+            exe_flag = True
         if (exe.parent / "renpy").is_dir():
             # Make all needed renpy libs executable
             for file in (exe.parent / "lib").glob("**/*"):
@@ -178,7 +178,7 @@ async def _launch_exe(executable: str):
                     mode = file.stat().st_mode
                     if mode & stat.S_IEXEC < stat.S_IEXEC:
                         file.chmod(mode | stat.S_IEXEC)
-        if executable:
+        if exe_magic and exe_flag:
             # Run as executable
             await asyncio.create_subprocess_exec(
                 str(exe),
