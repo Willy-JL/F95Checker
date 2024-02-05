@@ -17,6 +17,8 @@ debug = not (frozen or release)
 
 if not sys.stdout: sys.stdout = open(os.devnull, "w")
 if not sys.stderr: sys.stderr = open(os.devnull, "w")
+if os.devnull in (sys.stdout.name, sys.stderr.name):
+    debug = False
 
 
 def main():
@@ -89,37 +91,20 @@ if __name__ == "__main__":
 
     else:
         try:
-            if "main" in sys.argv:
-                main()
-                sys.exit(0)
-
             with lock_singleton() as locked:
                 if not locked:
                     sys.exit(0)
-                with (self_path / "log.txt").open("wb", buffering=0) as log:
-                    stream = None if debug else log  # Don't redirect in debug mode
-                    import subprocess
-                    import os
-                    ret = subprocess.call(
-                        [
-                            sys.executable,
-                            *sys.argv,
-                            "main"
-                        ],
-                        env={
-                            **os.environ,
-                            "PYTHONUNBUFFERED": "1"
-                        },
-                        cwd=os.getcwd(),
-                        stdout=stream,
-                        stderr=stream,
-                        bufsize=0
-                    )
+                try:
+                    main()
+                except Exception:
                     if debug and release:
                         try:
-                            input(f"Exited with code {ret}, press [Enter] to quit... ")
+                            from modules import error
+                            print(error.traceback())
+                            input(f"Unhandled exception, press [Enter] to quit... ")
                         except Exception:
                             pass
-                    sys.exit(ret)
+                    else:
+                        raise
         except KeyboardInterrupt:
             pass
