@@ -2,6 +2,7 @@
 import contextlib
 import pathlib
 import sys
+import os
 
 version = "11.0"
 release = False
@@ -13,6 +14,9 @@ rpc_url = f"http://127.0.0.1:{rpc_port}"
 frozen = getattr(sys, "frozen", False)
 self_path = pathlib.Path(sys.executable if frozen else __file__).parent
 debug = not (frozen or release)
+
+if not sys.stdout: sys.stdout = open(os.devnull, "w")
+if not sys.stderr: sys.stderr = open(os.devnull, "w")
 
 
 def main():
