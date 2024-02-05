@@ -65,7 +65,7 @@ for platform, libs in platform_libs.items():
 try:
     import cx_Freeze
 except ModuleNotFoundError:
-    print('cx_Freeze is not installed!')
+    print("cx_Freeze is not installed!")
     sys.exit(1)
 
 
@@ -78,14 +78,14 @@ cx_Freeze.setup(
             script=script,
             base="Win32GUI" if sys.platform.startswith("win") else None,
             target_name=name,
-            icon=icon
+            icon=icon,
         ),
         cx_Freeze.Executable(
             script=debug_script,
             base=None,
             target_name=name + "-Debug",
-            icon=icon
-        )
+            icon=icon,
+        ),
     ],
     options={
         "build_exe": {
@@ -101,7 +101,7 @@ cx_Freeze.setup(
             "zip_include_packages": zip_include_packages,
             "zip_exclude_packages": zip_exclude_packages,
             "silent_level": silent_level,
-            "include_msvcr": include_msvcr
+            "include_msvcr": include_msvcr,
         },
         "bdist_mac": {
             "iconfile": icon,
@@ -113,8 +113,8 @@ cx_Freeze.setup(
                 ("CFBundleVersion", version),
                 ("CFBundlePackageType", "APPL"),
                 ("CFBundleSignature", "????"),
-            ]
-        }
+            ],
+        },
     },
-    py_modules=[]
+    py_modules=[],
 )
