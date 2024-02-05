@@ -3889,6 +3889,17 @@ class MainGUI():
                 else:
                     rpc_thread.stop()
 
+            draw_settings_label("Install extension:")
+            if set.browser.integrated or not set.rpc_enabled:
+                imgui.push_disabled()
+            if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
+                callbacks.open_webpage(f"{globals.rpc_url}/assets/chrome.crx")
+            imgui.same_line()
+            if imgui.button(icons.firefox, width=(right_width - imgui.style.item_spacing.x) / 2):
+                callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
+            if set.browser.integrated or not set.rpc_enabled:
+                imgui.pop_disabled()
+
             draw_settings_label(
                 "Icon glow:",
                 "Icons in some locations will cast colored shadow to improve visibility."

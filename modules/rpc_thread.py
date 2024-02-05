@@ -84,6 +84,10 @@ def start():
                                 "tags_highlights": {t.text: h.value for t, h in globals.settings.tags_highlights.items()},
                             })
                             return
+                        case "/assets/chrome.crx":
+                            self.send_resp(200, "application/x-chrome-extension")
+                            self.wfile.write((globals.self_path / "extension/chrome.crx").read_bytes())
+                            return
                         case "/assets/mdi-webfont.ttf":
                             self.send_resp(200, "font/ttf", headers={"Cache-Control": "public, max-age=3600"})
                             self.wfile.write(mdi_webfont)
