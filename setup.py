@@ -1,5 +1,7 @@
 from ctypes.util import find_library
+import setuptools
 import pathlib
+import shutil
 import sys
 import re
 
@@ -69,6 +71,35 @@ except ModuleNotFoundError:
     sys.exit(1)
 
 
+# Extension packager command
+class Extension(setuptools.Command):
+    """Build extension packages."""
+
+    command_name = "extension"
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        import crx3.creator
+        extension = pathlib.Path(__file__) / "../extension"
+
+        (extension / "chrome.zip").unlink(missing_ok=True)
+        shutil.make_archive(extension / "chrome", "zip", extension / "chrome")
+
+        (extension / "firefox.zip").unlink(missing_ok=True)
+        shutil.make_archive(extension / "firefox", "zip", extension / "firefox")
+
+        (extension / "chrome.crx").unlink(missing_ok=True)
+        crx3.creator.create_private_key_file(extension / "chrome.pem")
+        crx3.creator.create_crx_file(extension / "chrome", extension / "chrome.pem", extension / "chrome.crx")
+        (extension / "chrome.pem").unlink(missing_ok=True)
+
+
 # Actual build
 cx_Freeze.setup(
     name=name,
@@ -117,4 +148,7 @@ cx_Freeze.setup(
         },
     },
     py_modules=[],
+    cmdclass={
+        "extension": Extension,
+    },
 )
