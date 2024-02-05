@@ -2,6 +2,3 @@
 
 # Compiler
 cx_Freeze
-
-# Chrome extension maker
-crx3

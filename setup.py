@@ -85,7 +85,6 @@ class Extension(setuptools.Command):
         pass
 
     def run(self):
-        import crx3.creator
         extension = pathlib.Path(__file__) / "../extension"
 
         (extension / "chrome.zip").unlink(missing_ok=True)
@@ -93,11 +92,6 @@ class Extension(setuptools.Command):
 
         (extension / "firefox.zip").unlink(missing_ok=True)
         shutil.make_archive(extension / "firefox", "zip", extension / "firefox")
-
-        (extension / "chrome.crx").unlink(missing_ok=True)
-        crx3.creator.create_private_key_file(extension / "chrome.pem")
-        crx3.creator.create_crx_file(extension / "chrome", extension / "chrome.pem", extension / "chrome.crx")
-        (extension / "chrome.pem").unlink(missing_ok=True)
 
 
 # Actual build
