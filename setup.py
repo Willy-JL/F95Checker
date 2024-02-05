@@ -30,7 +30,7 @@ platform_libs = {
     "darwin": ["intl"]
 }
 include_files = [
-    (path / "extension/chrome.crx",    "extension/chrome.crx"),
+    (path / "extension/chrome.zip",    "extension/chrome.zip"),
     (path / "extension/firefox.zip",   "extension/firefox.zip"),
     (path / "extension/integrated.js", "extension/integrated.js"),
     (path / "resources/",              "resources/"),
@@ -88,11 +88,14 @@ class Extension(setuptools.Command):
         import crx3.creator
         extension = pathlib.Path(__file__) / "../extension"
 
-        (extension / "chrome.crx").unlink(missing_ok=True)
-        crx3.creator.create_crx_file(extension / "chrome", extension / "chrome.pem", extension / "chrome.crx")
+        (extension / "chrome.zip").unlink(missing_ok=True)
+        shutil.make_archive(extension / "chrome", "zip", extension / "chrome")
 
         (extension / "firefox.zip").unlink(missing_ok=True)
         shutil.make_archive(extension / "firefox", "zip", extension / "firefox")
+
+        (extension / "chrome.crx").unlink(missing_ok=True)
+        crx3.creator.create_crx_file(extension / "chrome", extension / "chrome.pem", extension / "chrome.crx")
 
 
 # Actual build
