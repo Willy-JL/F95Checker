@@ -3893,7 +3893,22 @@ class MainGUI():
             if set.browser.integrated or not set.rpc_enabled:
                 imgui.push_disabled()
             if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
-                callbacks.open_webpage(f"{globals.rpc_url}/assets/chrome.crx")
+                buttons={
+                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "extension")),
+                    f"{icons.cancel} Cancel": None
+                }
+                utils.push_popup(
+                    msgbox.msgbox, "Chrome extension",
+                    "Unfortunately, the F95Checker extension is banned from the Chrome Webstore.\n"
+                    "Therefore, you must install it manually via developer mode:\n"
+                    " - Open your chromium-based browser\n"
+                    " - Navigate to 'chrome://extensions/'\n"
+                    " - Enable the 'Developer mode' toggle\n"
+                    " - Refresh the page\n"
+                    " - Click Ok below and drag 'chrome.zip' into your browser window\n",
+                    MsgBox.info,
+                    buttons
+                )
             imgui.same_line()
             if imgui.button(icons.firefox, width=(right_width - imgui.style.item_spacing.x) / 2):
                 callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
