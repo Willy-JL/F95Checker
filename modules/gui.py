@@ -3878,6 +3878,44 @@ class MainGUI():
 
         if draw_settings_section("Extension"):
             draw_settings_label(
+                "RPC enabled:",
+                f"The RPC allows other programs on your pc to interact with F95Checker via the api on {globals.rpc_url}. "
+                "Essentially this is what makes the web browser extension work. Disable this if you are having issues with the RPC, "
+                "but do note that doing so will prevent the extension from working at all."
+            )
+            if draw_settings_checkbox("rpc_enabled"):
+                if set.rpc_enabled:
+                    rpc_thread.start()
+                else:
+                    rpc_thread.stop()
+
+            draw_settings_label("Install extension:")
+            if set.browser.integrated or not set.rpc_enabled:
+                imgui.push_disabled()
+            if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
+                buttons={
+                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "extension")),
+                    f"{icons.cancel} Cancel": None
+                }
+                utils.push_popup(
+                    msgbox.msgbox, "Chrome extension",
+                    "Unfortunately, the F95Checker extension is banned from the Chrome Webstore.\n"
+                    "Therefore, you must install it manually via developer mode:\n"
+                    " - Open your chromium-based browser\n"
+                    " - Navigate to 'chrome://extensions/'\n"
+                    " - Enable the 'Developer mode' toggle\n"
+                    " - Refresh the page\n"
+                    " - Click Ok below and drag 'chrome.zip' into your browser window\n",
+                    MsgBox.info,
+                    buttons
+                )
+            imgui.same_line()
+            if imgui.button(icons.firefox, width=(right_width - imgui.style.item_spacing.x) / 2):
+                callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
+            if set.browser.integrated or not set.rpc_enabled:
+                imgui.pop_disabled()
+
+            draw_settings_label(
                 "Icon glow:",
                 "Icons in some locations will cast colored shadow to improve visibility."
             )
@@ -4302,18 +4340,6 @@ class MainGUI():
 
             draw_settings_label("Confirm when removing:")
             draw_settings_checkbox("confirm_on_remove")
-
-            draw_settings_label(
-                "RPC enabled:",
-                f"The RPC allows other programs on your pc to interact with F95Checker via the api on {globals.rpc_url}. "
-                "Essentially this is what makes the web browser extension work. Disable this if you are having issues with the RPC, "
-                "but do note that doing so will prevent the extension from working at all."
-            )
-            if draw_settings_checkbox("rpc_enabled"):
-                if set.rpc_enabled:
-                    rpc_thread.start()
-                else:
-                    rpc_thread.stop()
 
             draw_settings_label(
                 "Custom game:",

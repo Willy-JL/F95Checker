@@ -68,11 +68,15 @@ The F95Checker browser addon allows you to easily add games to you desktop F95Ch
 - Right clicking a link to a thread
 - Right clicking anywhere on the background of a thread page
 
-The extension is available for both major browser families (for example Brave counts as Chrome, LibreWolf counts as Firefox):
+Also, it allows you to quickly see what games you have added to your list (and which tab) with convenient icons on the forum.
+
+The extension is available for both major browser families (Brave and Edge count as Chrome, LibreWolf counts as Firefox):
 
 - **Chrome:** Open `chrome://extensions/` in browser, enable "Developer mode", reload the page and drag `extension/chrome.zip` (from the tool folder) into the page
 
 - **Firefox:** Install from [AMO](https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/)
+
+Alternatively, you can find a guided install in F95Checker sidebar, in Extension > Install.
 
 Please note that this extension is solely to aid the usage of the desktop tool, you still need the desktop application installed and running.
 

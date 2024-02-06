@@ -332,7 +332,7 @@ async def login():
             "Something went wrong with the login window subprocess:\n"
             f"{error.text()}\n"
             "\n"
-            "The 'log.txt' file might contain more information.\n"
+            "The console output contain more information.\n"
             "Please submit a bug report on F95Zone or GitHub including this file.",
             MsgBox.error,
             more=error.traceback()
