@@ -2643,6 +2643,7 @@ class MainGUI():
             for game in globals.games.values():
                 game.selected = False
             self.current_tab = new_tab
+            self.recalculate_ids = True
             globals.settings.display_tab = new_tab
             async_thread.run(db.update_settings("display_tab"))
 
