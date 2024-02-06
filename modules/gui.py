@@ -2854,8 +2854,9 @@ class MainGUI():
         ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
+        table_id = self.current_tab.id if self.current_tab else -1
         if imgui.begin_table(
-            "###game_list",
+            f"###game_list{table_id if globals.settings.independent_tab_views else ''}",
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
@@ -4541,6 +4542,12 @@ class MainGUI():
                 "Can be useful if you only store new games in default tab."
             )
             draw_settings_checkbox("default_tab_is_new")
+
+            draw_settings_label(
+                "Independent views:",
+                "Each tab will have its own sorting/filtering preferences."
+            )
+            draw_settings_checkbox("independent_tab_views")
 
             imgui.end_table()
             imgui.spacing()
