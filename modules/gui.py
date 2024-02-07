@@ -2850,9 +2850,9 @@ class MainGUI():
                 self.scroll_percent = imgui.get_scroll_y() / scroll_max_y
 
     @property
-    def table_id(self):
-        table_id = self.current_tab.id if self.current_tab else -1
-        return f"###game_list{table_id if globals.settings.independent_tab_views else ''}"
+    def games_table_id(self):
+        tab_id = self.current_tab.id if self.current_tab else -1
+        return f"###game_list{tab_id if globals.settings.independent_tab_views else ''}"
 
     def draw_games_list(self):
         # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
@@ -2861,7 +2861,7 @@ class MainGUI():
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         if imgui.begin_table(
-            self.table_id,
+            self.games_table_id,
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
@@ -3002,7 +3002,7 @@ class MainGUI():
         # Hack: get sort and column specs for list mode in grid and kanban mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
-            self.table_id,
+            self.games_table_id,
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=1
