@@ -2643,6 +2643,7 @@ class MainGUI():
             for game in globals.games.values():
                 game.selected = False
             self.current_tab = new_tab
+            self.recalculate_ids = True
             globals.settings.display_tab = new_tab
             async_thread.run(db.update_settings("display_tab"))
 
@@ -2848,6 +2849,11 @@ class MainGUI():
             else:
                 self.scroll_percent = imgui.get_scroll_y() / scroll_max_y
 
+    @property
+    def games_table_id(self):
+        tab_id = self.current_tab.id if self.current_tab else -1
+        return f"###game_list{tab_id if globals.settings.independent_tab_views else ''}"
+
     def draw_games_list(self):
         # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
         # by starting the table render before the content region.
@@ -2855,7 +2861,7 @@ class MainGUI():
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         if imgui.begin_table(
-            "###game_list",
+            self.games_table_id,
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
@@ -2996,7 +3002,7 @@ class MainGUI():
         # Hack: get sort and column specs for list mode in grid and kanban mode
         pos = imgui.get_cursor_pos_y()
         if imgui.begin_table(
-            "###game_list",
+            self.games_table_id,
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=1
@@ -4541,6 +4547,12 @@ class MainGUI():
                 "Can be useful if you only store new games in default tab."
             )
             draw_settings_checkbox("default_tab_is_new")
+
+            draw_settings_label(
+                "Independent views:",
+                "Each tab will have its own sorting/filtering preferences."
+            )
+            draw_settings_checkbox("independent_tab_views")
 
             imgui.end_table()
             imgui.spacing()
