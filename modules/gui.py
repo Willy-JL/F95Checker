@@ -975,6 +975,8 @@ class MainGUI():
                         time.sleep(1 / 60)
                     else:
                         time.sleep(1 / 3)
+                if utils.is_refreshing():
+                    globals.gui.tray.animate_refresh_icon()
         finally:
             # Main loop over, cleanup and close
             self.save_filters()
@@ -4569,7 +4571,6 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.main_gui = main_gui
         self.idle_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/icon.png'))
         self.paused_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/paused.png'))
-#        self.refresh_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/refreshing.png'))
         self.msg_queue: list[TrayMsg] = []
         super().__init__(self.idle_icon)
 
@@ -4616,15 +4617,12 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.show()
 
     def update_icon(self, *_):
-#        if utils.is_refreshing():
-#            self.setIcon(self.refresh_icon)
-#        elif self.main_gui.bg_mode_paused and self.main_gui.hidden:
         if self.main_gui.bg_mode_paused and self.main_gui.hidden:
             self.setIcon(self.paused_icon)
         else:
             self.setIcon(self.idle_icon)
 
-    def animate_icon(self):   
+    def animate_refresh_icon(self):
         icn = 1 + (int(time.time()) % 4)
         self.setIcon(QtGui.QIcon(str(globals.self_path / f"resources/icons/refreshing{icn}.png")))
 
