@@ -974,7 +974,7 @@ class MainGUI():
                     if self.tray.menu_open:
                         time.sleep(1 / 60)
                     else:
-                        time.sleep(1 / 3)
+                        time.sleep(1 / 8)  # 8 FPS tray refresh icon
                 if utils.is_refreshing():
                     globals.gui.tray.animate_refresh_icon()
         finally:
@@ -4623,7 +4623,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             self.setIcon(self.idle_icon)
 
     def animate_refresh_icon(self):
-        icn = 1 + (int(time.time()) % 4)
+        icn = 1 + (int(time.time() * 8) % 16)
         self.setIcon(QtGui.QIcon(str(globals.self_path / f"resources/icons/refreshing{icn}.png")))
 
     def showing_menu(self, *_):
