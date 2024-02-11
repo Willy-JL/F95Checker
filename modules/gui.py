@@ -4552,9 +4552,10 @@ class MainGUI():
 
             draw_settings_label(
                 "Independent views:",
-                "Each tab will have its own sorting/filtering preferences."
+                "Each tab will have its own sorting/column preferences."
             )
-            draw_settings_checkbox("independent_tab_views")
+            if draw_settings_checkbox("independent_tab_views"):
+                self.recalculate_ids = True
 
             imgui.end_table()
             imgui.spacing()
