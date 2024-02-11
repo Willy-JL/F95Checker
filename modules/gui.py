@@ -2365,7 +2365,7 @@ class MainGUI():
             popup_size = imgui.get_window_size()
         if game.id not in globals.games:
             return 0, True
-        return_args = utils.popup(game.name, popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+        return_args = utils.popup(game.name, popup_content, closable=True, outside=True, constrain=False, popup_uuid=popup_uuid)
         # Has and is in carousel ids, is not the only one in them, is topmost popup and no item is active
         if carousel_ids and len(carousel_ids) > 1 and game.id in carousel_ids and imgui.is_topmost() and not imgui.is_any_item_active():
             pos = popup_pos
