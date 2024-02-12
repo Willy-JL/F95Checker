@@ -115,9 +115,9 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
         if (start_dir / clean_dir).is_dir():
             start_dir /= clean_dir
         else:
-            similarity = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
+            ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
             dirs = [node for node in os.listdir(start_dir) if os.path.isdir(start_dir / node)]
-            similarity = {d: similarity(d, game.name) for d in dirs}
+            similarity = {d: ratio(d, game.name) for d in dirs}
             best_match = max(similarity, key=similarity.get)
             if similarity[best_match] > 0.85:
                 start_dir /= best_match
