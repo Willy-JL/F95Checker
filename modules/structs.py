@@ -631,21 +631,21 @@ class Settings:
     check_notifs                : bool
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
-    display_tab                 : Tab.get
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
     default_tab_is_new          : bool
     display_mode                : DisplayMode
-    ext_icon_glow               : bool
-    ext_highlight_tags          : bool
+    display_tab                 : Tab.get
     ext_background_add          : bool
-    fit_images                  : bool
+    ext_highlight_tags          : bool
+    ext_icon_glow               : bool
     filter_all_tabs             : bool
+    fit_images                  : bool
     grid_columns                : int
     hide_empty_tabs             : bool
     highlight_tags              : bool
-    independent_tab_views       : bool
     ignore_semaphore_timeouts   : bool
+    independent_tab_views       : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]
@@ -657,9 +657,9 @@ class Settings:
     render_when_unfocused       : bool
     request_timeout             : int
     rpc_enabled                 : bool
-    rpdl_username               : str
     rpdl_password               : str
     rpdl_token                  : str
+    rpdl_username               : str
     scroll_amount               : float
     scroll_smooth               : bool
     scroll_smooth_speed         : float
@@ -675,13 +675,13 @@ class Settings:
     style_corner_radius         : int
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
-    timestamp_format            : str
     tags_highlights             : dict[Tag, TagHighlight]
+    timestamp_format            : str
     use_parser_processes        : bool
     vsync_ratio                 : int
     zoom_area                   : int
-    zoom_times                  : float
     zoom_enabled                : bool
+    zoom_times                  : float
 
     def __post_init__(self):
         if "" in self.default_exe_dir:
