@@ -2547,7 +2547,7 @@ class MainGUI():
                     self.draw_tag_widget(tag, quick_filter=False)
                 imgui.same_line()
             imgui.end_child()
-        return utils.popup("Tag highlight preferences", popup_content, closable=True, outside=True, constrain=False, popup_uuid=popup_uuid)
+        return utils.popup("Tag highlight preferences", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def draw_tabbar(self):
         display_tab = globals.settings.display_tab
