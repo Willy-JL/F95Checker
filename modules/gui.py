@@ -651,13 +651,13 @@ class MainGUI():
             msgbox_range_values += [ord(icon), ord(icon)]
         msgbox_range_values.append(0)
         msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
-        size_14 = self.scaled(14 * font_scaling_factor)
-        size_15 = self.scaled(15 * font_scaling_factor)
-        size_18 = self.scaled(18 * font_scaling_factor)
-        size_22 = self.scaled(22 * font_scaling_factor)
-        size_28 = self.scaled(28 * font_scaling_factor)
-        size_32 = self.scaled(32 * font_scaling_factor)
-        size_69 = self.scaled(69 * font_scaling_factor)
+        size_14 = round(self.scaled(14 * font_scaling_factor))
+        size_15 = round(self.scaled(15 * font_scaling_factor))
+        size_18 = round(self.scaled(18 * font_scaling_factor))
+        size_22 = round(self.scaled(22 * font_scaling_factor))
+        size_28 = round(self.scaled(28 * font_scaling_factor))
+        size_32 = round(self.scaled(32 * font_scaling_factor))
+        size_69 = round(self.scaled(69 * font_scaling_factor))
         fonts = type("FontStore", (), {})()
         imgui.fonts = fonts
         add_font = imgui.io.fonts.add_font_from_file_ttf
