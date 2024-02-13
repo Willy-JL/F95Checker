@@ -4,6 +4,7 @@ import subprocess
 import plistlib
 import pathlib
 import asyncio
+import difflib
 import typing
 import string
 import shlex
@@ -109,11 +110,17 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     start_dir = globals.settings.default_exe_dir.get(globals.os)
     if start_dir:
         start_dir = pathlib.Path(start_dir)
-        game_dir = "".join(char for char in game.name.replace("&", "and") if char in (string.ascii_letters + string.digits + " "))
-        game_dir = re.sub(r" +", r" ", game_dir).strip()
-        game_dir = start_dir / game_dir
-        if game_dir.is_dir():
-            start_dir = game_dir
+        clean_dir = "".join(char for char in game.name.replace("&", "and") if char in (string.ascii_letters + string.digits + " "))
+        clean_dir = re.sub(r" +", r" ", clean_dir).strip()
+        if (start_dir / clean_dir).is_dir():
+            start_dir /= clean_dir
+        else:
+            ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
+            dirs = [node for node in os.listdir(start_dir) if os.path.isdir(start_dir / node)]
+            similarity = {d: ratio(d, game.name) for d in dirs}
+            best_match = max(similarity, key=similarity.get)
+            if similarity[best_match] > 0.85:
+                start_dir /= best_match
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
         start_dir=start_dir,
