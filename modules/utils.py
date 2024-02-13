@@ -247,8 +247,7 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
                 popup_content,
                 buttons=True,
                 closable=True,
-                outside=True,
-                constrain=False
+                outside=True
             )
 
 
@@ -277,7 +276,7 @@ popup_flags: int = (
     imgui.WINDOW_ALWAYS_AUTO_RESIZE
 )
 
-def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, constrain=True, footer="", popup_uuid: str = ""):
+def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, footer="", popup_uuid: str = ""):
     if buttons is True:
         buttons = {
             f"{icons.check} Ok": None
@@ -287,10 +286,7 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
         imgui.open_popup(label)
     closed = False
     opened = 1
-    if constrain:
-        # For some reason, contrain breaks on some scaling factors when
-        # a scrolling begin_child() is nested and always shows a scrollbar
-        constrain_next_window()
+    constrain_next_window()
     center_next_window()
     if imgui.begin_popup_modal(label, closable or None, flags=popup_flags)[0]:
         imgui.begin_group()
