@@ -12,6 +12,7 @@ import platform
 import builtins
 import asyncio
 import pathlib
+import tomllib
 import aiohttp
 import OpenGL
 import pickle
@@ -387,6 +388,7 @@ class MainGUI():
         self.refresh_fonts()
 
         self.load_filters()
+        self.load_styles_from_toml()
 
         # Show errors in threads
         def syncexcepthook(args: threading.ExceptHookArgs):
@@ -703,6 +705,23 @@ class MainGUI():
                 self.filters = pickle.load(file)
         except Exception:
             self.filters = []
+
+    def load_styles_from_toml(self):
+        if not (path := pathlib.Path(globals.data_path / 'styles.toml')).exists():
+            return
+        try:
+            with open(path, 'rb') as file:
+                styles = tomllib.load(file)
+                globals.settings.style_corner_radius = styles.get("corner_radius", DefaultStyle.corner_radius)
+                globals.settings.style_accent        = colors.hex_to_rgba_0_1(styles.get("accent", DefaultStyle.accent))
+                globals.settings.style_bg            = colors.hex_to_rgba_0_1(styles.get("bg", DefaultStyle.bg))
+                globals.settings.style_alt_bg        = colors.hex_to_rgba_0_1(styles.get("alt_bg", DefaultStyle.alt_bg))
+                globals.settings.style_border        = colors.hex_to_rgba_0_1(styles.get("border", DefaultStyle.border))
+                globals.settings.style_text          = colors.hex_to_rgba_0_1(styles.get("text", DefaultStyle.text))
+                globals.settings.style_text_dim      = colors.hex_to_rgba_0_1(styles.get("text_dim", DefaultStyle.text_dim))
+                self.refresh_styles()
+        except Exception:
+            pass
 
     def close(self, *_, **__):
         glfw.set_window_should_close(self.window, True)
