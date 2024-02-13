@@ -304,6 +304,7 @@ class MainGUI():
         self.minimized = False
         self.filtering = False
         self.add_box_text = ""
+        self.new_styles = False
         self.prev_size = (0, 0)
         self.screen_pos = (0, 0)
         self.repeat_chars = False
@@ -719,6 +720,7 @@ class MainGUI():
                 globals.settings.style_border        = colors.hex_to_rgba_0_1(styles.get("border", DefaultStyle.border))
                 globals.settings.style_text          = colors.hex_to_rgba_0_1(styles.get("text", DefaultStyle.text))
                 globals.settings.style_text_dim      = colors.hex_to_rgba_0_1(styles.get("text_dim", DefaultStyle.text_dim))
+                self.new_styles = True
                 self.refresh_styles()
         except Exception:
             pass
@@ -849,6 +851,7 @@ class MainGUI():
                     # Redraw only when needed
                     draw = False
                     draw = draw or api.updating
+                    draw = draw or self.new_styles
                     draw = draw or imagehelper.redraw
                     draw = draw or self.recalculate_ids
                     draw = draw or size != self.prev_size
@@ -883,6 +886,7 @@ class MainGUI():
                         # Start drawing
                         prev_scaling = globals.settings.interface_scaling
                         imgui.new_frame()
+                        self.new_styles = False
                         imagehelper.redraw = False
 
                         # Imgui window is top left of display window, and has same size
