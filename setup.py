@@ -85,7 +85,7 @@ class Extension(setuptools.Command):
         pass
 
     def run(self):
-        extension = pathlib.Path(__file__) / "../extension"
+        extension = pathlib.Path(__file__).parent / "extension"
 
         (extension / "chrome.zip").unlink(missing_ok=True)
         shutil.make_archive(extension / "chrome", "zip", extension / "chrome")
