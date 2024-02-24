@@ -1078,6 +1078,7 @@ class MainGUI():
     def draw_type_widget(self, type: Type, wide=True, align=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(type.color, interaction=quick_filter)
+        imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 1.0, 1.0, 1.0)
         if wide:
             x_padding = 4
             backup_y_padding = imgui.style.frame_padding.y
@@ -1094,6 +1095,7 @@ class MainGUI():
             flt = Filter(FilterMode.Type)
             flt.match = type
             self.filters.append(flt)
+        imgui.pop_style_color()
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, quick_filter=True, change_highlight=True):

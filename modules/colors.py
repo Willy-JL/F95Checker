@@ -25,9 +25,9 @@ def rgba_0_1_to_hex(rgba: tuple[int, int, int, int | None]):
     return f"#{r}{g}{b}{a}"
 
 
-# credit: https://stackoverflow.com/a/1855903
 @functools.cache
 def foreground_color(bg: tuple[float, float, float, float | None]):
-    # calculcates 'perceptive luminance'
-    luma = 0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]
-    return (0.04, 0.04, 0.04, 1.0) if luma > 0.5 else (1.0, 1.0, 1.0, 1.0)
+    gamma = 2.2
+    # https://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef
+    luma = 0.2126 * pow(bg[0], gamma) + 0.7152 * pow(bg[1], gamma) + 0.0722 * pow(bg[2], gamma)
+    return (0.04, 0.04, 0.04, 1.0) if luma > pow(0.5, gamma) else (1.0, 1.0, 1.0, 1.0)
