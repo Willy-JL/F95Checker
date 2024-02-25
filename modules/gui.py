@@ -1715,7 +1715,7 @@ class MainGUI():
                     icon = icons.help_rhombus_outline
             # First element margin
             if i == 0:
-                imgui.dummy(0, self.scaled(10))
+                imgui.spacing()
             # Draw timestamp
             imgui.push_font(imgui.fonts.mono)
             imgui.text(date.strftime("%b %d, %Y"))
@@ -1734,12 +1734,8 @@ class MainGUI():
             # Draw message
             imgui.same_line(spacing=horizontal_spacing)
             imgui.text(message)
-            if i + 1 == len(events):
-                # Last element margin
-                imgui.dummy(0, self.scaled(10))
-            else:
-                # Vertical spacing
-                imgui.dummy(0, self.scaled(30))
+            if not i + 1 == len(events):
+                imgui.dummy(0, self.scaled(25))
 
         thickness = 2
         prev_x, prev_y = None, None
