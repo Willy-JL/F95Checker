@@ -1748,7 +1748,7 @@ class MainGUI():
         thickness = 2
         prev_x, prev_y = None, None
         dl = imgui.get_window_draw_list()
-        color = imgui.get_color_u32_rgba(*globals.settings.style_alt_bg)
+        color = imgui.get_color_u32_rgba(*globals.settings.style_border)
 
         # Draw timeline over icons
         for x, y, radius in icon_positions:
