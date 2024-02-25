@@ -889,6 +889,12 @@ class Game:
         if globals.gui:
             globals.gui.recalculate_ids = True
 
+    def add_timeline_event(self, event_type: TimelineEvent, message: str):
+        self.timeline_events.append((round(time.time()), event_type, message))
+        from modules import async_thread, db
+        async_thread.run(db.update_game(self, "timeline_events"))
+
+
     def __setattr__(self, name: str, value: typing.Any):
         if self._did_init and name in [
             "custom",
