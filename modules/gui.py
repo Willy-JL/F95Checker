@@ -23,6 +23,7 @@ import glfw
 import sys
 
 from modules.structs import (
+    TimelineEvent,
     TagHighlight,
     DefaultStyle,
     DisplayMode,
@@ -1689,6 +1690,63 @@ class MainGUI():
         if small:
             imgui.pop_font()
 
+    def draw_game_timeline_widget(self, game: Game):
+        events = list(sorted(game.timeline_events, reverse=True))
+        events.append((game.added_on.value, TimelineEvent.GameAdded, "Added to the library"))
+
+        horizontal_spacing = self.scaled(14)
+        icon_positions: list[tuple[x, y, radius]] = []
+
+        for i, (stamp, event_type, message) in enumerate(events):
+            date = dt.datetime.fromtimestamp(stamp)
+            # Icons
+            match event_type:
+                case TimelineEvent.GameAdded:
+                    icon = icons.alert_decagram
+                case _:
+                    icon = icons.help_rhombus_outline
+            # First element margin
+            if i == 0:
+                imgui.dummy(0, self.scaled(10))
+            # Draw timestamp
+            imgui.push_font(imgui.fonts.mono)
+            imgui.text(date.strftime("%b %d, %Y"))
+            if imgui.is_item_hovered():
+                with imgui.begin_tooltip():
+                    imgui.text(date.strftime(globals.settings.timestamp_format))
+            imgui.pop_font()
+            # Draw icon and save coordinates
+            imgui.same_line(spacing=horizontal_spacing)
+            cur = imgui.get_cursor_screen_pos()
+            icon_size = imgui.calc_text_size(icon)
+            icon_positions.append((cur.x + icon_size.x / 2, cur.y + icon_size.y / 2, icon_size.x / 2))
+            imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
+            imgui.text(icon)
+            imgui.pop_style_color()
+            # Draw message
+            imgui.same_line(spacing=horizontal_spacing)
+            imgui.text(message)
+            if i + 1 == len(events):
+                # Last element margin
+                imgui.dummy(0, self.scaled(10))
+            else:
+                # Vertical spacing
+                imgui.dummy(0, self.scaled(30))
+
+        thickness = 2
+        prev_x, prev_y = None, None
+        dl = imgui.get_window_draw_list()
+        color = imgui.get_color_u32_rgba(*globals.settings.style_alt_bg)
+
+        # Draw timeline over icons
+        for x, y, radius in icon_positions:
+            big_r = radius + self.scaled(4)
+            dl.add_circle(x, y, big_r, color, thickness=thickness)
+            if prev_x and prev_y:
+                dl.add_line(prev_x, prev_y + big_r, x, y - big_r, color, thickness=thickness)
+            prev_x, prev_y = x, y
+
+
     def draw_updates_popup(self, updated_games, sorted_ids, popup_uuid: str = ""):
         def popup_content():
             indent = self.scaled(222)
@@ -2209,6 +2267,11 @@ class MainGUI():
                         self.draw_game_tags_widget(game)
                     else:
                         imgui.text_disabled("This game has no tags!")
+                    imgui.end_tab_item()
+
+                if imgui.begin_tab_item(icons.timeline_clock_outline + " Timeline###timeline")[0]:
+                    imgui.spacing()
+                    self.draw_game_timeline_widget(game)
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((
