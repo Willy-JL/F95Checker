@@ -1705,6 +1705,12 @@ class MainGUI():
                     icon = icons.alert_decagram
                 case TimelineEvent.GameLaunched:
                     icon = icons.play
+                case TimelineEvent.ChangedName:
+                    icon = icons.spellcheck
+                case TimelineEvent.ChangedStatus:
+                    icon = icons.lightning_bolt
+                case TimelineEvent.ChangedVersion:
+                    icon = icons.star
                 case _:
                     icon = icons.help_rhombus_outline
             # First element margin

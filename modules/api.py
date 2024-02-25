@@ -27,6 +27,7 @@ from modules.structs import (
     MultiProcessPipe,
     AsyncProcessPipe,
     CounterContext,
+    TimelineEvent,
     SearchResult,
     OldGame,
     MsgBox,
@@ -665,11 +666,19 @@ async def full_check(game: Game, version: str):
             game.image_url = image_url
             game.downloads = downloads
 
+            changed_name = name != old_name
+            changed_status = status != old_status
+            changed_version = version != old_version
+
             if not game.archived and old_status is not Status.Unchecked and (
-                name != old_name or
-                version != old_version or
-                status != old_status
+                changed_name or changed_status or changed_version
             ):
+                if changed_name:
+                    game.add_timeline_event(TimelineEvent.ChangedName, f'Name changed from "{old_name}" to "{name}"')
+                if changed_status:
+                    game.add_timeline_event(TimelineEvent.ChangedStatus, f'Status changed from "{old_status.name}" to "{status.name}"')
+                if changed_version:
+                    game.add_timeline_event(TimelineEvent.ChangedVersion, f'Version changed from "{old_version}" to "{version}"')
                 old_game = OldGame(
                     id=game.id,
                     name=old_name,
