@@ -259,6 +259,7 @@ async def connect():
             "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""',
+            "timeline_events":             f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
         },
         renames=[

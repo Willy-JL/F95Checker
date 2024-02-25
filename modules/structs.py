@@ -129,6 +129,10 @@ class AsyncProcessPipe:
             return True
 
 
+class TimelineEvent(enum.StrEnum):
+    GameAdded    = "added"
+
+
 class Timestamp:
     instances = []
     def __init__(self, unix_time: int | float):
@@ -758,6 +762,7 @@ class Game:
     tab                : Tab.get
     notes              : str
     image_url          : str
+    timeline_events    : list[tuple[int, str, str]]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
     image              : imagehelper.ImageHelper = None
@@ -912,6 +917,7 @@ class Game:
             "tab",
             "notes",
             "image_url",
+            "timeline_events",
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
