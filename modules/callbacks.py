@@ -19,6 +19,7 @@ import os
 from modules.structs import (
     AsyncProcessPipe,
     DaemonProcess,
+    TimelineEvent,
     SearchResult,
     ThreadMatch,
     MsgBox,
@@ -203,6 +204,7 @@ async def _launch_game_exe(game: Game, executable: str):
     try:
         await _launch_exe(executable)
         game.last_played = time.time()
+        game.add_timeline_event(TimelineEvent.GameLaunched, f'Launched "{os.path.basename(executable)}"')
     except FileNotFoundError:
         def select_callback(selected):
             if selected:

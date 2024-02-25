@@ -1703,6 +1703,8 @@ class MainGUI():
             match event_type:
                 case TimelineEvent.GameAdded:
                     icon = icons.alert_decagram
+                case TimelineEvent.GameLaunched:
+                    icon = icons.play
                 case _:
                     icon = icons.help_rhombus_outline
             # First element margin
