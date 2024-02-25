@@ -1271,6 +1271,7 @@ class MainGUI():
                     game.finished = ""  # Finished -> Not finished
                 else:
                     game.finished = (game.installed or game.version)  # Not finished -> Finished, Outdated finished -> Finished
+                    game.add_timeline_event(TimelineEvent.GameFinished, f"Finished {game.version}")
             if game.finished and not installed_finished and imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -1288,6 +1289,7 @@ class MainGUI():
                 for game in globals.games.values():
                     if game.selected:
                         game.finished = (game.installed or game.version)
+                        game.add_timeline_event(TimelineEvent.GameFinished, f"Finished {game.version}")
             imgui.same_line()
             if imgui.small_button(icons.close):
                 for game in globals.games.values():
@@ -1308,6 +1310,7 @@ class MainGUI():
                 if latest_installed:
                     game.installed = ""  # Latest installed -> Not installed
                 else:
+                    game.add_timeline_event(TimelineEvent.GameInstalled, f"Installed {game.version}")
                     game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
                     game.updated = False
             if game.installed and not latest_installed and imgui.is_item_hovered():
@@ -1326,6 +1329,7 @@ class MainGUI():
             if imgui.small_button(icons.check):
                 for game in globals.games.values():
                     if game.selected:
+                        game.add_timeline_event(TimelineEvent.GameInstalled, f"Installed {game.version}")
                         game.installed = game.version
                         game.updated = False
             imgui.same_line()
@@ -1705,6 +1709,10 @@ class MainGUI():
                     icon = icons.alert_decagram
                 case TimelineEvent.GameLaunched:
                     icon = icons.play
+                case TimelineEvent.GameFinished:
+                    icon = icons.flag_checkered
+                case TimelineEvent.GameInstalled:
+                    icon = icons.download
                 case TimelineEvent.ChangedName:
                     icon = icons.spellcheck
                 case TimelineEvent.ChangedStatus:

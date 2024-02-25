@@ -132,6 +132,8 @@ class AsyncProcessPipe:
 class TimelineEvent(enum.StrEnum):
     GameAdded      = "added"
     GameLaunched   = "launched"
+    GameFinished   = "finished"
+    GameInstalled  = "installed"
     ChangedName    = "changed_name"
     ChangedStatus  = "changed_status"
     ChangedVersion = "changed_version"
