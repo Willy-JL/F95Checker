@@ -51,8 +51,9 @@ from modules.gui import MainGUI
 os = None
 data_path = None
 images_path = None
+logs_path = None
 def _():
-    global os, data_path, images_path
+    global os, data_path, images_path, logs_path
     home = pathlib.Path.home()
     if sys.platform.startswith("win"):
         os = Os.Windows
@@ -74,6 +75,8 @@ def _():
     data_path.mkdir(parents=True, exist_ok=True)
     images_path = data_path / "images"
     images_path.mkdir(parents=True, exist_ok=True)
+    logs_path = data_path / "logs"
+    logs_path.mkdir(parents=True, exist_ok=True)
 _()
 
 def _():

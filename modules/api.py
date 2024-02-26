@@ -288,7 +288,7 @@ async def is_logged_in():
             if not raise_f95zone_error(res, return_login=True):
                 return False
             # Check login page was not in 200 range, but error is not a login issue
-            async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
+            async with aiofiles.open(globals.logs_path / "login_broken.bin", "wb") as f:
                 await f.write(res)
             raise msgbox.Exc(
                 "Login assertion failure",
@@ -519,7 +519,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
         except Exception as exc:
             if isinstance(exc, msgbox.Exc):
                 raise exc
-            async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
+            async with aiofiles.open(globals.logs_path / "check_broken.bin", "wb") as f:
                 await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
             raise msgbox.Exc(
                 "Fast check error",
@@ -728,7 +728,7 @@ async def check_notifs(login=False):
     except Exception as exc:
         if isinstance(exc, msgbox.Exc):
             raise exc
-        async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
+        async with aiofiles.open(globals.logs_path / "notifs_broken.bin", "wb") as f:
             await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Notifs check error",
@@ -826,7 +826,7 @@ async def check_updates():
         if not update_available or not asset_url or not asset_name or not asset_size:
             return
     except Exception:
-        async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
+        async with aiofiles.open(globals.logs_path / "update_broken.bin", "wb") as f:
             await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Update check error",
