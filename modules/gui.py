@@ -23,7 +23,7 @@ import glfw
 import sys
 
 from modules.structs import (
-    TimelineEvent,
+    TimelineEventType,
     TagHighlight,
     DefaultStyle,
     DisplayMode,
@@ -1271,7 +1271,7 @@ class MainGUI():
                     game.finished = ""  # Finished -> Not finished
                 else:
                     game.finished = (game.installed or game.version)  # Not finished -> Finished, Outdated finished -> Finished
-                    game.add_timeline_event(TimelineEvent.GameFinished, f"Finished {game.version}")
+                    game.add_timeline_event(TimelineEventType.GameFinished, game.version)
             if game.finished and not installed_finished and imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -1289,7 +1289,7 @@ class MainGUI():
                 for game in globals.games.values():
                     if game.selected:
                         game.finished = (game.installed or game.version)
-                        game.add_timeline_event(TimelineEvent.GameFinished, f"Finished {game.version}")
+                        game.add_timeline_event(TimelineEventType.GameFinished, game.version)
             imgui.same_line()
             if imgui.small_button(icons.close):
                 for game in globals.games.values():
@@ -1310,7 +1310,7 @@ class MainGUI():
                 if latest_installed:
                     game.installed = ""  # Latest installed -> Not installed
                 else:
-                    game.add_timeline_event(TimelineEvent.GameInstalled, f"Installed {game.version}")
+                    game.add_timeline_event(TimelineEventType.GameInstalled, game.version)
                     game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
                     game.updated = False
             if game.installed and not latest_installed and imgui.is_item_hovered():
@@ -1329,7 +1329,7 @@ class MainGUI():
             if imgui.small_button(icons.check):
                 for game in globals.games.values():
                     if game.selected:
-                        game.add_timeline_event(TimelineEvent.GameInstalled, f"Installed {game.version}")
+                        game.add_timeline_event(TimelineEventType.GameInstalled, game.version)
                         game.installed = game.version
                         game.updated = False
             imgui.same_line()
@@ -1695,36 +1695,12 @@ class MainGUI():
             imgui.pop_font()
 
     def draw_game_timeline_widget(self, game: Game):
-        events = list(sorted(game.timeline_events, reverse=True))
-        events.append((game.added_on.value, TimelineEvent.GameAdded, "Added to the library"))
-
         horizontal_spacing = self.scaled(14)
         icon_positions: list[tuple[x, y, radius]] = []
 
-        for i, (stamp, event_type, message) in enumerate(events):
-            date = dt.datetime.fromtimestamp(stamp)
-            # Icons
-            match event_type:
-                case TimelineEvent.GameAdded:
-                    icon = icons.alert_decagram
-                case TimelineEvent.GameLaunched:
-                    icon = icons.play
-                case TimelineEvent.GameFinished:
-                    icon = icons.flag_checkered
-                case TimelineEvent.GameInstalled:
-                    icon = icons.download
-                case TimelineEvent.ChangedName:
-                    icon = icons.spellcheck
-                case TimelineEvent.ChangedStatus:
-                    icon = icons.lightning_bolt
-                case TimelineEvent.ChangedVersion:
-                    icon = icons.star
-                case _:
-                    icon = icons.help_rhombus_outline
-            # First element margin
-            if i == 0:
-                imgui.spacing()
+        def draw_event(timestamp, type, args, spacing=True):
             # Draw timestamp
+            date = dt.datetime.fromtimestamp(timestamp)
             imgui.push_font(imgui.fonts.mono)
             imgui.text(date.strftime("%b %d, %Y"))
             if imgui.is_item_hovered():
@@ -1733,6 +1709,7 @@ class MainGUI():
             imgui.pop_font()
             # Draw icon and save coordinates
             imgui.same_line(spacing=horizontal_spacing)
+            icon = getattr(icons, type.icon)
             cur = imgui.get_cursor_screen_pos()
             icon_size = imgui.calc_text_size(icon)
             icon_positions.append((cur.x + icon_size.x / 2, cur.y + icon_size.y / 2, icon_size.x / 2))
@@ -1741,16 +1718,21 @@ class MainGUI():
             imgui.pop_style_color()
             # Draw message
             imgui.same_line(spacing=horizontal_spacing)
-            imgui.text(message)
-            if not i + 1 == len(events):
-                imgui.dummy(0, self.scaled(25))
+            imgui.text(type.template.format(*args, *["?" for _ in range(int(type.args_min) - len(args))]))
+            if spacing:
+                imgui.dummy(0, self.scaled(20))
+
+        for event in game.timeline_events:
+            draw_event(event.timestamp.value, event.type, event.arguments)
+
+        draw_event(game.added_on.value, TimelineEventType.GameAdded, [], spacing=False)
 
         thickness = 2
         prev_x, prev_y = None, None
         dl = imgui.get_window_draw_list()
         color = imgui.get_color_u32_rgba(*globals.settings.style_border)
 
-        # Draw timeline over icons
+        # Draw timeline
         for x, y, radius in icon_positions:
             big_r = radius + self.scaled(4)
             dl.add_circle(x, y, big_r, color, thickness=thickness)

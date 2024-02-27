@@ -129,16 +129,6 @@ class AsyncProcessPipe:
             return True
 
 
-class TimelineEvent(enum.StrEnum):
-    GameAdded      = "added"
-    GameLaunched   = "launched"
-    GameFinished   = "finished"
-    GameInstalled  = "installed"
-    ChangedName    = "changed_name"
-    ChangedStatus  = "changed_status"
-    ChangedVersion = "changed_version"
-
-
 class Timestamp:
     instances = []
     def __init__(self, unix_time: int | float):
@@ -487,6 +477,36 @@ class Filter:
         self.id = id(self)
 
 
+TimelineEventType = IntEnumHack("TimelineEventType", [
+    ("GameAdded",      (1, {"icon": "alert_decagram", "args_min": "0", "template": "Added to the library"})),
+    ("GameLaunched",   (2, {"icon": "play",           "args_min": "1", "template": "Launched \"{}\""})),
+    ("GameFinished",   (3, {"icon": "flag_checkered", "args_min": "1", "template": "Finished {}"})),
+    ("GameInstalled",  (4, {"icon": "download",       "args_min": "1", "template": "Installed {}"})),
+    ("ChangedName",    (5, {"icon": "spellcheck",     "args_min": "2", "template": "Name changed from \"{}\" to \"{}\""})),
+    ("ChangedStatus",  (6, {"icon": "lightning_bolt", "args_min": "2", "template": "Status changed from \"{}\" to \"{}\""})),
+    ("ChangedVersion", (7, {"icon": "star",           "args_min": "2", "template": "Version changed from \"{}\" to \"{}\""})),
+])
+
+
+@dataclasses.dataclass
+class TimelineEvent:
+    instances = []
+
+    game_id: int
+    timestamp: Timestamp
+    arguments: list[str]
+    type: TimelineEventType
+
+    @classmethod
+    def add(cls, *args, **kwargs):
+        if args and isinstance(obj := args[0], cls):
+            self = obj
+        else:
+            self = cls(*args, **kwargs)
+        cls.instances.append(self)
+        return self
+
+
 @dataclasses.dataclass
 class Label:
     id: int
@@ -768,12 +788,12 @@ class Game:
     tab                : Tab.get
     notes              : str
     image_url          : str
-    timeline_events    : list[tuple[int, str, str]]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
     image              : imagehelper.ImageHelper = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
+    timeline_events    : list[TimelineEvent] = dataclasses.field(default_factory=list)
     _did_init          : bool = False
 
     def __post_init__(self):
@@ -895,10 +915,9 @@ class Game:
         if globals.gui:
             globals.gui.recalculate_ids = True
 
-    def add_timeline_event(self, event_type: TimelineEvent, message: str):
-        self.timeline_events.append((round(time.time()), event_type, message))
+    def add_timeline_event(self, type: TimelineEventType, *args):
         from modules import async_thread, db
-        async_thread.run(db.update_game(self, "timeline_events"))
+        async_thread.run(db.create_timeline_event(self.id, Timestamp(time.time()), list(args), type))
 
 
     def __setattr__(self, name: str, value: typing.Any):
@@ -929,7 +948,6 @@ class Game:
             "tab",
             "notes",
             "image_url",
-            "timeline_events",
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):

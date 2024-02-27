@@ -24,10 +24,10 @@ import io
 import re
 
 from modules.structs import (
+    TimelineEventType,
     MultiProcessPipe,
     AsyncProcessPipe,
     CounterContext,
-    TimelineEvent,
     SearchResult,
     OldGame,
     MsgBox,
@@ -674,11 +674,11 @@ async def full_check(game: Game, version: str):
                 changed_name or changed_status or changed_version
             ):
                 if changed_name:
-                    game.add_timeline_event(TimelineEvent.ChangedName, f'Name changed from "{old_name}" to "{name}"')
+                    game.add_timeline_event(TimelineEventType.ChangedName, old_name, game.name)
                 if changed_status:
-                    game.add_timeline_event(TimelineEvent.ChangedStatus, f'Status changed from "{old_status.name}" to "{status.name}"')
+                    game.add_timeline_event(TimelineEventType.ChangedStatus, old_status.name, game.status.name)
                 if changed_version:
-                    game.add_timeline_event(TimelineEvent.ChangedVersion, f'Version changed from "{old_version}" to "{version}"')
+                    game.add_timeline_event(TimelineEventType.ChangedVersion, old_version, game.version)
                 old_game = OldGame(
                     id=game.id,
                     name=old_name,
