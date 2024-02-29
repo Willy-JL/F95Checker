@@ -661,7 +661,7 @@ class MainGUI():
         merge = dict(merge_mode=True)
         oversample = dict(oversample_h=2, oversample_v=2)
         karla_config = imgui.core.FontConfig(         glyph_offset_y=-0.5, **oversample)
-        meslo_config = imgui.core.FontConfig(         glyph_offset_y=+2.5, **oversample)
+        meslo_config = imgui.core.FontConfig(                              **oversample)
         noto_config  = imgui.core.FontConfig(**merge, glyph_offset_y=-0.5, **oversample)
         mdi_config   = imgui.core.FontConfig(**merge, glyph_offset_y=+1.0)
         karla_range = imgui.core.GlyphRanges([0x1,            0x25ca,         0])
