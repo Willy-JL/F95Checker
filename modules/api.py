@@ -616,6 +616,14 @@ async def full_check(game: Game, version: str):
             else:
                 version = "N/A"
 
+        if game.tags != tags:
+            if len(game.tags) < len(tags):
+                difference = [tag.text for tag in tags if tag not in game.tags]
+                game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
+            else:
+                difference = [tag.text for tag in game.tags if tag not in tags]
+                game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
+
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
         breaking_keep_old_image  = last_check_before("9.0",   game.last_check_version)  # Keep existing image files
