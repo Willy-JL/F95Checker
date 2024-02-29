@@ -616,6 +616,12 @@ async def full_check(game: Game, version: str):
             else:
                 version = "N/A"
 
+        if game.developer != developer:
+            game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, developer)
+
+        if game.type != type:
+            game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, type.name)
+
         if game.tags != tags:
             if len(game.tags) < len(tags):
                 difference = [tag.text for tag in tags if tag not in game.tags]
