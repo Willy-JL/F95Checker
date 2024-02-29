@@ -176,6 +176,7 @@ async def connect():
             "grid_columns":                f'INTEGER DEFAULT 3',
             "hide_empty_tabs":             f'INTEGER DEFAULT {int(False)}',
             "highlight_tags":              f'INTEGER DEFAULT {int(True)}',
+            "hidden_timeline_events":      f'TEXT    DEFAULT "[]"',
             "independent_tab_views":       f'INTEGER DEFAULT {int(False)}',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',

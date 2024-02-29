@@ -1694,11 +1694,29 @@ class MainGUI():
         if small:
             imgui.pop_font()
 
-    def draw_game_timeline_widget(self, game: Game):
-        imgui.spacing()
+    def draw_timeline_filter_widget(self, game: Game):
+        label = f"###{game.id}_timeline_filter_popup"
+        if imgui.button(f"{icons.eye_off_outline} Hide events"):
+            imgui.open_popup(label)
+        if imgui.begin_popup(label):
+            for event_type in TimelineEventType:
+                changed, value = imgui.checkbox(f"###{game.id}_event_{event_type.value}", event_type in globals.settings.hidden_timeline_events)
+                if changed:
+                    if value:
+                        globals.settings.hidden_timeline_events.append(event_type)
+                    else:
+                        globals.settings.hidden_timeline_events.remove(event_type)
+                    async_thread.run(db.update_settings("hidden_timeline_events"))
+                imgui.same_line()
+                imgui.text(event_type.display)
+            imgui.end_popup()
 
+    def draw_game_timeline_widget(self, game: Game):
         icon_coordinates: list[tuple[x1, y1, x2, y2]] = []
         text_coordinates: list[tuple[x1, y1, x2, y2]] = []
+
+        self.draw_timeline_filter_widget(game)
+        imgui.dummy(0, self.scaled(6))
 
         def draw_event(timestamp, type, args, spacing=True):
             # Draw icon
@@ -1733,9 +1751,11 @@ class MainGUI():
                 imgui.dummy(0, self.scaled(10))
 
         for event in game.timeline_events:
-            draw_event(event.timestamp.value, event.type, event.arguments)
+            if event.type not in globals.settings.hidden_timeline_events:
+                draw_event(event.timestamp.value, event.type, event.arguments)
 
-        draw_event(game.added_on.value, TimelineEventType.GameAdded, [], spacing=False)
+        if TimelineEventType.GameAdded not in globals.settings.hidden_timeline_events:
+            draw_event(game.added_on.value, TimelineEventType.GameAdded, [], spacing=False)
 
         thickness = 2
         prev_rect = None
