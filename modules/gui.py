@@ -1736,13 +1736,33 @@ class MainGUI():
         text_coordinates: list[tuple[x1, y1, x2, y2]] = []
 
         self.draw_timeline_filter_widget(game)
-        imgui.dummy(0, self.scaled(6))
+        imgui.dummy(0, 0 if globals.settings.compact_timeline else self.scaled(6))
 
         def draw_event(timestamp, type, args, spacing=True):
+            short_format = "%b %d, %Y"
+            icon = getattr(icons, type.icon)
+            date = dt.datetime.fromtimestamp(timestamp)
+            message = type.template.format(*args, *["?" for _ in range(int(type.args_min) - len(args))])
+            # Short timeline variant
+            if globals.settings.compact_timeline:
+                imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
+                imgui.push_font(imgui.fonts.mono)
+                imgui.text(date.strftime(short_format))
+                imgui.pop_style_color()
+                imgui.pop_font()
+                if imgui.is_item_hovered():
+                    with imgui.begin_tooltip():
+                        imgui.text(date.strftime(globals.settings.timestamp_format))
+                imgui.same_line()
+                imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
+                imgui.text(icon)
+                imgui.pop_style_color()
+                imgui.same_line()
+                imgui.text(message)
+                return
             # Draw icon
             imgui.dummy(0, 0)
             imgui.same_line()
-            icon = getattr(icons, type.icon)
             cur = imgui.get_cursor_screen_pos()
             imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
             imgui.text(icon)
@@ -1751,10 +1771,9 @@ class MainGUI():
             icon_coordinates.append((cur.x, cur.y, cur.x + icon_size.x, cur.y + icon_size.y))
             # Draw timestamp
             imgui.same_line(spacing=self.scaled(15))
-            date = dt.datetime.fromtimestamp(timestamp)
             timestamp_pos = imgui.get_cursor_screen_pos()
             imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
-            imgui.text(date.strftime("%b %d, %Y"))
+            imgui.text(date.strftime(short_format))
             imgui.pop_style_color()
             timestamp_size = imgui.get_item_rect_size()
             if imgui.is_item_hovered():
@@ -1763,7 +1782,7 @@ class MainGUI():
             # Draw message
             message_pos = (timestamp_pos.x, timestamp_pos.y + timestamp_size.y - self.scaled(2))
             imgui.set_cursor_screen_pos(message_pos)
-            imgui.text(type.template.format(*args, *["?" for _ in range(int(type.args_min) - len(args))]))
+            imgui.text(message)
             message_size = imgui.get_item_rect_size()
             final_x = timestamp_pos.x + timestamp_size.x if timestamp_size.x > message_size.x else message_pos[0] + message_size.x
             text_coordinates.append((timestamp_pos.x, timestamp_pos.y, final_x, message_pos[1] + message_size.y))
@@ -4217,6 +4236,9 @@ class MainGUI():
             draw_settings_label(f"Time: {timestamp}")
             imgui.text("")
             imgui.spacing()
+
+            draw_settings_label("Compact timeline:")
+            draw_settings_checkbox("compact_timeline")
 
             draw_settings_label(
                 "Date format:",

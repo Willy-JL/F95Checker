@@ -661,6 +661,8 @@ class Settings:
     check_notifs                : bool
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
+    compact_timeline            : bool
+    display_tab                 : Tab.get
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
     default_tab_is_new          : bool
