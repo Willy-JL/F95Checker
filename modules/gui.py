@@ -1695,32 +1695,42 @@ class MainGUI():
             imgui.pop_font()
 
     def draw_game_timeline_widget(self, game: Game):
-        horizontal_spacing = self.scaled(14)
-        icon_positions: list[tuple[x, y, radius]] = []
+        imgui.spacing()
+
+        icon_coordinates: list[tuple[x1, y1, x2, y2]] = []
+        text_coordinates: list[tuple[x1, y1, x2, y2]] = []
 
         def draw_event(timestamp, type, args, spacing=True):
-            # Draw timestamp
-            date = dt.datetime.fromtimestamp(timestamp)
-            imgui.push_font(imgui.fonts.mono)
-            imgui.text(date.strftime("%b %d, %Y"))
-            if imgui.is_item_hovered():
-                with imgui.begin_tooltip():
-                    imgui.text(date.strftime(globals.settings.timestamp_format))
-            imgui.pop_font()
-            # Draw icon and save coordinates
-            imgui.same_line(spacing=horizontal_spacing)
+            # Draw icon
+            imgui.dummy(0, 0)
+            imgui.same_line()
             icon = getattr(icons, type.icon)
             cur = imgui.get_cursor_screen_pos()
-            icon_size = imgui.calc_text_size(icon)
-            icon_positions.append((cur.x + icon_size.x / 2, cur.y + icon_size.y / 2, icon_size.x / 2))
             imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
             imgui.text(icon)
             imgui.pop_style_color()
+            icon_size = imgui.get_item_rect_size()
+            icon_coordinates.append((cur.x, cur.y, cur.x + icon_size.x, cur.y + icon_size.y))
+            # Draw timestamp
+            imgui.same_line(spacing=self.scaled(15))
+            date = dt.datetime.fromtimestamp(timestamp)
+            timestamp_pos = imgui.get_cursor_screen_pos()
+            imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
+            imgui.text(date.strftime("%b %d, %Y"))
+            imgui.pop_style_color()
+            timestamp_size = imgui.get_item_rect_size()
+            if imgui.is_item_hovered():
+                with imgui.begin_tooltip():
+                    imgui.text(date.strftime(globals.settings.timestamp_format))
             # Draw message
-            imgui.same_line(spacing=horizontal_spacing)
+            message_pos = (timestamp_pos.x, timestamp_pos.y + timestamp_size.y - self.scaled(2))
+            imgui.set_cursor_screen_pos(message_pos)
             imgui.text(type.template.format(*args, *["?" for _ in range(int(type.args_min) - len(args))]))
+            message_size = imgui.get_item_rect_size()
+            final_x = timestamp_pos.x + timestamp_size.x if timestamp_size.x > message_size.x else message_pos[0] + message_size.x
+            text_coordinates.append((timestamp_pos.x, timestamp_pos.y, final_x, message_pos[1] + message_size.y))
             if spacing:
-                imgui.dummy(0, self.scaled(20))
+                imgui.dummy(0, self.scaled(10))
 
         for event in game.timeline_events:
             draw_event(event.timestamp.value, event.type, event.arguments)
@@ -1728,18 +1738,19 @@ class MainGUI():
         draw_event(game.added_on.value, TimelineEventType.GameAdded, [], spacing=False)
 
         thickness = 2
-        prev_x, prev_y = None, None
+        prev_rect = None
+        padding = self.scaled(3)
         dl = imgui.get_window_draw_list()
         color = imgui.get_color_u32_rgba(*globals.settings.style_border)
 
-        # Draw timeline
-        for x, y, radius in icon_positions:
-            big_r = radius + self.scaled(4)
-            dl.add_circle(x, y, big_r, color, thickness=thickness)
-            if prev_x and prev_y:
-                dl.add_line(prev_x, prev_y + big_r, x, y - big_r, color, thickness=thickness)
-            prev_x, prev_y = x, y
-
+        # Draw timeline primitives
+        for x1, y1, x2, y2 in icon_coordinates:
+            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            if prev_rect:
+                dl.add_line((prev_rect[0] + prev_rect[2]) / 2, prev_rect[3] + padding, (x1 + x2) / 2, y1 - padding, color, thickness=thickness)
+            prev_rect = (x1, y1, x2, y2)
+        for x1, y1, x2, y2 in text_coordinates:
+            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
 
     def draw_updates_popup(self, updated_games, sorted_ids, popup_uuid: str = ""):
         def popup_content():
