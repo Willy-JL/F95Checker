@@ -112,11 +112,30 @@ const updateIcons = async (tabId) => {
             const removeOldIcons = () => {
                 document.querySelectorAll('.f95checker-library-icons').forEach((e) => e.remove());
             };
-            const addHrefIcons = () => {
-                for (const elem of document.querySelectorAll('a[href*="/threads/"]')) {
-                    const id = extractThreadId(elem.href);
+            const isValidHrefElem = (elem, elemId, pageId) => {
+                // Ignore Reply and Quote buttons
+                if (/reply\?.*$/.test(elem.href)) return false;
 
-                    if (!id || !games.map(g => g.id).includes(id)) {
+                // Ignore post navigation
+                const parent = elem.parentNode
+                if (/page-.*$/.test(elem.href)) return false;
+                if (parent && parent.classList.contains('pageNav')) return false;
+                if (parent && parent.classList.contains('pageNav-page')) return false;
+
+                // Ignore post numbers
+                const ul = elem.closest('ul')
+                if (ul && ul.classList.contains('message-attribution-opposite')) return false;
+                // Ignore links in the OP pointing to the posts in the same thread
+                if (elem.closest('.message-threadStarterPost') && elemId === pageId) return false;
+
+                return true;
+            }
+            const addHrefIcons = () => {
+                const pageId = extractThreadId(document.location)
+                for (const elem of document.querySelectorAll('a[href*="/threads/"]')) {
+                    const elemId = extractThreadId(elem.href);
+
+                    if (!elemId || !games.map(g => g.id).includes(elemId)) {
                         continue;
                     }
 
@@ -124,19 +143,12 @@ const updateIcons = async (tabId) => {
                         elem.classList.contains('resource-tile_link') ||
                         elem.parentNode.parentNode.classList.contains('es-slides');
 
-                    if (
-                        !isImage &&
-                        (/page-.*$/.test(elem.href) ||
-                            /post-\d*$/.test(elem.href) ||
-                            /reply\?.*$/.test(elem.href) ||
-                            elem.parentNode.classList.contains('pageNav') ||
-                            elem.parentNode.classList.contains('pageNav-page'))
-                    ) {
+                    if (!isImage && !isValidHrefElem(elem, elemId, pageId)) {
                         continue;
                     }
 
                     const container = createContainer();
-                    const [icon, color] = createIcon(id);
+                    const [icon, color] = createIcon(elemId);
                     container.prepend(icon);
 
                     if (isImage) {

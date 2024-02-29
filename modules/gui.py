@@ -329,8 +329,8 @@ class MainGUI():
         self.last_selected_game: Game = None
         self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
-        self.show_games_ids: dict[Tab, list[int]] = {}
         self.bg_mode_notifs_timer: float = None
+        self.show_games_ids: dict[Tab, list[int]] = {}
 
         # Setup Qt objects
         webview.config_qt_flags(globals.debug, globals.settings.software_webview)
@@ -369,8 +369,25 @@ class MainGUI():
         if not all(type(x) is int for x in size) or not len(size) == 2:
             size = (1280, 720)
 
-        # Setup GLFW window
-        self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95Checker")
+        # Setup GLFW
+        if not glfw.init():
+            print("Could not initialize OpenGL context")
+            sys.exit(1)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)  # OS X supports only forward-compatible core profiles from 3.2
+
+        # Create a windowed mode window and its OpenGL context
+        self.window: glfw._GLFWwindow = glfw.create_window(*size, "F95Checker", None, None)
+        if not self.window:
+            print("Could not initialize Window")
+            glfw.terminate()
+            sys.exit(1)
+        glfw.make_context_current(self.window)
+        self.impl = GlfwRenderer(self.window)
+
+        # Window position and icon
         if all(type(x) is int for x in pos) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
@@ -379,7 +396,8 @@ class MainGUI():
         self.icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = imagehelper.ImageHelper(self.icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(self.icon_path))
-        self.impl = GlfwRenderer(self.window)
+
+        # Window callbacks
         glfw.set_char_callback(self.window, self.char_callback)
         glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.set_window_iconify_callback(self.window, self.minimize_callback)
@@ -387,8 +405,8 @@ class MainGUI():
         glfw.set_window_pos_callback(self.window, self.pos_callback)
         glfw.set_drop_callback(self.window, self.drop_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
-        self.refresh_fonts()
 
+        self.refresh_fonts()
         self.load_filters()
         self.load_styles_from_toml()
 
@@ -1061,6 +1079,7 @@ class MainGUI():
     def draw_type_widget(self, type: Type, wide=True, align=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(type.color, interaction=quick_filter)
+        imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 1.0, 1.0, 1.0)
         if wide:
             x_padding = 4
             backup_y_padding = imgui.style.frame_padding.y
@@ -1077,6 +1096,7 @@ class MainGUI():
             flt = Filter(FilterMode.Type)
             flt.match = type
             self.filters.append(flt)
+        imgui.pop_style_color()
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, quick_filter=True, change_highlight=True):
@@ -4680,6 +4700,7 @@ class MainGUI():
             )
             if imgui.button("Switch", width=right_width):
                 self.hide()
+
             imgui.end_table()
 
         imgui.end_child()
