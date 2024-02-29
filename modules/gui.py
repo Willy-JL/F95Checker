@@ -4205,6 +4205,9 @@ class MainGUI():
             )
             draw_settings_checkbox("quick_filters")
 
+            draw_settings_label("Compact timeline:")
+            draw_settings_checkbox("compact_timeline")
+
             draw_settings_label("Highlight tags:")
             draw_settings_checkbox("highlight_tags")
 
@@ -4236,9 +4239,6 @@ class MainGUI():
             draw_settings_label(f"Time: {timestamp}")
             imgui.text("")
             imgui.spacing()
-
-            draw_settings_label("Compact timeline:")
-            draw_settings_checkbox("compact_timeline")
 
             draw_settings_label(
                 "Date format:",
