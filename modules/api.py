@@ -616,23 +616,24 @@ async def full_check(game: Game, version: str):
             else:
                 version = "N/A"
 
-        if game.developer != developer:
-            game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, developer)
+        if old_status is not Status.Unchecked:
+            if game.developer != developer:
+                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, developer)
 
-        if game.type != type:
-            game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, type.name)
+            if game.type != type:
+                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, type.name)
 
-        if game.tags != tags:
-            if difference := [tag.text for tag in tags if tag not in game.tags]:
-                game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
-            if difference := [tag.text for tag in game.tags if tag not in tags]:
-                game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
+            if game.tags != tags:
+                if difference := [tag.text for tag in tags if tag not in game.tags]:
+                    game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
+                if difference := [tag.text for tag in game.tags if tag not in tags]:
+                    game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
 
-        if game.score != score:
-            if game.score < score:
-                game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, score)
-            else:
-                game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, score)
+            if game.score != score:
+                if game.score < score:
+                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, score)
+                else:
+                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, score)
 
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
