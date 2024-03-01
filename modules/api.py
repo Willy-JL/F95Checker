@@ -608,7 +608,7 @@ async def full_check(game: Game, version: str):
             ret = parse(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, thread_version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads) = ret
+        (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, image_url, downloads) = ret
         if not version:
             if thread_version:
                 version = thread_version
@@ -656,6 +656,7 @@ async def full_check(game: Game, version: str):
             game.last_full_check = last_full_check
             game.last_check_version = last_check_version
             game.score = score
+            game.votes = votes
             game.finished = finished
             game.installed = installed
             game.updated = updated

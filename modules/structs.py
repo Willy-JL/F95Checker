@@ -745,6 +745,7 @@ class Game:
     last_check_version : str
     last_played        : Datestamp
     score              : float
+    votes              : int
     rating             : int
     finished           : str
     installed          : str
@@ -899,6 +900,7 @@ class Game:
             "last_check_version",
             "last_played",
             "score",
+            "votes",
             "rating",
             "finished",
             "installed",
