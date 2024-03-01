@@ -209,6 +209,7 @@ async def connect():
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
+            "weighted_score":              f'INTEGER DEFAULT {int(False)}',
             "zoom_area":                   f'INTEGER DEFAULT 50',
             "zoom_times":                  f'REAL    DEFAULT 4.0',
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',

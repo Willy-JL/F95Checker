@@ -2787,7 +2787,10 @@ class MainGUI():
                         case cols.status_standalone.index:
                             key = lambda id: globals.games[id].status.value
                         case cols.score.index:
-                            key = lambda id: - globals.games[id].score
+                            if globals.settings.weighted_score:
+                                key = lambda id: - utils.bayesian_average(globals.games[id].score, globals.games[id].votes)
+                            else:
+                                key = lambda id: - globals.games[id].score
                         case _:  # Name and all others
                             key = lambda id: globals.games[id].name.lower()
                     base_ids.sort(key=key, reverse=sort_spec.reverse)
@@ -3006,9 +3009,13 @@ class MainGUI():
                         case cols.status_standalone.index:
                             self.draw_status_widget(game.status)
                         case cols.score.index:
-                            imgui.text(f"{game.score:.1f}")
-                            imgui.same_line()
-                            imgui.text_disabled(f"({game.votes})")
+                            with imgui.begin_group():
+                                imgui.text(f"{game.score:.1f}")
+                                imgui.same_line()
+                                imgui.text_disabled(f"({game.votes})")
+                            if imgui.is_item_hovered():
+                                with imgui.begin_tooltip():
+                                    imgui.text(f"{utils.bayesian_average(game.score, game.votes):.2f}")
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -4375,6 +4382,14 @@ class MainGUI():
 
             draw_settings_label("Confirm when removing:")
             draw_settings_checkbox("confirm_on_remove")
+
+            draw_settings_label(
+                "Weighted score:",
+                "Use weighted rating algorithm when sorting table by forum score.\n"
+                "You can see the final value used by hovering over the score number."
+            )
+            if draw_settings_checkbox("weighted_score"):
+                self.recalculate_ids = True
 
             draw_settings_label(
                 "Custom game:",

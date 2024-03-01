@@ -679,6 +679,7 @@ class Settings:
     tags_highlights             : dict[Tag, TagHighlight]
     use_parser_processes        : bool
     vsync_ratio                 : int
+    weighted_score              : bool
     zoom_area                   : int
     zoom_times                  : float
     zoom_enabled                : bool
