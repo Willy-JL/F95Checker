@@ -376,6 +376,7 @@ class MainGUI():
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)  # OS X supports only forward-compatible core profiles from 3.2
+        glfw.window_hint(glfw.MAXIMIZED, 1)
 
         # Create a windowed mode window and its OpenGL context
         self.window: glfw._GLFWwindow = glfw.create_window(*size, "F95Checker", None, None)
