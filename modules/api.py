@@ -623,11 +623,9 @@ async def full_check(game: Game, version: str):
             game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, type.name)
 
         if game.tags != tags:
-            if len(game.tags) < len(tags):
-                difference = [tag.text for tag in tags if tag not in game.tags]
+            if difference := [tag.text for tag in tags if tag not in game.tags]:
                 game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
-            else:
-                difference = [tag.text for tag in game.tags if tag not in tags]
+            if difference := [tag.text for tag in game.tags if tag not in tags]:
                 game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
 
         if game.score != score:
