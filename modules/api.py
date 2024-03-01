@@ -689,15 +689,17 @@ async def full_check(game: Game, version: str):
             changed_status = status != old_status
             changed_version = version != old_version
 
-            if not game.archived and old_status is not Status.Unchecked and (
-                changed_name or changed_status or changed_version
-            ):
+            if old_status is not Status.Unchecked:
                 if changed_name:
                     game.add_timeline_event(TimelineEventType.ChangedName, old_name, game.name)
                 if changed_status:
                     game.add_timeline_event(TimelineEventType.ChangedStatus, old_status.name, game.status.name)
                 if changed_version:
                     game.add_timeline_event(TimelineEventType.ChangedVersion, old_version, game.version)
+
+            if not game.archived and old_status is not Status.Unchecked and (
+                changed_name or changed_status or changed_version
+            ):
                 old_game = OldGame(
                     id=game.id,
                     name=old_name,
