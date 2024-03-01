@@ -478,19 +478,19 @@ class Filter:
 
 
 TimelineEventType = IntEnumHack("TimelineEventType", [
-    ("GameAdded",        (1,  {"display": "Added",             "icon": "alert_decagram", "args_min": "0", "template": "Added to the library"})),
-    ("GameLaunched",     (2,  {"display": "Launched",          "icon": "play",           "args_min": "1", "template": "Launched \"{}\""})),
-    ("GameFinished",     (3,  {"display": "Finished",          "icon": "flag_checkered", "args_min": "1", "template": "Finished {}"})),
-    ("GameInstalled",    (4,  {"display": "Installed",         "icon": "download",       "args_min": "1", "template": "Installed {}"})),
-    ("ChangedName",      (5,  {"display": "Changed name",      "icon": "spellcheck",     "args_min": "2", "template": "Name changed from \"{}\" to \"{}\""})),
-    ("ChangedStatus",    (6,  {"display": "Changed status",    "icon": "lightning_bolt", "args_min": "2", "template": "Status changed from \"{}\" to \"{}\""})),
-    ("ChangedVersion",   (7,  {"display": "Changed version",   "icon": "star",           "args_min": "2", "template": "Version changed from \"{}\" to \"{}\""})),
-    ("ChangedDeveloper", (8,  {"display": "Changed developer", "icon": "account",        "args_min": "2", "template": "Developer changed from \"{}\" to \"{}\""})),
-    ("ChangedType",      (9,  {"display": "Changed type",      "icon": "shape",          "args_min": "2", "template": "Type changed from \"{}\" to \"{}\""})),
-    ("TagsAdded",        (10, {"display": "Tags added",        "icon": "tag_plus",       "args_min": "1", "template": "Tags were added: {}"})),
-    ("TagsRemoved",      (11, {"display": "Tags removed",      "icon": "tag_minus",      "args_min": "1", "template": "Tags were removed: {}"})),
-    ("ScoreIncreased",   (12, {"display": "Score increased",   "icon": "thumb_up",       "args_min": "2", "template": "Forum score increased from {} to {}"})),
-    ("ScoreDecreased",   (13, {"display": "Score decreased",   "icon": "thumb_down",     "args_min": "2", "template": "Forum score decreased from {} to {}"})),
+    ("GameAdded",        (1,  {"display": "Added",             "icon": "alert_decagram", "args_min": 0, "template": "Added to the library"})),
+    ("GameLaunched",     (2,  {"display": "Launched",          "icon": "play",           "args_min": 1, "template": "Launched \"{}\""})),
+    ("GameFinished",     (3,  {"display": "Finished",          "icon": "flag_checkered", "args_min": 1, "template": "Finished {}"})),
+    ("GameInstalled",    (4,  {"display": "Installed",         "icon": "download",       "args_min": 1, "template": "Installed {}"})),
+    ("ChangedName",      (5,  {"display": "Changed name",      "icon": "spellcheck",     "args_min": 2, "template": "Name changed from \"{}\" to \"{}\""})),
+    ("ChangedStatus",    (6,  {"display": "Changed status",    "icon": "lightning_bolt", "args_min": 2, "template": "Status changed from \"{}\" to \"{}\""})),
+    ("ChangedVersion",   (7,  {"display": "Changed version",   "icon": "star",           "args_min": 2, "template": "Version changed from \"{}\" to \"{}\""})),
+    ("ChangedDeveloper", (8,  {"display": "Changed developer", "icon": "account",        "args_min": 2, "template": "Developer changed from \"{}\" to \"{}\""})),
+    ("ChangedType",      (9,  {"display": "Changed type",      "icon": "shape",          "args_min": 2, "template": "Type changed from \"{}\" to \"{}\""})),
+    ("TagsAdded",        (10, {"display": "Tags added",        "icon": "tag_plus",       "args_min": 1, "template": "Tags were added: {}"})),
+    ("TagsRemoved",      (11, {"display": "Tags removed",      "icon": "tag_minus",      "args_min": 1, "template": "Tags were removed: {}"})),
+    ("ScoreIncreased",   (12, {"display": "Score increased",   "icon": "thumb_up",       "args_min": 2, "template": "Forum score increased from {} to {}"})),
+    ("ScoreDecreased",   (13, {"display": "Score decreased",   "icon": "thumb_down",     "args_min": 2, "template": "Forum score decreased from {} to {}"})),
 ])
 
 

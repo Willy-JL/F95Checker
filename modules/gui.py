@@ -1742,7 +1742,7 @@ class MainGUI():
             short_format = "%b %d, %Y"
             icon = getattr(icons, type.icon)
             date = dt.datetime.fromtimestamp(timestamp)
-            message = type.template.format(*args, *["?" for _ in range(int(type.args_min) - len(args))])
+            message = type.template.format(*args, *["?" for _ in range(type.args_min - len(args))])
             # Short timeline variant
             if globals.settings.compact_timeline:
                 imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
