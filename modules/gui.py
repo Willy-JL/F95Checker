@@ -1729,7 +1729,7 @@ class MainGUI():
                         globals.settings.hidden_timeline_events.remove(event_type)
                     async_thread.run(db.update_settings("hidden_timeline_events"))
                 imgui.same_line()
-                imgui.text(event_type.display)
+                imgui.text(f"{getattr(icons, event_type.icon)} {event_type.display}")
             imgui.end_popup()
 
     def draw_game_timeline_widget(self, game: Game):
