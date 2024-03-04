@@ -489,8 +489,8 @@ TimelineEventType = IntEnumHack("TimelineEventType", [
     ("ChangedType",      (9,  {"display": "Changed type",      "icon": "shape",          "args_min": 2, "template": "Type changed from \"{}\" to \"{}\""})),
     ("TagsAdded",        (10, {"display": "Tags added",        "icon": "tag_plus",       "args_min": 1, "template": "Tags were added: {}"})),
     ("TagsRemoved",      (11, {"display": "Tags removed",      "icon": "tag_minus",      "args_min": 1, "template": "Tags were removed: {}"})),
-    ("ScoreIncreased",   (12, {"display": "Score increased",   "icon": "thumb_up",       "args_min": 2, "template": "Forum score increased from {} to {}"})),
-    ("ScoreDecreased",   (13, {"display": "Score decreased",   "icon": "thumb_down",     "args_min": 2, "template": "Forum score decreased from {} to {}"})),
+    ("ScoreIncreased",   (12, {"display": "Score increased",   "icon": "thumb_up",       "args_min": 4, "template": "Forum score increased from {} ({}) to {} ({})"})),
+    ("ScoreDecreased",   (13, {"display": "Score decreased",   "icon": "thumb_down",     "args_min": 4, "template": "Forum score decreased from {} ({}) to {} ({})"})),
 ])
 
 

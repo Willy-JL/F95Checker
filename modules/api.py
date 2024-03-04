@@ -631,9 +631,9 @@ async def full_check(game: Game, version: str):
 
             if game.score != score:
                 if game.score < score:
-                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, score)
+                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, score, votes)
                 else:
-                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, score)
+                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, score, votes)
 
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
