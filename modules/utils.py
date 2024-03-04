@@ -25,6 +25,12 @@ from modules import (
 )
 
 
+@functools.cache
+def bayesian_average(avg_rating, num_votes):
+    W, C = 100, 0
+    return ((num_votes * avg_rating) + (W * C)) / (num_votes + W)
+
+
 def rand_num_str(len=8):
     return "".join((random.choice('0123456789') for _ in range(len)))
 

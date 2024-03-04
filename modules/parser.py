@@ -303,6 +303,14 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         elif elem := head.find(is_class("bratr-rating")):
             score = float(re.search(r"(\d(?:\.\d\d?)?)", elem.get("title")).group(1))
 
+        votes = 0
+        if elem := html.find(is_class("tabs")):
+            if match := re.search(r"reviews\s*\((\d+)\)", elem.get_text(), re.M | re.I):
+                try:
+                    votes = int(match.group(1))
+                except Exception:
+                    pass
+
         description_html, description_regex = get_long_game_attr("overview", "story")
         changelog_html, changelog_regex = get_long_game_attr("changelog", "change-log", "change log")
         if len(description_regex) > len(description_html):
@@ -346,7 +354,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             return e
 
-    ret = (name, thread_version, developer, type, status, last_updated, score, description, changelog, tags, image_url, downloads)
+    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, image_url, downloads)
     if pipe:
         pipe.put_nowait(ret)
     else:
