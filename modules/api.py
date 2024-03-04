@@ -64,8 +64,8 @@ update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases
 
 updating = False
 session: aiohttp.ClientSession = None
-full_interval = int(dt.timedelta(days=7).total_seconds())
-part_interval = int(dt.timedelta(days=2).total_seconds())
+full_interval = dt.timedelta(days=7)
+part_interval = dt.timedelta(days=2)
 webpage_prefix = "F95Checker-Temp-"
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
@@ -544,10 +544,15 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
             else:
                 interval = full_interval
 
+            delta = dt.datetime.fromtimestamp(time.time()) - dt.datetime.fromtimestamp(game.last_full_check)
+
+            if interval_expired := (delta.total_seconds() > interval.total_seconds()):
+                game.add_timeline_event(TimelineEventType.RecheckExpired, delta.days)
+
             this_full = full or (
+                interval_expired or
                 game.status is Status.Unchecked or
                 (version and version != game.version) or
-                (game.last_full_check < time.time() - interval) or
                 (game.image.missing and game.image_url != "missing") or
                 last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
             )

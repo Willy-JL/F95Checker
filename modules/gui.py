@@ -1534,6 +1534,7 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
+            game.add_timeline_event(TimelineEventType.RecheckUserReq)
             utils.start_refresh_task(api.refresh(*([game] if game else filter(lambda game: game.selected, globals.games.values())), full=True, notifs=False))
         if game and game.custom:
             imgui.pop_disabled()
