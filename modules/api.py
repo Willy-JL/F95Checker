@@ -546,12 +546,16 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
 
             delta = dt.datetime.fromtimestamp(time.time()) - dt.datetime.fromtimestamp(game.last_full_check)
 
-            if interval_expired := (delta.total_seconds() > interval.total_seconds()):
+            interval_expired = (delta.total_seconds() > interval.total_seconds())
+
+            game_is_unchecked = game.status is Status.Unchecked
+
+            if interval_expired and not full and not game_is_unchecked:
                 game.add_timeline_event(TimelineEventType.RecheckExpired, delta.days)
 
             this_full = full or (
                 interval_expired or
-                game.status is Status.Unchecked or
+                game_is_unchecked or
                 (version and version != game.version) or
                 (game.image.missing and game.image_url != "missing") or
                 last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
