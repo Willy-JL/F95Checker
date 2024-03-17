@@ -171,13 +171,14 @@ class Datestamp(Timestamp):
 
 
 class DefaultStyle:
-    accent        = "#d4202e"
-    alt_bg        = "#101010"
-    bg            = "#0a0a0a"
-    border        = "#454545"
-    corner_radius = 6
-    text          = "#ffffff"
-    text_dim      = "#808080"
+    accent               = "#d4202e"
+    alt_bg               = "#101010"
+    bg                   = "#0a0a0a"
+    border               = "#454545"
+    corner_radius        = 6
+    text                 = "#ffffff"
+    text_dim             = "#808080"
+    filepicker_highlight = "#80FF00"
 
 
 @dataclasses.dataclass
@@ -675,6 +676,7 @@ class Settings:
     style_corner_radius         : int
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
+    style_filepicker_highlight  : tuple[float]
     tags_highlights             : dict[Tag, TagHighlight]
     timestamp_format            : str
     use_parser_processes        : bool
