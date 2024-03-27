@@ -608,7 +608,7 @@ async def full_check(game: Game, version: str):
             ret = parse(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, image_url, downloads) = ret
+        (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads) = ret
         if not version:
             if thread_version:
                 version = thread_version
@@ -645,6 +645,10 @@ async def full_check(game: Game, version: str):
         if not game.image_url == "custom" and not breaking_keep_old_image:
             fetch_image = fetch_image or (image_url != game.image_url)
 
+        unknown_tags_flag = game.unknown_tags_flag
+        if len(unknown_tags) > 0 and game.unknown_tags != unknown_tags:
+            unknown_tags_flag = True
+
         async def update_game():
             game.name = name
             game.version = version
@@ -663,6 +667,8 @@ async def full_check(game: Game, version: str):
             game.description = description
             game.changelog = changelog
             game.tags = tags
+            game.unknown_tags = unknown_tags
+            game.unknown_tags_flag = unknown_tags_flag
             game.image_url = image_url
             game.downloads = downloads
 

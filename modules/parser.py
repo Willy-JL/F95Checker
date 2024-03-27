@@ -326,11 +326,15 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         changelog = changelog_regex if len(changelog_regex) > len(changelog_html) else changelog_html
 
         tags = []
+        unknown_tags = []
         if (taglist := head.find(is_class("js-tagList"))) is not None:
             for child in taglist.children:
                 if hasattr(child, "get") and "/tags/" in (tag := child.get("href", "")):
                     tag = tag.replace("/tags/", "").strip("/")
-                    tags.append(Tag[tag])
+                    if tag not in Tag._member_names_:
+                        unknown_tags.append(tag)
+                    else:
+                        tags.append(Tag[tag])
         tags = tuple(sorted(tags))
 
         elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
@@ -354,7 +358,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             return e
 
-    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, image_url, downloads)
+    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads)
     if pipe:
         pipe.put_nowait(ret)
     else:
