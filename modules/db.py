@@ -13,6 +13,8 @@ import time
 import re
 
 from modules.structs import (
+    TimelineEventType,
+    TimelineEvent,
     SearchResult,
     DefaultStyle,
     ThreadMatch,
@@ -161,6 +163,8 @@ async def connect():
             "check_notifs":                f'INTEGER DEFAULT {int(True)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
+            "compact_timeline":            f'INTEGER DEFAULT {int(False)}',
+            "display_tab":                 f'INTEGER DEFAULT NULL',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "default_tab_is_new":          f'INTEGER DEFAULT {int(False)}',
@@ -174,6 +178,8 @@ async def connect():
             "grid_columns":                f'INTEGER DEFAULT 3',
             "hide_empty_tabs":             f'INTEGER DEFAULT {int(False)}',
             "highlight_tags":              f'INTEGER DEFAULT {int(True)}',
+            "hidden_timeline_events":      f'TEXT    DEFAULT "[]"',
+            "independent_tab_views":       f'INTEGER DEFAULT {int(False)}',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "independent_tab_views":       f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',
@@ -295,6 +301,15 @@ async def connect():
             "color":                       f'TEXT    DEFAULT NULL',
         }
     )
+    await create_table(
+        table_name="timeline_events",
+        columns={
+            "game_id":                     f'INTEGER DEFAULT NULL',
+            "timestamp":                   f'INTEGER DEFAULT 0',
+            "arguments":                   f'TEXT    DEFAULT "[]"',
+            "type":                        f'INTEGER DEFAULT 1',
+        }
+    )
 
     if migrate and ((path := globals.data_path / "f95checker.json").is_file() or (path := globals.data_path / "config.ini").is_file()):
         await migrate_legacy(path)
@@ -391,6 +406,14 @@ async def load():
     for tab in await cursor.fetchall():
         Tab.add(row_to_cls(tab, Tab))
 
+    cursor = await connection.execute("""
+        SELECT *
+        FROM timeline_events
+        ORDER BY timestamp DESC
+    """)
+    for event in await cursor.fetchall():
+        TimelineEvent.add(row_to_cls(event, TimelineEvent))
+
     # Settings need Tabs to be loaded
     cursor = await connection.execute("""
         SELECT *
@@ -401,6 +424,10 @@ async def load():
     # Games need Tabs and Labels to be loaded
     globals.games = {}
     await load_games()
+
+    # "join" games and timeline events
+    for event in TimelineEvent.instances:
+        globals.games[event.game_id].timeline_events.append(event)
 
     cursor = await connection.execute("""
         SELECT *
@@ -602,6 +629,24 @@ async def create_tab():
     tab = row_to_cls(await cursor.fetchone(), Tab)
     Tab.add(tab)
     return tab
+
+
+async def create_timeline_event(game_id: int, timestamp: Timestamp, arguments: list[str], type: TimelineEventType):
+    await connection.execute(f"""
+        INSERT INTO timeline_events
+        (game_id, timestamp, arguments, type)
+        VALUES
+        (?, ?, ?, ?)
+    """, [py_to_sql(value) for value in (game_id, timestamp, arguments, type)])
+    event = TimelineEvent.add(game_id, timestamp, arguments, type)
+    globals.games[game_id].timeline_events.insert(0, event)
+
+
+async def delete_timeline_events(game_id: int):
+    await connection.execute(f"""
+        DELETE FROM timeline_events
+        WHERE game_id={game_id}
+    """)
 
 
 async def update_cookies(new_cookies: dict[str, str]):
