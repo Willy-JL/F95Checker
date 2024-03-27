@@ -1,4 +1,5 @@
 # https://gist.github.com/Willy-JL/82137493896d385a74d148534691b6e1
+from enum import Enum, auto
 import pathlib
 import typing
 import string
@@ -14,13 +15,49 @@ from modules import (  # added
     utils,             # added
 )                      # added
 
-dir_icon     = f"{icons.folder_outline}  "  # changed
-file_icon    = f"{icons.file_outline}  "    # changed
+dir_icon     = f"{icons.folder}"  # changed
+file_icon    = f"{icons.file_outline}"    # changed
 up_icon      = icons.arrow_up               # changed
 refresh_icon = icons.refresh                # changed
 cancel_icon  = f"{icons.cancel} Cancel"     # changed
 ok_icon      = f"{icons.check} Ok"          # changed
 
+class PickerType(Enum):
+    Dirs = auto()
+    Execs = auto()
+    Media = auto()
+    Bookmarks = auto()
+
+class ListItem:
+    def __init__(self, path: pathlib.Path, picker_type: PickerType | None):
+        self.path = path
+        self.name = path.name
+        self.ptype = picker_type
+        self.is_dir = path.is_dir()
+        self.is_file = path.is_file()
+        if self.is_dir:
+            self.icon = dir_icon
+            self.color = globals.settings.style_text
+        else:
+            self.icon, self.color = self.get_file_decorations()
+
+    def get_file_decorations(self) -> tuple[str, tuple[float, ...]]:
+        if (ext := self.path.suffix) and self.ptype:
+            if self.ptype == PickerType.Execs and ext in (".exe", ".sh", ".swf", ".html", ".jar"):
+                return icons.file_cog_outline, globals.settings.style_filepicker_highlight
+            if self.ptype == PickerType.Media and ext in (".png", ".jpg", ".jpeg", ".webp"):
+                return icons.image_outline, globals.settings.style_filepicker_highlight
+            if self.ptype == PickerType.Media and ext in (".gif"):
+                return icons.video_outline, globals.settings.style_filepicker_highlight
+            if self.ptype == PickerType.Bookmarks and ext == ".html":
+                return icons.star_outline, globals.settings.style_filepicker_highlight
+        return file_icon, globals.settings.style_text
+
+    def display(self):
+        return f"{self.icon}  {self.name}"
+    
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.name == other.name
 
 class FilePicker:
     flags = (
@@ -34,13 +71,13 @@ class FilePicker:
     def __init__(
         self,
         title="File picker",
-        dir_picker=False,
+        picker_type: PickerType | None = None,
         start_dir: str | pathlib.Path = None,
         callback: typing.Callable = None,
         buttons: list[str] = [],
-        custom_popup_flags=0
+        custom_popup_flags=0,
     ):
-        self.current = 0
+        self.current = -1
         self.title = title
         self.active = True
         self.elapsed = 0.0
@@ -49,11 +86,13 @@ class FilePicker:
         self.selected: str = None
         self.filter_box_text = ""
         self.update_filter = False
-        self.items: list[str] = []
-        self.dir_picker = dir_picker
+        self.items: list[ListItem] = []
         self.dir: pathlib.Path = None
+        self.error: str | None = None
+        self.picker_type = picker_type
         self.flags = custom_popup_flags or self.flags
         self.windows = sys.platform.startswith("win")
+        self.dir_picker = picker_type == PickerType.Dirs
         if self.windows:
             self.drives: list[str] = []
             self.current_drive = 0
@@ -76,19 +115,20 @@ class FilePicker:
         if self.current != -1:
             selected = self.items[self.current]
         else:
-            selected = ""
+            selected = None
+        self.error = None
         self.items.clear()
         try:
-            items = list(filter(lambda item: self.filter_box_text.lower() in item.name.lower(), self.dir.iterdir()))
-            if len(items) > 0:
-                items.sort(key=lambda item: item.name.lower())  # Sort alphabetically
-                items.sort(key=lambda item: item.is_dir(), reverse=True)  # Sort dirs first
-                for item in items:
-                    self.items.append((dir_icon if item.is_dir() else file_icon) + item.name)
+            paths = list(filter(lambda path: self.filter_box_text.lower() in path.name.lower(), self.dir.iterdir()))
+            if len(paths) > 0:
+                paths.sort(key=lambda path: path.name.lower())  # Sort alphabetically
+                paths.sort(key=lambda path: path.is_dir(), reverse=True)  # Sort dirs first
+                for path in paths:
+                    self.items.append(ListItem(path, self.picker_type))
             else:
-                self.items.append("No items match your filter!" if self.filter_box_text else "This folder is empty!")
+                self.error = "No items match your filter!" if self.filter_box_text else "This folder is empty!"
         except Exception:
-            self.items.append("Cannot open this folder!")
+            self.error = "Cannot open this folder!"
         if self.windows:
             self.drives.clear()
             i = -1
@@ -161,20 +201,33 @@ class FilePicker:
             width = imgui.get_item_rect_size().x
 
             # Main list
-            imgui.set_next_item_width(width)
-            imgui.push_style_color(imgui.COLOR_HEADER, *style.colors[imgui.COLOR_BUTTON_HOVERED])  # added
-            _, value = imgui.listbox(f"###file_list", self.current, self.items, (size.y * 0.65) / imgui.get_frame_height())
-            imgui.pop_style_color()  # added
-            if value != -1:
-                self.current = min(max(value, 0), len(self.items) - 1)
+            height = size.y * 0.65
+            if self.error:
+                with imgui.begin_child("###file_list_error", height=height, border=True):
+                    text_size = imgui.calc_text_size(self.error)
+                    imgui.set_cursor_pos_x((width - text_size.x) / 2)
+                    imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() + (height / 2) - text_size.y)
+                    imgui.text(self.error)
+            else:
+                imgui.set_next_item_width(width)
+                imgui.push_style_color(imgui.COLOR_HEADER, *style.colors[imgui.COLOR_BUTTON_HOVERED])  # added
+                with imgui.begin_list_box(f"###file_list", height=height) as listbox:
+                    if listbox.opened:
+                        for i, item in enumerate(self.items):
+                            imgui.push_style_color(imgui.COLOR_TEXT, *item.color)
+                            if imgui.selectable(item.display(), self.current == i)[0]:
+                                self.current = i
+                            imgui.pop_style_color()
+                imgui.pop_style_color()  # added
+            if self.current != -1:
+                self.current = min(max(self.current, 0), len(self.items) - 1)
                 item = self.items[self.current]
-                is_dir = item.startswith(dir_icon)
-                is_file = item.startswith(file_icon)
+                is_dir, is_file = item.is_dir, item.is_file
                 if imgui.is_item_hovered() and imgui.is_mouse_double_clicked():
                     if is_dir:
-                        self.goto(self.dir / item[len(dir_icon):])
+                        self.goto(item.path)
                     elif is_file and not self.dir_picker:
-                        self.selected = str(self.dir / item[len(file_icon):])
+                        self.selected = str(item.path)
                         imgui.close_current_popup()
                         closed = True  # added
             else:
@@ -198,10 +251,10 @@ class FilePicker:
                 imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
                 imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
             if imgui.button(ok_icon):
-                if value == -1:
+                if self.current == -1:
                     self.selected = str(self.dir)
                 else:
-                    self.selected = str(self.dir / item[len(dir_icon if self.dir_picker else file_icon):])
+                    self.selected = str(item.path)
                 imgui.close_current_popup()
                 closed = True  # added
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):
@@ -211,10 +264,10 @@ class FilePicker:
             imgui.same_line()
             prev_pos_x = imgui.get_cursor_pos_x()
             if (is_file and not self.dir_picker) or (is_dir and self.dir_picker):
-                if value == -1:
+                if self.current == -1:
                     imgui.text(f"Selected:  {self.dir.name}")
                 else:
-                    imgui.text(f"Selected:  {item[len(dir_icon if self.dir_picker else file_icon):]}")
+                    imgui.text(f"Selected:  {item.name}")
             # Filter bar
             if imgui.is_topmost() and not imgui.is_any_item_active() and (globals.gui.input_chars or any(io.keys_down)):  # added
                 if imgui.is_key_pressed(glfw.KEY_BACKSPACE):  # added
@@ -257,7 +310,7 @@ class DirPicker(FilePicker):
     ):
         super().__init__(
             title=title,
-            dir_picker=True,
+            picker_type=PickerType.Dirs,
             start_dir=start_dir,
             callback=callback,
             buttons=buttons,

@@ -1913,6 +1913,7 @@ class MainGUI():
                             game.set_image_sync(pathlib.Path(selected).read_bytes())
                     utils.push_popup(filepicker.FilePicker(
                         title=f"Select or drop image for {game.name}",
+                        picker_type=filepicker.PickerType.Media,
                         callback=select_callback
                     ).tick)
                 if imgui.selectable(f"{icons.trash_can_outline} Reset image", False)[0]:
@@ -3891,6 +3892,7 @@ class MainGUI():
                                     async_thread.run(db.update_settings("browser_custom_executable"))
                             utils.push_popup(filepicker.FilePicker(
                                 title="Select or drop browser executable",
+                                picker_type=filepicker.PickerType.Execs,
                                 start_dir=set.browser_custom_executable,
                                 callback=callback
                             ).tick)
@@ -4278,6 +4280,7 @@ class MainGUI():
                     buttons={
                         f"{icons.check} Ok": lambda: utils.push_popup(filepicker.FilePicker(
                                                          title="Select or drop bookmark file",
+                                                         picker_type=filepicker.PickerType.Bookmarks,
                                                          callback=callback
                                                      ).tick),
                         f"{icons.cancel} Cancel": None
@@ -4574,15 +4577,19 @@ class MainGUI():
             draw_settings_label("Text dim:")
             draw_settings_color("style_text_dim")
 
+            draw_settings_label("Filepicker highlight:")
+            draw_settings_color("style_filepicker_highlight")
+
             draw_settings_label("Defaults:")
             if imgui.button("Restore", width=right_width):
                 set.style_corner_radius = DefaultStyle.corner_radius
-                set.style_accent        = colors.hex_to_rgba_0_1(DefaultStyle.accent)
-                set.style_alt_bg        = colors.hex_to_rgba_0_1(DefaultStyle.alt_bg)
-                set.style_bg            = colors.hex_to_rgba_0_1(DefaultStyle.bg)
-                set.style_border        = colors.hex_to_rgba_0_1(DefaultStyle.border)
-                set.style_text          = colors.hex_to_rgba_0_1(DefaultStyle.text)
-                set.style_text_dim      = colors.hex_to_rgba_0_1(DefaultStyle.text_dim)
+                set.style_accent               = colors.hex_to_rgba_0_1(DefaultStyle.accent)
+                set.style_alt_bg               = colors.hex_to_rgba_0_1(DefaultStyle.alt_bg)
+                set.style_bg                   = colors.hex_to_rgba_0_1(DefaultStyle.bg)
+                set.style_border               = colors.hex_to_rgba_0_1(DefaultStyle.border)
+                set.style_text                 = colors.hex_to_rgba_0_1(DefaultStyle.text)
+                set.style_text_dim             = colors.hex_to_rgba_0_1(DefaultStyle.text_dim)
+                set.style_filepicker_highlight = colors.hex_to_rgba_0_1(DefaultStyle.filepicker_highlight)
                 self.refresh_styles()
                 async_thread.run(db.update_settings(
                     "style_corner_radius",
@@ -4592,6 +4599,7 @@ class MainGUI():
                     "style_border",
                     "style_text",
                     "style_text_dim",
+                    "style_filepicker_highlight",
                 ))
 
             imgui.end_table()
