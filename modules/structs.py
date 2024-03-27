@@ -765,6 +765,8 @@ class Game:
     description        : str
     changelog          : str
     tags               : tuple[Tag]
+    unknown_tags       : list[str]
+    unknown_tags_flag  : bool
     labels             : list[Label.get]
     tab                : Tab.get
     notes              : str
@@ -920,6 +922,8 @@ class Game:
             "description",
             "changelog",
             "tags",
+            "unknown_tags",
+            "unknown_tags_flag",
             "labels",
             "tab",
             "notes",

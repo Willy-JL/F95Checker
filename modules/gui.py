@@ -1195,6 +1195,22 @@ class MainGUI():
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             game.updated = False
 
+    def draw_game_unknown_tags_icon(self, game: Game):
+        imgui.text_colored(icons.progress_tag, 1.00, 0.65, 0.00)
+        if imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+            imgui.text("This game has new tags that F95Checker failed to recognize:")
+            for tag in game.unknown_tags:
+                imgui.text(f" - {tag}")
+            imgui.text("Consider reporting them on GitHub or in the forum thread.")
+            imgui.text("You can copy these tags using button in the Tags section.")
+            imgui.text("Middle click to dismiss this notice.")
+            imgui.pop_text_wrap_pos()
+            imgui.end_tooltip()
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            game.unknown_tags_flag = False
+
     def draw_game_archive_icon(self, game: Game):
         quick_filter = globals.settings.quick_filters
         if quick_filter:
@@ -1951,6 +1967,9 @@ class MainGUI():
             if game.updated:
                 self.draw_game_update_icon(game)
                 imgui.same_line()
+            if game.unknown_tags_flag:
+                self.draw_game_unknown_tags_icon(game)
+                imgui.same_line()
             offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
             utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
 
@@ -2231,6 +2250,14 @@ class MainGUI():
                         self.draw_game_tags_widget(game)
                     else:
                         imgui.text_disabled("This game has no tags!")
+                    if utags := game.unknown_tags:
+                        imgui.spacing()
+                        if imgui.tree_node(f"Unknown tags ({len(utags)})"):
+                            if imgui.button(f"{icons.tag_multiple_outline} Copy"):
+                                callbacks.clipboard_copy(", ".join(utags))
+                            for tag in utags:
+                                imgui.text(f"- {tag}")
+                            imgui.tree_pop()
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((
@@ -2972,6 +2999,9 @@ class MainGUI():
                             if game.updated:
                                 self.draw_game_update_icon(game)
                                 imgui.same_line()
+                            if game.unknown_tags_flag:
+                                self.draw_game_unknown_tags_icon(game)
+                                imgui.same_line()
                             self.draw_game_name_text(game)
                             if game.notes:
                                 imgui.same_line()
@@ -3249,6 +3279,10 @@ class MainGUI():
             cluster = True
         if game.updated:
             self.draw_game_update_icon(game)
+            imgui.same_line()
+            cluster = True
+        if game.unknown_tags_flag:
+            self.draw_game_unknown_tags_icon(game)
             imgui.same_line()
             cluster = True
         if game.notes:
