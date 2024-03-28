@@ -5,11 +5,11 @@ import bs4
 import re
 import os
 
+from modules.tags import Tag
 from modules.structs import (
     MsgBox,
     Status,
     Type,
-    Tag,
 )
 from modules import (
     error,
