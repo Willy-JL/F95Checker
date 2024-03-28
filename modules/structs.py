@@ -10,11 +10,12 @@ import pathlib
 import hashlib
 import typing
 import queue
-import enum
 import json
 import time
 import os
 
+from modules.tags import Tag
+from modules.intenumhack import IntEnumHack
 
 class CounterContext:
     count = 0
@@ -235,25 +236,6 @@ class TrayMsg:
             self.icon = QSystemTrayIcon.MessageIcon.Critical
 
 
-class IntEnumHack(enum.IntEnum):
-    def __new__(cls, value, attrs: dict = None):
-        self = int.__new__(cls, value)
-        self._value_ = value
-        # Add additional attributes
-        if isinstance(attrs, dict):
-            for key, value in attrs.items():
-                setattr(self, key, value)
-        return self
-    def __init__(self, *args, **kwargs):
-        cls = type(self)
-        # Add index for use with _member_names_
-        self._index_ = len(cls._member_names_)  # self is added later, so the length is up to the previous item, so not len() - 1
-        # Replace spaces with _, - with __ and add _ in front if starting with a number. Allows using Enum._1_special__name in code for "1 special-name"
-        new_name = "_" * self._name_[0].isdigit() + self._name_.replace(" ", "_").replace("-", "__")
-        if new_name != self._name_:
-            setattr(cls, new_name, self)
-
-
 Os = IntEnumHack("Os", [
     ("Windows", 1),
     ("Linux",   2),
@@ -275,159 +257,6 @@ Status = IntEnumHack("Status", [
     ("Abandoned", (4, {"color" : (0.87, 0.20, 0.20), "icon": "close_circle"})),
     ("Unchecked", (5, {"color" : (0.50, 0.50, 0.50), "icon": "alert_circle"})),
     ("Custom",    (6, {"color" : (0.95, 0.50, 0.00), "icon": "dots_horizontal_circle"})),
-])
-
-
-Tag = IntEnumHack("Tag", [
-    ("2d-game",                (1,   {"text": "2d game"})),
-    ("2dcg",                   (2,   {"text": "2dcg"})),
-    ("3d-game",                (3,   {"text": "3d game"})),
-    ("3dcg",                   (4,   {"text": "3dcg"})),
-    ("adventure",              (5,   {"text": "adventure"})),
-    ("ahegao",                 (6,   {"text": "ahegao"})),
-    ("ai-cg",                  (140, {"text": "ai cg"})),
-    ("anal-sex",               (7,   {"text": "anal sex"})),
-    ("animated",               (8,   {"text": "animated"})),
-    ("asset-addon",            (9,   {"text": "asset-addon"})),
-    ("asset-ai-shoujo",        (10,  {"text": "asset-ai-shoujo"})),
-    ("asset-animal",           (11,  {"text": "asset-animal"})),
-    ("asset-animation",        (12,  {"text": "asset-animation"})),
-    ("asset-audio",            (13,  {"text": "asset-audio"})),
-    ("asset-bundle",           (14,  {"text": "asset-bundle"})),
-    ("asset-character",        (15,  {"text": "asset-character"})),
-    ("asset-clothing",         (16,  {"text": "asset-clothing"})),
-    ("asset-daz-gen2",         (141, {"text": "asset-daz-gen2"})),
-    ("asset-daz-gen3",         (142, {"text": "asset-daz-gen3"})),
-    ("asset-daz-gen8",         (143, {"text": "asset-daz-gen8"})),
-    ("asset-daz-gen81",        (144, {"text": "asset-daz-gen81"})),
-    ("asset-daz-gen9",         (145, {"text": "asset-daz-gen9"})),
-    ("asset-environment",      (17,  {"text": "asset-environment"})),
-    ("asset-expression",       (18,  {"text": "asset-expression"})),
-    ("asset-female",           (146, {"text": "asset-female"})),
-    ("asset-hair",             (19,  {"text": "asset-hair"})),
-    ("asset-hdri",             (20,  {"text": "asset-hdri"})),
-    ("asset-honey-select",     (21,  {"text": "asset-honey-select"})),
-    ("asset-honey-select2",    (22,  {"text": "asset-honey-select2"})),
-    ("asset-koikatu",          (23,  {"text": "asset-koikatu"})),
-    ("asset-light",            (24,  {"text": "asset-light"})),
-    ("asset-male",             (147, {"text": "asset-male"})),
-    ("asset-morph",            (25,  {"text": "asset-morph"})),
-    ("asset-nonbinary",        (148, {"text": "asset-nonbinary"})),
-    ("asset-plugin",           (26,  {"text": "asset-plugin"})),
-    ("asset-pose",             (27,  {"text": "asset-pose"})),
-    ("asset-prop",             (28,  {"text": "asset-prop"})),
-    ("asset-scene",            (149, {"text": "asset-scene"})),
-    ("asset-script",           (29,  {"text": "asset-script"})),
-    ("asset-shader",           (30,  {"text": "asset-shader"})),
-    ("asset-texture",          (31,  {"text": "asset-texture"})),
-    ("asset-utility",          (32,  {"text": "asset-utility"})),
-    ("asset-vehicle",          (33,  {"text": "asset-vehicle"})),
-    ("bdsm",                   (34,  {"text": "bdsm"})),
-    ("bestiality",             (35,  {"text": "bestiality"})),
-    ("big-ass",                (36,  {"text": "big ass"})),
-    ("big-tits",               (37,  {"text": "big tits"})),
-    ("blackmail",              (38,  {"text": "blackmail"})),
-    ("bukkake",                (39,  {"text": "bukkake"})),
-    ("censored",               (40,  {"text": "censored"})),
-    ("character-creation",     (41,  {"text": "character creation"})),
-    ("cheating",               (42,  {"text": "cheating"})),
-    ("combat",                 (43,  {"text": "combat"})),
-    ("corruption",             (44,  {"text": "corruption"})),
-    ("cosplay",                (45,  {"text": "cosplay"})),
-    ("creampie",               (46,  {"text": "creampie"})),
-    ("dating-sim",             (47,  {"text": "dating sim"})),
-    ("dilf",                   (48,  {"text": "dilf"})),
-    ("drugs",                  (49,  {"text": "drugs"})),
-    ("dystopian-setting",      (50,  {"text": "dystopian setting"})),
-    ("exhibitionism",          (51,  {"text": "exhibitionism"})),
-    ("fantasy",                (52,  {"text": "fantasy"})),
-    ("female-protagonist",     (54,  {"text": "female protagonist"})),
-    ("femaledomination",       (53,  {"text": "female domination"})),
-    ("footjob",                (55,  {"text": "footjob"})),
-    ("furry",                  (56,  {"text": "furry"})),
-    ("futa-trans",             (57,  {"text": "futa/trans"})),
-    ("futa-trans-protagonist", (58,  {"text": "futa/trans protagonist"})),
-    ("gay",                    (59,  {"text": "gay"})),
-    ("graphic-violence",       (60,  {"text": "graphic violence"})),
-    ("groping",                (61,  {"text": "groping"})),
-    ("group-sex",              (62,  {"text": "group sex"})),
-    ("handjob",                (63,  {"text": "handjob"})),
-    ("harem",                  (64,  {"text": "harem"})),
-    ("horror",                 (65,  {"text": "horror"})),
-    ("humiliation",            (66,  {"text": "humiliation"})),
-    ("humor",                  (67,  {"text": "humor"})),
-    ("incest",                 (68,  {"text": "incest"})),
-    ("internal-view",          (69,  {"text": "internal view"})),
-    ("interracial",            (70,  {"text": "interracial"})),
-    ("japanese-game",          (71,  {"text": "japanese game"})),
-    ("kinetic-novel",          (72,  {"text": "kinetic novel"})),
-    ("lactation",              (73,  {"text": "lactation"})),
-    ("lesbian",                (74,  {"text": "lesbian"})),
-    ("loli",                   (75,  {"text": "loli"})),
-    ("male-protagonist",       (77,  {"text": "male protagonist"})),
-    ("maledomination",         (76,  {"text": "male domination"})),
-    ("management",             (78,  {"text": "management"})),
-    ("masturbation",           (79,  {"text": "masturbation"})),
-    ("milf",                   (80,  {"text": "milf"})),
-    ("mind-control",           (81,  {"text": "mind control"})),
-    ("mobile-game",            (82,  {"text": "mobile game"})),
-    ("monster",                (83,  {"text": "monster"})),
-    ("monster-girl",           (84,  {"text": "monster girl"})),
-    ("multiple-endings",       (85,  {"text": "multiple endings"})),
-    ("multiple-penetration",   (86,  {"text": "multiple penetration"})),
-    ("multiple-protagonist",   (87,  {"text": "multiple protagonist"})),
-    ("necrophilia",            (88,  {"text": "necrophilia"})),
-    ("no-sexual-content",      (89,  {"text": "no sexual content"})),
-    ("ntr",                    (90,  {"text": "netorare"})),
-    ("oral-sex",               (91,  {"text": "oral sex"})),
-    ("paranormal",             (92,  {"text": "paranormal"})),
-    ("parody",                 (93,  {"text": "parody"})),
-    ("platformer",             (94,  {"text": "platformer"})),
-    ("point-click",            (95,  {"text": "point & click"})),
-    ("possession",             (96,  {"text": "possession"})),
-    ("pov",                    (97,  {"text": "pov"})),
-    ("pregnancy",              (98,  {"text": "pregnancy"})),
-    ("prostitution",           (99,  {"text": "prostitution"})),
-    ("puzzle",                 (100, {"text": "puzzle"})),
-    ("rape",                   (101, {"text": "rape"})),
-    ("real-porn",              (102, {"text": "real porn"})),
-    ("religion",               (103, {"text": "religion"})),
-    ("romance",                (104, {"text": "romance"})),
-    ("rpg",                    (105, {"text": "rpg"})),
-    ("sandbox",                (106, {"text": "sandbox"})),
-    ("scat",                   (107, {"text": "scat"})),
-    ("school-setting",         (108, {"text": "school setting"})),
-    ("sci-fi",                 (109, {"text": "sci-fi"})),
-    ("sex-toys",               (110, {"text": "sex toys"})),
-    ("sexual-harassment",      (111, {"text": "sexual harassment"})),
-    ("shooter",                (112, {"text": "shooter"})),
-    ("shota",                  (113, {"text": "shota"})),
-    ("side-scroller",          (114, {"text": "side-scroller"})),
-    ("simulator",              (115, {"text": "simulator"})),
-    ("sissification",          (116, {"text": "sissification"})),
-    ("slave",                  (117, {"text": "slave"})),
-    ("sleep-sex",              (118, {"text": "sleep sex"})),
-    ("spanking",               (119, {"text": "spanking"})),
-    ("strategy",               (120, {"text": "strategy"})),
-    ("stripping",              (121, {"text": "stripping"})),
-    ("superpowers",            (122, {"text": "superpowers"})),
-    ("swinging",               (123, {"text": "swinging"})),
-    ("teasing",                (124, {"text": "teasing"})),
-    ("tentacles",              (125, {"text": "tentacles"})),
-    ("text-based",             (126, {"text": "text based"})),
-    ("titfuck",                (127, {"text": "titfuck"})),
-    ("trainer",                (128, {"text": "trainer"})),
-    ("transformation",         (129, {"text": "transformation"})),
-    ("trap",                   (130, {"text": "trap"})),
-    ("turn-based-combat",      (131, {"text": "turn based combat"})),
-    ("twins",                  (132, {"text": "twins"})),
-    ("urination",              (133, {"text": "urination"})),
-    ("vaginal-sex",            (134, {"text": "vaginal sex"})),
-    ("virgin",                 (135, {"text": "virgin"})),
-    ("virtual-reality",        (136, {"text": "virtual reality"})),
-    ("voiced",                 (137, {"text": "voiced"})),
-    ("vore",                   (138, {"text": "vore"})),
-    ("voyeurism",              (139, {"text": "voyeurism"})),
 ])
 
 

