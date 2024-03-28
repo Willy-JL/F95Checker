@@ -102,14 +102,16 @@ async def resolve_tags_module():
                             if not chunk:
                                 break
                             f.write(chunk)
-                else:
-                    return
-        spec = importlib.util.spec_from_file_location("modules.tags", fresh_module)
-        mod = importlib.util.module_from_spec(spec) # type: ignore
-        sys.modules["modules.tags"] = mod
-        spec.loader.exec_module(mod) # type: ignore
     except Exception:
-        return
+        pass
+    if fresh_module.exists():
+        try:
+            spec = importlib.util.spec_from_file_location("modules.tags", fresh_module)
+            mod = importlib.util.module_from_spec(spec) # type: ignore
+            sys.modules["modules.tags"] = mod
+            spec.loader.exec_module(mod) # type: ignore
+        except Exception:
+            return
 
 
 if __name__ == "__main__":
