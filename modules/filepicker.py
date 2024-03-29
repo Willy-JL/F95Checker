@@ -210,7 +210,10 @@ class FilePicker:
                     imgui.text(self.error)
             else:
                 imgui.set_next_item_width(width)
-                imgui.push_style_color(imgui.COLOR_HEADER, *style.colors[imgui.COLOR_BUTTON_HOVERED])  # added
+                header_color = (*style.colors[imgui.COLOR_BUTTON_HOVERED][:3], 0.3)
+                imgui.push_style_color(imgui.COLOR_HEADER, *header_color)  # added
+                imgui.push_style_color(imgui.COLOR_HEADER_HOVERED, *header_color)  # added
+                imgui.push_style_color(imgui.COLOR_HEADER_ACTIVE, *header_color)  # added
                 with imgui.begin_list_box(f"###file_list", height=height) as listbox:
                     if listbox.opened:
                         for i, item in enumerate(self.items):
@@ -218,7 +221,7 @@ class FilePicker:
                             if imgui.selectable(item.display(), self.current == i)[0]:
                                 self.current = i
                             imgui.pop_style_color()
-                imgui.pop_style_color()  # added
+                imgui.pop_style_color(3)  # added
             if self.current != -1:
                 self.current = min(max(self.current, 0), len(self.items) - 1)
                 item = self.items[self.current]
