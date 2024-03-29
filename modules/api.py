@@ -24,6 +24,7 @@ import io
 import re
 
 from modules.structs import (
+    TimelineEventType,
     MultiProcessPipe,
     AsyncProcessPipe,
     CounterContext,
@@ -63,8 +64,8 @@ update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases
 
 updating = False
 session: aiohttp.ClientSession = None
-full_interval = int(dt.timedelta(days=7).total_seconds())
-part_interval = int(dt.timedelta(days=2).total_seconds())
+full_interval = dt.timedelta(days=7)
+part_interval = dt.timedelta(days=2)
 webpage_prefix = "F95Checker-Temp-"
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
@@ -543,10 +544,19 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
             else:
                 interval = full_interval
 
+            delta = dt.datetime.fromtimestamp(time.time()) - dt.datetime.fromtimestamp(game.last_full_check)
+
+            interval_expired = (delta.total_seconds() > interval.total_seconds())
+
+            game_is_unchecked = game.status is Status.Unchecked
+
+            if interval_expired and not full and not game_is_unchecked:
+                game.add_timeline_event(TimelineEventType.RecheckExpired, delta.days)
+
             this_full = full or (
-                game.status is Status.Unchecked or
+                interval_expired or
+                game_is_unchecked or
                 (version and version != game.version) or
-                (game.last_full_check < time.time() - interval) or
                 (game.image.missing and game.image_url != "missing") or
                 last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
             )
@@ -615,6 +625,25 @@ async def full_check(game: Game, version: str):
             else:
                 version = "N/A"
 
+        if old_status is not Status.Unchecked:
+            if game.developer != developer:
+                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, developer)
+
+            if game.type != type:
+                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, type.name)
+
+            if game.tags != tags:
+                if difference := [tag.text for tag in tags if tag not in game.tags]:
+                    game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
+                if difference := [tag.text for tag in game.tags if tag not in tags]:
+                    game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
+
+            if game.score != score:
+                if game.score < score:
+                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, score, votes)
+                else:
+                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, score, votes)
+
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
         breaking_keep_old_image  = last_check_before("9.0",   game.last_check_version)  # Keep existing image files
@@ -666,10 +695,20 @@ async def full_check(game: Game, version: str):
             game.image_url = image_url
             game.downloads = downloads
 
+            changed_name = name != old_name
+            changed_status = status != old_status
+            changed_version = version != old_version
+
+            if old_status is not Status.Unchecked:
+                if changed_name:
+                    game.add_timeline_event(TimelineEventType.ChangedName, old_name, game.name)
+                if changed_status:
+                    game.add_timeline_event(TimelineEventType.ChangedStatus, old_status.name, game.status.name)
+                if changed_version:
+                    game.add_timeline_event(TimelineEventType.ChangedVersion, old_version, game.version)
+
             if not game.archived and old_status is not Status.Unchecked and (
-                name != old_name or
-                version != old_version or
-                status != old_status
+                changed_name or changed_status or changed_version
             ):
                 old_game = OldGame(
                     id=game.id,

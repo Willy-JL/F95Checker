@@ -17,6 +17,7 @@ import re
 import os
 
 from modules.structs import (
+    TimelineEventType,
     AsyncProcessPipe,
     DaemonProcess,
     SearchResult,
@@ -203,6 +204,7 @@ async def _launch_game_exe(game: Game, executable: str):
     try:
         await _launch_exe(executable)
         game.last_played = time.time()
+        game.add_timeline_event(TimelineEventType.GameLaunched, os.path.basename(executable))
     except FileNotFoundError:
         def select_callback(selected):
             if selected:
@@ -476,6 +478,7 @@ def remove_game(*games: list[Game], bypass_confirm=False):
             del globals.games[id]
             globals.gui.recalculate_ids = True
             async_thread.run(db.delete_game(id))
+            async_thread.run(db.delete_timeline_events(id))
     if not bypass_confirm and (len(games) > 1 or globals.settings.confirm_on_remove):
         buttons = {
             f"{icons.check} Yes": remove_callback,

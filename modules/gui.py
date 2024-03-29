@@ -23,6 +23,7 @@ import glfw
 import sys
 
 from modules.structs import (
+    TimelineEventType,
     TagHighlight,
     DefaultStyle,
     DisplayMode,
@@ -1290,6 +1291,7 @@ class MainGUI():
                     game.finished = ""  # Finished -> Not finished
                 else:
                     game.finished = (game.installed or game.version)  # Not finished -> Finished, Outdated finished -> Finished
+                    game.add_timeline_event(TimelineEventType.GameFinished, game.version)
             if game.finished and not installed_finished and imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -1307,6 +1309,7 @@ class MainGUI():
                 for game in globals.games.values():
                     if game.selected:
                         game.finished = (game.installed or game.version)
+                        game.add_timeline_event(TimelineEventType.GameFinished, game.version)
             imgui.same_line()
             if imgui.small_button(icons.close):
                 for game in globals.games.values():
@@ -1327,6 +1330,7 @@ class MainGUI():
                 if latest_installed:
                     game.installed = ""  # Latest installed -> Not installed
                 else:
+                    game.add_timeline_event(TimelineEventType.GameInstalled, game.version)
                     game.installed = game.version  # Not installed -> Latest installed, Outdated installed -> Latest installed
                     game.updated = False
             if game.installed and not latest_installed and imgui.is_item_hovered():
@@ -1345,6 +1349,7 @@ class MainGUI():
             if imgui.small_button(icons.check):
                 for game in globals.games.values():
                     if game.selected:
+                        game.add_timeline_event(TimelineEventType.GameInstalled, game.version)
                         game.installed = game.version
                         game.updated = False
             imgui.same_line()
@@ -1529,7 +1534,10 @@ class MainGUI():
         else:
             clicked = imgui.button(label)
         if clicked:
-            utils.start_refresh_task(api.refresh(*([game] if game else filter(lambda game: game.selected, globals.games.values())), full=True, notifs=False))
+            games = [game] if game else list(filter(lambda g: g.selected, globals.games.values()))
+            for g in games:
+                g.add_timeline_event(TimelineEventType.RecheckUserReq)
+            utils.start_refresh_task(api.refresh(*games, full=True, notifs=False))
         if game and game.custom:
             imgui.pop_disabled()
 
@@ -1708,6 +1716,103 @@ class MainGUI():
             imgui.dummy(0, 0)
         if small:
             imgui.pop_font()
+
+    def draw_timeline_filter_widget(self, game: Game):
+        label = f"###{game.id}_timeline_filter_popup"
+        if imgui.button(f"{icons.eye_off_outline} Hide events"):
+            imgui.open_popup(label)
+        if imgui.begin_popup(label):
+            for event_type in TimelineEventType:
+                changed, value = imgui.checkbox(f"###{game.id}_event_{event_type.value}", event_type in globals.settings.hidden_timeline_events)
+                if changed:
+                    if value:
+                        globals.settings.hidden_timeline_events.append(event_type)
+                    else:
+                        globals.settings.hidden_timeline_events.remove(event_type)
+                    async_thread.run(db.update_settings("hidden_timeline_events"))
+                imgui.same_line()
+                imgui.text(f"{getattr(icons, event_type.icon)} {event_type.display}")
+            imgui.end_popup()
+
+    def draw_game_timeline_widget(self, game: Game):
+        icon_coordinates: list[tuple[x1, y1, x2, y2]] = []
+        text_coordinates: list[tuple[x1, y1, x2, y2]] = []
+
+        self.draw_timeline_filter_widget(game)
+        imgui.dummy(0, 0 if globals.settings.compact_timeline else self.scaled(6))
+
+        def draw_event(timestamp, type, args, spacing=True):
+            short_format = "%b %d, %Y"
+            icon = getattr(icons, type.icon)
+            date = dt.datetime.fromtimestamp(timestamp)
+            message = type.template.format(*args, *["?" for _ in range(type.args_min - len(args))])
+            # Short timeline variant
+            if globals.settings.compact_timeline:
+                imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
+                imgui.push_font(imgui.fonts.mono)
+                imgui.text(date.strftime(short_format))
+                imgui.pop_style_color()
+                imgui.pop_font()
+                if imgui.is_item_hovered():
+                    with imgui.begin_tooltip():
+                        imgui.text(date.strftime(globals.settings.timestamp_format))
+                imgui.same_line()
+                imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
+                imgui.text(icon)
+                imgui.pop_style_color()
+                imgui.same_line()
+                imgui.text(message)
+                return
+            # Draw icon
+            imgui.dummy(0, 0)
+            imgui.same_line()
+            cur = imgui.get_cursor_screen_pos()
+            imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
+            imgui.text(icon)
+            imgui.pop_style_color()
+            icon_size = imgui.get_item_rect_size()
+            icon_coordinates.append((cur.x, cur.y, cur.x + icon_size.x, cur.y + icon_size.y))
+            # Draw timestamp
+            imgui.same_line(spacing=self.scaled(15))
+            timestamp_pos = imgui.get_cursor_screen_pos()
+            imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
+            imgui.text(date.strftime(short_format))
+            imgui.pop_style_color()
+            timestamp_size = imgui.get_item_rect_size()
+            if imgui.is_item_hovered():
+                with imgui.begin_tooltip():
+                    imgui.text(date.strftime(globals.settings.timestamp_format))
+            # Draw message
+            message_pos = (timestamp_pos.x, timestamp_pos.y + timestamp_size.y - self.scaled(2))
+            imgui.set_cursor_screen_pos(message_pos)
+            imgui.text(message)
+            message_size = imgui.get_item_rect_size()
+            final_x = timestamp_pos.x + timestamp_size.x if timestamp_size.x > message_size.x else message_pos[0] + message_size.x
+            text_coordinates.append((timestamp_pos.x, timestamp_pos.y, final_x, message_pos[1] + message_size.y))
+            if spacing:
+                imgui.dummy(0, self.scaled(10))
+
+        for event in game.timeline_events:
+            if event.type not in globals.settings.hidden_timeline_events:
+                draw_event(event.timestamp.value, event.type, event.arguments)
+
+        if TimelineEventType.GameAdded not in globals.settings.hidden_timeline_events:
+            draw_event(game.added_on.value, TimelineEventType.GameAdded, [], spacing=False)
+
+        thickness = 2
+        prev_rect = None
+        padding = self.scaled(3)
+        dl = imgui.get_window_draw_list()
+        color = imgui.get_color_u32_rgba(*globals.settings.style_border)
+
+        # Draw timeline primitives
+        for x1, y1, x2, y2 in icon_coordinates:
+            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            if prev_rect:
+                dl.add_line((prev_rect[0] + prev_rect[2]) / 2, prev_rect[3] + padding, (x1 + x2) / 2, y1 - padding, color, thickness=thickness)
+            prev_rect = (x1, y1, x2, y2)
+        for x1, y1, x2, y2 in text_coordinates:
+            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
 
     def draw_updates_popup(self, updated_games, sorted_ids, popup_uuid: str = ""):
         def popup_content():
@@ -2231,6 +2336,11 @@ class MainGUI():
                         self.draw_game_tags_widget(game)
                     else:
                         imgui.text_disabled("This game has no tags!")
+                    imgui.end_tab_item()
+
+                if imgui.begin_tab_item(icons.timeline_clock_outline + " Timeline###timeline")[0]:
+                    imgui.spacing()
+                    self.draw_game_timeline_widget(game)
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((
@@ -4108,6 +4218,9 @@ class MainGUI():
                 "label widgets, and status and update icons."
             )
             draw_settings_checkbox("quick_filters")
+
+            draw_settings_label("Compact timeline:")
+            draw_settings_checkbox("compact_timeline")
 
             draw_settings_label("Highlight tags:")
             draw_settings_checkbox("highlight_tags")

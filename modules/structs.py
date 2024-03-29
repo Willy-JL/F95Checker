@@ -486,6 +486,44 @@ class Filter:
         self.id = id(self)
 
 
+TimelineEventType = IntEnumHack("TimelineEventType", [
+    ("GameAdded",        (1,  {"display": "Added",             "icon": "alert_decagram", "args_min": 0, "template": "Added to the library"})),
+    ("GameLaunched",     (2,  {"display": "Launched",          "icon": "play",           "args_min": 1, "template": "Launched \"{}\""})),
+    ("GameFinished",     (3,  {"display": "Finished",          "icon": "flag_checkered", "args_min": 1, "template": "Finished {}"})),
+    ("GameInstalled",    (4,  {"display": "Installed",         "icon": "download",       "args_min": 1, "template": "Installed {}"})),
+    ("ChangedName",      (5,  {"display": "Changed name",      "icon": "spellcheck",     "args_min": 2, "template": "Name changed from \"{}\" to \"{}\""})),
+    ("ChangedStatus",    (6,  {"display": "Changed status",    "icon": "lightning_bolt", "args_min": 2, "template": "Status changed from \"{}\" to \"{}\""})),
+    ("ChangedVersion",   (7,  {"display": "Changed version",   "icon": "star",           "args_min": 2, "template": "Version changed from \"{}\" to \"{}\""})),
+    ("ChangedDeveloper", (8,  {"display": "Changed developer", "icon": "account",        "args_min": 2, "template": "Developer changed from \"{}\" to \"{}\""})),
+    ("ChangedType",      (9,  {"display": "Changed type",      "icon": "shape",          "args_min": 2, "template": "Type changed from \"{}\" to \"{}\""})),
+    ("TagsAdded",        (10, {"display": "Tags added",        "icon": "tag_plus",       "args_min": 1, "template": "Tags were added: {}"})),
+    ("TagsRemoved",      (11, {"display": "Tags removed",      "icon": "tag_minus",      "args_min": 1, "template": "Tags were removed: {}"})),
+    ("ScoreIncreased",   (12, {"display": "Score increased",   "icon": "thumb_up",       "args_min": 4, "template": "Forum score increased from {} ({}) to {} ({})"})),
+    ("ScoreDecreased",   (13, {"display": "Score decreased",   "icon": "thumb_down",     "args_min": 4, "template": "Forum score decreased from {} ({}) to {} ({})"})),
+    ("RecheckExpired",   (14, {"display": "Recheck expired",   "icon": "timer_sync",     "args_min": 1, "template": "Forcefully performed a full recheck because game has remained idle for {} day(s)"})),
+    ("RecheckUserReq",   (15, {"display": "Recheck requested", "icon": "reload_alert",   "args_min": 0, "template": "Forcefully performed a full recheck requested by user"})),
+])
+
+
+@dataclasses.dataclass
+class TimelineEvent:
+    instances = []
+
+    game_id: int
+    timestamp: Timestamp
+    arguments: list[str]
+    type: TimelineEventType
+
+    @classmethod
+    def add(cls, *args, **kwargs):
+        if args and isinstance(obj := args[0], cls):
+            self = obj
+        else:
+            self = cls(*args, **kwargs)
+        cls.instances.append(self)
+        return self
+
+
 @dataclasses.dataclass
 class Label:
     id: int
@@ -640,6 +678,8 @@ class Settings:
     check_notifs                : bool
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
+    compact_timeline            : bool
+    display_tab                 : Tab.get
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
     default_tab_is_new          : bool
@@ -653,6 +693,8 @@ class Settings:
     grid_columns                : int
     hide_empty_tabs             : bool
     highlight_tags              : bool
+    hidden_timeline_events      : list[TimelineEventType]
+    independent_tab_views       : bool
     ignore_semaphore_timeouts   : bool
     independent_tab_views       : bool
     interface_scaling           : float
@@ -774,6 +816,7 @@ class Game:
     image              : imagehelper.ImageHelper = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
+    timeline_events    : list[TimelineEvent] = dataclasses.field(default_factory=list)
     _did_init          : bool = False
 
     def __post_init__(self):
@@ -894,6 +937,11 @@ class Game:
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
             globals.gui.recalculate_ids = True
+
+    def add_timeline_event(self, type: TimelineEventType, *args):
+        from modules import async_thread, db
+        async_thread.run(db.create_timeline_event(self.id, Timestamp(time.time()), list(args), type))
+
 
     def __setattr__(self, name: str, value: typing.Any):
         if self._did_init and name in [
