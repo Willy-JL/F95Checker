@@ -1166,16 +1166,11 @@ class MainGUI():
 
     def draw_game_update_icon(self, game: Game):
         quick_filter = globals.settings.quick_filters
-        if quick_filter:
-            imgui.begin_group()
+        with imgui.begin_group():
             pos = imgui.get_cursor_pos()
-        imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00)
-        if quick_filter:
+            imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00)
             imgui.set_cursor_pos(pos)
-            if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Updated)
-                self.filters.append(flt)
-            imgui.end_group()
+            imgui.invisible_button("", *imgui.get_item_rect_size())
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -1187,29 +1182,55 @@ class MainGUI():
             imgui.same_line()
             imgui.text(game.version)
             imgui.text(
-                "Middle click to remove the update marker, alternatively\n"
-                "mark as installed to do the same."
+                "To remove this update marker:\n"
+                f"{icons.menu_right} Middle click\n"
+                f"{icons.menu_right} Alt + Left click\n"
+                f"{icons.menu_right} Mark game as installed"
             )
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            # Middle click - remove update marker
             game.updated = False
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_LEFT):
+            if imgui.is_key_down(glfw.KEY_LEFT_ALT):
+                # Alt + left click - remove update marker
+                game.updated = False
+            elif quick_filter:
+                # Left click - trigger quick filter
+                flt = Filter(FilterMode.Updated)
+                self.filters.append(flt)
 
     def draw_game_unknown_tags_icon(self, game: Game):
-        imgui.text_colored(icons.progress_tag, 1.00, 0.65, 0.00)
+        with imgui.begin_group():
+            pos = imgui.get_cursor_pos()
+            imgui.text_colored(icons.progress_tag, 1.00, 0.65, 0.00)
+            imgui.set_cursor_pos(pos)
+            imgui.invisible_button("", *imgui.get_item_rect_size())
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
             imgui.text("This game has new tags that F95Checker failed to recognize:")
             for tag in game.unknown_tags:
                 imgui.text(f" - {tag}")
-            imgui.text("Consider reporting them on GitHub or in the forum thread.")
-            imgui.text("You can copy these tags using button in the Tags section.")
-            imgui.text("Middle click to dismiss this notice.")
+            imgui.text("To copy them:")
+            imgui.text(f"{icons.menu_right} Shift + Left click")
+            imgui.text(f"{icons.menu_right} Use Copy button in Tags section")
+            imgui.text("To remove this marker:")
+            imgui.text(f"{icons.menu_right} Middle click")
+            imgui.text(f"{icons.menu_right} Alt + Left click")
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            # Middle click - remove unknown tags marker
             game.unknown_tags_flag = False
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_LEFT):
+            if imgui.is_key_down(glfw.KEY_LEFT_ALT):
+                # Alt + left click - remove unknown tags marker
+                game.unknown_tags_flag = False
+            elif imgui.is_key_down(glfw.KEY_LEFT_SHIFT):
+                # Shift + left click - copy tags to clipboard
+                callbacks.clipboard_copy(", ".join(game.unknown_tags))
 
     def draw_game_archive_icon(self, game: Game):
         quick_filter = globals.settings.quick_filters
