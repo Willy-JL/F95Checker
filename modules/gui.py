@@ -8,6 +8,7 @@ import configparser
 import dataclasses
 import functools
 import threading
+import itertools
 import platform
 import builtins
 import asyncio
@@ -4380,6 +4381,26 @@ class MainGUI():
                             imgui.end_popup()
                     utils.push_popup(
                         utils.popup, "Export thread links",
+                        popup_content,
+                        buttons=True,
+                        closable=True,
+                        outside=False
+                    )
+                if imgui.button("Unknown tags", width=-offset):
+                    unknown_tags = builtins.type("_", (), dict(_="\n".join(builtins.set(itertools.chain.from_iterable(game.unknown_tags for game in globals.games.values())))))()
+                    def popup_content():
+                        imgui.input_text_multiline(
+                            "###export_unknown_tags",
+                            value=unknown_tags._,
+                            width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
+                            height=imgui.io.display_size.y * 0.6,
+                            flags=imgui.INPUT_TEXT_READ_ONLY
+                        )
+                        if imgui.begin_popup_context_item("###export_unknown_tags_context"):
+                            utils.text_context(unknown_tags, "_", editable=False)
+                            imgui.end_popup()
+                    utils.push_popup(
+                        utils.popup, "Export unknown tags",
                         popup_content,
                         buttons=True,
                         closable=True,
