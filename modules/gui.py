@@ -8,6 +8,7 @@ import configparser
 import dataclasses
 import functools
 import threading
+import itertools
 import platform
 import builtins
 import asyncio
@@ -1167,16 +1168,11 @@ class MainGUI():
 
     def draw_game_update_icon(self, game: Game):
         quick_filter = globals.settings.quick_filters
-        if quick_filter:
-            imgui.begin_group()
+        with imgui.begin_group():
             pos = imgui.get_cursor_pos()
-        imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00)
-        if quick_filter:
+            imgui.text_colored(icons.star_circle, 0.85, 0.85, 0.00)
             imgui.set_cursor_pos(pos)
-            if imgui.invisible_button("", *imgui.get_item_rect_size()):
-                flt = Filter(FilterMode.Updated)
-                self.filters.append(flt)
-            imgui.end_group()
+            imgui.invisible_button("", *imgui.get_item_rect_size())
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
@@ -1188,13 +1184,55 @@ class MainGUI():
             imgui.same_line()
             imgui.text(game.version)
             imgui.text(
-                "Middle click to remove the update marker, alternatively\n"
-                "mark as installed to do the same."
+                "To remove this update marker:\n"
+                f"{icons.menu_right} Middle click\n"
+                f"{icons.menu_right} Alt + Left click\n"
+                f"{icons.menu_right} Mark game as installed"
             )
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            # Middle click - remove update marker
             game.updated = False
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_LEFT):
+            if imgui.is_key_down(glfw.KEY_LEFT_ALT):
+                # Alt + left click - remove update marker
+                game.updated = False
+            elif quick_filter:
+                # Left click - trigger quick filter
+                flt = Filter(FilterMode.Updated)
+                self.filters.append(flt)
+
+    def draw_game_unknown_tags_icon(self, game: Game):
+        with imgui.begin_group():
+            pos = imgui.get_cursor_pos()
+            imgui.text_colored(icons.progress_tag, 1.00, 0.65, 0.00)
+            imgui.set_cursor_pos(pos)
+            imgui.invisible_button("", *imgui.get_item_rect_size())
+        if imgui.is_item_hovered():
+            imgui.begin_tooltip()
+            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+            imgui.text("This game has new tags that F95Checker failed to recognize:")
+            for tag in game.unknown_tags:
+                imgui.text(f" - {tag}")
+            imgui.text("To copy them:")
+            imgui.text(f"{icons.menu_right} Shift + Left click")
+            imgui.text(f"{icons.menu_right} Use Copy button in Tags section")
+            imgui.text("To remove this marker:")
+            imgui.text(f"{icons.menu_right} Middle click")
+            imgui.text(f"{icons.menu_right} Alt + Left click")
+            imgui.pop_text_wrap_pos()
+            imgui.end_tooltip()
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+            # Middle click - remove unknown tags marker
+            game.unknown_tags_flag = False
+        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_LEFT):
+            if imgui.is_key_down(glfw.KEY_LEFT_ALT):
+                # Alt + left click - remove unknown tags marker
+                game.unknown_tags_flag = False
+            elif imgui.is_key_down(glfw.KEY_LEFT_SHIFT):
+                # Shift + left click - copy tags to clipboard
+                callbacks.clipboard_copy(", ".join(game.unknown_tags))
 
     def draw_game_archive_icon(self, game: Game):
         quick_filter = globals.settings.quick_filters
@@ -2056,6 +2094,9 @@ class MainGUI():
             if game.updated:
                 self.draw_game_update_icon(game)
                 imgui.same_line()
+            if game.unknown_tags_flag:
+                self.draw_game_unknown_tags_icon(game)
+                imgui.same_line()
             offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
             utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
 
@@ -2336,6 +2377,14 @@ class MainGUI():
                         self.draw_game_tags_widget(game)
                     else:
                         imgui.text_disabled("This game has no tags!")
+                    if utags := game.unknown_tags:
+                        imgui.spacing()
+                        if imgui.tree_node(f"Unknown tags ({len(utags)})"):
+                            if imgui.button(f"{icons.tag_multiple_outline} Copy"):
+                                callbacks.clipboard_copy(", ".join(utags))
+                            for tag in utags:
+                                imgui.text(f"- {tag}")
+                            imgui.tree_pop()
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item(icons.timeline_clock_outline + " Timeline###timeline")[0]:
@@ -3082,6 +3131,9 @@ class MainGUI():
                             if game.updated:
                                 self.draw_game_update_icon(game)
                                 imgui.same_line()
+                            if game.unknown_tags_flag:
+                                self.draw_game_unknown_tags_icon(game)
+                                imgui.same_line()
                             self.draw_game_name_text(game)
                             if game.notes:
                                 imgui.same_line()
@@ -3359,6 +3411,10 @@ class MainGUI():
             cluster = True
         if game.updated:
             self.draw_game_update_icon(game)
+            imgui.same_line()
+            cluster = True
+        if game.unknown_tags_flag:
+            self.draw_game_unknown_tags_icon(game)
             imgui.same_line()
             cluster = True
         if game.notes:
@@ -4438,6 +4494,26 @@ class MainGUI():
                             imgui.end_popup()
                     utils.push_popup(
                         utils.popup, "Export thread links",
+                        popup_content,
+                        buttons=True,
+                        closable=True,
+                        outside=False
+                    )
+                if imgui.button("Unknown tags", width=-offset):
+                    unknown_tags = builtins.type("_", (), dict(_="\n".join(builtins.set(itertools.chain.from_iterable(game.unknown_tags for game in globals.games.values())))))()
+                    def popup_content():
+                        imgui.input_text_multiline(
+                            "###export_unknown_tags",
+                            value=unknown_tags._,
+                            width=min(self.scaled(600), imgui.io.display_size.x * 0.6),
+                            height=imgui.io.display_size.y * 0.6,
+                            flags=imgui.INPUT_TEXT_READ_ONLY
+                        )
+                        if imgui.begin_popup_context_item("###export_unknown_tags_context"):
+                            utils.text_context(unknown_tags, "_", editable=False)
+                            imgui.end_popup()
+                    utils.push_popup(
+                        utils.popup, "Export unknown tags",
                         popup_content,
                         buttons=True,
                         closable=True,

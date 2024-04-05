@@ -263,6 +263,8 @@ async def connect():
             "description":                 f'TEXT    DEFAULT ""',
             "changelog":                   f'TEXT    DEFAULT ""',
             "tags":                        f'TEXT    DEFAULT "[]"',
+            "unknown_tags":                f'TEXT    DEFAULT "[]"',
+            "unknown_tags_flag":           f'INTEGER DEFAULT {int(False)}',
             "labels":                      f'TEXT    DEFAULT "[]"',
             "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
