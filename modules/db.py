@@ -474,6 +474,16 @@ async def update_game_id(game: Game, new_id):
     globals.games[new_id] = game
     if game.id != new_id:
         del globals.games[game.id]
+
+    await connection.execute(f"""
+        UPDATE timeline_events
+        SET
+            game_id={new_id}
+        WHERE game_id={game.id}
+    """)
+    for event in game.timeline_events:
+        event.game_id = new_id
+
     for i, img in enumerate(sorted(list(globals.images_path.glob(f"{game.id}.*")), key=lambda path: path.suffix != ".gif")):
         if i == 0:
             shutil.move(img, globals.images_path / f"{new_id}{img.suffix}")
