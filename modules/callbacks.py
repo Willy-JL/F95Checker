@@ -47,7 +47,8 @@ def update_start_with_system(toggle: bool):
             if globals.os is Os.Windows:
                 import winreg
                 current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-                winreg.SetValue(current_user, globals.autostart, winreg.REG_SZ, globals.start_cmd)
+                key = winreg.OpenKeyEx(current_user, globals.autostart, 0, winreg.KEY_WRITE)
+                winreg.SetValueEx(key, globals.reg_key, 0, winreg.REG_SZ, "\"" + globals.start_cmd + "\"")
             elif globals.os is Os.Linux:
                 config = configparser.RawConfigParser()
                 config.optionxform = lambda option: option
@@ -70,7 +71,8 @@ def update_start_with_system(toggle: bool):
             if globals.os is Os.Windows:
                 import winreg
                 current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-                winreg.SetValue(current_user, globals.autostart, winreg.REG_SZ, "")
+                key = winreg.OpenKeyEx(current_user, globals.autostart, 0, winreg.KEY_WRITE)
+                winreg.SetValueEx(key, globals.reg_key, 0, winreg.REG_SZ, "")
             elif globals.os is Os.Linux or globals.os is Os.MacOS:
                 globals.autostart.unlink()
         globals.start_with_system = toggle
