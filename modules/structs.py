@@ -676,10 +676,9 @@ class Settings:
     browser_private             : bool
     cell_image_ratio            : float
     check_notifs                : bool
+    compact_timeline            : bool
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
-    compact_timeline            : bool
-    display_tab                 : Tab.get
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
     default_tab_is_new          : bool
@@ -691,10 +690,9 @@ class Settings:
     filter_all_tabs             : bool
     fit_images                  : bool
     grid_columns                : int
+    hidden_timeline_events      : list[TimelineEventType]
     hide_empty_tabs             : bool
     highlight_tags              : bool
-    hidden_timeline_events      : list[TimelineEventType]
-    independent_tab_views       : bool
     ignore_semaphore_timeouts   : bool
     independent_tab_views       : bool
     interface_scaling           : float
