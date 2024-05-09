@@ -339,9 +339,14 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
 
         elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
         if elem:
-            image_url = elem.get("data-src")
+            banner_url = elem.get("data-src")
         else:
-            image_url = "missing"
+            banner_url = "missing"
+
+        elems = post.find(is_class("bbWrapper")).find_all(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
+        attachment_urls = [elem.get("data-src") for elem in elems]
+        attachment_urls = filter(lambda url: "/thumb/" in url, attachment_urls)
+        attachment_urls = list(map(lambda url: url.replace("/thumb/", "/"), attachment_urls))
 
         downloads = get_game_downloads("downloads", "download")
 
@@ -358,7 +363,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             return e
 
-    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads)
+    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, banner_url, attachment_urls, downloads)
     if pipe:
         pipe.put_nowait(ret)
     else:

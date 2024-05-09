@@ -164,6 +164,10 @@ async def connect():
             "compact_timeline":            f'INTEGER DEFAULT {int(False)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
+            "cycle_images":                f'INTEGER DEFAULT {int(False)}',
+            "cycle_length":                f'INTEGER DEFAULT 2500',
+            "cycle_on_hover":              f'INTEGER DEFAULT {int(False)}',
+            "cycle_random_order":          f'INTEGER DEFAULT {int(False)}',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "default_tab_is_new":          f'INTEGER DEFAULT {int(False)}',
@@ -173,6 +177,7 @@ async def connect():
             "ext_highlight_tags":          f'INTEGER DEFAULT {int(True)}',
             "ext_icon_glow":               f'INTEGER DEFAULT {int(True)}',
             "filter_all_tabs":             f'INTEGER DEFAULT {int(False)}',
+            "fit_additional_images":       f'INTEGER DEFAULT {int(True)}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
             "hidden_timeline_events":      f'TEXT    DEFAULT "[]"',
@@ -266,7 +271,8 @@ async def connect():
             "labels":                      f'TEXT    DEFAULT "[]"',
             "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
-            "image_url":                   f'TEXT    DEFAULT ""',
+            "banner_url":                  f'TEXT    DEFAULT ""',
+            "attachment_urls":             f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
         },
         renames=[
@@ -274,6 +280,7 @@ async def connect():
             ("last_full_refresh", "last_full_check"),
             ("last_refresh_version", "last_check_version"),
             ("played", "finished"),
+            ("image_url", "banner_url"),
         ]
     )
 

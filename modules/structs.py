@@ -679,6 +679,10 @@ class Settings:
     compact_timeline            : bool
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
+    cycle_images                : bool
+    cycle_length                : int
+    cycle_on_hover              : bool
+    cycle_random_order          : bool
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
     default_tab_is_new          : bool
@@ -688,6 +692,7 @@ class Settings:
     ext_highlight_tags          : bool
     ext_icon_glow               : bool
     filter_all_tabs             : bool
+    fit_additional_images       : bool
     fit_images                  : bool
     grid_columns                : int
     hidden_timeline_events      : list[TimelineEventType]
@@ -810,7 +815,8 @@ class Game:
     labels             : list[Label.get]
     tab                : Tab.get
     notes              : str
-    image_url          : str
+    banner_url         : str
+    attachment_urls    : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
     image              : imagehelper.ImageHelper = None
@@ -827,14 +833,13 @@ class Game:
             self.custom = True
         if self.updated is None:
             self.updated = bool(self.installed) and self.installed != self.version
-        if self.image_url == "-":
-            self.image_url = "missing"
+        if self.banner_url == "-":
+            self.banner_url = "missing"
         if self.finished == "True" and self.installed != "True" and self.version != "True":
             self.finished = (self.installed or self.version)
         elif self.finished == "False" and self.installed != "False" and self.version != "False":
             self.finished = ""
-        from modules import globals
-        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+        self.init_images()
         self.validate_executables()
 
     def delete_images(self):
@@ -973,7 +978,8 @@ class Game:
             "labels",
             "tab",
             "notes",
-            "image_url",
+            "banner_url",
+            "attachment_urls",
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
