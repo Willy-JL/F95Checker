@@ -859,6 +859,11 @@ class MainGUI():
                     # Scroll modifiers (must be before new_frame())
                     imgui.io.mouse_wheel *= globals.settings.scroll_amount
                     if globals.settings.scroll_smooth:
+
+                        if scroll_energy * imgui.io.mouse_wheel < 0: # fast check if signs are opposite
+                            # we want to immediately reverse rather than slowly decelerating.
+                            scroll_energy = 0.0
+
                         scroll_energy += imgui.io.mouse_wheel
                         if abs(scroll_energy) > 0.1:
                             scroll_now = scroll_energy * imgui.io.delta_time * globals.settings.scroll_smooth_speed
