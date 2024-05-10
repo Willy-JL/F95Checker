@@ -3829,6 +3829,15 @@ class MainGUI():
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):
                 utils.start_refresh_task(api.refresh())
+            elif imgui.is_item_hovered():
+                draw_list = imgui.get_window_draw_list()
+                screen_pos = imgui.get_cursor_screen_pos()
+                col = imgui.get_color_u32_rgba(1, 1, 1, 1)
+                text = str(f"Last refresh: {set.last_successful_refresh.display or 'Never'}")
+                text_size = imgui.calc_text_size(text)
+                text_x = screen_pos.x + (width - text_size.x) / 2
+                text_y = screen_pos.y - text_size.y - 3 * imgui.style.item_spacing.y
+                draw_list.add_text(text_x, text_y, col, text)
             if imgui.begin_popup_context_item("###refresh_context"):
                 # Right click = more options context menu
                 if imgui.selectable(f"{icons.bell_badge_outline} Check notifs", False)[0]:
