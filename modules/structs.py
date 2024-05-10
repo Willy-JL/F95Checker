@@ -816,11 +816,11 @@ class Game:
     labels             : list[Label.get]
     tab                : Tab.get
     notes              : str
-    image_url         : str
+    image_url          : str
     attachment_urls    : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
-    image             : imagehelper.ImageHelper = None
+    image              : imagehelper.ImageHelper = None
     additional_images  : list[imagehelper.ImageHelper] = None
     images_path        : pathlib.Path = None
     executables_valids : list[bool] = None
