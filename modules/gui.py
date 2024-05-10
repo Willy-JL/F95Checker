@@ -1954,9 +1954,9 @@ class MainGUI():
 
                 imgui.end_group()
                 height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
-                crop = game.banner.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
-                game.banner.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
 
                 if game_i != len(sorted_ids) - 1:
                     imgui.text("\n")
@@ -3509,9 +3509,9 @@ class MainGUI():
                 draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
             # Draw image after hitbox so we know if it's hovered
             if game is self.hovered_game:
-                image = [game.banner, *game.additional_images][self.hovered_game_image_idx]
+                image = [game.image, *game.additional_images][self.hovered_game_image_idx]
             else:
-                image = game.banner
+                image = game.image
             if image.missing:
                 text = "Image missing!"
                 text_size = imgui.calc_text_size(text)
@@ -3519,7 +3519,7 @@ class MainGUI():
                     imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
                     self.draw_hover_text(
                         text=text,
-                        hover_text="This thread does not seem to have an image!" if game.banner_url == "missing" else "Run a full refresh to try downloading it again!"
+                        hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
                     )
             elif image.invalid:
                 text = "Invalid image!"
@@ -3842,7 +3842,7 @@ class MainGUI():
         elif self.hovered_game:
             # Hover = show image
             game = self.hovered_game
-            image = [game.banner, *game.additional_images][self.hovered_game_image_idx]
+            image = [game.image, *game.additional_images][self.hovered_game_image_idx]
             if image.missing:
                 imgui.button("Image missing!", width=width, height=height)
             elif image.invalid:

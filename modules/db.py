@@ -270,7 +270,7 @@ async def connect():
             "labels":                      f'TEXT    DEFAULT "[]"',
             "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
-            "banner_url":                  f'TEXT    DEFAULT ""',
+            "image_url":                  f'TEXT    DEFAULT ""',
             "attachment_urls":             f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
         },
@@ -279,7 +279,6 @@ async def connect():
             ("last_full_refresh", "last_full_check"),
             ("last_refresh_version", "last_check_version"),
             ("played", "finished"),
-            ("image_url", "banner_url"),
         ]
     )
 

@@ -816,11 +816,11 @@ class Game:
     labels             : list[Label.get]
     tab                : Tab.get
     notes              : str
-    banner_url         : str
+    image_url         : str
     attachment_urls    : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
-    banner             : imagehelper.ImageHelper = None
+    image             : imagehelper.ImageHelper = None
     additional_images  : list[imagehelper.ImageHelper] = None
     images_path        : pathlib.Path = None
     executables_valids : list[bool] = None
@@ -836,8 +836,8 @@ class Game:
             self.custom = True
         if self.updated is None:
             self.updated = bool(self.installed) and self.installed != self.version
-        if self.banner_url == "-":
-            self.banner_url = "missing"
+        if self.image_url == "-":
+            self.image_url = "missing"
         if self.finished == "True" and self.installed != "True" and self.version != "True":
             self.finished = (self.installed or self.version)
         elif self.finished == "False" and self.installed != "False" and self.version != "False":
@@ -855,9 +855,9 @@ class Game:
                     img.unlink()
                 except Exception:
                     pass
-        self.banner.glob = f"{new_id}.*"
-        self.banner.loaded = False
-        self.banner.resolve()
+        self.image.glob = f"{new_id}.*"
+        self.image.loaded = False
+        self.image.resolve()
         new_images_path = globals.images_path / str(new_id)
         self.images_path.rename(new_images_path)
         for image in self.additional_images:
@@ -871,7 +871,7 @@ class Game:
         from modules import globals
         self.images_path = globals.images_path / str(self.id)
         self.images_path.mkdir(parents=True, exist_ok=True)
-        self.banner = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.additional_images = []
         for image in self.images_path.iterdir():
             if image.is_file() and image.stem.isnumeric():
@@ -924,7 +924,7 @@ class Game:
         self.delete_images(additional_index)
         if additional_index is None:
             path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
-            image = self.banner
+            image = self.image
         else:
             path = self.images_path / f"{additional_index}.{utils.image_ext(data)}"
             image = self.additional_images[additional_index]
@@ -939,7 +939,7 @@ class Game:
         self.delete_images(additional_index)
         if additional_index is None:
             path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
-            image = self.banner
+            image = self.image
         else:
             path = self.images_path / f"{additional_index}.{utils.image_ext(data)}"
             image = self.additional_images[additional_index]
@@ -1066,7 +1066,7 @@ class Game:
             "labels",
             "tab",
             "notes",
-            "banner_url",
+            "image_url",
             "attachment_urls",
             "downloads"
         ]:

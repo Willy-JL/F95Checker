@@ -569,7 +569,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
                 interval_expired or
                 game_is_unchecked or
                 (version and version != game.version) or
-                (game.banner.missing and game.banner_url != "missing") or
+                (game.image.missing and game.image_url != "missing") or
                 last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
             )
             if not this_full:
@@ -630,7 +630,7 @@ async def full_check(game: Game, version: str):
             ret = parse(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, banner_url, attachment_urls, downloads) = ret
+        (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, attachment_urls, downloads) = ret
         if not version:
             if thread_version:
                 version = thread_version
@@ -682,9 +682,9 @@ async def full_check(game: Game, version: str):
         if breaking_name_parsing:
             old_name = name
 
-        fetch_banner = game.banner.missing
-        if not game.banner_url == "custom" and not breaking_keep_old_image:
-            fetch_banner = fetch_banner or (banner_url != game.banner_url)
+        fetch_image = game.image.missing
+        if not game.image_url == "custom" and not breaking_keep_old_image:
+            fetch_image = fetch_image or (image_url != game.image_url)
 
         unknown_tags_flag = game.unknown_tags_flag
         if len(unknown_tags) > 0 and game.unknown_tags != unknown_tags:
@@ -710,7 +710,7 @@ async def full_check(game: Game, version: str):
             game.tags = tags
             game.unknown_tags = unknown_tags
             game.unknown_tags_flag = unknown_tags_flag
-            game.banner_url = banner_url
+            game.image_url = image_url
             game.attachment_urls = attachment_urls
             game.downloads = downloads
 
@@ -737,17 +737,17 @@ async def full_check(game: Game, version: str):
                 )
                 globals.updated_games[game.id] = old_game
 
-        if fetch_banner and banner_url and banner_url != "missing":
+        if fetch_image and image_url and image_url != "missing":
             with images:
                 try:
-                    res = await fetch("GET", banner_url, timeout=globals.settings.request_timeout * 4)
+                    res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if is_f95zone_url(banner_url):
+                    if is_f95zone_url(image_url):
                         raise  # Not a foreign host, raise normal connection error message
-                    if check_host(domain) and not check_host(get_url_domain(banner_url)):
-                        banner_url = "missing"
+                    if check_host(domain) and not check_host(get_url_domain(image_url)):
+                        image_url = "missing"
                         res = b""
                     else:
                         raise  # Foreign host might not actually be dead
@@ -760,6 +760,7 @@ async def full_check(game: Game, version: str):
         globals.refresh_progress += 1
 
 
+# TODO: hook into refresh process
 async def download_game_attachments(game: Game):
     async def download_attachment(url: str):
         with images:
