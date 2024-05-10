@@ -91,6 +91,18 @@ def setup():
         cleanup_webpages()
 
 
+async def check_host(check: str):
+    try:
+        await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
+        return True
+    except Exception:
+        return False
+
+
+def get_url_domain(url: str):
+    return re.search(r"^https?://([^/]+)", url).group(1)
+
+
 def is_f95zone_url(url: str):
     return bool(re.search(r"^https?://[^/]*\.?" + re.escape(domain) + r"/", url))
 
@@ -734,17 +746,7 @@ async def full_check(game: Game, version: str):
                         raise  # Not a dead link
                     if is_f95zone_url(banner_url):
                         raise  # Not a foreign host, raise normal connection error message
-                    f95zone_ok = True
-                    foreign_ok = True
-                    try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
-                    except Exception:
-                        f95zone_ok = False
-                    try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", banner_url).group(1))
-                    except Exception:
-                        foreign_ok = False
-                    if f95zone_ok and not foreign_ok:
+                    if check_host(domain) and not check_host(get_url_domain(banner_url)):
                         banner_url = "missing"
                         res = b""
                     else:
@@ -757,6 +759,24 @@ async def full_check(game: Game, version: str):
             await asyncio.shield(update_game())
         globals.refresh_progress += 1
 
+
+async def download_game_attachments(game: Game):
+    async def download_attachment(url: str):
+        with images:
+            try:
+                res = await fetch("GET", url, timeout=globals.settings.request_timeout * 4)
+            except aiohttp.ClientConnectorError as exc:
+                if not isinstance(exc.os_error, socket.gaierror):
+                    raise  # Not a dead link
+                if is_f95zone_url(url):
+                    raise  # Not a foreign host, raise normal connection error message
+                if check_host(domain) and not check_host(get_url_domain(url)):
+                    return
+                else:
+                    raise  # Foreign host might not actually be dead
+            await asyncio.shield(game.add_image_async(res))
+    tasks = [asyncio.create_task(download_attachment(url)) for url in game.attachment_urls]
+    await asyncio.gather(*tasks)
 
 async def check_notifs(login=False):
     if login:
