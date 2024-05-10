@@ -2429,7 +2429,7 @@ class MainGUI():
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (spacing, spacing))
                 for idx, image in enumerate(game.additional_images):
                     x1, y1 = imgui.get_cursor_pos()
-                    imgui.selectable(f"##image_dummy{image.resolved_path.name}", width=image_width, height=image_height)
+                    imgui.invisible_button(f"##image_dummy{image.resolved_path.name}", image_width, image_height)
                     if imgui.begin_drag_drop_source(flags=dnd_flags):
                         payload = idx + 1
                         payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
