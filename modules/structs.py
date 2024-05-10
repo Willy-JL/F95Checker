@@ -845,6 +845,28 @@ class Game:
         self.init_images()
         self.validate_executables()
 
+    def change_id(self, new_id: int):
+        from modules import globals
+        for i, img in enumerate(sorted(list(globals.images_path.glob(f"{self.id}.*")), key=lambda path: path.suffix != ".gif")):
+            if i == 0:
+                img.rename(img.with_stem(str(new_id)))
+            else:
+                try:
+                    img.unlink()
+                except Exception:
+                    pass
+        self.banner.glob = f"{new_id}.*"
+        self.banner.loaded = False
+        self.banner.resolve()
+        new_images_path = globals.images_path / str(new_id)
+        self.images_path.rename(new_images_path)
+        for image in self.additional_images:
+            image.path = new_images_path
+            image.loaded = False
+            image.resolve()
+        self.images_path = new_images_path
+        self.id = new_id
+
     def init_images(self):
         from modules import globals
         self.images_path = globals.images_path / str(self.id)
