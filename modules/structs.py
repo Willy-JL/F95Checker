@@ -173,13 +173,15 @@ class Datestamp(Timestamp):
 
 
 class DefaultStyle:
-    accent        = "#007AF2"
-    alt_bg        = "#101010"
-    bg            = "#0a0a0a"
-    border        = "#454545"
-    corner_radius = 6
-    text          = "#ffffff"
-    text_dim      = "#808080"
+    accent            = "#007AF2"
+    alt_bg            = "#101010"
+    bg                = "#0a0a0a"
+    border            = "#454545"
+    corner_radius     = 6
+    custom_hl_min_hue = 200
+    custom_hl_max_hue = 250
+    text              = "#ffffff"
+    text_dim          = "#808080"
 
 
 @dataclasses.dataclass
@@ -453,7 +455,7 @@ Tag = IntEnumHack("Tag", [
     ("voyeurism",              139),
 ])
 
-CLEAR_TAGS = [
+TextTags = [
     "2d game",
     "2dcg",
     "3d game",
@@ -508,7 +510,7 @@ CLEAR_TAGS = [
     "exhibitionism",
     "fantasy",
     "female protagonist",
-    "femaledomination",
+    "female domination",
     "footjob",
     "furry",
     "futa/trans protagonist",
@@ -531,7 +533,7 @@ CLEAR_TAGS = [
     "lesbian",
     "loli",
     "male protagonist",
-    "maledomination",
+    "male domination",
     "management",
     "masturbation",
     "milf",
@@ -907,6 +909,7 @@ class Settings:
     fit_images                  : bool
     fit_additional_images       : bool
     grid_columns                : int
+    highlight_custom_games      : bool
     ignore_semaphore_timeouts   : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp
@@ -918,8 +921,6 @@ class Settings:
     quick_filters               : bool
     refresh_completed_games     : bool
     refresh_workers             : int
-    reminders_in_filtered       : bool
-    favorites_in_filtered       : bool
     render_when_unfocused       : bool
     request_timeout             : int
     rpc_enabled                 : bool
@@ -939,9 +940,12 @@ class Settings:
     style_bg                    : tuple[float]
     style_border                : tuple[float]
     style_corner_radius         : int
+    style_custom_hl_max_hue     : int
+    style_custom_hl_min_hue     : int
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
     timestamp_format            : str
+    unify_filtered_results      : bool
     use_parser_processes        : bool
     vsync_ratio                 : int
     zoom_area                   : int
@@ -1035,6 +1039,7 @@ class Game:
     last_full_check    : int
     last_check_version : str
     last_played        : Datestamp
+    last_played_version: str
     score              : float
     rating             : int
     played             : bool
@@ -1135,7 +1140,7 @@ class Game:
     def refresh_banner(self):
         self.banner.glob = f"banner.*"
         self.banner.loaded = False
-        self.banner.resolve()
+        self.banner.reload()
 
     async def set_image_async(self, data: bytes, filename: str = "banner"):
         from modules import globals, utils
@@ -1226,6 +1231,7 @@ class Game:
             "last_full_check",
             "last_check_version",
             "last_played",
+            "last_played_version",
             "score",
             "rating",
             "played",

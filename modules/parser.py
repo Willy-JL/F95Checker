@@ -301,7 +301,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
 
         description = get_long_game_attr("overview", "story")
 
-        changelog = get_long_game_attr("changelog", "change-log", "change log")
+        changelog = get_long_game_attr("changelog", "change-logs", "change-log", "change log")
 
         tags = []
         if (taglist := head.find(is_class("js-tagList"))) is not None:

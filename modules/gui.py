@@ -1,5 +1,6 @@
 from imgui.integrations.glfw import GlfwRenderer
 from PyQt6 import QtCore, QtGui, QtWidgets
+from urllib.parse import urlparse
 import concurrent.futures
 import OpenGL.GL as gl
 import datetime as dt
@@ -8,6 +9,7 @@ import configparser
 import dataclasses
 import functools
 import threading
+import colorhash
 import platform
 import builtins
 import asyncio
@@ -32,6 +34,7 @@ from modules.structs import (
     Timestamp,
     ExeState,
     SortSpec,
+    TextTags,
     TrayMsg,
     Browser,
     Screen,
@@ -136,6 +139,11 @@ class Columns:
             ghost=True,
             default=True,
         )
+        # self.last_played_version = self.Column(
+        #     self, f"{icons.timeline_check_outline} Last played version",
+        #     ghost=True,
+        #     default=True,
+        # )
         self.separator = self.Column(
             self, "-----------------------------------",
             ghost=True,
@@ -300,6 +308,7 @@ class MainGUI():
         # Variables
         self.hidden = False
         self.focused = True
+        self.slideshow = False
         self.minimized = False
         self.add_box_text = ""
         self.search_query = ""
@@ -338,6 +347,8 @@ class MainGUI():
         self.image_carousel_prev_time: float = 0.0
         self.selected_screen: Screen = Screen.Tracker
         self.hovered_game_image_prev_time: float = 0.0
+        self.triggered_connection_guard: bool = False
+        self.pre_slideshow_window_props: tuple[int] = None
 
         # Setup Qt objects
         webview.config_qt_flags(globals.debug)
@@ -376,8 +387,25 @@ class MainGUI():
         if not all(type(x) is int for x in size) or not len(size) == 2:
             size = (1280, 720)
 
-        # Setup GLFW window
-        self.window: glfw._GLFWwindow = utils.impl_glfw_init(*size, "F95CheckerX")
+        # Setup GLFW
+        if not glfw.init():
+            print("Could not initialize OpenGL context")
+            sys.exit(1)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)  # OS X supports only forward-compatible core profiles from 3.2
+
+        # Create a windowed mode window and its OpenGL context
+        self.window: glfw._GLFWwindow = glfw.create_window(*size, "F95CheckerX", None, None)
+        if not self.window:
+            print("Could not initialize Window")
+            glfw.terminate()
+            sys.exit(1)
+        glfw.make_context_current(self.window)
+        self.impl = GlfwRenderer(self.window)
+
+        # Window position and icon
         if all(type(x) is int for x in pos) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
             glfw.set_window_pos(self.window, *pos)
         self.screen_pos = glfw.get_window_pos(self.window)
@@ -386,7 +414,8 @@ class MainGUI():
         self.icon_path = globals.self_path / "resources/icons/icon.png"
         self.icon_texture = imagehelper.ImageHelper(self.icon_path)
         glfw.set_window_icon(self.window, 1, Image.open(self.icon_path))
-        self.impl = GlfwRenderer(self.window)
+
+        # Window callbacks
         glfw.set_char_callback(self.window, self.char_callback)
         glfw.set_window_close_callback(self.window, self.close_callback)
         glfw.set_window_iconify_callback(self.window, self.minimize_callback)
@@ -394,8 +423,8 @@ class MainGUI():
         glfw.set_window_pos_callback(self.window, self.pos_callback)
         glfw.set_drop_callback(self.window, self.drop_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
-        self.refresh_fonts()
 
+        self.refresh_fonts()
         self.load_search_terms()
 
         # Show errors in threads
@@ -730,12 +759,17 @@ class MainGUI():
     def drop_callback(self, window: glfw._GLFWwindow, items: list[str]):
         paths = [pathlib.Path(item) for item in items]
         if globals.popup_stack and isinstance(picker := getattr(globals.popup_stack[-1].func, "__self__", None), filepicker.FilePicker):
-            path = paths[0]
-            if (picker.dir_picker and path.is_dir()) or (not picker.dir_picker and path.is_file()):
-                picker.selected = str(path)
-                if picker.callback:
-                    picker.callback(picker.selected)
-                picker.active = False
+            if picker.dir_picker:
+                paths = [p for p in paths if p.is_dir()]
+            else:
+                paths = [p for p in paths if p.is_file()]
+            paths = [str(p) for p in paths]
+            if picker.callback:
+                if picker.multiple:
+                    picker.callback(paths)
+                else:
+                    picker.callback(None if not paths else paths[0])
+            picker.active = False
         else:
             for path in paths:
                 if path.suffix and path.suffix.lower() == ".html":
@@ -809,6 +843,7 @@ class MainGUI():
                 mouse_pos = imgui.io.mouse_pos
                 cursor = imgui.get_mouse_cursor()
                 any_hovered = imgui.is_any_item_hovered()
+                self.moved_mouse = prev_mouse_pos != mouse_pos
                 win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
                 if not self.focused and win_hovered:
                     # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
@@ -830,6 +865,7 @@ class MainGUI():
                     # Redraw only when needed
                     draw = False
                     draw = draw or api.updating
+                    draw = draw or self.slideshow
                     draw = draw or self.require_sort
                     draw = draw or imagehelper.redraw
                     draw = draw or size != self.prev_size
@@ -865,6 +901,11 @@ class MainGUI():
                         prev_scaling = globals.settings.interface_scaling
                         imgui.new_frame()
                         imagehelper.redraw = False
+
+                        # Stop slideshow
+                        if self.slideshow and imgui.is_key_pressed(glfw.KEY_Q):
+                            glfw.set_window_monitor(self.window, None, *self.pre_slideshow_window_props)
+                            self.slideshow = False
 
                         # Imgui window is top left of display window, and has same size
                         imgui.set_next_window_position(0, 0, imgui.ONCE)
@@ -953,9 +994,19 @@ class MainGUI():
                             self.bg_mode_timer = time.time() + globals.settings.bg_refresh_interval * 60
                             self.tray.update_status()
                         elif self.bg_mode_timer and time.time() > self.bg_mode_timer:
-                            # Run scheduled refresh
-                            self.bg_mode_timer = None
-                            utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
+                            if utils.is_connected():
+                                # Run scheduled refresh
+                                utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
+                                self.bg_mode_timer = None
+                                self.triggered_connection_guard = False
+                            elif not self.triggered_connection_guard:
+                                # Wait 10 seconds and try again
+                                self.bg_mode_timer = time.time() + 10
+                                self.triggered_connection_guard = True
+                            else:
+                                # No connection and triggered connection guard once
+                                # Resume background refresh at regular intervals
+                                self.bg_mode_timer = None
                         elif globals.settings.check_notifs:
                             if not self.bg_mode_notifs_timer and not utils.is_refreshing():
                                 # Schedule next notif check
@@ -1045,8 +1096,8 @@ class MainGUI():
             self.add_quick_filter(FilterMode.Type, type)
         self.end_framed_text(interaction=quick_filter)
 
-    def draw_tag_widget(self, tag: Tag, setup=True):
-        quick_filter = globals.settings.quick_filters
+    def draw_tag_widget(self, tag: Tag, setup=True, qf_override=None):
+        quick_filter = qf_override if qf_override is not None else globals.settings.quick_filters
         if setup:
             self.begin_framed_text((0.3, 0.3, 0.3, 1.0), interaction=quick_filter)
         if imgui.small_button(tag.name) and quick_filter:
@@ -1472,7 +1523,7 @@ class MainGUI():
                 else:
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
-            self.draw_tag_widget(tag)
+            self.draw_tag_widget(tag, qf_override=False)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -1680,17 +1731,64 @@ class MainGUI():
             popup_uuid=popup_uuid
         )
 
+    @staticmethod
+    def draw_invalid_image(
+        width: float,
+        height: float,
+        selected=False,
+        thickness: int = 2,
+        callback: typing.Callable = None,
+        custom_active_rgba: tuple[int] | None = None,
+        custom_inactive_rgba: tuple[int] | None = None,
+    ):
+        if selected:
+            if custom_active_rgba:
+                color = imgui.get_color_u32_rgba(*custom_active_rgba)
+            else:
+                color = imgui.get_color_u32_rgba(*globals.settings.style_accent)
+        else:
+            if custom_inactive_rgba:
+                color = imgui.get_color_u32_rgba(*custom_inactive_rgba)
+            else:
+                color = imgui.get_color_u32_rgba(*globals.settings.style_border)
+        if callback:
+            if imgui.invisible_button("###invalid_image_dummy_button", width, height):
+                callback()
+        else:
+            imgui.dummy(width, height)
+
+        minx, miny = imgui.get_item_rect_min()
+        maxx, maxy = imgui.get_item_rect_max()
+
+        gapx = width * 0.1
+        gapy = width * 0.1
+
+        dl = imgui.get_window_draw_list()
+        dl.add_line(minx + gapx, miny + gapy, maxx - gapx, maxy - gapy, color, thickness=thickness)
+        dl.add_line(minx + gapx, maxy - gapy, maxx - gapx, miny + gapy, color, thickness=thickness)
+        dl.add_rect(minx, miny, maxx, maxy, color, thickness=thickness, rounding=globals.settings.style_corner_radius)
+
     def prepare_image_carousel(self):
         self.selected_image = 0
         self.temp_image_cycle_pause = False
         self.image_carousel_prev_time = imgui.get_time() * 1000
 
+    def start_slideshow(self):
+        self.slideshow = True
+        self.prepare_image_carousel()
+        monitor = glfw.get_primary_monitor()
+        vmode: glfw._GLFWvidmode = glfw.get_video_mode(monitor)
+        self.pre_slideshow_window_props = (self.screen_pos[0], self.screen_pos[1], int(self.prev_size[0]), int(self.prev_size[1]), vmode.refresh_rate)
+        glfw.set_window_monitor(self.window, monitor, 0, 0, vmode.size.width, vmode.size.height, vmode.refresh_rate)
+
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         popup_pos = None
         popup_size = None
         zoom_popup = False
+
         all_images = [game.banner, *game.additional_images]
-        selected_image = all_images[self.selected_image]
+        self.selected_image = min(self.selected_image, len(all_images) - 1)
+        image = all_images[self.selected_image]
         if game.additional_images and globals.settings.cycle_images and not self.temp_image_cycle_pause:
             imagehelper.redraw = True
             time_now_ms = imgui.get_time() * 1000
@@ -1708,42 +1806,122 @@ class MainGUI():
                     else:
                         self.selected_image = 0
 
+        if self.slideshow:
+            size = imgui.io.display_size
+            imgui.set_next_window_size(size.x, size.y)
+            imgui.set_mouse_cursor(imgui.MOUSE_CURSOR_NONE)
+            imgui.set_next_window_position(0, 0)
+            imgui.push_style_var(imgui.STYLE_WINDOW_BORDERSIZE, 0)
+            bg_win_flags = imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_TITLE_BAR | imgui.WINDOW_NO_SCROLLBAR | imgui.WINDOW_NO_SAVED_SETTINGS
+            with imgui.begin("###slideshow_background_window", flags=bg_win_flags):
+                aspect_ratio = image.height / image.width
+                if aspect_ratio > size.y / size.x:
+                    height = size.y
+                    width = height / aspect_ratio
+                else:
+                    width = size.x
+                    height = width * aspect_ratio
+                x = (size.x - width) / 2
+                y = (size.y - height) / 2
+                fdl = imgui.get_foreground_draw_list()
+                fdl.add_image(image.texture_id, (x, y), (x + width, y + height))
+                if self.moved_mouse:
+                    imgui.push_font(imgui.fonts.big)
+                    help_text = "Press Q to quit slideshow"
+                    help_text_size = imgui.calc_text_size(help_text)
+                    fdl.add_rect_filled(0, 0, help_text_size.x+8, help_text_size.y+4, imgui.get_color_u32_rgba(0, 0, 0, 1), rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_BOTTOM_RIGHT)
+                    fdl.add_text(0, 0, imgui.get_color_u32_rgba(1, 1, 0, 1), help_text)
+                    imgui.pop_font()
+            imgui.pop_style_var()
+            return 0, False
+
+        def draw_image_context_menu():
+            if imgui.begin_popup_context_item("###image_context"):
+                if imgui.selectable(f"{icons.folder_open_outline} Set banner", False)[0]:
+                    def select_callback(selected):
+                        if selected:
+                            game.banner_url = "custom"
+                            game.set_image_sync(pathlib.Path(selected).read_bytes())
+
+                    utils.push_popup(filepicker.FilePicker(
+                        title=f"Select or drop image for {game.name}",
+                        start_dir=globals.settings.default_exe_dir,
+                        callback=select_callback
+                    ).tick)
+                if imgui.selectable(f"{icons.trash_can_outline} Reset banner", False)[0]:
+                    game.delete_image()
+                    game.refresh_banner()
+                if len(all_images) > 1:
+                    imgui.separator()
+                    if imgui.selectable(f"{icons.play_box_outline} Slideshow", False)[0]:
+                        self.start_slideshow()
+                    if globals.settings.cycle_images:
+                        label = f"{icons.play_circle_outline} Resume cycle" if self.temp_image_cycle_pause else f"{icons.pause_circle_outline} Pause cycle"
+                        if imgui.selectable(label, False)[0]:
+                            self.temp_image_cycle_pause = not self.temp_image_cycle_pause
+                imgui.separator()
+                if imgui.selectable(f"{icons.image_multiple} Manage additional images", False)[0]:
+                    utils.push_popup(self.draw_manage_additional_images_popup, game)
+                imgui.end_popup()
+
         def popup_content():
-            nonlocal popup_pos, popup_size, zoom_popup, all_images, selected_image
+            nonlocal popup_pos, popup_size, zoom_popup, all_images, image
             # Image
+            max_img_height = self.scaled(375)  # ~16:9, assuming width is 690
+            image_is_banner = self.selected_image == 0
             avail = imgui.get_content_region_available()
-            if selected_image.missing:
-                text = "Banner missing!" if self.selected_image == 0 else "Image missing!"
+            if image.missing or image.invalid:
+                if image.missing:
+                    if image_is_banner:
+                        text = "Banner missing!"
+                        hover_text = "This thread does not seem to have a banner!" if game.banner_url == "missing" else "Run a full refresh to try downloading it again!"
+                    else:
+                        text = "Image missing!"
+                        hover_text = "Try adding a new one!"
+                else:
+                    text = "Invalid banner!" if image_is_banner else "Invalid image!"
+                    hover_text = "File has an unrecognised format and couldn't be loaded!"
+                imgui.push_font(imgui.fonts.big)
+                init_pos = imgui.get_cursor_pos()
                 width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
+                imgui.set_cursor_pos_y((max_img_height + imgui.get_text_line_height()) / 2)
                 self.draw_hover_text(
                     text=text,
-                    hover_text="This thread does not seem to have a banner!" if game.banner_url == "missing" else "Run a full refresh to try downloading it again!"
+                    hover_text=hover_text
                 )
-            elif selected_image.invalid:
-                text = "Invalid banner!" if self.selected_image == 0 else "Invalid image!"
-                width = imgui.calc_text_size(text).x
-                imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This image has an unrecognised format and couldn't be loaded!"
-                )
+                imgui.pop_font()
+                image_dummy_pos = None
+                imgui.set_cursor_pos(init_pos)
+                imgui.dummy(avail.x, max_img_height)
+                dl = imgui.get_window_draw_list()
+                color = imgui.get_color_u32_rgba(*globals.settings.style_border)
+                dl.add_rect(*imgui.get_item_rect_min(), *imgui.get_item_rect_max(), color, thickness=1, rounding=globals.settings.style_corner_radius)
             else:
-                aspect_ratio = selected_image.height / selected_image.width
-                width = min(avail.x, selected_image.width)
-                height = min(width * aspect_ratio, selected_image.height)
-                if height > (new_height := avail.y * self.scaled(0.4)):
-                    height = new_height
+                out_width = avail.x or 1
+                out_height = min(avail.y, max_img_height) or 1
+                aspect_ratio = image.height / image.width
+                if aspect_ratio > (out_height / out_width):
+                    height = out_height
                     width = height * (1 / aspect_ratio)
-                if width < avail.x:
-                    imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
+                    margin_x = (out_width - width) / 2
+                    margin_y = 0
+                else:
+                    width = out_width
+                    height = width * aspect_ratio
+                    margin_x = 0
+                    margin_y = (out_height - height) / 2
+
+                image_dummy_pos = imgui.get_cursor_pos()
+                imgui.set_cursor_pos((image_dummy_pos.x + margin_x, image_dummy_pos.y + margin_y))
                 image_pos = imgui.get_cursor_screen_pos()
 
                 imgui.begin_child("###image_zoomer", width=width, height=height + 1.0, flags=imgui.WINDOW_NO_SCROLLBAR)
                 imgui.dummy(width + 2.0, height)
                 imgui.set_scroll_x(1.0)
                 imgui.set_cursor_screen_pos(image_pos)
-                selected_image.render(width, height, rounding=globals.settings.style_corner_radius)
+                image.render(width, height, rounding=globals.settings.style_corner_radius)
+                draw_image_context_menu()
                 if imgui.is_item_hovered():
                     # Image popup
                     if imgui.is_mouse_down():
@@ -1760,7 +1938,7 @@ class MainGUI():
                         flags = imgui.DRAW_ROUND_CORNERS_ALL
                         pos2 = (x + width, y + height)
                         fg_draw_list = imgui.get_foreground_draw_list()
-                        fg_draw_list.add_image_rounded(selected_image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
+                        fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
                     # Zoom
                     elif globals.settings.zoom_enabled:
                         if diff := int(imgui.get_scroll_x() - 1.0):
@@ -1778,58 +1956,55 @@ class MainGUI():
                         y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
                         imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
                         imgui.begin_tooltip()
-                        selected_image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
+                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
                         imgui.end_tooltip()
                 imgui.end_child()
-            if imgui.begin_popup_context_item("###image_context"):
-                if imgui.selectable(f"{icons.folder_open_outline} Set banner", False)[0]:
-                    def select_callback(selected):
-                        if selected:
-                            game.banner_url = "custom"
-                            game.set_image_sync(pathlib.Path(selected).read_bytes())
-                    utils.push_popup(filepicker.FilePicker(
-                        title=f"Select or drop image for {game.name}",
-                        start_dir=globals.settings.default_exe_dir,
-                        callback=select_callback
-                    ).tick)
-                if imgui.selectable(f"{icons.trash_can_outline} Reset banner", False)[0]:
-                    game.delete_image()
-                    game.refresh_banner()
-                imgui.separator()
-                if globals.settings.cycle_images:
-                    label = f"{icons.play_circle_outline} Resume cycle" if self.temp_image_cycle_pause else f"{icons.pause_circle_outline} Pause cycle"
-                    if imgui.selectable(label, False)[0]:
-                        self.temp_image_cycle_pause = not self.temp_image_cycle_pause
-                    imgui.separator()
-                if imgui.selectable(f"{icons.image_multiple} Manage additional images", False)[0]:
-                    utils.push_popup(self.draw_manage_additional_images_popup, game)
-                imgui.end_popup()
+
+            if image_dummy_pos:
+                imgui.set_cursor_pos(image_dummy_pos)
+                imgui.dummy(avail.x, max_img_height)
+
+            draw_image_context_menu()
+
+            # Horizontal image carousel
             if game.additional_images:
                 carousel_height = 50.0
                 imgui.push_style_var(imgui.STYLE_WINDOW_PADDING, (3, 3))
                 imgui.begin_child("###horizontal_carousel", width=avail.x, height=carousel_height+imgui.style.scrollbar_size + 8, flags=imgui.WINDOW_HORIZONTAL_SCROLLING_BAR | imgui.WINDOW_ALWAYS_USE_WINDOW_PADDING)
                 total_width = (len(game.additional_images) - 1) * imgui.style.item_spacing.x
                 for image in all_images:
-                    total_width += (image.width / image.height) * carousel_height
+                    if image.missing or image.invalid:
+                        total_width += (16 / 9) * carousel_height
+                    else:
+                        total_width += (image.width / image.height) * carousel_height
                 if total_width < avail.x:
                     imgui.set_cursor_pos_x((avail.x - total_width) / 2)
                 for idx, image in enumerate(all_images):
-                    aspect_ratio = image.width / image.height
-                    imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 3)
+                    if image.missing or image.invalid:
+                        aspect_ratio = 16 / 9
+                    else:
+                        aspect_ratio = image.width / image.height
+                    imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, border_size := 3)
                     imgui.push_style_color(imgui.COLOR_BORDER, 0, 0, 0, 0)
-                    if popaccent := self.selected_image == idx:
+                    if active := self.selected_image == idx:
                         imgui.push_style_color(imgui.COLOR_BORDER, *globals.settings.style_accent)
-                    if imgui.image_button(image.texture_id, carousel_height * aspect_ratio, carousel_height, (0,0), (1,1), (1,1,1,1), (0,0,0,0), 1):
-                        self.selected_image = idx
+                    if image.missing or image.invalid:
+                        def callback():
+                            self.selected_image = idx
+                        self.draw_invalid_image((carousel_height * aspect_ratio) + border_size, carousel_height + border_size - 1, selected=active, callback=callback)
+                    else:
+                        if imgui.image_button(image.texture_id, carousel_height * aspect_ratio, carousel_height, (0,0), (1,1), (1,1,1,1), (0,0,0,0), 1):
+                            self.selected_image = idx
                     if not imgui.is_item_visible() and self.selected_image == idx and globals.settings.cycle_images and not self.temp_image_cycle_pause:
                         imgui.set_scroll_here_x()
                     imgui.pop_style_var()
-                    imgui.pop_style_color(2 if popaccent else 1)
+                    imgui.pop_style_color(2 if active else 1)
                     imgui.same_line()
                 imgui.end_child()
                 imgui.pop_style_var()
-            imgui.push_text_wrap_pos()
 
+            # Start of the text section
+            imgui.push_text_wrap_pos()
             imgui.push_font(imgui.fonts.big)
             self.draw_game_name_text(game)
             imgui.pop_font()
@@ -1895,6 +2070,16 @@ class MainGUI():
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.text_unformatted("Click to set as played right now!")
+                imgui.end_tooltip()
+
+            imgui.text_disabled("Last Played Version:")
+            imgui.same_line()
+            imgui.text(game.last_played_version)
+            if imgui.is_item_clicked():
+                game.last_played_version = game.version
+            if imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.text_unformatted("Click to set current version!")
                 imgui.end_tooltip()
 
             imgui.text_disabled("Added On:")
@@ -2365,13 +2550,14 @@ class MainGUI():
             imgui.dummy(self.scaled(popup_width), self.scaled(0))
             dnd_flags = imgui.DRAG_DROP_ACCEPT_PEEK_ONLY | imgui.DRAG_DROP_SOURCE_ALLOW_NULL_ID | imgui.DRAG_DROP_SOURCE_NO_PREVIEW_TOOLTIP
             if imgui.button(f"{icons.image_plus_outline} Add image"):
-                def select_callback(selected):
-                    if selected:
-                        game.add_image(pathlib.Path(selected).read_bytes())
+                def select_callback(selected: list[str]):
+                    for path in selected:
+                        game.add_image(pathlib.Path(path).read_bytes())
                 utils.push_popup(filepicker.FilePicker(
                     title=f"Select or drop image",
                     start_dir=globals.settings.default_exe_dir,
-                    callback=select_callback
+                    callback=select_callback,
+                    multiple_items=True,
                 ).tick)
             imgui.same_line()
             if imgui.button(f"{icons.download_circle_outline} Download thread screenshots"):
@@ -2429,7 +2615,12 @@ class MainGUI():
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, (spacing, spacing))
                 for idx, image in enumerate(game.additional_images):
                     x1, y1 = imgui.get_cursor_pos()
-                    imgui.invisible_button(f"##image_dummy{image.resolved_path.name}", image_width, image_height)
+                    if invalid_or_missing := (image.invalid or image.missing):
+                        def callback():
+                            pass
+                        self.draw_invalid_image(image_width, image_height, callback=callback)
+                    else:
+                        imgui.invisible_button(f"##image_dummy{image.resolved_path.name}", image_width, image_height)
                     if imgui.begin_drag_drop_source(flags=dnd_flags):
                         payload = idx + 1
                         payload = payload.to_bytes(payload.bit_length(), sys.byteorder)
@@ -2442,17 +2633,19 @@ class MainGUI():
                             lst[idx], lst[payload] = lst[payload], lst[idx]
                         imgui.end_drag_drop_target()
                     if imgui.begin_popup_context_item(f"##image_dummy{image.resolved_path.name}"):
-                        if imgui.selectable(f"{icons.panorama_variant_outline} {'Set as banner' if game.banner.missing or game.banner.invalid else 'Swap with banner'}", False)[0]:
-                            game.image_banner_swap(idx)
+                        if not invalid_or_missing:
+                            if imgui.selectable(f"{icons.panorama_variant_outline} {'Set as banner' if game.banner.missing or game.banner.invalid else 'Swap with banner'}", False)[0]:
+                                game.image_banner_swap(idx)
                         if imgui.selectable(f"{icons.image_remove_outline} Remove", False)[0]:
                             game.delete_image(filename=image.resolved_path.stem)
                             del game.additional_images[idx]
                             self.selected_image = min(self.selected_image, len([game.banner, *game.additional_images]) - 1)
                         imgui.end_popup()
-                    imgui.set_item_allow_overlap()
-                    imgui.set_cursor_position((x1, y1))
-                    crop = image.crop_to_ratio(widescreen_ratio, fit=globals.settings.fit_additional_images)
-                    image.render(image_width, image_height, *crop, rounding=globals.settings.style_corner_radius)
+                    if not invalid_or_missing:
+                        imgui.set_item_allow_overlap()
+                        imgui.set_cursor_position((x1, y1))
+                        crop = image.crop_to_ratio(widescreen_ratio, fit=globals.settings.fit_additional_images)
+                        image.render(image_width, image_height, *crop, rounding=globals.settings.style_corner_radius)
                     if current_col == columns:
                         imgui.set_cursor_pos_x(initial_x)
                         if len(game.additional_images) == idx + 1:
@@ -2502,7 +2695,7 @@ class MainGUI():
         return utils.popup("Manage extension tags", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def draw_tag_manager_controls(self, _type: typing.Literal["positive", "negative", "critical"]):
-        combo_items = ["Choose", *structs.CLEAR_TAGS]
+        combo_items = ["Choose", *TextTags]
         changed, value = imgui.combo("###tag_manager", 0, combo_items)
         imgui.same_line()
         imgui.text_disabled("Click on tag to remove")
@@ -2527,14 +2720,20 @@ class MainGUI():
         match _type:
             case "positive":
                 self.begin_framed_text((0.0, 0.4, 0.0, 1.0), interaction=True)
+                globals.settings.ext_tags_positive = list(filter(lambda t: t in TextTags, globals.settings.ext_tags_positive))
+                async_thread.run(db.update_settings("ext_tags_positive"))  # removing obsolete tags
                 tags = globals.settings.ext_tags_positive
                 action = lambda t: globals.settings.ext_tags_positive.remove(t)
             case "negative":
                 self.begin_framed_text((0.6, 0.0, 0.0, 1.0), interaction=True)
+                globals.settings.ext_tags_negative = list(filter(lambda t: t in TextTags, globals.settings.ext_tags_negative))
+                async_thread.run(db.update_settings("ext_tags_negative"))
                 tags = globals.settings.ext_tags_negative
                 action = lambda t: globals.settings.ext_tags_negative.remove(t)
             case "critical":
                 self.begin_framed_text((0.1, 0.1, 0.1, 1.0), interaction=True)
+                globals.settings.ext_tags_critical = list(filter(lambda t: t in TextTags, globals.settings.ext_tags_critical))
+                async_thread.run(db.update_settings("ext_tags_critical"))
                 tags = globals.settings.ext_tags_critical
                 action = lambda t: globals.settings.ext_tags_critical.remove(t)
         tags.sort()
@@ -2760,19 +2959,19 @@ class MainGUI():
                 self.sorted_games_ids = ids
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].archived)
                 self.sorted_games_ids.sort(key=lambda id: globals.games[id].type is not Type.Unchecked)
-            match self.selected_screen:
-                case Screen.Tracker:
-                    if not globals.settings.reminders_in_filtered or not self.add_box_text:
-                        # this method modifies list in place, using filter() will create a new collection instead
-                        # it's important because during manual sorting 'self.sorted_games_ids' actually references
-                        # 'globals.settings.manual_sort_list' and both lists should receive same modifications
-                        self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if not globals.games[id].reminder]
-                    if not globals.settings.favorites_in_filtered or not self.add_box_text:
-                        self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if not globals.games[id].favorite]
-                case Screen.Reminders:
-                    self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].reminder]
-                case Screen.Favorites:
-                    self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].favorite]
+            if globals.settings.unify_filtered_results:
+                pass
+            else:
+                match self.selected_screen:
+                    case Screen.Tracker:
+                        # This syntax modifies list in place, while filter() creates a new collection instead.
+                        # This is important because during manual sorting 'self.sorted_games_ids' actually references
+                        # 'globals.settings.manual_sort_list'; both lists should mirror each other to function properly
+                        self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if not (globals.games[id].reminder or globals.games[id].favorite)]
+                    case Screen.Reminders:
+                        self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].reminder]
+                    case Screen.Favorites:
+                        self.sorted_games_ids[:] = [id for id in self.sorted_games_ids if globals.games[id].favorite]
             keep_ids = set()
             for and_group in self.filters:
                 temp_sorted_games_ids = self.sorted_games_ids
@@ -2982,6 +3181,20 @@ class MainGUI():
                 if not imgui.is_rect_visible(imgui.io.display_size.x, frame_height):
                     imgui.dummy(0, frame_height)
                     continue
+                # Highlight custom games
+                if game.custom and globals.settings.highlight_custom_games:
+                    domain = urlparse(game.url).netloc
+                    r, g, b, _ = colors.hex_to_rgba_0_1(
+                        colorhash.ColorHash(
+                            domain,
+                            saturation=[0.6],
+                            min_h=globals.settings.style_custom_hl_min_hue,
+                            max_h=globals.settings.style_custom_hl_max_hue,
+                        ).hex
+                    )
+                    color = imgui.get_color_u32_rgba(r, g, b, .2)
+                    imgui.table_set_background_color(imgui.TABLE_BACKGROUND_TARGET_ROW_BG0, color)
+                    imgui.table_set_background_color(imgui.TABLE_BACKGROUND_TARGET_ROW_BG1, color)
                 # Base row height with a buttom to align the following text calls to center vertically
                 imgui.button("", width=imgui.FLOAT_MIN)
                 # Loop columns
@@ -3142,6 +3355,18 @@ class MainGUI():
 
     def draw_game_cell(self, game: Game, game_i: int | None, draw_list, cell_width: float, img_height: float, config: tuple):
         (side_indent, action_items, data_rows, bg_col, frame_height, data_height, badge_wrap, dev_wrap) = config
+        # Highlight custom games
+        if game.custom and globals.settings.highlight_custom_games:
+            domain = urlparse(game.url).netloc
+            r, g, b, _ = colors.hex_to_rgba_0_1(
+                colorhash.ColorHash(
+                    domain,
+                    saturation=[0.6],
+                    min_h=globals.settings.style_custom_hl_min_hue,
+                    max_h=globals.settings.style_custom_hl_max_hue,
+                ).hex
+            )
+            bg_col = imgui.get_color_u32_rgba(r, g, b, .2)
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
@@ -3427,12 +3652,9 @@ class MainGUI():
         imgui.pop_style_var()
 
     def draw_bottombar(self):
-        new_display_mode = None
-
         if imgui.button(icons.archive_search_outline):
             utils.push_popup(self.draw_saved_search_popup)
         imgui.same_line()
-
         if self.add_box_valid:
             imgui.set_next_item_width(-(imgui.calc_text_size("Add!").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         else:
@@ -3756,20 +3978,21 @@ class MainGUI():
 
     def draw_saved_search_popup(self, popup_uuid=""):
         def popup_content():
-            if imgui.button(f"{icons.content_save} Save current search"):
+            if imgui.button(f"{icons.content_save} Save current query"):
                 self.save_search()
             if self.saved_search_terms:
                 imgui.text("")
-            for term in self.saved_search_terms:
-                if imgui.button(icons.magnify):
+            for term in sorted(self.saved_search_terms):
+                if imgui.button(f"{icons.magnify} Use"):
                     self.add_box_text = term
                     self.parse_filter_bar()
+                    return True
                 imgui.same_line()
                 if imgui.button(icons.trash_can_outline):
                     self.saved_search_terms.remove(term)
                 imgui.same_line()
                 imgui.text(term)
-        return utils.popup("Saved search terms", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
+        return utils.popup("Saved search queries", popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
 
     def save_search(self):
         if self.add_box_text and self.add_box_text not in self.saved_search_terms:
@@ -4163,12 +4386,6 @@ class MainGUI():
             if changed:
                 async_thread.run(db.update_settings("grid_columns"))
 
-            draw_settings_label(
-                "Separate sections sorting:",
-                "Each section (Tracker, Reminders, Favorites) will have it's own table sorting preferences."
-            )
-            draw_settings_checkbox("separate_sections_sorting")
-
             draw_settings_label("Smooth scrolling:")
             draw_settings_checkbox("scroll_smooth")
 
@@ -4202,6 +4419,12 @@ class MainGUI():
                 "label widgets, and status and update icons."
             )
             draw_settings_checkbox("quick_filters")
+
+            draw_settings_label(
+                "Highlight custom games:",
+                "Custom games will be highlighted based on the domain name from url"
+            )
+            draw_settings_checkbox("highlight_custom_games")
 
             draw_settings_label(
                 "Time format:",
@@ -4311,30 +4534,6 @@ class MainGUI():
             draw_settings_label("New label:")
             if imgui.button("Add", width=right_width):
                 async_thread.run(db.add_label())
-
-            imgui.end_table()
-            imgui.spacing()
-
-        if draw_settings_section("Reminders"):
-            draw_settings_label(
-                "Appear in filtered results:",
-                "Reminders will always appear in filtered results on Tracker screen.\n"
-                "Handy shortcut if you don't want to switch screen after applying filters."
-            )
-            if draw_settings_checkbox("reminders_in_filtered"):
-                self.require_sort = True
-
-            imgui.end_table()
-            imgui.spacing()
-
-        if draw_settings_section("Favorites"):
-            draw_settings_label(
-                "Appear in filtered results:",
-                "Favorites will always appear in filtered results on Tracker screen.\n"
-                "Handy shortcut if you don't want to switch screen after applying filters."
-            )
-            if draw_settings_checkbox("favorites_in_filtered"):
-                self.require_sort = True
 
             imgui.end_table()
             imgui.spacing()
@@ -4636,6 +4835,23 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
+        if draw_settings_section("Sections"):
+            draw_settings_label(
+                "Separate views:",
+                "Each section will have it's own view preferences(columns, sorting, etc.)"
+            )
+            draw_settings_checkbox("separate_sections_sorting")
+
+            draw_settings_label(
+                "Unify fitlered results:",
+                "Show results from all sections when filtering games"
+            )
+            if draw_settings_checkbox("unify_filtered_results"):
+                self.require_sort = True
+
+            imgui.end_table()
+            imgui.spacing()
+
         if draw_settings_section("Startup"):
             draw_settings_label("Refresh at start:")
             draw_settings_checkbox("start_refresh")
@@ -4683,9 +4899,35 @@ class MainGUI():
             draw_settings_label("Text dim:")
             draw_settings_color("style_text_dim")
 
+
+            draw_settings_label(
+                "Custom games highlight",
+                "You can limit hue to better match your chosen color scheme.\n"
+                "Be careful, setting close values may result in very similar colors.\n"
+                "If you don't know how color hue works do a 'color hue' web image search."
+            )
+            imgui.table_next_row()
+            imgui.table_next_column()
+            draw_settings_label("Hue min:")
+            changed, value = imgui.drag_int("###style_custom_hl_min_hue", set.style_custom_hl_min_hue, change_speed=0.3, min_value=0, max_value=360, format="%d°")
+            set.style_custom_hl_min_hue = min(max(value, 0), 360)
+            if set.style_custom_hl_min_hue > set.style_custom_hl_max_hue:
+                set.style_custom_hl_min_hue = set.style_custom_hl_max_hue
+            if changed:
+                async_thread.run(db.update_settings("style_custom_hl_min_hue"))
+            draw_settings_label("Hue max:")
+            changed, value = imgui.drag_int("###style_custom_hl_max_hue", set.style_custom_hl_max_hue, change_speed=0.3, min_value=0, max_value=360, format="%d°")
+            set.style_custom_hl_max_hue = min(max(value, 0), 360)
+            if set.style_custom_hl_max_hue < set.style_custom_hl_min_hue:
+                set.style_custom_hl_max_hue = set.style_custom_hl_min_hue
+            if changed:
+                async_thread.run(db.update_settings("style_custom_hl_max_hue"))
+
             draw_settings_label("Defaults:")
             if imgui.button("Restore", width=right_width):
                 set.style_corner_radius = DefaultStyle.corner_radius
+                set.style_custom_hl_max_hue = DefaultStyle.custom_hl_max_hue
+                set.style_custom_hl_min_hue = DefaultStyle.custom_hl_min_hue
                 set.style_accent        = colors.hex_to_rgba_0_1(DefaultStyle.accent)
                 set.style_alt_bg        = colors.hex_to_rgba_0_1(DefaultStyle.alt_bg)
                 set.style_bg            = colors.hex_to_rgba_0_1(DefaultStyle.bg)
@@ -4695,6 +4937,8 @@ class MainGUI():
                 self.refresh_styles()
                 async_thread.run(db.update_settings(
                     "style_corner_radius",
+                    "style_custom_hl_max_hue",
+                    "style_custom_hl_min_hue",
                     "style_accent",
                     "style_alt_bg",
                     "style_bg",

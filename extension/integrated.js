@@ -181,7 +181,7 @@ render = async () => {
                 }
                 const tagSpans = tagsWrapper.querySelectorAll('span');
                 tagSpans.forEach((span) => {
-                    const name = span.innerHTML;
+                    const name = span.innerText;
                     if (tags.positive.includes(name)) {
                         span.style.backgroundColor = '#006600';
                     } else if (tags.negative.includes(name)) {
@@ -194,7 +194,7 @@ render = async () => {
             // Thread page
             const tagLinks = document.querySelectorAll('a.tagItem');
             tagLinks.forEach((tag) => {
-                const name = tag.innerHTML;
+                const name = tag.innerText;
                 if (tags.positive.includes(name)) {
                     tag.style.color = 'white';
                     tag.style.backgroundColor = '#006600';

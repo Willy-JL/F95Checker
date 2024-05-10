@@ -6,6 +6,7 @@ import functools
 import asyncio
 import typing
 import random
+import socket
 import imgui
 import time
 import math
@@ -104,31 +105,6 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
                     globals.last_update_check = 0.0
             update_check.add_done_callback(reset_timer)
     globals.refresh_task.add_done_callback(done_callback)
-
-
-# https://github.com/pyimgui/pyimgui/blob/24219a8d4338b6e197fa22af97f5f06d3b1fe9f7/doc/examples/integrations_glfw3.py
-def impl_glfw_init(width: int, height: int, window_name: str):
-    # FIXME: takes quite a while to initialize on my arch linux machine
-    if not glfw.init():
-        print("Could not initialize OpenGL context")
-        sys.exit(1)
-
-    # OS X supports only forward-compatible core profiles from 3.2
-    glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-    glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-    glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-    glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)
-
-    # Create a windowed mode window and its OpenGL context
-    window = glfw.create_window(width, height, window_name, None, None)
-    glfw.make_context_current(window)
-
-    if not window:
-        glfw.terminate()
-        print("Could not initialize Window")
-        sys.exit(1)
-
-    return window
 
 
 def validate_geometry(x, y, width, height):
@@ -407,3 +383,15 @@ def draw_segmented_button(labels: list[str], value: int, width: float = None, he
     draw_list.add_rect(screen_pos[0], screen_pos[1], screen_pos[0] + full_b_width, screen_pos[1] + b_height, border, rounding=rounding, thickness=thickness, flags=imgui.DRAW_ROUND_CORNERS_ALL)
 
     return ret
+
+
+def is_connected():
+    try:
+        # See if we can resolve the host name - tells us if there is a DNS listening
+        host = socket.gethostbyname("one.one.one.one")
+        # Connect to the host - tells us if the host is actually reachable
+        with socket.create_connection((host, 80), 2):
+            return True
+    except Exception:
+        pass
+    return False

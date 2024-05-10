@@ -181,6 +181,7 @@ async def _launch_game_exe(game: Game, executable: str):
     try:
         await _launch_exe(executable)
         game.last_played = time.time()
+        game.last_played_version = game.version
     except FileNotFoundError:
         def select_callback(selected):
             if selected:
@@ -342,9 +343,18 @@ def open_webpage(url: str):
     async def _open_webpage(url: str):
         try:
             if set.browser.integrated:
-                proc = multiprocessing.Process(target=webview.open, args=(url,), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(1269, 969)))
-                proc.start()
-                DaemonProcess(proc)
+                if globals.os is Os.Linux:
+                    await asyncio.create_subprocess_exec(
+                        *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
+                        json.dumps(webview.kwargs() | dict(
+                            cookies=globals.cookies,
+                            size=(1269, 969),
+                        ))
+                    )
+                else:
+                    proc = multiprocessing.Process(target=webview.open, args=(url,), kwargs=webview.kwargs() | dict(cookies=globals.cookies, size=(1269, 969)))
+                    proc.start()
+                    DaemonProcess(proc)
             else:
                 await asyncio.create_subprocess_exec(
                     *args, url,
