@@ -850,10 +850,47 @@ class Game:
             except Exception:
                 pass
 
-    def refresh_image(self):
-        self.image.glob = f"{self.id}.*"
-        self.image.loaded = False
-        self.image.resolve()
+    def init_images(self):
+        from modules import globals
+        self.images_path = globals.images_path / str(self.id)
+        self.images_path.mkdir(parents=True, exist_ok=True)
+        self.banner = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+        self.additional_images = []
+        for image in self.images_path.iterdir():
+            if image.is_file() and image.stem.isnumeric():
+                self.additional_images.append(imagehelper.ImageHelper(image))
+        if self.additional_images:
+            self.sort_images()
+            self.apply_image_order()
+
+    def sort_images(self):
+        self.additional_images.sort(key=lambda helper: int(helper.resolved_path.stem))
+
+    def apply_image_order(self):
+        if not self.additional_images:
+            pass
+        # We add an underscore to avoid name conflicts during rename
+        for new_index, image in enumerate(self.additional_images):
+            old_path = image.resolved_path
+            if new_index != int(old_path.stem):
+                old_path.rename(old_path.with_stem(f"_{new_index}"))
+        for old_path in self.images_path.iterdir():
+            if old_path.is_file() and old_path.stem.startswith("_"):
+                new_name = old_path.stem.removeprefix("_")
+                if new_name.isnumeric():
+                    index = int(new_name)
+                    if index < len(self.additional_images):
+                        new_path = old_path.with_stem(new_name)
+                        old_path.rename(new_path)
+                        image = self.additional_images[index]
+                        image.path = new_path
+                        image.loaded = False
+                        image.resolve()
+
+    def refresh_banner(self):
+        self.banner.glob = f"{self.id}.*"
+        self.banner.loaded = False
+        self.banner.resolve()
 
     async def set_image_async(self, data: bytes):
         from modules import globals, utils
