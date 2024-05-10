@@ -124,6 +124,7 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
                 start_dir /= best_match
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
+        picker_type=filepicker.PickerType.Execs,
         start_dir=start_dir,
         callback=select_callback,
         buttons=[use_uri]

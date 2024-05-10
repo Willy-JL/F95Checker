@@ -209,6 +209,7 @@ async def connect():
             "style_corner_radius":         f'INTEGER DEFAULT {DefaultStyle.corner_radius}',
             "style_text":                  f'TEXT    DEFAULT "{DefaultStyle.text}"',
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
+            "style_filepicker_highlight":  f'TEXT    DEFAULT "{DefaultStyle.filepicker_highlight}"',
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
             "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
