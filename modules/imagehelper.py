@@ -56,6 +56,26 @@ def _crop_to_ratio(width, height, ratio: int | float, fit=False):
 
 
 class ImageHelper:
+    __slots__ = (
+        "width",
+        "height",
+        "frame",
+        "glob",
+        "elapsed",
+        "loaded",
+        "loading",
+        "applied",
+        "missing",
+        "invalid",
+        "prev_time",
+        "animated",
+        "frames",
+        "durations",
+        "texture_ids",
+        "resolved_path",
+        "path",
+    )
+
     def __init__(self, path: str | pathlib.Path, glob=""):
         self.width = 1
         self.height = 1

@@ -23,12 +23,31 @@ ok_icon      = f"{icons.check} Ok"          # changed
 
 
 class FilePicker:
-    flags = (
+    default_flags = (
         imgui.WINDOW_NO_MOVE |
         imgui.WINDOW_NO_RESIZE |
         imgui.WINDOW_NO_COLLAPSE |
         imgui.WINDOW_NO_SAVED_SETTINGS |
         imgui.WINDOW_ALWAYS_AUTO_RESIZE
+    )
+
+    __slots__ = (
+        "current",
+        "title",
+        "active",
+        "elapsed",
+        "buttons",
+        "callback",
+        "selected",
+        "filter_box_text",
+        "update_filter",
+        "items",
+        "dir_picker",
+        "dir",
+        "flags",
+        "windows",
+        "drives",
+        "current_drive",
     )
 
     def __init__(
@@ -52,7 +71,7 @@ class FilePicker:
         self.items: list[str] = []
         self.dir_picker = dir_picker
         self.dir: pathlib.Path = None
-        self.flags = custom_popup_flags or self.flags
+        self.flags = custom_popup_flags or self.default_flags
         self.windows = sys.platform.startswith("win")
         if self.windows:
             self.drives: list[str] = []

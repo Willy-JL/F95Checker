@@ -58,6 +58,8 @@ def msgbox(title: str, msg: str, level: MsgBox = None, buttons: dict[str, typing
 
 
 class Exc(Exception):
+    __slots__ = ("title", "msg", "popup",)
+
     def __init__(self, title:str, msg: str, level: MsgBox = None, buttons: dict[str, typing.Callable] = True, more: str = None):
         self.title = title
         self.msg = msg

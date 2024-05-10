@@ -3,12 +3,13 @@ import os
 
 
 class Singleton:
+    __slots__ = ("lock", "running",)
+
     def __init__(self, app_id: str):
         if os.name == 'nt':
             # Requirement: pip install pywin32
             import win32api, win32event, winerror
-            self.mutexname = app_id
-            self.lock = win32event.CreateMutex(None, False, self.mutexname)
+            self.lock = win32event.CreateMutex(None, False, app_id)
             self.running = (win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS)
         else:
             import fcntl

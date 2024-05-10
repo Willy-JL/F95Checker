@@ -136,6 +136,7 @@ def create(
         import aiohttp
         async_thread.setup()
         class RPCProxy(QtCore.QObject):
+            __slots__ = ("session",)
             def __init__(self):
                 super().__init__()
                 self.session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())

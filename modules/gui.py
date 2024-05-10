@@ -75,7 +75,7 @@ imgui.style = None
 
 class Columns:
 
-    @dataclasses.dataclass
+    @dataclasses.dataclass(slots=True)
     class Column:
         cols: object
         name: str
@@ -88,6 +88,8 @@ class Columns:
         enabled: bool = None
         no_header: str = False
         short_header: str = False
+        header: str = None
+        index: int = None
 
         def __post_init__(self):
             # Header

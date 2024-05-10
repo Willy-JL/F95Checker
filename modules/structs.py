@@ -17,7 +17,10 @@ import os
 
 
 class CounterContext:
-    count = 0
+    __slots__ = ("count",)
+
+    def __init__(self):
+        self.count = 0
 
     def __enter__(self):
         self.count += 1
@@ -34,6 +37,9 @@ class CounterContext:
 
 class Popup(functools.partial):
     next_uuid = 0
+
+    __slots__ = ("open", "uuid",)
+
     def __init__(self, *_, **__):
         from modules import utils
         self.open = True
@@ -52,6 +58,8 @@ class Popup(functools.partial):
 
 
 class DaemonProcess:
+    __slots__ = ("finalize",)
+
     def __init__(self, proc):
         self.finalize = weakref.finalize(proc, self.kill, proc)
 
@@ -75,6 +83,8 @@ class DaemonProcess:
 
 
 class MultiProcessPipe(multiprocessing.queues.Queue):
+    __slots__ = ("proc", "daemon",)
+
     def __init__(self):
         super().__init__(0, ctx=multiprocessing.get_context())
 
@@ -103,8 +113,10 @@ class MultiProcessPipe(multiprocessing.queues.Queue):
 
 
 class AsyncProcessPipe:
+    __slots__ = ("proc", "daemon",)
+
     class process_exit(Exception):
-        pass
+        __slots__ = ()
 
     def __call__(self, proc: asyncio.subprocess.Process):
         self.proc = proc
@@ -131,6 +143,9 @@ class AsyncProcessPipe:
 
 class Timestamp:
     instances = []
+
+    __slots__ = ("value", "_display")
+
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
         type(self).instances.append(self)
@@ -160,6 +175,9 @@ class Timestamp:
 
 class Datestamp(Timestamp):
     instances = []
+
+    __slots__ = ()
+
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
         type(self).instances.append(self)
@@ -180,20 +198,20 @@ class DefaultStyle:
     text_dim      = "#808080"
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class ThreadMatch:
     title: str
     id: int
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class SearchResult:
     title: str
     url: str
     id: int
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class TorrentResult:
     id: int
     title: str
@@ -214,13 +232,13 @@ class TorrentResult:
         self.date = dt.datetime.fromtimestamp(self.date).strftime(globals.settings.datestamp_format)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class SortSpec:
     index: int
     reverse: bool
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class TrayMsg:
     title: str
     msg: str
@@ -476,11 +494,12 @@ Category = IntEnumHack("Category", [
 ])
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Filter:
     mode: FilterMode
-    invert = False
-    match = None
+    invert: bool = False
+    match: typing.Any = None
+    id: int = None
 
     def __post_init__(self):
         self.id = id(self)
@@ -505,7 +524,7 @@ TimelineEventType = IntEnumHack("TimelineEventType", [
 ])
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class TimelineEvent:
     instances = []
 
@@ -524,7 +543,7 @@ class TimelineEvent:
         return self
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Label:
     id: int
     name: str
@@ -557,7 +576,7 @@ class Label:
             cls.instances.remove(self)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Tab:
     id: int
     name: str
@@ -605,7 +624,7 @@ class Tab:
         return hash(self.id)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Browser:
     name: str
     hash: int = None
@@ -614,6 +633,7 @@ class Browser:
     integrated: bool = None
     custom: bool = None
     private_arg: list = None
+    index : int = None
     instances: typing.ClassVar = {}
     avail_list: typing.ClassVar = []
 
@@ -664,7 +684,7 @@ Browser.add("Integrated", 0)
 Browser.add("Custom", -1)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Settings:
     background_on_close         : bool
     bg_notifs_interval          : int
@@ -779,7 +799,7 @@ Type = IntEnumHack("Type", [
 ])
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Game:
     id                 : int
     custom             : bool | None
@@ -944,7 +964,7 @@ class Game:
 
 
     def __setattr__(self, name: str, value: typing.Any):
-        if self._did_init and name in [
+        if hasattr(self, "_did_init") and self._did_init and name in [
             "custom",
             "name",
             "version",
@@ -979,13 +999,13 @@ class Game:
             if isinstance(attr := getattr(self, name), Timestamp):
                 attr.update(value)
             else:
-                super().__setattr__(name, value)
+                super(Game, self).__setattr__(name, value)
             from modules import globals, async_thread, db
             async_thread.run(db.update_game(self, name))
             if globals.gui:
                 globals.gui.recalculate_ids = True
             return
-        super().__setattr__(name, value)
+        super(Game, self).__setattr__(name, value)
         if name == "selected":
             from modules import globals
             if globals.gui:
@@ -994,7 +1014,7 @@ class Game:
                 globals.gui.selected_games_count = len(list(filter(lambda game: game.selected, globals.games.values())))
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class OldGame:
     id                   : int
     name                 : str
