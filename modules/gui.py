@@ -1047,7 +1047,7 @@ class MainGUI():
             with open(imgui.io.ini_file_name, "w") as f:
                 f.write(new_ini)
             for game in globals.games.values():
-                game.apply_new_image_order()
+                game.apply_image_order()
             self.impl.shutdown()
             glfw.terminate()
 
@@ -3007,7 +3007,6 @@ class MainGUI():
             # Hover = image on refresh button and cycle
             self.hovered_game = game
             if game.additional_images and globals.settings.cycle_images and globals.settings.cycle_on_hover:
-                imagehelper.redraw = True
                 final_index = len(game.additional_images)  # No -1 because we also count banner image
                 time_now_ms = imgui.get_time() * 1000
                 if time_now_ms - self.hovered_game_image_prev_time > globals.settings.cycle_length:
