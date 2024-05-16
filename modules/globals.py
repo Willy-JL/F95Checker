@@ -145,8 +145,9 @@ _()
 start_cmd = None
 autostart = None
 start_with_system = None
+reg_key = "F95Checker"
 def _():
-    global start_cmd, autostart, start_with_system
+    global start_cmd, autostart, reg_key, start_with_system
     if frozen:
         start_cmd = shlex.join([sys.executable])
     else:
@@ -155,10 +156,11 @@ def _():
 
     if os is Os.Windows:
         import winreg
-        autostart = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\F95Checker"
+        autostart = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
         try:
             current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-            value = winreg.QueryValue(current_user, autostart)
+            key = winreg.OpenKeyEx(current_user, autostart)
+            value = winreg.QueryValueEx(key, reg_key)[0]
             start_with_system = value == start_cmd
         except Exception:
             start_with_system = False
