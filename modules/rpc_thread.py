@@ -73,7 +73,8 @@ def start():
                             self.send_json(200, [{
                                     "id": g.id,
                                     "icon": g.tab.icon if g.tab else Tab.first_tab_label[0],
-                                    "color": colors.rgba_0_1_to_hex(g.tab.color) if g.tab and g.tab.color else "#FD5555"
+                                    "color": colors.rgba_0_1_to_hex(g.tab.color) if g.tab and g.tab.color else "#FD5555",
+                                    "notes": g.notes,
                                 } for g in globals.games.values()
                             ])
                             return
