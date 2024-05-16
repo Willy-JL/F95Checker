@@ -96,9 +96,13 @@ const updateIcons = async (tabId) => {
                 const game = games.find(g => g.id === gameId);
                 icon.classList.add('mdi');
                 icon.style.setProperty('--mdi-i', `'${game.icon}'`);
-                icon.setAttribute('title', 'This game is present in your F95Checker library!');
+                tooltiptext = 'This game is present in your F95Checker library!';
+                if (game.notes !== '') {
+                    tooltiptext += `\n\nNOTES: ${game.notes}`;
+                }
+                icon.setAttribute('title', tooltiptext);
                 icon.addEventListener('click', () =>
-                    alert('This game is present in your F95Checker library!')
+                    alert(tooltiptext)
                 );
                 icon.style.color = game.color;
                 return [icon, game.color];
