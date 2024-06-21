@@ -268,6 +268,7 @@ async def connect():
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""',
             "downloads":                   f'TEXT    DEFAULT "[]"',
+            "operating_system":            f'TEXT    DEFAULT "[]"',
         },
         renames=[
             ("executable", "executables"),
