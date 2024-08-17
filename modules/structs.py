@@ -331,6 +331,7 @@ Tag = IntEnumHack("Tag", [
     ("asset-male",             (147, {"text": "asset-male"})),
     ("asset-morph",            (25,  {"text": "asset-morph"})),
     ("asset-nonbinary",        (148, {"text": "asset-nonbinary"})),
+    ("asset-playhome",         (150, {"text": "asset-playhome"})),
     ("asset-plugin",           (26,  {"text": "asset-plugin"})),
     ("asset-pose",             (27,  {"text": "asset-pose"})),
     ("asset-prop",             (28,  {"text": "asset-prop"})),
