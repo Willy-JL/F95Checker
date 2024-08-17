@@ -77,7 +77,7 @@ xf_token = ""
 @contextlib.contextmanager
 def setup():
     global session
-    session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
+    session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
     session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
     # Setup multiprocessing for parsing threads
     method = "spawn"  # Using fork defeats the purpose, with spawn the main ui does not hang
