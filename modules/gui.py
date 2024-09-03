@@ -1512,6 +1512,7 @@ class MainGUI():
         if game and not game.executables:
             imgui.pop_disabled()
         if clicked:
+            imgui.close_current_popup()
             if game:
                 game.clear_executables()
             else:
@@ -1646,6 +1647,7 @@ class MainGUI():
             self.recalculate_ids = True
             imgui.close_current_popup()
         if new_tab is not current_tab:
+            imgui.close_current_popup()
             if game:
                 game.tab = new_tab
             else:
