@@ -46,7 +46,8 @@ include_files = [
 zip_include_files = []
 zip_include_packages = "*"
 zip_exclude_packages = [
-    "glfw"
+    "glfw",
+    "bencode2",
 ] + (["PyQt6"] if sys.platform.startswith("win") else [])
 optimize = 1
 silent_level = 0
