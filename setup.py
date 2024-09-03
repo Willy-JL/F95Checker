@@ -43,6 +43,13 @@ include_files = [
     (path / "resources/",              "resources/"),
     (path / "LICENSE",                 "LICENSE")
 ]
+platform_qt_plugins = {
+    "linux": [
+        "wayland-decoration-client",
+        "wayland-graphics-integration-client",
+        "wayland-shell-integration"
+    ],
+}
 zip_include_files = []
 zip_include_packages = "*"
 zip_exclude_packages = [
@@ -69,6 +76,13 @@ for platform, libs in platform_libs.items():
         for lib in libs:
             if lib_path := find_library(lib):
                 bin_includes.append(lib_path)
+
+
+# Bundle Qt plugins
+for platform, plugins in platform_qt_plugins.items():
+    if sys.platform.startswith(platform):
+        for plugin in plugins:
+            include_files += cx_Freeze.hooks.get_qt_plugins_paths("PyQt6", plugin)
 
 
 # Extension packager command
