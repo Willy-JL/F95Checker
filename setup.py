@@ -5,6 +5,14 @@ import shutil
 import sys
 import re
 
+# Friendly reminder
+try:
+    import cx_Freeze
+    import cx_Freeze.hooks
+except ModuleNotFoundError:
+    print("cx_Freeze is not installed! Run: pip install -r requirements-dev.txt")
+    sys.exit(1)
+
 path = pathlib.Path(__file__).absolute().parent
 
 
@@ -18,7 +26,6 @@ version = str(re.search(rb'version = "(\S+)"', script.read_bytes()).group(1), en
 debug_script.write_bytes(re.sub(rb"debug = .*", rb"debug = True", script.read_bytes()))  # Generate debug script
 
 # Build configuration
-optimize = 1
 includes = []
 excludes = ["tkinter"]
 packages = ["OpenGL"]
@@ -41,6 +48,7 @@ zip_include_packages = "*"
 zip_exclude_packages = [
     "glfw"
 ] + (["PyQt6"] if sys.platform.startswith("win") else [])
+optimize = 1
 silent_level = 0
 include_msvcr = True
 
@@ -60,14 +68,6 @@ for platform, libs in platform_libs.items():
         for lib in libs:
             if lib_path := find_library(lib):
                 bin_includes.append(lib_path)
-
-
-# Friendly reminder
-try:
-    import cx_Freeze
-except ModuleNotFoundError:
-    print("cx_Freeze is not installed!")
-    sys.exit(1)
 
 
 # Extension packager command
@@ -113,7 +113,6 @@ cx_Freeze.setup(
     ],
     options={
         "build_exe": {
-            "optimize": optimize,
             "includes": includes,
             "excludes": excludes,
             "packages": packages,
@@ -124,6 +123,7 @@ cx_Freeze.setup(
             "zip_includes": zip_include_files,
             "zip_include_packages": zip_include_packages,
             "zip_exclude_packages": zip_exclude_packages,
+            "optimize": optimize,
             "silent_level": silent_level,
             "include_msvcr": include_msvcr,
         },
