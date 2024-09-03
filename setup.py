@@ -100,13 +100,13 @@ cx_Freeze.setup(
     executables=[
         cx_Freeze.Executable(
             script=script,
-            base="Win32GUI" if sys.platform.startswith("win") else None,
+            base="gui",
             target_name=name,
             icon=icon,
         ),
         cx_Freeze.Executable(
             script=debug_script,
-            base=None,
+            base="console",
             target_name=name + "-Debug",
             icon=icon,
         ),
