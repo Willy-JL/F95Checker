@@ -22,5 +22,5 @@ lxml>=4.9.3
 # Misc
 pywin32>=0.3.1 ; sys_platform == "win32"
 uvloop>=0.17.0 ; sys_platform != "win32"
-bencode3>=0.1.0
+bencode2>=0.2.4
 Pillow>=10.0.0
