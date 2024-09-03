@@ -49,7 +49,7 @@ zip_exclude_packages = [
     "glfw",
     "bencode2",
 ] + (["PyQt6"] if sys.platform.startswith("win") else [])
-optimize = 1
+optimize = 2
 silent_level = 0
 include_msvcr = True
 
