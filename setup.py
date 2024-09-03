@@ -5,14 +5,6 @@ import shutil
 import sys
 import re
 
-# Friendly reminder
-try:
-    import cx_Freeze
-    import cx_Freeze.hooks
-except ModuleNotFoundError:
-    print("cx_Freeze is not installed! Run: pip install -r requirements-dev.txt")
-    sys.exit(1)
-
 path = pathlib.Path(__file__).absolute().parent
 
 
@@ -24,6 +16,14 @@ script = path / "main.py"
 debug_script = path / "main-debug.py"
 version = str(re.search(rb'version = "(\S+)"', script.read_bytes()).group(1), encoding="utf-8")
 debug_script.write_bytes(re.sub(rb"debug = .*", rb"debug = True", script.read_bytes()))  # Generate debug script
+
+# Friendly reminder
+try:
+    import cx_Freeze
+    import cx_Freeze.hooks
+except ModuleNotFoundError:
+    print("cx_Freeze is not installed! Run: pip install -r requirements-dev.txt")
+    sys.exit(1)
 
 # Build configuration
 includes = []
