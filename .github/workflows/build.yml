@@ -16,7 +16,7 @@ jobs:
         config:
           - { os: "windows-2019", python: "3.12.4", cx-freeze: "7.2.0", cx-logging: "v3.2.0" }
           - { os: "ubuntu-20.04", python: "3.12.4", cx-freeze: "7.2.0", cx-logging: ""       }
-          - { os: "macos-11",     python: "3.12.4", cx-freeze: "7.2.0", cx-logging: ""       }
+          - { os: "macos-12",     python: "3.12.4", cx-freeze: "7.2.0", cx-logging: ""       }
     name: "${{ matrix.config.os }}"
     runs-on: "${{ matrix.config.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
