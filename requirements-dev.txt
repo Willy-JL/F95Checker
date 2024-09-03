@@ -1,4 +1,4 @@
 -r requirements.txt
 
 # Compiler
-cx_Freeze
+cx_Freeze==7.2.0
