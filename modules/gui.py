@@ -2172,6 +2172,7 @@ class MainGUI():
                     imgui.same_line()
                     imgui.text(executable)
 
+            imgui.align_text_to_frame_padding()
             imgui.text_disabled("Manage Exes:")
             imgui.same_line()
             self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe")
