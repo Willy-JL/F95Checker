@@ -14,12 +14,13 @@ from modules import (  # added
     utils,             # added
 )                      # added
 
-dir_icon     = f"{icons.folder_outline}  "  # changed
-file_icon    = f"{icons.file_outline}  "    # changed
-up_icon      = icons.arrow_up               # changed
-refresh_icon = icons.refresh                # changed
-cancel_icon  = f"{icons.cancel} Cancel"     # changed
-ok_icon      = f"{icons.check} Ok"          # changed
+dir_icon     = f"{icons.folder_outline}  "         # changed
+file_icon    = f"{icons.file_outline}  "           # changed
+up_icon      = icons.arrow_up                      # changed
+refresh_icon = icons.refresh                       # changed
+cancel_icon  = f"{icons.cancel} Cancel"            # changed
+open_icon    = f"{icons.folder_open_outline} Open" # changed
+ok_icon      = f"{icons.check} Ok"                 # changed
 
 
 class FilePicker:
@@ -211,6 +212,16 @@ class FilePicker:
                     self.selected = button
                     imgui.close_current_popup()
                     closed = True  # added
+            # Open button
+            imgui.same_line()
+            if value == -1 or not is_dir:
+                imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
+                imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
+            if imgui.button(open_icon):
+                self.goto(self.dir / item[len(dir_icon if self.dir_picker else file_icon):])
+            if value == -1 or not is_dir:
+                imgui.internal.pop_item_flag()
+                imgui.pop_style_var()
             # Ok button
             imgui.same_line()
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):
