@@ -549,7 +549,7 @@ class MainGUI():
         def pop_no_interaction():
             imgui.internal.pop_item_flag()
         imgui.pop_no_interaction = pop_no_interaction
-        def push_alpha(amount: float = 0.5):
+        def push_alpha(amount: float):
             imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha * amount)
         imgui.push_alpha = push_alpha
         def pop_alpha():
@@ -557,7 +557,7 @@ class MainGUI():
         imgui.pop_alpha = pop_alpha
         def push_disabled():
             imgui.push_no_interaction()
-            imgui.push_alpha()
+            imgui.push_alpha(0.5)
         imgui.push_disabled = push_disabled
         def pop_disabled():
             imgui.pop_alpha()
@@ -1521,7 +1521,7 @@ class MainGUI():
 
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None):
         if game and not game.executables:
-            imgui.push_alpha()
+            imgui.push_alpha(0.5)
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
