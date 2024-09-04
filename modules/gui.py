@@ -678,6 +678,7 @@ class MainGUI():
         msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
         size_14 = round(self.scaled(14 * font_scaling_factor))
         size_15 = round(self.scaled(15 * font_scaling_factor))
+        size_17 = round(self.scaled(17 * font_scaling_factor))
         size_18 = round(self.scaled(18 * font_scaling_factor))
         size_22 = round(self.scaled(22 * font_scaling_factor))
         size_28 = round(self.scaled(28 * font_scaling_factor))
@@ -702,8 +703,10 @@ class MainGUI():
         fonts.small   = add_font(karlar_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_14, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                mdi_path,    size_14, font_config=mdi_config,   glyph_ranges=mdi_range)
-        # Monospace font for more info dropdowns
-        fonts.mono    = add_font(meslo_path,  size_15, font_config=meslo_config, glyph_ranges=meslo_range)
+        # Monospace font for some dates
+        fonts.mono    = add_font(meslo_path,  size_17, font_config=meslo_config, glyph_ranges=meslo_range)
+        # Small monospace font for more info dropdowns
+        fonts.mono_sm = add_font(meslo_path,  size_15, font_config=meslo_config, glyph_ranges=meslo_range)
         # MsgBox type icons/thumbnails
         fonts.msgbox  = add_font(mdi_path,    size_69,                           glyph_ranges=msgbox_range)
         try:
@@ -3200,11 +3203,17 @@ class MainGUI():
                         case cols.developer.index:
                             imgui.text(game.developer or "Unknown")
                         case cols.last_updated.index:
+                            imgui.push_font(imgui.fonts.mono)
                             imgui.text(game.last_updated.display or "Unknown")
+                            imgui.pop_font()
                         case cols.last_played.index:
+                            imgui.push_font(imgui.fonts.mono)
                             imgui.text(game.last_played.display or "Never")
+                            imgui.pop_font()
                         case cols.added_on.index:
+                            imgui.push_font(imgui.fonts.mono)
                             imgui.text(game.added_on.display)
+                            imgui.pop_font()
                         case cols.finished.index:
                             self.draw_game_finished_checkbox(game)
                         case cols.installed.index:
