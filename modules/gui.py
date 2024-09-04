@@ -2098,6 +2098,7 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
+            imgui.spacing()
             imgui.text_disabled("Version:")
             imgui.same_line()
             if game.updated:
@@ -2109,48 +2110,70 @@ class MainGUI():
             offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
             utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
 
-            imgui.text_disabled("Developer:")
-            imgui.same_line()
-            offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
-            utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
+            if imgui.begin_table(f"###details", column=2):
+                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
 
-            imgui.text_disabled("Personal Rating:")
-            imgui.same_line()
-            self.draw_game_rating_widget(game)
+                imgui.table_next_row()
 
-            imgui.text_disabled("Status:")
-            imgui.same_line()
-            imgui.text(game.status.name)
-            imgui.same_line()
-            self.draw_status_widget(game.status)
+                imgui.table_next_column()
+                imgui.text_disabled("Developer:")
+                imgui.same_line()
+                offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
+                utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
 
-            imgui.text_disabled("Forum Score:")
-            imgui.same_line()
-            imgui.text(f"{game.score:.1f}/5")
-            imgui.same_line()
-            imgui.text_disabled(f"({game.votes})")
+                imgui.table_next_column()
+                imgui.text_disabled("Added On:")
+                imgui.same_line()
+                imgui.text(game.added_on.display)
 
-            imgui.text_disabled("Type:")
-            imgui.same_line()
-            self.draw_type_widget(game.type)
+                imgui.table_next_row()
 
-            imgui.text_disabled("Last Updated:")
-            imgui.same_line()
-            imgui.text(game.last_updated.display or "Unknown")
+                imgui.table_next_column()
+                imgui.text_disabled("Status:")
+                imgui.same_line()
+                imgui.text(game.status.name)
+                imgui.same_line()
+                self.draw_status_widget(game.status)
 
-            imgui.text_disabled("Last Played:")
-            imgui.same_line()
-            imgui.text(game.last_played.display or "Never")
-            if imgui.is_item_clicked():
-                game.last_played = time.time()
-            if imgui.is_item_hovered():
-                imgui.begin_tooltip()
-                imgui.text("Click to set as played right now!")
-                imgui.end_tooltip()
+                imgui.table_next_column()
+                imgui.text_disabled("Last Updated:")
+                imgui.same_line()
+                imgui.text(game.last_updated.display or "Unknown")
 
-            imgui.text_disabled("Added On:")
-            imgui.same_line()
-            imgui.text(game.added_on.display)
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Type:")
+                imgui.same_line()
+                self.draw_type_widget(game.type)
+
+                imgui.table_next_column()
+                imgui.text_disabled("Last Played:")
+                imgui.same_line()
+                imgui.text(game.last_played.display or "Never")
+                if imgui.is_item_clicked():
+                    game.last_played = time.time()
+                if imgui.is_item_hovered():
+                    imgui.begin_tooltip()
+                    imgui.text("Click to set as played right now!")
+                    imgui.end_tooltip()
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Forum Score:")
+                imgui.same_line()
+                imgui.text(f"{game.score:.1f}/5")
+                imgui.same_line()
+                imgui.text_disabled(f"({game.votes})")
+
+                imgui.table_next_column()
+                imgui.text_disabled("Personal Rating:")
+                imgui.same_line()
+                self.draw_game_rating_widget(game)
+
+                imgui.end_table()
 
             if len(game.executables) <= 1:
                 imgui.text_disabled("Executable:")
