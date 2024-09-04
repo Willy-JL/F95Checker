@@ -100,24 +100,30 @@ def _():
                 pass  # Key doesn't exist
     elif os is Os.Linux:
         import configparser
-        app_dir = pathlib.Path("/usr/share/applications")
-        raw = (app_dir / "mimeinfo.cache").read_bytes()
-        apps = []
-        for match in re.finditer(rb"x-scheme-handler/https?=(.+)", raw):
-            for app in match.group(1)[:-1].split(b";"):
-                app = str(app, encoding="utf-8")
-                if app not in apps:
-                    apps.append(app)
-        for app in apps:
-            app_file = app_dir / app
-            if not app_file.is_file():
+        for xdg_dir in _os.environ.get("XDG_DATA_DIRS", "/usr/share/").split(":"):
+            if not xdg_dir:
                 continue
-            parser = configparser.RawConfigParser()
-            parser.read(app_file)
-            name = parser.get("Desktop Entry", "Name")
-            args = [arg for arg in shlex.split(parser.get("Desktop Entry", "Exec")) if not (len(arg) == 2 and arg.startswith("%"))]
-            if args and pathlib.Path(shutil.which(args[0])).exists():
-                Browser.add(name, args=args)
+            app_dir = pathlib.Path(xdg_dir) / "applications"
+            apps_file = app_dir / "mimeinfo.cache"
+            if not apps_file.is_file():
+                continue
+            raw = apps_file.read_bytes()
+            apps = []
+            for match in re.finditer(rb"x-scheme-handler/https?=(.+)", raw):
+                for app in match.group(1).split(b";"):
+                    app = str(app, encoding="utf-8")
+                    if app and app not in apps:
+                        apps.append(app)
+            for app in apps:
+                app_file = app_dir / app
+                if not app_file.is_file():
+                    continue
+                parser = configparser.RawConfigParser()
+                parser.read(app_file)
+                name = parser.get("Desktop Entry", "Name")
+                args = [arg for arg in shlex.split(parser.get("Desktop Entry", "Exec")) if not (len(arg) == 2 and arg.startswith("%"))]
+                if args and pathlib.Path(shutil.which(args[0])).exists():
+                    Browser.add(name, args=args)
     elif os is Os.MacOS:
         import plistlib
         app_dir = pathlib.Path("/Applications")
