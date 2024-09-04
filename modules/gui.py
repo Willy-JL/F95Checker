@@ -1792,20 +1792,15 @@ class MainGUI():
         imgui.dummy(0, 0 if globals.settings.compact_timeline else self.scaled(6))
 
         def draw_event(timestamp, type, args, spacing=True):
-            short_format = "%b %d, %Y"
             icon = getattr(icons, type.icon)
-            date = dt.datetime.fromtimestamp(timestamp)
             message = type.template.format(*args, *["?" for _ in range(type.args_min - len(args))])
             # Short timeline variant
             if globals.settings.compact_timeline:
                 imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
                 imgui.push_font(imgui.fonts.mono)
-                imgui.text(date.strftime(short_format))
-                imgui.pop_style_color()
+                imgui.text(timestamp)
                 imgui.pop_font()
-                if imgui.is_item_hovered():
-                    with imgui.begin_tooltip():
-                        imgui.text(date.strftime(globals.settings.timestamp_format))
+                imgui.pop_style_color()
                 imgui.same_line()
                 imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
                 imgui.text(icon)
@@ -1844,10 +1839,10 @@ class MainGUI():
 
         for event in game.timeline_events:
             if event.type not in globals.settings.hidden_timeline_events:
-                draw_event(event.timestamp.value, event.type, event.arguments)
+                draw_event(event.timestamp.display, event.type, event.arguments)
 
         if TimelineEventType.GameAdded not in globals.settings.hidden_timeline_events:
-            draw_event(game.added_on.value, TimelineEventType.GameAdded, [], spacing=False)
+            draw_event(Timestamp(game.added_on.value).display, TimelineEventType.GameAdded, [], spacing=False)
 
         thickness = 2
         prev_rect = None
