@@ -1,4 +1,4 @@
-import bencode3
+import bencode2
 import pathlib
 import asyncio
 import imgui
@@ -201,7 +201,7 @@ async def assert_login():
 
 def has_authenticated_tracker(res: bytes | dict):
     if isinstance(res, bytes):
-        tracker = bencode3.bdecode(res).get("announce", "")
+        tracker = bencode2.bdecode(res).get(b"announce", b"").decode()
     elif isinstance(res, dict):
         tracker = (res.get("data", {}).get("trackers") or [""])[0]
     else:
@@ -220,7 +220,7 @@ async def open_torrent_file(torrent_id: int):
         break
     else:  # Didn't break
         return
-    name = bencode3.bdecode(res).get("info", {}).get("name", str(torrent_id))
+    name = bencode2.bdecode(res).get(b"info", {}).get(b"name", str(torrent_id).encode()).decode()
     torrent = (pathlib.Path.home() / "Downloads") / f"{name}.torrent"
     torrent.parent.mkdir(parents=True, exist_ok=True)
     torrent.write_bytes(res)

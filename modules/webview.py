@@ -139,7 +139,7 @@ def create(
             __slots__ = ("session",)
             def __init__(self):
                 super().__init__()
-                self.session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
+                self.session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
             @QtCore.pyqtSlot(QtCore.QVariant, QtCore.QVariant, QtCore.QVariant, result=QtCore.QVariant)
             def handle(self, method, path, body):
                 if body is not None:

@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "windows-2019", python: "3.12.4", cx-freeze: "7.2.0", cx-logging: "v3.2.0" }
-          - { os: "ubuntu-20.04", python: "3.12.4", cx-freeze: "7.2.0", cx-logging: ""       }
-          - { os: "macos-11",     python: "3.12.4", cx-freeze: "7.2.0", cx-logging: ""       }
+          - { os: "windows-2019", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: "v3.2.0" }
+          - { os: "ubuntu-20.04", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""       }
+          - { os: "macos-12",     python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""       }
     name: "${{ matrix.config.os }}"
     runs-on: "${{ matrix.config.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
@@ -30,7 +30,7 @@ jobs:
           git config --global core.eol lf
 
       - name: "Setup Python"
-        uses: "actions/setup-python@v4"
+        uses: "actions/setup-python@v5"
         with:
           python-version: "${{ matrix.config.python }}"
 
@@ -47,7 +47,7 @@ jobs:
       # === BUILD ===
 
       - name: "Clone repo"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
         with:
           path: "."
 
@@ -111,10 +111,11 @@ jobs:
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
-        uses: "actions/upload-artifact@v3"
+        uses: "actions/upload-artifact@v4"
         with:
-          name: "${{ runner.os }}"
+          name: "${{ github.event.repository.name }}-${{ runner.os }}-Artifact"
           path: "./${{ github.event.repository.name }}-${{ runner.os }}.zip"
+          compression-level: 0
 
       - name: "Upload release artifact"
         if: "github.event_name == 'release'"
@@ -140,7 +141,7 @@ jobs:
       # === PACKAGE ===
 
       - name: "Clone repo"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
         with:
           path: "."
 
@@ -179,10 +180,11 @@ jobs:
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
-        uses: "actions/upload-artifact@v3"
+        uses: "actions/upload-artifact@v4"
         with:
-          name: "Source"
+          name: "${{ github.event.repository.name }}-Source-Artifact"
           path: "./${{ github.event.repository.name }}-Source.zip"
+          compression-level: 0
 
       - name: "Upload release artifact"
         if: "github.event_name == 'release'"
@@ -207,7 +209,7 @@ jobs:
           git config --global core.eol lf
 
       - name: "Clone repo"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
         with:
           path: "."
 
