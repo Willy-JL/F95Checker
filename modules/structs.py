@@ -142,13 +142,13 @@ class AsyncProcessPipe:
 
 
 class Timestamp:
-    instances = []
+    instances = weakref.WeakSet()
 
-    __slots__ = ("value", "_display")
+    __slots__ = ("value", "_display", "__weakref__",)
 
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
-        type(self).instances.append(self)
+        type(self).instances.add(self)
 
     def update(self, unix_time: int | float = None):
         if unix_time is not None:
@@ -174,13 +174,13 @@ class Timestamp:
 
 
 class Datestamp(Timestamp):
-    instances = []
+    instances = weakref.WeakSet()
 
     __slots__ = ()
 
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
-        type(self).instances.append(self)
+        type(self).instances.add(self)
 
     @property
     def format(self):
