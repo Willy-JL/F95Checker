@@ -305,9 +305,9 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
 
         votes = 0
         if elem := html.find(is_class("tabs")):
-            if match := re.search(r"reviews\s*\((\d+)\)", elem.get_text(), re.M | re.I):
+            if match := re.search(r"reviews\s*\(([\d,]+)\)", elem.get_text(), re.M | re.I):
                 try:
-                    votes = int(match.group(1))
+                    votes = int(match.group(1).replace(",", ""))
                 except Exception:
                     pass
 
