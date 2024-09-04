@@ -1,6 +1,7 @@
 import multiprocessing
 import datetime as dt
 import functools
+import json
 import bs4
 import re
 import os
@@ -297,19 +298,34 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 pass
         last_updated = datestamp(last_updated)
 
-        score = 0.0
-        if elem := head.find("select", attrs={"name": "rating"}):
-            score = float(elem.get("data-initial-rating"))
-        elif elem := head.find(is_class("bratr-rating")):
-            score = float(re.search(r"(\d(?:\.\d\d?)?)", elem.get("title")).group(1))
+        score = None
+        votes = None
+        for ldjson in html.find_all("script", type="application/ld+json"):
+            try:
+                schema = json.loads(ldjson.get_text())
+                if schema["@context"] != "http://schema.org/" or "aggregateRating" not in schema:
+                    continue
+                score = float(schema["aggregateRating"]["ratingValue"])
+                votes = int(schema["aggregateRating"]["ratingCount"])
+                break
+            except Exception:
+                pass
 
-        votes = 0
-        if elem := html.find(is_class("tabs")):
-            if match := re.search(r"reviews\s*\(([\d,]+)\)", elem.get_text(), re.M | re.I):
-                try:
-                    votes = int(match.group(1).replace(",", ""))
-                except Exception:
-                    pass
+        if score is None:
+            score = 0.0
+            if elem := head.find("select", attrs={"name": "rating"}):
+                score = float(elem.get("data-initial-rating"))
+            elif elem := head.find(is_class("bratr-rating")):
+                score = float(re.search(r"(\d(?:\.\d\d?)?)", elem.get("title")).group(1))
+
+        if votes is None:
+            votes = 0
+            if elem := html.find(is_class("tabs")):
+                if match := re.search(r"reviews\s*\(([\d,]+)\)", elem.get_text(), re.M | re.I):
+                    try:
+                        votes = int(match.group(1).replace(",", ""))
+                    except Exception:
+                        pass
 
         description_html, description_regex = get_long_game_attr("overview", "story")
         changelog_html, changelog_regex = get_long_game_attr("changelog", "change-log", "change log")
