@@ -4359,7 +4359,7 @@ class MainGUI():
 
             draw_settings_label(
                 "Date format:",
-                "The format expression to use for short datestamps. Uses the strftime specification. Default is '%d/%m/%Y'."
+                "The format expression to use for short datestamps. Uses the strftime specification. Default is '%b %d, %Y'."
             )
             changed, value = imgui.input_text("###datestamp_format", set.datestamp_format)
             def setter_extra(_=None):

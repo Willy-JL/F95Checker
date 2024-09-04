@@ -164,7 +164,7 @@ async def connect():
             "compact_timeline":            f'INTEGER DEFAULT {int(False)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
-            "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
+            "datestamp_format":            f'TEXT    DEFAULT "%b %d, %Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "default_tab_is_new":          f'INTEGER DEFAULT {int(False)}',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
