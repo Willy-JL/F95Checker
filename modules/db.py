@@ -5,7 +5,6 @@ import sqlite3
 import asyncio
 import pathlib
 import typing
-import shutil
 import types
 import enum
 import json
@@ -164,6 +163,10 @@ async def connect():
             "compact_timeline":            f'INTEGER DEFAULT {int(False)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
+            "cycle_images":                f'INTEGER DEFAULT {int(False)}',
+            "cycle_length":                f'INTEGER DEFAULT 2500',
+            "cycle_on_hover":              f'INTEGER DEFAULT {int(False)}',
+            "cycle_random_order":          f'INTEGER DEFAULT {int(False)}',
             "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "default_tab_is_new":          f'INTEGER DEFAULT {int(False)}',
@@ -173,6 +176,7 @@ async def connect():
             "ext_highlight_tags":          f'INTEGER DEFAULT {int(True)}',
             "ext_icon_glow":               f'INTEGER DEFAULT {int(True)}',
             "filter_all_tabs":             f'INTEGER DEFAULT {int(False)}',
+            "fit_additional_images":       f'INTEGER DEFAULT {int(True)}',
             "fit_images":                  f'INTEGER DEFAULT {int(False)}',
             "grid_columns":                f'INTEGER DEFAULT 3',
             "hidden_timeline_events":      f'TEXT    DEFAULT "[]"',
@@ -267,6 +271,7 @@ async def connect():
             "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""',
+            "attachment_urls":             f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
         },
         renames=[
@@ -482,16 +487,7 @@ async def update_game_id(game: Game, new_id):
     for event in game.timeline_events:
         event.game_id = new_id
 
-    for i, img in enumerate(sorted(list(globals.images_path.glob(f"{game.id}.*")), key=lambda path: path.suffix != ".gif")):
-        if i == 0:
-            shutil.move(img, globals.images_path / f"{new_id}{img.suffix}")
-        else:
-            try:
-                img.unlink()
-            except Exception:
-                pass
-    game.id = new_id
-    game.refresh_image()
+    game.change_id(new_id)
 
 
 async def update_game(game: Game, *keys: list[str]):

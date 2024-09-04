@@ -8,6 +8,7 @@ import asyncio
 import weakref
 import pathlib
 import hashlib
+import shutil
 import typing
 import queue
 import enum
@@ -700,6 +701,10 @@ class Settings:
     compact_timeline            : bool
     confirm_on_remove           : bool
     copy_urls_as_bbcode         : bool
+    cycle_images                : bool
+    cycle_length                : int
+    cycle_on_hover              : bool
+    cycle_random_order          : bool
     datestamp_format            : str
     default_exe_dir             : dict[Os, str]
     default_tab_is_new          : bool
@@ -709,6 +714,7 @@ class Settings:
     ext_highlight_tags          : bool
     ext_icon_glow               : bool
     filter_all_tabs             : bool
+    fit_additional_images       : bool
     fit_images                  : bool
     grid_columns                : int
     hidden_timeline_events      : list[TimelineEventType]
@@ -832,9 +838,12 @@ class Game:
     tab                : Tab.get
     notes              : str
     image_url          : str
+    attachment_urls    : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
     image              : imagehelper.ImageHelper = None
+    additional_images  : list[imagehelper.ImageHelper] = None
+    images_path        : pathlib.Path = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
     timeline_events    : list[TimelineEvent] = dataclasses.field(default_factory=list)
@@ -854,37 +863,121 @@ class Game:
             self.finished = (self.installed or self.version)
         elif self.finished == "False" and self.installed != "False" and self.version != "False":
             self.finished = ""
-        from modules import globals
-        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+        self.init_images()
         self.validate_executables()
 
-    def delete_images(self):
+    def change_id(self, new_id: int):
         from modules import globals
-        for img in globals.images_path.glob(f"{self.id}.*"):
-            try:
-                img.unlink()
-            except Exception:
-                pass
-
-    def refresh_image(self):
-        self.image.glob = f"{self.id}.*"
+        for i, img in enumerate(sorted(list(globals.images_path.glob(f"{self.id}.*")), key=lambda path: path.suffix != ".gif")):
+            if i == 0:
+                img.rename(img.with_stem(str(new_id)))
+            else:
+                try:
+                    img.unlink()
+                except Exception:
+                    pass
+        self.image.glob = f"{new_id}.*"
         self.image.loaded = False
         self.image.resolve()
+        new_images_path = globals.images_path / str(new_id)
+        self.images_path.rename(new_images_path)
+        for image in self.additional_images:
+            image.path = new_images_path
+            image.loaded = False
+            image.resolve()
+        self.images_path = new_images_path
+        self.id = new_id
 
-    async def set_image_async(self, data: bytes):
+    def init_images(self):
+        from modules import globals
+        self.images_path = globals.images_path / str(self.id)
+        self.images_path.mkdir(parents=True, exist_ok=True)
+        self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
+        self.additional_images = []
+        for image in self.images_path.iterdir():
+            if image.is_file() and image.stem.isnumeric():
+                self.additional_images.append(imagehelper.ImageHelper(self.images_path, glob=f"{image.stem}.*"))
+        if self.additional_images:
+            self.sort_images()
+            self.apply_image_order()
+
+    def sort_images(self):
+        self.additional_images.sort(key=lambda helper: int(helper.resolved_path.stem))
+
+    def apply_image_order(self):
+        if not self.additional_images:
+            pass
+        # We add an underscore to avoid name conflicts during rename
+        for new_index, image in enumerate(self.additional_images):
+            old_path = image.resolved_path
+            if new_index != int(old_path.stem):
+                old_path.rename(old_path.with_stem(f"_{new_index}"))
+        for old_path in self.images_path.iterdir():
+            if old_path.is_file() and old_path.stem.startswith("_"):
+                new_name = old_path.stem.removeprefix("_")
+                if new_name.isnumeric():
+                    index = int(new_name)
+                    if index < len(self.additional_images):
+                        new_path = old_path.with_stem(new_name)
+                        old_path.rename(new_path)
+                        image = self.additional_images[index]
+                        image.glob = f"{new_name}.*"
+                        image.loaded = False
+                        image.resolve()
+
+    def delete_images(self, additional_index: int = None, all=False):
+        from modules import globals
+        try:
+            if all:
+                shutil.rmtree(self.images_path, ignore_errors=True)
+                additional_index = None
+            if additional_index is None:
+                files = globals.images_path.glob(f"{self.id}.*")
+            else:
+                files = self.images_path.glob(f"{additional_index}.*")
+            for file in files:
+                file.unlink()
+        except Exception:
+            pass
+
+    async def set_image_async(self, data: bytes, additional_index: int = None):
         from modules import globals, utils
-        self.delete_images()
+        self.delete_images(additional_index)
+        if additional_index is None:
+            path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
+            image = self.image
+        else:
+            path = self.images_path / f"{additional_index}.{utils.image_ext(data)}"
+            image = self.additional_images[additional_index]
         if data:
-            async with aiofiles.open(globals.images_path / f"{self.id}.{utils.image_ext(data)}", "wb") as f:
+            async with aiofiles.open(path, "wb") as f:
                 await f.write(data)
-        self.refresh_image()
+        image.loaded = False
+        image.resolve()
 
-    def set_image_sync(self, data: bytes):
+    def set_image_sync(self, data: bytes, additional_index: int = None):
         from modules import globals, utils
-        self.delete_images()
+        self.delete_images(additional_index)
+        if additional_index is None:
+            path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
+            image = self.image
+        else:
+            path = self.images_path / f"{additional_index}.{utils.image_ext(data)}"
+            image = self.additional_images[additional_index]
         if data:
-            (globals.images_path / f"{self.id}.{utils.image_ext(data)}").write_bytes(data)
-        self.refresh_image()
+            path.write_bytes(data)
+        image.loaded = False
+        image.resolve()
+
+    def add_image(self, data: bytes):
+        new_index = len(self.additional_images)
+        self.additional_images.append(imagehelper.ImageHelper(self.images_path, glob=f"{new_index}.*"))
+        self.set_image_sync(data, new_index)
+
+    async def add_image_async(self, data: bytes):
+        new_index = len(self.additional_images)
+        self.additional_images.append(imagehelper.ImageHelper(self.images_path, glob=f"{new_index}.*"))
+        await self.set_image_async(data, new_index)
 
     def validate_executables(self):
         from modules import globals, utils
@@ -995,6 +1088,7 @@ class Game:
             "tab",
             "notes",
             "image_url",
+            "attachment_urls",
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
