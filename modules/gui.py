@@ -1970,6 +1970,17 @@ class MainGUI():
             popup_uuid=popup_uuid
         )
 
+    def draw_game_image_missing_text(self, game: Game, text: str):
+        self.draw_hover_text(
+            text=text,
+            hover_text=(
+                "This image link blocks us! You can blame Imgur." if game.image_url == "blocked" else
+                "This thread does not seem to have an image!" if game.image_url == "missing" else
+                "This image link cannot be reached anymore!" if game.image_url == "dead" else
+                "Run a full refresh to try downloading it again!"
+            )
+        )
+
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         popup_pos = None
         popup_size = None
@@ -1984,10 +1995,7 @@ class MainGUI():
                 text = "Image missing!"
                 width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
-                )
+                self.draw_game_image_missing_text(game, text)
             elif image.invalid:
                 text = "Invalid image!"
                 width = imgui.calc_text_size(text).x
@@ -3345,10 +3353,7 @@ class MainGUI():
             showed_img = imgui.is_rect_visible(cell_width, img_height)
             if text_size.x < cell_width:
                 imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
-                )
+                self.draw_game_image_missing_text(game, text)
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         elif game.image.invalid:

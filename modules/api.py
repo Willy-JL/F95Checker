@@ -557,7 +557,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
                 interval_expired or
                 game_is_unchecked or
                 (version and version != game.version) or
-                (game.image.missing and game.image_url != "missing") or
+                (game.image.missing and game.image_url.startswith("http")) or
                 last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
             )
             if not this_full:
@@ -724,10 +724,18 @@ async def full_check(game: Game, version: str):
                 )
                 globals.updated_games[game.id] = old_game
 
-        if fetch_image and image_url and image_url != "missing":
+        if fetch_image and image_url and image_url.startswith("http"):
             with images:
                 try:
-                    res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
+                    res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
+                except aiohttp.ClientResponseError as exc:
+                    if exc.status < 400:
+                        raise  # Not error status
+                    if image_url.startswith("https://i.imgur.com"):
+                        image_url = "blocked"
+                    else:
+                        image_url = "dead"
+                    res = b""
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
@@ -744,7 +752,7 @@ async def full_check(game: Game, version: str):
                     except Exception:
                         foreign_ok = False
                     if f95zone_ok and not foreign_ok:
-                        image_url = "missing"
+                        image_url = "dead"
                         res = b""
                     else:
                         raise  # Foreign host might not actually be dead
