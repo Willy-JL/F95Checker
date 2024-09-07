@@ -2,3 +2,4 @@
 
 # Compiler
 cx_Freeze==7.0.0
+setuptools==69.5.1
