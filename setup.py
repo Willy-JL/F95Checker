@@ -99,13 +99,16 @@ class Extension(setuptools.Command):
         pass
 
     def run(self):
+        from modules import ziparch
         extension = pathlib.Path(__file__).parent / "extension"
 
-        (extension / "chrome.zip").unlink(missing_ok=True)
-        shutil.make_archive(extension / "chrome", "zip", extension / "chrome")
+        chrome_src = extension / "chrome"
+        chrome_zip = extension / ("chrome" + ziparch.ZIP_ARCH_EXTENSION)
+        ziparch.compress_tree_ziparch(str(chrome_src), str(chrome_zip), gz_level=0)
 
-        (extension / "firefox.zip").unlink(missing_ok=True)
-        shutil.make_archive(extension / "firefox", "zip", extension / "firefox")
+        firefox_src = extension / "firefox"
+        firefox_zip = extension / ("firefox" + ziparch.ZIP_ARCH_EXTENSION)
+        ziparch.compress_tree_ziparch(str(firefox_src), str(firefox_zip), gz_level=0)
 
 
 # Actual build
