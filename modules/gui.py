@@ -4170,7 +4170,18 @@ class MainGUI():
                     rpc_thread.stop()
 
             draw_settings_label("Install extension:")
-            if set.browser.integrated or not set.rpc_enabled:
+            cant_install_extension = set.browser.integrated or not set.rpc_enabled
+            def cant_install_extension_tooltip():
+                if imgui.is_item_hovered():
+                    imgui.begin_tooltip()
+                    imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+                    if set.browser.integrated:
+                        imgui.text("You have selected the Integrated browser, this already includes the extension!")
+                    elif not set.rpc_enabled:
+                        imgui.text("RPC must be enabled for the browser extension to work!")
+                    imgui.pop_text_wrap_pos()
+                    imgui.end_tooltip()
+            if cant_install_extension:
                 imgui.push_disabled()
             if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
                 buttons={
@@ -4189,11 +4200,19 @@ class MainGUI():
                     MsgBox.info,
                     buttons
                 )
+            if cant_install_extension:
+                imgui.pop_disabled()
+                cant_install_extension_tooltip()
+                imgui.push_disabled()
             imgui.same_line()
             if imgui.button(icons.firefox, width=(right_width - imgui.style.item_spacing.x) / 2):
-                callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
-            if set.browser.integrated or not set.rpc_enabled:
+                if globals.release:
+                    callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
+                else:
+                    callbacks.open_webpage("https://addons.mozilla.org/en-US/firefox/addon/f95checker-beta-browser-addon/")
+            if cant_install_extension:
                 imgui.pop_disabled()
+                cant_install_extension_tooltip()
 
             draw_settings_label(
                 "Icon glow:",
