@@ -4209,7 +4209,7 @@ class MainGUI():
                 if globals.release:
                     callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
                 else:
-                    callbacks.open_webpage("https://addons.mozilla.org/en-US/firefox/addon/f95checker-beta-browser-addon/")
+                    callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-beta-browser-addon/")
             if cant_install_extension:
                 imgui.pop_disabled()
                 cant_install_extension_tooltip()
