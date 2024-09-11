@@ -24,6 +24,7 @@ import glfw
 import sys
 
 from modules.structs import (
+    Operating_System,
     TimelineEventType,
     TagHighlight,
     DefaultStyle,
@@ -1134,6 +1135,20 @@ class MainGUI():
             async_thread.run(db.update_settings("tags_highlights"))
         self.end_framed_text(interaction=interaction)
 
+    def draw_os_widget(self, os: Operating_System, quick_filter=True, change_highlight=True):
+        quick_filter = quick_filter and globals.settings.quick_filters
+        interaction = quick_filter or change_highlight
+        color = (0.3, 0.3, 0.3, 1.0)
+
+        self.begin_framed_text(color, interaction=interaction)
+
+        if imgui.small_button(os.name) and quick_filter:
+            flt = Filter(FilterMode.OS)
+            flt.match = os
+            self.filters.append(flt)
+
+        self.end_framed_text(interaction=interaction)
+
     def draw_label_widget(self, label: Label, short=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(label.color, interaction=quick_filter)
@@ -1154,7 +1169,7 @@ class MainGUI():
     def draw_tab_widget(self, tab: Tab):
         color = (tab and tab.color) or globals.settings.style_accent
         self.begin_framed_text(color, interaction=False)
-        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color))
+        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color)) 
         if (tab and tab.icon) and (tab and (tab.name or 'New Tab')):
             imgui.small_button(f"{tab.icon} {tab.name or 'New Tab'}")
         else:
@@ -1668,6 +1683,23 @@ class MainGUI():
                     game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
             imgui.same_line()
             self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
+    
+    def draw_game_os_select_widget(self, game: Game):
+        for os in Operating_System:
+            changed, value = imgui.checkbox(f"###{game.id}_operating_system_{os.name}", os.name in game.operating_system)
+            if changed:
+                os_list = list(game.operating_system)
+
+                if value:
+                    if os.name not in os_list:
+                        os_list.append(os.name)
+                else:
+                    os_list = [x for x in os_list if x != os.name]
+
+                game.operating_system = sorted(os_list)
+
+            imgui.same_line()
+            self.draw_os_widget(os, quick_filter=False)
 
     def draw_game_context_menu(self, game: Game = None):
         if not game:
@@ -2182,6 +2214,12 @@ class MainGUI():
 
                 imgui.end_table()
 
+            imgui.text_disabled("OS:")
+            imgui.same_line()
+            offset = imgui.calc_text_size("OS:").x + imgui.style.item_spacing.x
+            operatingsys = ', '.join(game.operating_system)
+            utils.wrap_text(operatingsys or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
+
             if len(game.executables) <= 1:
                 imgui.text_disabled("Executable:")
                 imgui.same_line()
@@ -2481,7 +2519,7 @@ class MainGUI():
                         imgui.align_text_to_frame_padding()
                         imgui.text("Version:")
                         imgui.same_line()
-                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 3.5)
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 13.0)
                         changed, value = imgui.input_text("###version", game.version)
                         if changed:
                             game.version = value or "N/A"
@@ -2491,12 +2529,19 @@ class MainGUI():
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Developer:")
                         imgui.same_line()
-                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 2.1)
+                        imgui.set_next_item_width(imgui.get_content_region_available_width() / 2.7)
                         changed, value = imgui.input_text("###developer", game.developer)
                         if changed:
                             game.developer = value
                         if imgui.begin_popup_context_item("###developer_context"):
                             utils.text_context(game, "developer", no_icons=True)
+                            imgui.end_popup()
+                        imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
+                        imgui.text("OS:")
+                        imgui.same_line()
+                        imgui.button("Right click")
+                        if imgui.begin_popup_context_item("###operatingsystem_context"):
+                            self.draw_game_os_select_widget(game)
                             imgui.end_popup()
                         imgui.same_line(spacing=imgui.style.item_spacing.x * 2)
                         imgui.text("Status:")
@@ -2960,6 +3005,9 @@ class MainGUI():
                         key = lambda game, f: (game.type is f.match)
                     case FilterMode.Updated.value:
                         key = lambda game, f: (game.updated is True)
+                    case FilterMode.OS.value:
+                        key = lambda game, f: (Operating_System._member_names_[f.match - 1] in game.operating_system)
+                        
                     case _:
                         key = None
                 if key is not None:
@@ -3948,6 +3996,8 @@ class MainGUI():
                         flt.match = Tag[Tag._member_names_[0]]
                     case FilterMode.Type.value:
                         flt.match = Type[Type._member_names_[0]]
+                    case FilterMode.OS.value:
+                        flt.match = Operating_System[Operating_System._member_names_[0]]
                 self.filters.append(flt)
 
             text_width = imgui.calc_text_size("Invrt ").x
@@ -4066,6 +4116,12 @@ class MainGUI():
                                 imgui.set_cursor_pos(pos)
                                 self.draw_type_widget(type)
                             imgui.end_combo()
+                    case FilterMode.OS.value:
+                        draw_settings_label("OS Value:")
+                        changed, value = imgui.combo(f"###filter_{flt.id}_value", flt.match._index_, Operating_System._member_names_)
+                        if changed:
+                            flt.match = Operating_System[Operating_System._member_names_[value]]
+                            self.recalculate_ids = True
 
             imgui.end_table()
             imgui.spacing()

@@ -463,6 +463,13 @@ ExeState = IntEnumHack("ExeState", [
     ("Unset",    3),
 ])
 
+Operating_System = IntEnumHack("Operating_System", [
+    ("Android",  1),
+    ("Linux",    2),
+    ("Mac",      3),
+    ("Windows",  4),
+])
+
 
 MsgBox = IntEnumHack("MsgBox", [
     ("info",  (1, {"color": (0.10, 0.69, 0.95), "icon": "information"})),
@@ -474,17 +481,18 @@ MsgBox = IntEnumHack("MsgBox", [
 FilterMode = IntEnumHack("FilterMode", [
     ("Choose",    1),
     ("Archived",  2),
-    ("Custom",    13),
+    ("Custom",    14),
     ("Exe State", 3),
     ("Finished",  6),
     ("Installed", 4),
-    ("Label",     5),
-    ("Rating",    7),
-    ("Score",     8),
-    ("Status",    9),
-    ("Tag",       10),
-    ("Type",      11),
-    ("Updated",   12),
+    ("Label",     6),
+    ("OS",        5),
+    ("Rating",    8),
+    ("Score",     9),
+    ("Status",    10),
+    ("Tag",       11),
+    ("Type",      12),
+    ("Updated",   13),
 ])
 
 
@@ -833,6 +841,7 @@ class Game:
     notes              : str
     image_url          : str
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
+    operating_system   : list[str]
     selected           : bool = False
     image              : imagehelper.ImageHelper = None
     executables_valids : list[bool] = None
@@ -995,7 +1004,8 @@ class Game:
             "tab",
             "notes",
             "image_url",
-            "downloads"
+            "downloads",
+            "operating_system"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
                 attr.update(value)

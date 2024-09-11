@@ -361,6 +361,24 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
 
         downloads = get_game_downloads("downloads", "download")
 
+        os_compat = get_game_attr(
+            "os",
+        )
+        
+        operating_system = []
+
+        if ("Android") in os_compat:
+            operating_system.append("Android")
+
+        if ("Linux") in os_compat:
+            operating_system.append("Linux")
+
+        if ("Mac") in os_compat:
+            operating_system.append("Mac")
+
+        if ("Windows") in os_compat:
+            operating_system.append("Windows")
+
     except Exception:
         e = ParserException(
             "Thread parsing error",
@@ -373,8 +391,8 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
             return
         else:
             return e
-
-    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads)
+        
+    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads, operating_system)
     if pipe:
         pipe.put_nowait(ret)
     else:
