@@ -187,6 +187,7 @@ async def connect():
             "max_retries":                 f'INTEGER DEFAULT 2',
             "quick_filters":               f'INTEGER DEFAULT {int(True)}',
             "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
+            "refresh_archived_games":      f'INTEGER DEFAULT {int(True)}',
             "refresh_workers":             f'INTEGER DEFAULT 20',
             "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',
             "request_timeout":             f'INTEGER DEFAULT 30',
