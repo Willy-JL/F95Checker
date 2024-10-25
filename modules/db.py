@@ -13,6 +13,7 @@ import typing
 
 import aiosqlite
 
+from common import parser
 from common.structs import (
     Browser,
     DefaultStyle,
@@ -29,8 +30,8 @@ from common.structs import (
     TimelineEventType,
     Timestamp,
     Type,
+    ProxyType,
 )
-from common import parser
 from external import (
     async_thread,
     error,
@@ -231,6 +232,11 @@ async def connect():
             "zoom_area":                   f'INTEGER DEFAULT 50',
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',
             "zoom_times":                  f'REAL    DEFAULT 4.0',
+            "proxy_type":                  f'INTEGER DEFAULT {ProxyType.none}',
+            "proxy_address":               f'TEXT    DEFAULT ""',
+            "proxy_port":                  f'INTEGER DEFAULT 0',
+            "proxy_username":              f'TEXT    DEFAULT ""',
+            "proxy_password":              f'TEXT    DEFAULT ""',
         },
         renames=[
             ("grid_image_ratio",      "cell_image_ratio"),

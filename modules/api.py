@@ -17,12 +17,15 @@ import tempfile
 import time
 import zipfile
 
-from PyQt6.QtWidgets import QSystemTrayIcon
 import aiofiles
 import aiohttp
 import aiolimiter
 import imgui
+from PyQt6.QtWidgets import QSystemTrayIcon
+from aiohttp_socks import ProxyConnector
+from python_socks import ProxyType
 
+from common import parser
 from common.structs import (
     AsyncProcessPipe,
     CounterContext,
@@ -35,8 +38,8 @@ from common.structs import (
     Tag,
     TimelineEventType,
     Type,
+    ProxyType as SettingsProxyType,
 )
-from common import parser
 from external import (
     async_thread,
     error,
@@ -121,7 +124,23 @@ def setup():
         ssl_context = ssl.create_default_context()
 
     # Setup HTTP session
-    session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
+    if globals.settings.proxy_type == SettingsProxyType.none:
+        session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
+    else:
+        proxy_type = ProxyType.HTTP
+        match globals.settings.proxy_type:
+            case SettingsProxyType.socks4: proxy_type = ProxyType.SOCKS4
+            case SettingsProxyType.socks5: proxy_type = ProxyType.SOCKS5
+            case SettingsProxyType.http: proxy_type = ProxyType.HTTP
+        connector = ProxyConnector(
+            proxy_type=proxy_type,
+            host=globals.settings.proxy_address,
+            port=globals.settings.proxy_port,
+            username=globals.settings.proxy_username,
+            password=globals.settings.proxy_password,
+            loop=async_thread.loop,
+        )
+        session = aiohttp.ClientSession(loop=async_thread.loop, connector=connector, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
     session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
 
     try:

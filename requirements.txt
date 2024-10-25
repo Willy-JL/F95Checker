@@ -24,3 +24,7 @@ pywin32==306 ; sys_platform == "win32"
 uvloop==0.20.0 ; sys_platform != "win32"
 bencode2==0.2.4
 pillow==10.4.0
+
+# Proxy support
+python-socks[asyncio]==2.5.3
+aiohttp-socks==0.9.0

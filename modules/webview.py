@@ -14,6 +14,9 @@ from PyQt6 import (
     QtWidgets,
 )
 
+from PyQt6.QtNetwork import QNetworkProxy
+
+
 # Qt WebEngine doesn't like running alongside other OpenGL
 # applications so we need to run a dedicated multiprocess
 
@@ -36,11 +39,31 @@ def config_qt_flags(debug: bool, software: bool):
 
 
 def kwargs():
+    from modules.structs import ProxyType as SettingsProxyType
     from modules import (
         colors,
         globals,
         icons,
     )
+
+    if globals.settings.proxy_type == SettingsProxyType.none:
+        proxy_config = None
+    else:
+        proxy_type = QNetworkProxy.ProxyType.NoProxy
+        match globals.settings.proxy_type:
+            case SettingsProxyType.socks4:
+                print("SOCKS4 proxy is not supported by Qt", file=sys.stderr)
+                proxy_type = QNetworkProxy.ProxyType.NoProxy
+            case SettingsProxyType.socks5: proxy_type = QNetworkProxy.ProxyType.Socks5Proxy
+            case SettingsProxyType.http: proxy_type = QNetworkProxy.ProxyType.HttpProxy
+        proxy_config = {
+            "type": proxy_type.name,
+            "address": globals.settings.proxy_address,
+            "port": globals.settings.proxy_port,
+            "username": globals.settings.proxy_username,
+            "password": globals.settings.proxy_password,
+        }
+
     return dict(
         debug=globals.debug,
         software=globals.settings.software_webview,
@@ -50,7 +73,8 @@ def kwargs():
         extension=str(globals.self_path / "browser/integrated.js"),
         col_bg=colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
         col_accent=colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
-        col_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
+        col_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2],
+        proxy_config=proxy_config,
     )
 
 
@@ -68,9 +92,22 @@ def create(
     extension: str,
     col_bg: str,
     col_accent: str,
-    col_text: str
+    col_text: str,
+    proxy_config: dict | None,
 ):
     config_qt_flags(debug, software)
+
+    if proxy_config and proxy_config["type"] != QNetworkProxy.ProxyType.NoProxy:
+        proxy = QNetworkProxy()
+        proxy.setType(next(p_type for p_type in QNetworkProxy.ProxyType if p_type.name == proxy_config["type"]))
+        proxy.setHostName(proxy_config["address"])
+        proxy.setPort(proxy_config["port"])
+        if proxy_config["username"]:
+            proxy.setUser(proxy_config["username"])
+        if proxy_config["password"]:
+            proxy.setPassword(proxy_config["password"])
+        QNetworkProxy.setApplicationProxy(proxy)
+
     app = QtWidgets.QApplication(sys.argv)
     icon_font = QtGui.QFontDatabase.applicationFontFamilies(QtGui.QFontDatabase.addApplicationFont(icon_font))[0]
     app.window = QtWidgets.QWidget()
@@ -113,6 +150,11 @@ def create(
 
     app.window.webview = QtWebEngineWidgets.QWebEngineView(QtWebEngineCore.QWebEngineProfile(None if private else "F95Checker", app.window), app.window)
     app.window.webview.page = app.window.webview.page()
+    if proxy_config and "username" in proxy_config:
+        def proxy_authenticator(_: QtCore.QUrl, authenticator: QtNetwork.QAuthenticator, __: str):
+            authenticator.setUser(proxy_config["username"])
+            authenticator.setPassword(proxy_config["password"])
+        app.window.webview.page.proxyAuthenticationRequired.connect(proxy_authenticator)
     app.window.webview.history = app.window.webview.page.history()
     app.window.webview.profile = app.window.webview.page.profile()
     app.window.webview.settings = app.window.webview.page.settings()
