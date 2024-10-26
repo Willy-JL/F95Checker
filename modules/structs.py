@@ -929,6 +929,10 @@ class Game:
         from modules import async_thread, db
         async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
+        if self.installed != self.version:
+            self.add_timeline_event(TimelineEventType.GameInstalled, self.version)
+            self.installed = self.version
+            self.updated = False
 
     def remove_executable(self, executable: str):
         self.executables.remove(executable)
