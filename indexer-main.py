@@ -21,9 +21,10 @@ def force_log_info(msg: str):
 
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
-    force_log_info("Startup complete")
-    yield
-    force_log_info("Shutting down")
+    async with cache.lifespan():
+        force_log_info("Startup complete")
+        yield
+        force_log_info("Shutting down")
 
 
 app = fastapi.FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
