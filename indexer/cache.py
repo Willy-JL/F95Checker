@@ -1,6 +1,10 @@
 import redis.asyncio as aredis
+import datetime as dt
 import contextlib
 import asyncio
+import time
+
+ttl = dt.timedelta(hours=6).total_seconds()
 
 redis: aredis.Redis = None
 
@@ -24,10 +28,38 @@ async def lock(id: int):
 @contextlib.asynccontextmanager
 async def lifespan():
     global redis
-    redis = aredis.Redis()
+    redis = aredis.Redis(decode_responses=True)
     await redis.ping()
 
     yield
 
     await redis.aclose()
     redis = None
+
+
+async def get_thread(id: int) -> dict:
+    assert isinstance(id, int)
+    thread_name = f"thread:{id}"
+
+    async with lock(id):
+        last_cached = int((await redis.hget(thread_name, "last_cached")) or 0)
+        now = time.time()
+        if (now - last_cached) > ttl:
+            await _update_thread_cache(id)
+
+        thread = await redis.hgetall(thread_name)
+        del thread["last_cached"]
+        return thread
+
+
+async def refresh_thread(id: int) -> None:
+    assert isinstance(id, int)
+
+    async with lock(id):
+        await _update_thread_cache(id)
+
+
+async def _update_thread_cache(id: int):
+    thread_name = f"thread:{id}"
+    # FIXME: Implement
+    await redis.hset(thread_name, "last_cached", int(time.time()))
