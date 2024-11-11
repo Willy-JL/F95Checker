@@ -33,7 +33,7 @@ app.include_router(threads.router)
 
 def main() -> None:
     logger = logging.getLogger()
-    logger.setLevel(logging.WARN)
+    logger.setLevel(logging.INFO)
 
     uvicorn.run(
         "indexer-main:app",
@@ -41,6 +41,7 @@ def main() -> None:
         port=int(os.environ.get("BIND_HOST", 8069)),
         workers=1,
         log_config=None,
+        log_level=logging.WARN,
     )
 
 

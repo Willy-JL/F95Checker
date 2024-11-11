@@ -2,7 +2,10 @@ import redis.asyncio as aredis
 import datetime as dt
 import contextlib
 import asyncio
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 ttl = dt.timedelta(hours=6).total_seconds()
 
@@ -40,6 +43,7 @@ async def lifespan():
 async def get_thread(id: int) -> dict:
     assert isinstance(id, int)
     thread_name = f"thread:{id}"
+    logger.debug(f"Get {thread_name}")
 
     async with lock(id):
         last_cached = int((await redis.hget(thread_name, "last_cached")) or 0)
@@ -61,5 +65,7 @@ async def refresh_thread(id: int) -> None:
 
 async def _update_thread_cache(id: int):
     thread_name = f"thread:{id}"
+    logger.info(f"Update cached {thread_name}")
+
     # FIXME: Implement
     await redis.hset(thread_name, "last_cached", int(time.time()))
