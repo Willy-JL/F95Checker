@@ -1,18 +1,31 @@
-import redis.asyncio as aredis
-import datetime as dt
-import contextlib
 import asyncio
+import contextlib
+import datetime as dt
 import logging
 import time
 
-logger = logging.getLogger(__name__)
+import redis.asyncio as aredis
 
 ttl = dt.timedelta(hours=6).total_seconds()
 
+logger = logging.getLogger(__name__)
 redis: aredis.Redis = None
-
 locks_lock = asyncio.Lock()
 locks: dict[asyncio.Lock] = {}
+
+
+@contextlib.asynccontextmanager
+async def lifespan():
+    global redis
+    redis = aredis.Redis(decode_responses=True)
+    await redis.ping()
+
+    try:
+        yield
+    finally:
+
+        await redis.aclose()
+        redis = None
 
 
 # https://stackoverflow.com/a/67057328
@@ -28,19 +41,7 @@ async def lock(id: int):
             del locks[id]
 
 
-@contextlib.asynccontextmanager
-async def lifespan():
-    global redis
-    redis = aredis.Redis(decode_responses=True)
-    await redis.ping()
-
-    yield
-
-    await redis.aclose()
-    redis = None
-
-
-async def get_thread(id: int) -> dict:
+async def get_thread(id: int) -> dict[str, any]:  # FIXME: Return type
     assert isinstance(id, int)
     thread_name = f"thread:{id}"
     logger.debug(f"Get {thread_name}")
@@ -63,7 +64,7 @@ async def refresh_thread(id: int) -> None:
         await _update_thread_cache(id)
 
 
-async def _update_thread_cache(id: int):
+async def _update_thread_cache(id: int) -> None:
     thread_name = f"thread:{id}"
     logger.info(f"Update cached {thread_name}")
 

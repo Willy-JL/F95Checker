@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 import contextlib
 import logging
-import fastapi
-import uvicorn
 import os
 
+import fastapi
+import uvicorn
+
 from indexer import (
-    threads,
     cache,
+    threads,
 )
 
 
-def force_log_info(msg: str):
+def force_log_info(msg: str) -> None:
     logger = logging.getLogger()
     prev_level = logger.level
     logger.setLevel(logging.INFO)
