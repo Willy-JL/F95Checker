@@ -601,7 +601,7 @@ async def full_check(game: Game, version: str):
         old_status = game.status
 
         parse = parser.thread
-        args = (game.id, res)
+        args = (game.id, res, True)
         if globals.settings.use_parser_processes:
             # Using multiprocessing can help with interface stutters
             with (pipe := MultiProcessPipe())(multiprocessing.Process(target=parse, args=(*args, pipe))):

@@ -52,7 +52,7 @@ class ParserException(Exception):
         self.kwargs = kwargs
 
 
-def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
+def thread(game_id: int, res: bytes, save_broken: bool, pipe: multiprocessing.Queue = None):
     def game_has_prefixes(*names: list[str]):
         for name in names:
             if head.find("span", text=f"{name}"):
@@ -145,14 +145,18 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
-            from main import self_path
-            (self_path / f"{game_id}_broken.html").write_bytes(res)
+            if save_broken:
+                from main import self_path
+                (self_path / f"{game_id}_broken.html").write_bytes(res)
             e = ParserException(
                 "Thread parsing error",
-                "Failed to parse necessary sections in thread response, the html file has\n"
-                f"been saved to:\n{self_path}{os.sep}{game_id}_broken.html\n"
-                "\n"
-                "Please submit a bug report on F95Zone or GitHub including this file.",
+                "Failed to parse necessary sections in thread response." + (
+                    " The html file has been saved to:\n"
+                    f"{self_path}{os.sep}{game_id}_broken.html\n"
+                    "\n"
+                    "Please submit a bug report on F95Zone or GitHub including this file."
+                    if save_broken else ""
+                ),
                 MsgBox.error
             )
             if pipe:

@@ -3,7 +3,6 @@ import multiprocessing
 import datetime as dt
 import dataclasses
 import functools
-import aiofiles
 import asyncio
 import weakref
 import pathlib
@@ -761,10 +760,8 @@ class Settings:
             del self.default_exe_dir[""]
 
 
-from modules import (
-    imagehelper,
-    colors,
-)
+from modules import colors
+
 
 Type = IntEnumHack("Type", [
     ("ADRIFT",     (2,  {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Games})),
@@ -834,7 +831,7 @@ class Game:
     image_url          : str
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
-    image              : imagehelper.ImageHelper = None
+    image              : "imagehelper.ImageHelper" = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
     timeline_events    : list[TimelineEvent] = dataclasses.field(default_factory=list)
@@ -854,7 +851,7 @@ class Game:
             self.finished = (self.installed or self.version)
         elif self.finished == "False" and self.installed != "False" and self.version != "False":
             self.finished = ""
-        from modules import globals
+        from modules import globals, imagehelper
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executables()
 
@@ -872,6 +869,7 @@ class Game:
         self.image.resolve()
 
     async def set_image_async(self, data: bytes):
+        import aiofiles
         from modules import globals, utils
         self.delete_images()
         if data:
