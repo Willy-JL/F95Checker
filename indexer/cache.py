@@ -45,6 +45,18 @@ async def lock(id: int):
     #         del locks[id]
 
 
+async def last_change(id: int):
+    assert isinstance(id, int)
+    thread_name = f"thread:{id}"
+    logger.debug(f"Last change {thread_name}")
+
+    async with lock(id):
+        # TODO: implement
+        pass
+
+    return 0
+
+
 async def get_thread(id: int) -> dict[str, str]:
     assert isinstance(id, int)
     thread_name = f"thread:{id}"
@@ -56,9 +68,9 @@ async def get_thread(id: int) -> dict[str, str]:
         if not last_cached or (time.time() - int(last_cached)) > cache_ttl:
             await _update_thread_cache(id)
 
-        thread = await redis.hgetall(thread_name)
-        del thread["last_cached"]
-        return thread
+    thread = await redis.hgetall(thread_name)
+    del thread["last_cached"]
+    return thread
 
 
 async def refresh_thread(id: int) -> None:
