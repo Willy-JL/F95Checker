@@ -201,8 +201,6 @@ def thread(game_id: int, res: bytes, save_broken: bool, pipe: multiprocessing.Qu
         if not thread_version:
             if match := re.search(r"(?:\[.+?\] - )*.+?\[(.+?)\]", html.title.text):
                 thread_version = fixed_spaces(sanitize_whitespace(match.group(1)))
-        if not thread_version:
-            thread_version = None
 
         developer = get_game_attr(
             "developer/publisher",
