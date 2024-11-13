@@ -1,5 +1,6 @@
 import multiprocessing
 import datetime as dt
+import collections
 import functools
 import json
 import bs4
@@ -18,6 +19,23 @@ from modules import (
 
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
+
+ParsedThread = collections.namedtuple("ParsedThread", [
+    "name",
+    "thread_version",
+    "developer",
+    "type",
+    "status",
+    "last_updated",
+    "score",
+    "votes",
+    "description",
+    "changelog",
+    "tags",
+    "unknown_tags",
+    "image_url",
+    "downloads",
+])
 
 # [^\S\r\n] = whitespace but not newlines
 sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
@@ -378,7 +396,22 @@ def thread(game_id: int, res: bytes, save_broken: bool, pipe: multiprocessing.Qu
         else:
             return e
 
-    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads)
+    ret = ParsedThread(
+        name=name,
+        thread_version=thread_version,
+        developer=developer,
+        type=type,
+        status=status,
+        last_updated=last_updated,
+        score=score,
+        votes=votes,
+        description=description,
+        changelog=changelog,
+        tags=tags,
+        unknown_tags=unknown_tags,
+        image_url=image_url,
+        downloads=downloads,
+    )
     if pipe:
         pipe.put_nowait(ret)
     else:

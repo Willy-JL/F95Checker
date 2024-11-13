@@ -618,31 +618,31 @@ async def full_check(game: Game, version: str):
             ret = parse(*args)
         if isinstance(ret, parser.ParserException):
             raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads) = ret
+
         if not version:
-            if thread_version:
-                version = thread_version
+            if ret.thread_version:
+                version = ret.thread_version
             else:
                 version = "N/A"
 
         if old_status is not Status.Unchecked:
-            if game.developer != developer:
-                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, developer)
+            if game.developer != ret.developer:
+                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, ret.developer)
 
-            if game.type != type:
-                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, type.name)
+            if game.type != ret.type:
+                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, ret.type.name)
 
-            if game.tags != tags:
-                if difference := [tag.text for tag in tags if tag not in game.tags]:
+            if game.tags != ret.tags:
+                if difference := [tag.text for tag in ret.tags if tag not in game.tags]:
                     game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
-                if difference := [tag.text for tag in game.tags if tag not in tags]:
+                if difference := [tag.text for tag in game.tags if tag not in ret.tags]:
                     game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
 
-            if game.score != score:
-                if game.score < score:
-                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, score, votes)
+            if game.score != ret.score:
+                if game.score < ret.score:
+                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, ret.score, ret.votes)
                 else:
-                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, score, votes)
+                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, ret.score, ret.votes)
 
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
@@ -668,41 +668,41 @@ async def full_check(game: Game, version: str):
 
         # Don't include name change in popup for simple parsing adjustments
         if breaking_name_parsing:
-            old_name = name
+            old_name = ret.name
 
         fetch_image = game.image.missing
         if not game.image_url == "custom" and not breaking_keep_old_image:
-            fetch_image = fetch_image or (image_url != game.image_url)
+            fetch_image = fetch_image or (ret.image_url != game.image_url)
 
         unknown_tags_flag = game.unknown_tags_flag
-        if len(unknown_tags) > 0 and game.unknown_tags != unknown_tags:
+        if len(ret.unknown_tags) > 0 and game.unknown_tags != ret.unknown_tags:
             unknown_tags_flag = True
 
         async def update_game():
-            game.name = name
+            game.name = ret.name
             game.version = version
-            game.developer = developer
-            game.type = type
-            game.status = status
+            game.developer = ret.developer
+            game.type = ret.type
+            game.status = ret.status
             game.url = url
-            game.last_updated = last_updated
+            game.last_updated = ret.last_updated
             game.last_full_check = last_full_check
             game.last_check_version = last_check_version
-            game.score = score
-            game.votes = votes
+            game.score = ret.score
+            game.votes = ret.votes
             game.finished = finished
             game.installed = installed
             game.updated = updated
-            game.description = description
-            game.changelog = changelog
-            game.tags = tags
-            game.unknown_tags = unknown_tags
+            game.description = ret.description
+            game.changelog = ret.changelog
+            game.tags = ret.tags
+            game.unknown_tags = ret.unknown_tags
             game.unknown_tags_flag = unknown_tags_flag
-            game.image_url = image_url
-            game.downloads = downloads
+            game.image_url = ret.image_url
+            game.downloads = ret.downloads
 
-            changed_name = name != old_name
-            changed_status = status != old_status
+            changed_name = ret.name != old_name
+            changed_status = ret.status != old_status
             changed_version = version != old_version
 
             if old_status is not Status.Unchecked:
@@ -724,22 +724,22 @@ async def full_check(game: Game, version: str):
                 )
                 globals.updated_games[game.id] = old_game
 
-        if fetch_image and image_url and image_url.startswith("http"):
+        if fetch_image and game.image_url and game.image_url.startswith("http"):
             with images:
                 try:
-                    res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
+                    res = await fetch("GET", game.image_url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
                 except aiohttp.ClientResponseError as exc:
                     if exc.status < 400:
                         raise  # Not error status
-                    if image_url.startswith("https://i.imgur.com"):
-                        image_url = "blocked"
+                    if game.image_url.startswith("https://i.imgur.com"):
+                        game.image_url = "blocked"
                     else:
-                        image_url = "dead"
+                        game.image_url = "dead"
                     res = b""
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if is_f95zone_url(image_url):
+                    if is_f95zone_url(game.image_url):
                         raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True
@@ -748,11 +748,11 @@ async def full_check(game: Game, version: str):
                     except Exception:
                         f95zone_ok = False
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", ret.image_url).group(1))
                     except Exception:
                         foreign_ok = False
                     if f95zone_ok and not foreign_ok:
-                        image_url = "dead"
+                        game.image_url = "dead"
                         res = b""
                     else:
                         raise  # Foreign host might not actually be dead
