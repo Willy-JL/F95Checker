@@ -39,9 +39,10 @@ async def lock(id: int):
             locks[id] = asyncio.Lock()
     async with locks[id]:
         yield
-    async with locks_lock:
-        if locks[id].locked() == 0:
-            del locks[id]
+    # TODO: concurrency issues, check if it uses too much RAM like this
+    # async with locks_lock:
+    #     if locks[id].locked() == 0:
+    #         del locks[id]
 
 
 async def get_thread(id: int) -> dict[str, str]:
