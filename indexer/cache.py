@@ -6,7 +6,10 @@ import time
 
 import redis.asyncio as aredis
 
-ttl = dt.timedelta(hours=6).total_seconds()
+from indexer import scraper
+
+cache_ttl = dt.timedelta(days=7).total_seconds()
+retry_delay = dt.timedelta(hours=1).total_seconds()
 
 logger = logging.getLogger(__name__)
 redis: aredis.Redis = None
@@ -41,15 +44,15 @@ async def lock(id: int):
             del locks[id]
 
 
-async def get_thread(id: int) -> dict[str, any]:  # FIXME: Return type
+async def get_thread(id: int) -> dict[str, str]:
     assert isinstance(id, int)
     thread_name = f"thread:{id}"
     logger.debug(f"Get {thread_name}")
 
     async with lock(id):
-        last_cached = int((await redis.hget(thread_name, "last_cached")) or 0)
-        now = time.time()
-        if (now - last_cached) > ttl:
+        # TODO: Also check last version cached on to fetch new fields
+        last_cached = await redis.hget(thread_name, "last_cached")
+        if not last_cached or (time.time() - int(last_cached)) > cache_ttl:
             await _update_thread_cache(id)
 
         thread = await redis.hgetall(thread_name)
@@ -68,5 +71,20 @@ async def _update_thread_cache(id: int) -> None:
     thread_name = f"thread:{id}"
     logger.info(f"Update cached {thread_name}")
 
-    # FIXME: Implement
+    thread = await scraper.thread(id)
+    last_cached = time.time()
+
+    if thread is None:
+        # Can't reach F95zone, keep cache, mark older last_cached to retry sooner
+        last_cached = last_cached - cache_ttl + retry_delay
+        # TODO: If an unknown issue (aka not a temporary connection issue) maybe add a flag
+        # to cached data saying the thread could not be parsed, and show it in F95Checker UI
+    elif thread == {}:
+        # F95zone responded but thread is missing, remove any previous cache
+        await redis.delete(thread_name)
+    else:
+        # F95zone responded, cache new thread data
+        await redis.hmset(thread_name, thread)
+    # TODO: Also track last time that the data actually changed
+
     await redis.hset(thread_name, "last_cached", int(time.time()))

@@ -8,6 +8,7 @@ import uvicorn
 
 from indexer import (
     cache,
+    scraper,
     threads,
 )
 
@@ -22,7 +23,10 @@ def force_log_info(msg: str) -> None:
 
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
-    async with cache.lifespan():
+    async with (
+        cache.lifespan(),
+        scraper.lifespan(),
+    ):
         force_log_info("Startup complete")
         yield
         force_log_info("Shutting down")
