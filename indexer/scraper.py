@@ -1,8 +1,6 @@
 import contextlib
 import json
 import logging
-import pathlib
-import subprocess
 import sys
 
 import aiohttp
@@ -10,26 +8,27 @@ import aiolimiter
 
 from modules import parser
 
-xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=6, time_period=2)
-
-logger = logging.getLogger(__name__)
-session: aiohttp.ClientSession = None
-thread_url = "https://f95zone.to/threads/{thread}"
-timeout = 30
-login_error_messages = (
+XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=6, time_period=2)
+TIMEOUT = 30
+LOGIN_ERROR_MESSAGES = (
     b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
     b"<title>Log in | F95zone</title>",
     b"<title>DDOS-GUARD</title>",
 )
-ratelimit_error_messages = (
+RATELIMIT_ERROR_MESSAGES = (
     b"<title>Error 429</title>",
     b"<title>DDOS-GUARD</title>",
 )
-temp_error_messages = (
+TEMP_ERROR_MESSAGES = (
     b"<title>502 Bad Gateway</title>",
     b"<!-- Too many connections -->",
     b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>",
 )
+
+logger = logging.getLogger(__name__)
+session: aiohttp.ClientSession = None
+
+THREAD_URL = "https://f95zone.to/threads/{thread}"
 
 
 @contextlib.asynccontextmanager
@@ -51,10 +50,10 @@ async def lifespan(version: str):
 
 
 async def thread(id: int) -> dict[str, str] | None:
-    async with xenforo_ratelimit:
+    async with XENFORO_RATELIMIT:
         async with session.get(
-            thread_url.format(thread=id),
-            timeout=timeout,
+            THREAD_URL.format(thread=id),
+            timeout=TIMEOUT,
             allow_redirects=True,
             max_redirects=10,
             cookies={},  # FIXME: auth
@@ -64,15 +63,15 @@ async def thread(id: int) -> dict[str, str] | None:
                 return {}
             res = await req.read()
 
-    if any((msg in res) for msg in login_error_messages):
+    if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
         logger.error("Logged out of F95zone")
         # FIXME: login
         return None
-    if any((msg in res) for msg in ratelimit_error_messages):
+    if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
         logger.error("Hit F95zone ratelimit")
         # FIXME: wait for a bit and retry
         return None
-    if any((msg in res) for msg in temp_error_messages):
+    if any((msg in res) for msg in TEMP_ERROR_MESSAGES):
         logger.warning("F95zone temporarily unreachable")
         return None
 

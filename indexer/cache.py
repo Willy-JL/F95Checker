@@ -8,15 +8,9 @@ import redis.asyncio as aredis
 
 from indexer import scraper
 
-cache_ttl = dt.timedelta(days=7).total_seconds()
-retry_delay = dt.timedelta(hours=1).total_seconds()
-
-logger = logging.getLogger(__name__)
-redis: aredis.Redis = None
-locks_lock = asyncio.Lock()
-locks: dict[asyncio.Lock] = {}
-version: str = None
-last_change_eligible_fields = (
+CACHE_TTL = dt.timedelta(days=7).total_seconds()
+RETRY_DELAY = dt.timedelta(hours=1).total_seconds()
+LAST_CHANGE_ELIGIBLE_FIELDS = (
     "name",
     "thread_version",
     "developer",
@@ -32,6 +26,12 @@ last_change_eligible_fields = (
     "image_url",
     "downloads",
 )
+
+logger = logging.getLogger(__name__)
+redis: aredis.Redis = None
+locks_lock = asyncio.Lock()
+locks: dict[asyncio.Lock] = {}
+version: str = None
 
 LAST_CACHED = "last_cached"
 CACHED_WITH = "cached_with"
@@ -108,7 +108,7 @@ async def _maybe_update_thread_cache(id: int, name: str) -> None:
     last_cached, cached_with = await redis.hmget(name, (LAST_CACHED, CACHED_WITH))
     if (
         not last_cached  # Never cached
-        or (time.time() - int(last_cached)) > cache_ttl  # Cache expired
+        or (time.time() - int(last_cached)) > CACHE_TTL  # Cache expired
         or cached_with != version  # Cached on different version
     ):
         await _update_thread_cache(id, name)
@@ -123,7 +123,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
 
     if thread is None:
         # Can't reach F95zone, keep cache, mark older last_cached to retry sooner
-        last_cached = last_cached - cache_ttl + retry_delay
+        last_cached = last_cached - CACHE_TTL + RETRY_DELAY
         # TODO: If an unknown issue (aka not a temporary connection issue) maybe add a flag
         # to cached data saying the thread could not be parsed, and show it in F95Checker UI
     else:
@@ -137,7 +137,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
         old_fields = await redis.hgetall(name)
         if any(
             new_fields.get(key) != old_fields.get(key)
-            for key in last_change_eligible_fields
+            for key in LAST_CHANGE_ELIGIBLE_FIELDS
         ):
             new_fields[LAST_CHANGE] = int(last_cached)
 

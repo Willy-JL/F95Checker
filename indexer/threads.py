@@ -4,8 +4,8 @@ import fastapi
 
 from indexer import cache
 
-fast_max_ids = 10
-valid_thread_ids = range(1, 1_000_000)  # Top ID was ~232k at time of writing
+FAST_MAX_IDS = 10
+VALID_THREAD_IDS = range(1, 1_000_000)  # Top ID was ~232k at time of writing
 
 router = fastapi.APIRouter()
 
@@ -13,9 +13,9 @@ router = fastapi.APIRouter()
 @router.get("/fast")
 async def fast_request(ids: str):
     ids = ids.split(",")
-    if len(ids) > fast_max_ids:
+    if len(ids) > FAST_MAX_IDS:
         return fastapi.responses.JSONResponse(
-            f"Max {fast_max_ids} IDs",
+            f"Max {FAST_MAX_IDS} IDs",
             status_code=400,
         )
 
@@ -27,7 +27,7 @@ async def fast_request(ids: str):
             status_code=400,
         )
 
-    if any(id not in valid_thread_ids for id in ids):
+    if any(id not in VALID_THREAD_IDS for id in ids):
         return fastapi.responses.JSONResponse(
             "Invalid thread IDs",
             status_code=400,
@@ -44,7 +44,7 @@ async def fast_request(ids: str):
 
 @router.get("/full/{id}")
 async def full_request(id: int):
-    if id not in valid_thread_ids:
+    if id not in VALID_THREAD_IDS:
         return fastapi.responses.JSONResponse(
             "Invalid thread ID",
             status_code=400,
