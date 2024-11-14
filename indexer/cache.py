@@ -16,9 +16,26 @@ redis: aredis.Redis = None
 locks_lock = asyncio.Lock()
 locks: dict[asyncio.Lock] = {}
 version: str = None
+last_change_eligible_fields = (
+    "name",
+    "thread_version",
+    "developer",
+    "type",
+    "status",
+    "last_updated",
+    # "score",
+    # "votes",
+    "description",
+    "changelog",
+    "tags",
+    "unknown_tags",
+    "image_url",
+    "downloads",
+)
 
 LAST_CACHED = "last_cached"
 CACHED_WITH = "cached_with"
+LAST_CHANGE = "last_change"
 
 
 @contextlib.asynccontextmanager
@@ -59,8 +76,8 @@ async def last_change(id: int) -> int:
     async with lock(id):
         await _maybe_update_thread_cache(id, name)
 
-    # TODO: implement
-    return 0
+    last_change = await redis.hget(name, LAST_CHANGE)
+    return last_change
 
 
 async def get_thread(id: int) -> dict[str, str]:
@@ -74,6 +91,7 @@ async def get_thread(id: int) -> dict[str, str]:
     thread = await redis.hgetall(name)
     del thread[LAST_CACHED]
     del thread[CACHED_WITH]
+    del thread[LAST_CHANGE]
     return thread
 
 
@@ -115,7 +133,13 @@ async def _update_thread_cache(id: int, name: str) -> None:
         else:
             # F95zone responded, cache new thread data
             new_fields = thread
-        # TODO: Also track last time that the data actually changed
+        # Track last time that some meaningful data changed to tell clients to full check it
+        old_fields = await redis.hgetall(name)
+        if any(
+            new_fields.get(key) != old_fields.get(key)
+            for key in last_change_eligible_fields
+        ):
+            new_fields[LAST_CHANGE] = int(last_cached)
 
     new_fields[LAST_CACHED] = int(last_cached)
     new_fields[CACHED_WITH] = version
