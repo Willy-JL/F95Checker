@@ -62,10 +62,9 @@ async def lock(id: int):
             locks[id] = asyncio.Lock()
     async with locks[id]:
         yield
-    # TODO: concurrency issues, check if it uses too much RAM like this
-    # async with locks_lock:
-    #     if locks[id].locked() == 0:
-    #         del locks[id]
+    async with locks_lock:
+        if (lock := locks.get(id)) and not lock.locked() and not lock._waiters:
+            del locks[id]
 
 
 async def last_change(id: int) -> int:
