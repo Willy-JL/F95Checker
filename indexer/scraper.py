@@ -39,11 +39,21 @@ ScraperError = collections.namedtuple(
 )
 
 THREAD_URL = "https://f95zone.to/threads/{thread}"
-ERROR_SCRAPER_LOGGED_OUT = ScraperError("SCRAPER_LOGGED_OUT", dt.timedelta(hours=2).total_seconds())
-ERROR_XENFORO_RATELIMIT = ScraperError("XENFORO_RATELIMIT", dt.timedelta(minutes=15).total_seconds())
-ERROR_F95ZONE_UNAVAILABLE = ScraperError("F95ZONE_UNAVAILABLE", dt.timedelta(minutes=15).total_seconds())
-ERROR_THREAD_MISSING = ScraperError("THREAD_MISSING", dt.timedelta(days=14).total_seconds())
-ERROR_PARSING_FAILED = ScraperError("PARSING_FAILED", dt.timedelta(hours=6).total_seconds())
+ERROR_SCRAPER_LOGGED_OUT = ScraperError(
+    "SCRAPER_LOGGED_OUT", dt.timedelta(hours=2).total_seconds()
+)
+ERROR_XENFORO_RATELIMIT = ScraperError(
+    "XENFORO_RATELIMIT", dt.timedelta(minutes=15).total_seconds()
+)
+ERROR_F95ZONE_UNAVAILABLE = ScraperError(
+    "F95ZONE_UNAVAILABLE", dt.timedelta(minutes=15).total_seconds()
+)
+ERROR_THREAD_MISSING = ScraperError(
+    "THREAD_MISSING", dt.timedelta(days=14).total_seconds()
+)
+ERROR_PARSING_FAILED = ScraperError(
+    "PARSING_FAILED", dt.timedelta(hours=6).total_seconds()
+)
 
 
 @contextlib.asynccontextmanager
