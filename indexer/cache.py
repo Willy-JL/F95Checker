@@ -24,6 +24,7 @@ LAST_CHANGE_ELIGIBLE_FIELDS = (
     "unknown_tags",
     "image_url",
     "downloads",
+    "INDEX_ERROR",
 )
 
 logger = logging.getLogger(__name__)
@@ -124,28 +125,33 @@ async def _update_thread_cache(id: int, name: str) -> None:
 
     result = await scraper.thread(id)
     old_fields = await redis.hgetall(name)
-    new_fields = {}
-    last_cached = time.time()
+    now = time.time()
 
     if isinstance(result, scraper.ScraperError):
         if result is scraper.ERROR_THREAD_MISSING:
             # F95zone responded but thread is missing, remove any previous cache
             await redis.delete(name)
         # Something went wrong, keep cache and retry sooner/later
-        last_cached = last_cached - CACHE_TTL + result.retry_delay
+        new_fields = {
+            INDEX_ERROR: result.error_flag,
+            LAST_CACHED: int(now - CACHE_TTL + result.retry_delay),
+        }
         # Consider new error as a change
-        if old_fields.get(INDEX_ERROR) != result.error_flag:
-            new_fields[LAST_CHANGE] = int(last_cached)
+        if old_fields.get(INDEX_ERROR) != new_fields.get(INDEX_ERROR):
+            new_fields[LAST_CHANGE] = int(now)
     else:
         # F95zone responded, cache new thread data
-        new_fields = result
+        new_fields = {
+            **result,
+            INDEX_ERROR: "",
+            LAST_CACHED: int(now),
+        }
         # Track last time that some meaningful data changed to tell clients to full check it
         if any(
             new_fields.get(key) != old_fields.get(key)
             for key in LAST_CHANGE_ELIGIBLE_FIELDS
         ):
-            new_fields[LAST_CHANGE] = int(last_cached)
+            new_fields[LAST_CHANGE] = int(now)
 
-    new_fields[LAST_CACHED] = int(last_cached)
     new_fields[CACHED_WITH] = version
     await redis.hmset(name, new_fields)
