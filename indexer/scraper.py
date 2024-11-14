@@ -1,6 +1,9 @@
+import collections
 import contextlib
+import datetime as dt
 import json
 import logging
+import os
 import sys
 
 import aiohttp
@@ -28,7 +31,20 @@ TEMP_ERROR_MESSAGES = (
 logger = logging.getLogger(__name__)
 session: aiohttp.ClientSession = None
 
+ScraperError = collections.namedtuple(
+    "ScraperError",
+    (
+        "error_flag",
+        "retry_delay",
+    ),
+)
+
 THREAD_URL = "https://f95zone.to/threads/{thread}"
+ERROR_SCRAPER_LOGGED_OUT = ScraperError("SCRAPER_LOGGED_OUT", dt.timedelta(hours=2).total_seconds())
+ERROR_XENFORO_RATELIMIT = ScraperError("XENFORO_RATELIMIT", dt.timedelta(minutes=15).total_seconds())
+ERROR_F95ZONE_UNAVAILABLE = ScraperError("F95ZONE_UNAVAILABLE", dt.timedelta(minutes=15).total_seconds())
+ERROR_THREAD_MISSING = ScraperError("THREAD_MISSING", dt.timedelta(days=14).total_seconds())
+ERROR_PARSING_FAILED = ScraperError("PARSING_FAILED", dt.timedelta(hours=6).total_seconds())
 
 
 @contextlib.asynccontextmanager
@@ -60,27 +76,29 @@ async def thread(id: int) -> dict[str, str] | None:
                 "xf_user": os.environ.get("COOKIE_XF_USER"),
             },
         ) as req:
-            if req.status in (403, 404):
-                # Thread doesn't exist
-                return {}
             res = await req.read()
 
     if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
         logger.error("Logged out of F95zone")
         # TODO: maybe auto login, but xf_user cookie should be enough for a long time
-        return None
+        return ERROR_SCRAPER_LOGGED_OUT
     if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
         logger.error("Hit F95zone ratelimit")
-        # FIXME: wait for a bit and retry
-        return None
+        return ERROR_XENFORO_RATELIMIT
     if any((msg in res) for msg in TEMP_ERROR_MESSAGES):
         logger.warning("F95zone temporarily unreachable")
-        return None
+        return ERROR_F95ZONE_UNAVAILABLE
+    if req.status in (403, 404):
+        return ERROR_THREAD_MISSING
 
     # TODO: Intensive operation, move to threads+queue
     ret = parser.thread(id, res, False)
     if isinstance(ret, parser.ParserException):
         logger.error(f"Thread {id} parsing failed:" + ret.args[1])
+        return ERROR_PARSING_FAILED
+
+    # TODO: maybe add an error flag for threads outside of
+    # games/media/mods forums so it wont get cached for no reason
 
     # Prepare for redis, only strings allowed
     parsed = ret._asdict()

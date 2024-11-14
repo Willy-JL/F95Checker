@@ -9,7 +9,6 @@ import redis.asyncio as aredis
 from indexer import scraper
 
 CACHE_TTL = dt.timedelta(days=7).total_seconds()
-RETRY_DELAY = dt.timedelta(hours=1).total_seconds()
 LAST_CHANGE_ELIGIBLE_FIELDS = (
     "name",
     "thread_version",
@@ -33,9 +32,10 @@ locks_lock = asyncio.Lock()
 locks: dict[asyncio.Lock] = {}
 version: str = None
 
-LAST_CACHED = "last_cached"
-CACHED_WITH = "cached_with"
-LAST_CHANGE = "last_change"
+LAST_CACHED = "LAST_CACHED"
+CACHED_WITH = "CACHED_WITH"
+LAST_CHANGE = "LAST_CHANGE"
+INDEX_ERROR = "INDEX_ERROR"
 
 
 @contextlib.asynccontextmanager
@@ -88,7 +88,13 @@ async def get_thread(id: int) -> dict[str, str]:
         await _maybe_update_thread_cache(id, name)
 
     thread = await redis.hgetall(name)
-    for key in (LAST_CACHED, CACHED_WITH, LAST_CHANGE):
+
+    # Don't return thread data (there might be some) if an error flag is active
+    if thread.get(INDEX_ERROR):
+        return {INDEX_ERROR: thread[INDEX_ERROR]}
+
+    # Remove internal fields from response
+    for key in (LAST_CACHED, CACHED_WITH, LAST_CHANGE, INDEX_ERROR):
         if key in thread:
             del thread[key]
     return thread
@@ -116,24 +122,24 @@ async def _maybe_update_thread_cache(id: int, name: str) -> None:
 async def _update_thread_cache(id: int, name: str) -> None:
     logger.info(f"Update cached {name}")
 
-    thread = await scraper.thread(id)
+    result = await scraper.thread(id)
+    old_fields = await redis.hgetall(name)
     new_fields = {}
     last_cached = time.time()
 
-    if thread is None:
-        # Can't reach F95zone, keep cache, mark older last_cached to retry sooner
-        last_cached = last_cached - CACHE_TTL + RETRY_DELAY
-        # TODO: If an unknown issue (aka not a temporary connection issue) maybe add a flag
-        # to cached data saying the thread could not be parsed, and show it in F95Checker UI
-    else:
-        if thread == {}:
+    if isinstance(result, scraper.ScraperError):
+        if result is scraper.ERROR_THREAD_MISSING:
             # F95zone responded but thread is missing, remove any previous cache
             await redis.delete(name)
-        else:
-            # F95zone responded, cache new thread data
-            new_fields = thread
+        # Something went wrong, keep cache and retry sooner/later
+        last_cached = last_cached - CACHE_TTL + result.retry_delay
+        # Consider new error as a change
+        if old_fields.get(INDEX_ERROR) != result.error_flag:
+            new_fields[LAST_CHANGE] = int(last_cached)
+    else:
+        # F95zone responded, cache new thread data
+        new_fields = result
         # Track last time that some meaningful data changed to tell clients to full check it
-        old_fields = await redis.hgetall(name)
         if any(
             new_fields.get(key) != old_fields.get(key)
             for key in LAST_CHANGE_ELIGIBLE_FIELDS
