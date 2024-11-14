@@ -76,8 +76,8 @@ async def last_change(id: int) -> int:
     async with lock(id):
         await _maybe_update_thread_cache(id, name)
 
-    last_change = await redis.hget(name, LAST_CHANGE)
-    return last_change
+    last_change = await redis.hget(name, LAST_CHANGE) or 0
+    return int(last_change)
 
 
 async def get_thread(id: int) -> dict[str, str]:
@@ -89,9 +89,9 @@ async def get_thread(id: int) -> dict[str, str]:
         await _maybe_update_thread_cache(id, name)
 
     thread = await redis.hgetall(name)
-    del thread[LAST_CACHED]
-    del thread[CACHED_WITH]
-    del thread[LAST_CHANGE]
+    for key in (LAST_CACHED, CACHED_WITH, LAST_CHANGE):
+        if key in thread:
+            del thread[key]
     return thread
 
 
