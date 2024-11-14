@@ -50,7 +50,7 @@ async def lifespan(version: str):
         session = None
 
 
-async def thread(id: int) -> dict[str, str | int] | None:
+async def thread(id: int) -> dict[str, str] | None:
     async with xenforo_ratelimit:
         async with session.get(
             thread_url.format(thread=id),
@@ -81,10 +81,14 @@ async def thread(id: int) -> dict[str, str | int] | None:
     if isinstance(ret, parser.ParserException):
         logger.error(f"Thread {id} parsing failed:" + ret.args[1])
 
+    # Prepare for redis, only strings allowed
     parsed = ret._asdict()
-    parsed["downloads"] = json.dumps(parsed["downloads"])
-    parsed["status"] = int(parsed["status"])
+    parsed["type"] = str(int(parsed["type"]))
+    parsed["status"] = str(int(parsed["status"]))
+    parsed["last_updated"] = str(parsed["last_updated"])
+    parsed["score"] = str(parsed["score"])
+    parsed["votes"] = str(parsed["votes"])
     parsed["tags"] = json.dumps(parsed["tags"])
-    parsed["type"] = int(parsed["type"])
     parsed["unknown_tags"] = json.dumps(parsed["unknown_tags"])
+    parsed["downloads"] = json.dumps(parsed["downloads"])
     return parsed
