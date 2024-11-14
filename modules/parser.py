@@ -21,20 +21,20 @@ html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
 
 ParsedThread = collections.namedtuple("ParsedThread", [
-    "name",
-    "thread_version",
-    "developer",
-    "type",
-    "status",
-    "last_updated",
-    "score",
-    "votes",
-    "description",
-    "changelog",
-    "tags",
-    "unknown_tags",
-    "image_url",
-    "downloads",
+    "name",  # str
+    "thread_version",  # str
+    "developer",  # str
+    "type",  # structs.Type(int)
+    "status",  # structs.Status(int)
+    "last_updated",  # int
+    "score",  # float
+    "votes",  # int
+    "description",  # str
+    "changelog",  # str
+    "tags",  # list[structs.Tag(int)]
+    "unknown_tags",  # list[str]
+    "image_url",  # str
+    "downloads",  # list[tuple[str, list[tuple[str, str]]]]
 ])
 
 # [^\S\r\n] = whitespace but not newlines
