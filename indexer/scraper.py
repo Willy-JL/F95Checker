@@ -33,17 +33,9 @@ temp_error_messages = (
 
 
 @contextlib.asynccontextmanager
-async def lifespan():
+async def lifespan(version: str):
     global session
     session = aiohttp.ClientSession(cookie_jar=aiohttp.DummyCookieJar())
-    try:
-        version = subprocess.check_output(
-            ["git", "rev-parse", "--short=7", "HEAD"],
-            cwd=pathlib.Path(__file__).parent,
-            encoding="utf-8",
-        ).strip()
-    except subprocess.CalledProcessError:
-        version = "unknown"
     session.headers["User-Agent"] = (
         f"F95Indexer/{version} "
         f"Python/{sys.version.split(' ')[0]} "

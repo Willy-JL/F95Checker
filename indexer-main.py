@@ -2,6 +2,8 @@
 import contextlib
 import logging
 import os
+import pathlib
+import subprocess
 
 import fastapi
 import uvicorn
@@ -23,9 +25,18 @@ def force_log_info(msg: str) -> None:
 
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
+    try:
+        version = subprocess.check_output(
+            ["git", "rev-parse", "--short=7", "HEAD"],
+            cwd=pathlib.Path(__file__).parent,
+            encoding="utf-8",
+        ).strip()
+    except subprocess.CalledProcessError:
+        version = "unknown"
+
     async with (
-        cache.lifespan(),
-        scraper.lifespan(),
+        cache.lifespan(version),
+        scraper.lifespan(version),
     ):
         force_log_info("Startup complete")
         yield
