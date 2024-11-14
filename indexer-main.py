@@ -58,6 +58,7 @@ def main() -> None:
         workers=1,
         log_config=None,
         log_level=logging.WARN,
+        env_file="indexer.env",
     )
 
 

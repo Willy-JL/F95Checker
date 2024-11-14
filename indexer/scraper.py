@@ -56,7 +56,9 @@ async def thread(id: int) -> dict[str, str] | None:
             timeout=TIMEOUT,
             allow_redirects=True,
             max_redirects=10,
-            cookies={},  # FIXME: auth
+            cookies={
+                "xf_user": os.environ.get("COOKIE_XF_USER"),
+            },
         ) as req:
             if req.status in (403, 404):
                 # Thread doesn't exist
@@ -65,7 +67,7 @@ async def thread(id: int) -> dict[str, str] | None:
 
     if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
         logger.error("Logged out of F95zone")
-        # FIXME: login
+        # TODO: maybe auto login, but xf_user cookie should be enough for a long time
         return None
     if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
         logger.error("Hit F95zone ratelimit")
