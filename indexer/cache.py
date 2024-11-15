@@ -132,14 +132,16 @@ async def _update_thread_cache(id: int, name: str) -> None:
     now = time.time()
 
     if isinstance(result, f95zone.IndexerError):
-        if result is f95zone.ERROR_THREAD_MISSING:
-            # F95zone responded but thread is missing, remove any previous cache
-            await redis.delete(name)
         # Something went wrong, keep cache and retry sooner/later
         new_fields = {
             INDEX_ERROR: result.error_flag,
             LAST_CACHED: int(now - CACHE_TTL + result.retry_delay),
         }
+        if result is f95zone.ERROR_THREAD_MISSING:
+            # F95zone responded but thread is missing, remove any previous cache
+            await redis.delete(name)
+            if last_change := old_fields.get(LAST_CHANGE):
+                new_fields[LAST_CHANGE] = last_change
         # Consider new error as a change
         if old_fields.get(INDEX_ERROR) != new_fields.get(INDEX_ERROR):
             new_fields[LAST_CHANGE] = int(now)
@@ -159,4 +161,6 @@ async def _update_thread_cache(id: int, name: str) -> None:
             logger.info(f"Data for {name} changed")
 
     new_fields[CACHED_WITH] = version
+    if LAST_CHANGE not in old_fields and LAST_CHANGE not in new_fields:
+        new_fields[LAST_CHANGE] = int(now)
     await redis.hmset(name, new_fields)
