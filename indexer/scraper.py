@@ -32,6 +32,21 @@ async def thread(id: int) -> dict[str, str] | None:
     # TODO: maybe add an error flag for threads outside of
     # games/media/mods forums so it wont get cached for no reason
 
+    version = ""
+    async with f95zone.session.get(
+        f95zone.VERCHK_URL.format(threads=id),
+        cookies=f95zone.cookies,
+    ) as req:
+        res = await req.read()
+    versions = json.loads(res)
+    if versions["status"] == "ok":
+        version = versions["msg"][str(id)]
+    elif versions["status"] == "error" and versions["msg"] == "Thread not found":
+        pass
+    else:
+        logger.error(f"Thread {id} version failed: {versions}")
+        return f95zone.ERROR_VERSION_FAILED
+
     # Redact unmasked links to prevent abuse, since this api is public
     # Replaces with thread link, so user can click it and go find it anyway
     parsed = ret._asdict()
@@ -41,6 +56,8 @@ async def thread(id: int) -> dict[str, str] | None:
                 links[link_i] = (link_name, thread_url)
 
     # Prepare for redis, only strings allowed
+    parsed["version"] = version if version else parsed["thread_version"]
+    del parsed["thread_version"]
     parsed["type"] = str(int(parsed["type"]))
     parsed["status"] = str(int(parsed["status"]))
     parsed["last_updated"] = str(parsed["last_updated"])

@@ -33,6 +33,7 @@ HOST = "https://f95zone.to"
 THREAD_URL = HOST + "/threads/{thread}"
 MASKED_URL = HOST + "/masked/"
 LATEST_URL = HOST + "/sam/latest_alpha/latest_data.php?cmd={t}&cat={c}&page={p}&rows=90"
+VERCHK_URL = HOST + "/sam/checker.php?threads={threads}"
 
 IndexerError = collections.namedtuple(
     "IndexerError",
@@ -56,6 +57,9 @@ ERROR_THREAD_MISSING = IndexerError(
 )
 ERROR_PARSING_FAILED = IndexerError(
     "PARSING_FAILED", dt.timedelta(hours=6).total_seconds()
+)
+ERROR_VERSION_FAILED = IndexerError(
+    "VERSION_FAILED", dt.timedelta(hours=6).total_seconds()
 )
 
 
