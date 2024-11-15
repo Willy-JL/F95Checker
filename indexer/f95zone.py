@@ -9,7 +9,7 @@ import aiohttp
 import aiolimiter
 
 XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=6, time_period=2)
-TIMEOUT = 30
+TIMEOUT = aiohttp.ClientTimeout(total=30)
 LOGIN_ERROR_MESSAGES = (
     b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
     b"<title>Log in | F95zone</title>",
@@ -62,7 +62,10 @@ ERROR_PARSING_FAILED = IndexerError(
 @contextlib.asynccontextmanager
 async def lifespan(version: str):
     global session, cookies
-    session = aiohttp.ClientSession(cookie_jar=aiohttp.DummyCookieJar())
+    session = aiohttp.ClientSession(
+        cookie_jar=aiohttp.DummyCookieJar(),
+        timeout=TIMEOUT,
+    )
     session.headers["User-Agent"] = (
         f"F95Indexer/{version} "
         f"Python/{sys.version.split(' ')[0]} "

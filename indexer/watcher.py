@@ -46,8 +46,6 @@ async def watch_latest_updates():
 
                 async with f95zone.session.get(
                     f95zone.LATEST_URL.format(t="list", c=category, p=1),
-                    allow_redirects=True,
-                    max_redirects=10,
                     cookies=f95zone.cookies,
                 ) as req:
                     res = await req.read()

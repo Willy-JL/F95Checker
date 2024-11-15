@@ -13,9 +13,6 @@ async def thread(id: int) -> dict[str, str] | None:
     async with f95zone.XENFORO_RATELIMIT:
         async with f95zone.session.get(
             thread_url,
-            timeout=f95zone.TIMEOUT,
-            allow_redirects=True,
-            max_redirects=10,
             cookies=f95zone.cookies,
         ) as req:
             res = await req.read()
