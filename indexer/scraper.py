@@ -39,6 +39,7 @@ ScraperError = collections.namedtuple(
 )
 
 THREAD_URL = "https://f95zone.to/threads/{thread}"
+MASKED_URL = "https://f95zone.to/masked/"
 ERROR_SCRAPER_LOGGED_OUT = ScraperError(
     "SCRAPER_LOGGED_OUT", dt.timedelta(hours=2).total_seconds()
 )
@@ -75,9 +76,10 @@ async def lifespan(version: str):
 
 
 async def thread(id: int) -> dict[str, str] | None:
+    thread_url = THREAD_URL.format(thread=id)
     async with XENFORO_RATELIMIT:
         async with session.get(
-            THREAD_URL.format(thread=id),
+            thread_url,
             timeout=TIMEOUT,
             allow_redirects=True,
             max_redirects=10,
@@ -109,8 +111,15 @@ async def thread(id: int) -> dict[str, str] | None:
     # TODO: maybe add an error flag for threads outside of
     # games/media/mods forums so it wont get cached for no reason
 
-    # Prepare for redis, only strings allowed
+    # Redact unmasked links to prevent abuse, since this api is public
+    # Replaces with thread link, so user can click it and go find it anyway
     parsed = ret._asdict()
+    for label, links in parsed["downloads"]:
+        for link_i, (link_name, link_url) in enumerate(links):
+            if not link_url.startswith(MASKED_URL):
+                links[link_i] = (link_name, thread_url)
+
+    # Prepare for redis, only strings allowed
     parsed["type"] = str(int(parsed["type"]))
     parsed["status"] = str(int(parsed["status"]))
     parsed["last_updated"] = str(parsed["last_updated"])
