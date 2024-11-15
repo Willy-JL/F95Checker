@@ -32,7 +32,7 @@ cookies: dict = None
 HOST = "https://f95zone.to"
 THREAD_URL = HOST + "/threads/{thread}"
 MASKED_URL = HOST + "/masked/"
-LATEST_URL = HOST + "/sam/latest_alpha/latest_data.php?cmd=list&cat={cat}&page={page}"
+LATEST_URL = HOST + "/sam/latest_alpha/latest_data.php?cmd={t}&cat={c}&page={p}&rows=90"
 
 IndexerError = collections.namedtuple(
     "IndexerError",
