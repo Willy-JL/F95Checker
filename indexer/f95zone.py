@@ -13,6 +13,7 @@ TIMEOUT = 30
 LOGIN_ERROR_MESSAGES = (
     b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
     b"<title>Log in | F95zone</title>",
+    b'<form action="/login/login" method="post" class="block"',
 )
 RATELIMIT_ERROR_MESSAGES = (
     b"<title>Error 429</title>",

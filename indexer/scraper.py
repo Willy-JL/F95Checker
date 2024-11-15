@@ -30,6 +30,9 @@ async def thread(id: int) -> dict[str, str] | None:
     if index_error := f95zone.check_error(res):
         return index_error
 
+    if req.status in (403, 404):
+        return ERROR_THREAD_MISSING
+
     # TODO: Intensive operation, move to threads+queue
     ret = parser.thread(id, res, False)
     if isinstance(ret, parser.ParserException):
