@@ -156,6 +156,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
             for key in LAST_CHANGE_ELIGIBLE_FIELDS
         ):
             new_fields[LAST_CHANGE] = int(now)
+            logger.info(f"Data for {name} changed")
 
     new_fields[CACHED_WITH] = version
     await redis.hmset(name, new_fields)
