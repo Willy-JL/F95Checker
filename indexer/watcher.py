@@ -72,10 +72,16 @@ async def watch_latest_updates():
 
                     # Clear cache instead of fetching new data, no point
                     # fetching it if no one cares is tracking it
-                    if await cache.redis.hdel(name, cache.LAST_CACHED):
-                        logger.info(f"Cleared cache for {name}")
-                    else:
-                        logger.debug(f"Nothing cached for {name}")
+                    last_cached = await cache.redis.hget(name, cache.LAST_CACHED)
+                    await cache.redis.hdel(name, cache.LAST_CACHED)
+                    logger.info(
+                        f"Invalidated cache for {name}"
+                        + (
+                            f" (was {dt.datetime.fromtimestamp(int(last_cached))})"
+                            if last_cached
+                            else ""
+                        )
+                    )
 
                 if caught_up_to_thread:
                     await cache.redis.hset(LAST_WATCH, category, caught_up_to_thread)
