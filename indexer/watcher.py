@@ -38,7 +38,7 @@ async def watch_latest_updates():
     while True:
         try:
             # Calculate how far back we need to get caught up
-            now = time.time()
+            now = int(time.time())
             last_watch = int(await cache.redis.get(LAST_WATCH) or 0)
             if now - last_watch > cache.CACHE_TTL:
                 last_watch = now - cache.CACHE_TTL
@@ -49,7 +49,7 @@ async def watch_latest_updates():
                 caught_up = False
                 while not caught_up:
                     page += 1
-                    logger.debug(f"Poll {category} updates page {page}")
+                    logger.debug(f"Poll page {page} of {category}")
 
                     async with f95zone.session.get(
                         f95zone.LATEST_URL.format(cat=category, page=page),
@@ -67,6 +67,7 @@ async def watch_latest_updates():
                         raise Exception(f"Latest updates returned an error: {updates}")
 
                     for update in updates["msg"]["data"]:
+                        name = cache.NAME_FORMAT.format(id=update["thread_id"])
                         # No reliable timestamp, only relative human readable
                         # time, need to half-assedly parse it here
                         diff = update["date"]
@@ -82,22 +83,25 @@ async def watch_latest_updates():
                         elif "week" in diff:
                             delta += dt.timedelta(weeks=int(diff.split(" ")[0]), days=1)
                         else:
+                            logger.warning(f"Unknown delta format: {date}")
                             caught_up = True
                             break
-                        date = time.time() - (delta.total_seconds())
+                        date = int(time.time() - (delta.total_seconds()))
                         if date < last_watch:
+                            date_dt = dt.datetime.fromtimestamp(date)
+                            last_dt = dt.datetime.fromtimestamp(last_watch)
+                            logger.debug(f"Stopping at {name} ({date_dt} < {last_dt})")
                             caught_up = True
                             break
 
                         # Clear cache instead of fetching new data, no point
                         # fetching it if no one cares is tracking it
-                        name = cache.NAME_FORMAT.format(id=update["thread_id"])
                         if await cache.redis.hdel(name, cache.LAST_CACHED):
                             logger.info(f"Cleared cache for {name}")
                         else:
                             logger.debug(f"Nothing cached for {name}")
 
-            await cache.redis.set(LAST_WATCH, int(now))
+            await cache.redis.set(LAST_WATCH, now)
             logger.info("Poll updates done")
 
         except Exception:
