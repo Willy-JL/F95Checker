@@ -38,6 +38,7 @@ async def watch_latest_updates():
     while True:
         try:
             # Calculate how far back we need to get caught up
+            caught_up_to = 0
             now = int(time.time())
             last_watch = int(await cache.redis.get(LAST_WATCH) or 0)
             if now - last_watch > cache.CACHE_TTL:
@@ -66,7 +67,7 @@ async def watch_latest_updates():
                     if updates["status"] != "ok":
                         raise Exception(f"Latest updates returned an error: {updates}")
 
-                    for update in updates["msg"]["data"]:
+                    for update_i, update in enumerate(updates["msg"]["data"]):
                         name = cache.NAME_FORMAT.format(id=update["thread_id"])
                         # No reliable timestamp, only relative human readable
                         # time, need to half-assedly parse it here
@@ -87,6 +88,11 @@ async def watch_latest_updates():
                             caught_up = True
                             break
                         date = int(time.time() - (delta.total_seconds()))
+                        if page == 1 and update_i == 0:
+                            # This is not time of publishing update to latest data, but selected by uploaders
+                            # so we cannot rely that new updates will have newer timestamps than when we last
+                            # checked the api. Workaround here is to use the newest time value from the api
+                            caught_up_to = max(caught_up_to, date)
                         if date < last_watch:
                             date_dt = dt.datetime.fromtimestamp(date)
                             last_dt = dt.datetime.fromtimestamp(last_watch)
@@ -101,7 +107,9 @@ async def watch_latest_updates():
                         else:
                             logger.debug(f"Nothing cached for {name}")
 
-            await cache.redis.set(LAST_WATCH, now)
+            if not caught_up_to:
+                caught_up_to = now
+            await cache.redis.set(LAST_WATCH, caught_up_to)
             logger.info("Poll updates done")
 
         except Exception:
