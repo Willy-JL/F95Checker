@@ -40,6 +40,7 @@ LAST_CACHED = "LAST_CACHED"
 CACHED_WITH = "CACHED_WITH"
 LAST_CHANGE = "LAST_CHANGE"
 INDEX_ERROR = "INDEX_ERROR"
+NAME_FORMAT = "thread:{id}"
 
 
 @contextlib.asynccontextmanager
@@ -73,7 +74,7 @@ async def lock(id: int):
 
 async def last_change(id: int) -> int:
     assert isinstance(id, int)
-    name = f"thread:{id}"
+    name = NAME_FORMAT.format(id=id)
     logger.debug(f"Last change {name}")
 
     async with lock(id):
@@ -85,7 +86,7 @@ async def last_change(id: int) -> int:
 
 async def get_thread(id: int) -> dict[str, str]:
     assert isinstance(id, int)
-    name = f"thread:{id}"
+    name = NAME_FORMAT.format(id=id)
     logger.debug(f"Get {name}")
 
     async with lock(id):
@@ -106,7 +107,7 @@ async def get_thread(id: int) -> dict[str, str]:
 
 async def refresh_thread(id: int) -> None:
     assert isinstance(id, int)
-    name = f"thread:{id}"
+    name = NAME_FORMAT.format(id=id)
     logger.info(f"Refresh {name}")
 
     async with lock(id):

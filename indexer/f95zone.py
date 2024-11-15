@@ -28,8 +28,9 @@ logger = logging.getLogger(__name__)
 session: aiohttp.ClientSession = None
 cookies: dict = None
 
-THREAD_URL = "https://f95zone.to/threads/{thread}"
-MASKED_URL = "https://f95zone.to/masked/"
+HOST = "https://f95zone.to"
+THREAD_URL = HOST + "/threads/{thread}"
+MASKED_URL = HOST + "/masked/"
 
 IndexerError = collections.namedtuple(
     "IndexerError",
@@ -71,7 +72,7 @@ async def lifespan(version: str):
         session = None
 
 
-def check_error(res: bytes) -> IndexError | None:
+def check_error(res: bytes) -> IndexerError | None:
     if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
         logger.error("Logged out of F95zone")
         # TODO: maybe auto login, but xf_user cookie should be enough for a long time
