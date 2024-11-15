@@ -51,7 +51,7 @@ app.include_router(threads.router)
 
 def main() -> None:
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     uvicorn.run(
         "indexer-main:app",
