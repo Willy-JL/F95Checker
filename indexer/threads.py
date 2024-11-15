@@ -3,7 +3,10 @@ import time
 
 import fastapi
 
-from indexer import cache
+from indexer import (
+    cache,
+    scraper,
+)
 
 FAST_MAX_IDS = 10
 VALID_THREAD_IDS = range(1, 1_000_000)  # Top ID was ~232k at time of writing
@@ -61,7 +64,14 @@ async def full_request(id: int, ts: int):
 
     full = await cache.get_thread(id)
 
+    status = 200
+    if index_error := full.get(cache.INDEX_ERROR):
+        if index_error == scraper.ERROR_THREAD_MISSING.error_flag:
+            status = 404
+        else:
+            status = 500
+
     return fastapi.responses.JSONResponse(
         full,
-        status_code=200,
+        status_code=status,
     )
