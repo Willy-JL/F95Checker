@@ -12,6 +12,7 @@ from indexer import (
     cache,
     f95zone,
     threads,
+    watcher,
 )
 
 
@@ -37,6 +38,7 @@ async def lifespan(app: fastapi.FastAPI):
     async with (
         cache.lifespan(version),
         f95zone.lifespan(version),
+        watcher.lifespan(),
     ):
         force_log_info("Startup complete")
         yield
