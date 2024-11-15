@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import fastapi
 
@@ -43,11 +44,19 @@ async def fast_request(ids: str):
 
 
 @router.get("/full/{id}")
-async def full_request(id: int):
+async def full_request(id: int, ts: int):
     if id not in VALID_THREAD_IDS:
         return fastapi.responses.JSONResponse(
             "Invalid thread ID",
             status_code=400,
+        )
+
+    # Use timestamps for dynamic cache, but
+    # prevent abuse from caching future timestamps
+    if ts > time.time():
+        return fastapi.responses.JSONResponse(
+            "Invalid timestamp",
+            status_code=406,
         )
 
     full = await cache.get_thread(id)
