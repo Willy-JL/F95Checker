@@ -37,7 +37,7 @@ async def lifespan():
 async def watch_latest_updates():
     while True:
         try:
-            logger.info("Poll updates start")
+            logger.debug("Poll updates start")
 
             for category in WATCH_CATEGORIES:
                 logger.debug(f"Poll category {category}")
@@ -84,7 +84,7 @@ async def watch_latest_updates():
                 if caught_up_to_thread:
                     await cache.redis.hset(LAST_WATCH, category, caught_up_to_thread)
 
-            logger.info("Poll updates done")
+            logger.debug("Poll updates done")
 
         except Exception:
             logger.error(error.traceback())
