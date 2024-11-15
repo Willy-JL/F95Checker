@@ -5,7 +5,7 @@ import fastapi
 
 from indexer import (
     cache,
-    scraper,
+    f95zone,
 )
 
 FAST_MAX_IDS = 10
@@ -66,7 +66,7 @@ async def full_request(id: int, ts: int):
 
     status = 200
     if index_error := full.get(cache.INDEX_ERROR):
-        if index_error == scraper.ERROR_THREAD_MISSING.error_flag:
+        if index_error == f95zone.ERROR_THREAD_MISSING.error_flag:
             status = 404
         else:
             status = 500

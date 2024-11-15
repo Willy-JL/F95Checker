@@ -7,13 +7,6 @@ from modules import parser
 
 logger = logging.getLogger(__name__)
 
-ERROR_THREAD_MISSING = f95zone.IndexerError(
-    "THREAD_MISSING", dt.timedelta(days=14).total_seconds()
-)
-ERROR_PARSING_FAILED = f95zone.IndexerError(
-    "PARSING_FAILED", dt.timedelta(hours=6).total_seconds()
-)
-
 
 async def thread(id: int) -> dict[str, str] | None:
     thread_url = f95zone.THREAD_URL.format(thread=id)
@@ -31,13 +24,13 @@ async def thread(id: int) -> dict[str, str] | None:
         return index_error
 
     if req.status in (403, 404):
-        return ERROR_THREAD_MISSING
+        return f95zone.ERROR_THREAD_MISSING
 
     # TODO: Intensive operation, move to threads+queue
     ret = parser.thread(id, res, False)
     if isinstance(ret, parser.ParserException):
         logger.error(f"Thread {id} parsing failed:" + ret.args[1])
-        return ERROR_PARSING_FAILED
+        return f95zone.ERROR_PARSING_FAILED
 
     # TODO: maybe add an error flag for threads outside of
     # games/media/mods forums so it wont get cached for no reason

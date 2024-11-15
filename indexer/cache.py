@@ -132,7 +132,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
     now = time.time()
 
     if isinstance(result, f95zone.IndexerError):
-        if result is scraper.ERROR_THREAD_MISSING:
+        if result is f95zone.ERROR_THREAD_MISSING:
             # F95zone responded but thread is missing, remove any previous cache
             await redis.delete(name)
         # Something went wrong, keep cache and retry sooner/later

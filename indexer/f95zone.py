@@ -51,6 +51,12 @@ ERROR_XENFORO_RATELIMIT = IndexerError(
 ERROR_F95ZONE_UNAVAILABLE = IndexerError(
     "F95ZONE_UNAVAILABLE", dt.timedelta(minutes=15).total_seconds()
 )
+ERROR_THREAD_MISSING = IndexerError(
+    "THREAD_MISSING", dt.timedelta(days=14).total_seconds()
+)
+ERROR_PARSING_FAILED = IndexerError(
+    "PARSING_FAILED", dt.timedelta(hours=6).total_seconds()
+)
 
 
 @contextlib.asynccontextmanager
