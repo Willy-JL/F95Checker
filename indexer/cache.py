@@ -6,7 +6,10 @@ import time
 
 import redis.asyncio as aredis
 
-from indexer import scraper
+from indexer import (
+    f95zone,
+    scraper,
+)
 
 CACHE_TTL = dt.timedelta(days=7).total_seconds()
 LAST_CHANGE_ELIGIBLE_FIELDS = (
@@ -127,7 +130,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
     old_fields = await redis.hgetall(name)
     now = time.time()
 
-    if isinstance(result, scraper.ScraperError):
+    if isinstance(result, f95zone.IndexerError):
         if result is scraper.ERROR_THREAD_MISSING:
             # F95zone responded but thread is missing, remove any previous cache
             await redis.delete(name)

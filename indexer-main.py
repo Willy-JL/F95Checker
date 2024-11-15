@@ -10,7 +10,7 @@ import uvicorn
 
 from indexer import (
     cache,
-    scraper,
+    f95zone,
     threads,
 )
 
@@ -36,7 +36,7 @@ async def lifespan(app: fastapi.FastAPI):
 
     async with (
         cache.lifespan(version),
-        scraper.lifespan(version),
+        f95zone.lifespan(version),
     ):
         force_log_info("Startup complete")
         yield

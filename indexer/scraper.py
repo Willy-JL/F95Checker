@@ -1,106 +1,34 @@
-import collections
-import contextlib
 import datetime as dt
 import json
 import logging
-import os
-import sys
 
-import aiohttp
-import aiolimiter
-
+from indexer import f95zone
 from modules import parser
 
-XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=6, time_period=2)
-TIMEOUT = 30
-LOGIN_ERROR_MESSAGES = (
-    b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
-    b"<title>Log in | F95zone</title>",
-)
-RATELIMIT_ERROR_MESSAGES = (
-    b"<title>Error 429</title>",
-    b"<title>DDOS-GUARD</title>",
-)
-TEMP_ERROR_MESSAGES = (
-    b"<title>502 Bad Gateway</title>",
-    b"<!-- Too many connections -->",
-    b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>",
-)
-
 logger = logging.getLogger(__name__)
-session: aiohttp.ClientSession = None
 
-ScraperError = collections.namedtuple(
-    "ScraperError",
-    (
-        "error_flag",
-        "retry_delay",
-    ),
-)
-
-THREAD_URL = "https://f95zone.to/threads/{thread}"
-MASKED_URL = "https://f95zone.to/masked/"
-ERROR_SCRAPER_LOGGED_OUT = ScraperError(
-    "SCRAPER_LOGGED_OUT", dt.timedelta(hours=2).total_seconds()
-)
-ERROR_XENFORO_RATELIMIT = ScraperError(
-    "XENFORO_RATELIMIT", dt.timedelta(minutes=15).total_seconds()
-)
-ERROR_F95ZONE_UNAVAILABLE = ScraperError(
-    "F95ZONE_UNAVAILABLE", dt.timedelta(minutes=15).total_seconds()
-)
-ERROR_THREAD_MISSING = ScraperError(
+ERROR_THREAD_MISSING = f95zone.IndexerError(
     "THREAD_MISSING", dt.timedelta(days=14).total_seconds()
 )
-ERROR_PARSING_FAILED = ScraperError(
+ERROR_PARSING_FAILED = f95zone.IndexerError(
     "PARSING_FAILED", dt.timedelta(hours=6).total_seconds()
 )
 
 
-@contextlib.asynccontextmanager
-async def lifespan(version: str):
-    global session
-    session = aiohttp.ClientSession(cookie_jar=aiohttp.DummyCookieJar())
-    session.headers["User-Agent"] = (
-        f"F95Indexer/{version} "
-        f"Python/{sys.version.split(' ')[0]} "
-        f"aiohttp/{aiohttp.__version__}"
-    )
-
-    try:
-        yield
-    finally:
-
-        await session.close()
-        session = None
-
-
 async def thread(id: int) -> dict[str, str] | None:
-    thread_url = THREAD_URL.format(thread=id)
-    async with XENFORO_RATELIMIT:
-        async with session.get(
+    thread_url = f95zone.THREAD_URL.format(thread=id)
+    async with f95zone.XENFORO_RATELIMIT:
+        async with f95zone.session.get(
             thread_url,
-            timeout=TIMEOUT,
+            timeout=f95zone.TIMEOUT,
             allow_redirects=True,
             max_redirects=10,
-            cookies={
-                "xf_user": os.environ.get("COOKIE_XF_USER"),
-            },
+            cookies=f95zone.cookies,
         ) as req:
             res = await req.read()
 
-    if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
-        logger.error("Logged out of F95zone")
-        # TODO: maybe auto login, but xf_user cookie should be enough for a long time
-        return ERROR_SCRAPER_LOGGED_OUT
-    if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
-        logger.error("Hit F95zone ratelimit")
-        return ERROR_XENFORO_RATELIMIT
-    if any((msg in res) for msg in TEMP_ERROR_MESSAGES):
-        logger.warning("F95zone temporarily unreachable")
-        return ERROR_F95ZONE_UNAVAILABLE
-    if req.status in (403, 404):
-        return ERROR_THREAD_MISSING
+    if index_error := f95zone.check_error(res):
+        return index_error
 
     # TODO: Intensive operation, move to threads+queue
     ret = parser.thread(id, res, False)
@@ -116,7 +44,7 @@ async def thread(id: int) -> dict[str, str] | None:
     parsed = ret._asdict()
     for label, links in parsed["downloads"]:
         for link_i, (link_name, link_url) in enumerate(links):
-            if not link_url.startswith(MASKED_URL):
+            if not link_url.startswith(f95zone.MASKED_URL):
                 links[link_i] = (link_name, thread_url)
 
     # Prepare for redis, only strings allowed
