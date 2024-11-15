@@ -18,13 +18,6 @@ from indexer import (
 logger = logging.getLogger()
 
 
-def force_log_info(msg: str) -> None:
-    prev_level = logger.level
-    logger.setLevel(logging.INFO)
-    logger.info(msg)
-    logger.setLevel(prev_level)
-
-
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
     try:
@@ -41,9 +34,7 @@ async def lifespan(app: fastapi.FastAPI):
         f95zone.lifespan(version),
         watcher.lifespan(),
     ):
-        force_log_info("Startup complete")
         yield
-        force_log_info("Shutting down")
 
 
 app = fastapi.FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
