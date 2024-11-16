@@ -109,7 +109,6 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         timeout=timeout,
         allow_redirects=True,
         max_redirects=None,
-        ssl=False,
     )
     if no_cookies:
         cookies = {}
