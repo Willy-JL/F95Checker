@@ -18,7 +18,8 @@ async def thread(id: int) -> dict[str, str] | None:
                 cookies=f95zone.cookies,
             ) as req:
                 if req.status == 429 and retries > 1:
-                    await asyncio.sleep(0.5)
+                    logger.warning("Hit a ratelimit, sleeping 2 seconds")
+                    await asyncio.sleep(2)
                     retries -= 1;
                     continue
                 res = await req.read()
