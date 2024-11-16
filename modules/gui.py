@@ -1022,7 +1022,7 @@ class MainGUI():
                             elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
                                 # Run scheduled notif check
                                 self.bg_mode_notifs_timer = None
-                                utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
+                                utils.start_refresh_task(api.check_notifs(standalone=True), reset_bg_timers=False)
                     # Wait idle time
                     if self.tray.menu_open:
                         time.sleep(1 / 60)
@@ -3878,7 +3878,7 @@ class MainGUI():
             if imgui.begin_popup_context_item("###refresh_context"):
                 # Right click = more options context menu
                 if imgui.selectable(f"{icons.bell_badge_outline} Check notifs", False)[0]:
-                    utils.start_refresh_task(api.check_notifs(login=True))
+                    utils.start_refresh_task(api.check_notifs(standalone=True))
                 if imgui.selectable(f"{icons.reload_alert} Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
                 imgui.separator()
@@ -4740,14 +4740,15 @@ class MainGUI():
             )
             draw_settings_checkbox("ignore_semaphore_timeouts")
 
-            draw_settings_label(
-                "Use parser processes:",
-                "Parsing the game threads is an intensive task so when a full recheck is running the interface can stutter a lot. When "
-                "this setting is enabled the thread parsing will be offloaded to dedicated processes that might be (very slightly) slower "
-                "and less stable but that allow the interface to remain fully responsive. It is recommended you keep this enabled unless it "
-                "is causing problems."
-            )
-            draw_settings_checkbox("use_parser_processes")
+            # Unused
+            # draw_settings_label(
+            #     "Use parser processes:",
+            #     "Parsing the game threads is an intensive task so when a full recheck is running the interface can stutter a lot. When "
+            #     "this setting is enabled the thread parsing will be offloaded to dedicated processes that might be (very slightly) slower "
+            #     "and less stable but that allow the interface to remain fully responsive. It is recommended you keep this enabled unless it "
+            #     "is causing problems."
+            # )
+            # draw_settings_checkbox("use_parser_processes")
 
             draw_settings_label(f"Async tasks count: {sum((0 if task.done() else 1) for task in asyncio.all_tasks(loop=async_thread.loop))}")
             imgui.text("")

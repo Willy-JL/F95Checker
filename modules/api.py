@@ -1,7 +1,4 @@
 from PyQt6.QtWidgets import QSystemTrayIcon
-import multiprocessing
-import datetime as dt
-import async_timeout
 import http.cookies
 import configparser
 import subprocess
@@ -26,14 +23,15 @@ import re
 
 from modules.structs import (
     TimelineEventType,
-    MultiProcessPipe,
     AsyncProcessPipe,
     CounterContext,
     SearchResult,
     OldGame,
     MsgBox,
     Status,
+    Type,
     Game,
+    Tag,
     Os,
 )
 from modules import (
@@ -53,7 +51,6 @@ domain = "f95zone.to"
 host = "https://" + domain
 check_login_page    = host + "/account/"
 login_page          = host + "/login/"
-fast_check_endpoint = host + "/sam/checker.php?threads={threads}"
 notif_endpoint      = host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
 alerts_page         = host + "/account/alerts/"
 inbox_page          = host + "/conversations/"
@@ -63,14 +60,17 @@ watched_page        = host + "/watched/threads?unread=0&page={page}"
 qsearch_endpoint    = host + "/quicksearch"
 update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
 
+api_domain = "api.f95checker.dev"
+api_host = "https://" + api_domain
+api_fast_check_url = api_host + "/fast?ids={ids}"
+api_full_check_url = api_host + "/full/{id}?ts={ts}"
+api_fast_check_max_ids = 10
+
 updating = False
 session: aiohttp.ClientSession = None
-full_interval = dt.timedelta(days=7)
-part_interval = dt.timedelta(days=2)
 webpage_prefix = "F95Checker-Temp-"
 xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=3)
-fast_checks_sem: asyncio.Semaphore = None
-full_checks_sem: asyncio.Semaphore = None
+workers_sem: asyncio.Semaphore = None
 full_checks_counter = CounterContext()
 images_counter = CounterContext()
 xf_token = ""
@@ -81,11 +81,6 @@ def setup():
     global session
     session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
     session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
-    # Setup multiprocessing for parsing threads
-    method = "spawn"  # Using fork defeats the purpose, with spawn the main ui does not hang
-    if globals.os is not Os.Windows and globals.frozen:
-        method = "fork"  # But unix doesn't support spawn in frozen contexts
-    multiprocessing.set_start_method(method)
     try:
         yield
     finally:
@@ -289,6 +284,32 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
             raise msgbox.Exc(
                 "API error",
                 "The F95Zone API returned an 'error' status.",
+                MsgBox.error,
+                more=more
+            )
+        return True
+
+
+def raise_api_error(res: bytes | dict):
+    if isinstance(res, bytes):
+        if any(msg in res for msg in (
+            b"<title>api.f95checker.dev | 502: Bad gateway</title>",
+            b"<title>api.f95checker.dev | 521: Web server is down</title>",
+        )):
+            raise msgbox.Exc(
+                "Server downtime",
+                "F95Checker Cache API is currently unreachable,\n"
+                "please retry in a few minutes.",
+                MsgBox.warn
+            )
+        return True
+    elif isinstance(res, dict):
+        if index_error := res.get("INDEX_ERROR"):
+            # TODO: make graceful, collect to a list and show at refresh end
+            more = json.dumps(res, indent=4)
+            raise msgbox.Exc(
+                "API error",
+                f"The F95Checker Cache API returned error '{index_error}'.",
                 MsgBox.error,
                 more=more
             )
@@ -516,20 +537,16 @@ def last_check_before(before_version: str, checked_version: str):
     return is_before
 
 
-async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None, full=False):
+async def fast_check(games: list[Game], full_queue: list[tuple[Game, int]]=None, full=False):
     games = list(filter(lambda game: not game.custom, games))
 
-    async with (fast_checks_sem or asyncio.Semaphore(1)):
+    async with workers_sem:
 
         try:
-            res = await fetch("GET", fast_check_endpoint.format(threads=",".join(str(game.id) for game in games)), no_cookies=True)
-            raise_f95zone_error(res)
-            res = json.loads(res)
-            if res["msg"] in ("Missing threads data", "Thread not found"):
-                res["status"] = "ok"
-                res["msg"] = {}
-            raise_f95zone_error(res)
-            versions = res["msg"]
+            res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), no_cookies=True)
+            raise_api_error(res)
+            last_changes = json.loads(res)
+            raise_api_error(last_changes)
         except Exception as exc:
             if isinstance(exc, msgbox.Exc):
                 raise exc
@@ -549,27 +566,12 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
 
         for game in games:
 
-            version = versions.get(str(game.id))
-            if not version or version == "Unknown":
-                version = None
-                # Full check games with no version data more often
-                interval = part_interval
-            else:
-                interval = full_interval
-
-            delta = dt.datetime.fromtimestamp(time.time()) - dt.datetime.fromtimestamp(game.last_full_check)
-
-            interval_expired = (delta.total_seconds() > interval.total_seconds())
-
-            game_is_unchecked = game.status is Status.Unchecked
-
-            if interval_expired and not full and not game_is_unchecked:
-                game.add_timeline_event(TimelineEventType.RecheckExpired, delta.days)
+            last_changed = last_changes.get(str(game.id), 0)
+            assert last_changed > 0, "Invalid last_changed from fast check API"
 
             this_full = full or (
-                interval_expired or
-                game_is_unchecked or
-                (version and version != game.version) or
+                game.status is Status.Unchecked or
+                last_changed > game.last_full_check or
                 (game.image.missing and game.image_url.startswith("http")) or
                 last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
             )
@@ -577,14 +579,14 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
                 globals.refresh_progress += 1
                 continue
 
-            full_queue.append((game, version))
+            full_queue.append((game, last_changed))
 
 
-async def full_check(game: Game, version: str):
-    async with full_checks_counter, (full_checks_sem or asyncio.Semaphore(1)):
+async def full_check(game: Game, last_changed: int):
+    async with full_checks_counter, workers_sem:
 
-        async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
-            raise_f95zone_error(res)
+        async with request("GET", api_full_check_url.format(id=game.id, ts=last_changed), timeout=globals.settings.request_timeout * 2) as (res, req):
+            raise_api_error(res)
             if req.status in (403, 404):
                 if not game.archived:
                     buttons = {
@@ -607,61 +609,56 @@ async def full_check(game: Game, version: str):
                     )
                 globals.refresh_progress += 1
                 return
-            url = utils.clean_thread_url(str(req.real_url))
+            thread = json.loads(res)
+            raise_api_error(thread)
+            url = threads_page + str(game.id)
+
+        # Redis only allows string values, so API only gives str for simplicity
+        thread["type"] = Type(int(thread["type"]))
+        thread["status"] = Status(int(thread["status"]))
+        thread["last_updated"] = int(thread["last_updated"])
+        thread["score"] = float(thread["score"])
+        thread["votes"] = int(thread["votes"])
+        thread["tags"] = tuple(Tag(tag) for tag in json.loads(thread["tags"]))
+        thread["unknown_tags"] = json.loads(thread["unknown_tags"])
+        thread["downloads"] = json.loads(thread["downloads"])
+        for label, links in thread["downloads"]:
+            for link_i, link_pair in enumerate(links):
+                links[link_i] = tuple(link_pair)
+        thread["downloads"] = tuple(thread["downloads"])
 
         old_name = game.name
         old_version = game.version
         old_status = game.status
 
-        parse = parser.thread
-        args = (game.id, res, True)
-        if globals.settings.use_parser_processes:
-            # Using multiprocessing can help with interface stutters
-            with (pipe := MultiProcessPipe())(multiprocessing.Process(target=parse, args=(*args, pipe))):
-                try:
-                    async with async_timeout.timeout(globals.settings.request_timeout):
-                        ret = await pipe.get_async()
-                except TimeoutError:
-                    raise msgbox.Exc(
-                        "Parser process timeout",
-                        "The thread parser process did not respond in time.",
-                        MsgBox.error
-                    )
-        else:
-            ret = parse(*args)
-        if isinstance(ret, parser.ParserException):
-            raise msgbox.Exc(*ret.args, **ret.kwargs)
-
+        version = thread["version"]
         if not version:
-            if ret.thread_version:
-                version = ret.thread_version
-            else:
-                version = "N/A"
+            version = "N/A"
 
         if old_status is not Status.Unchecked:
-            if game.developer != ret.developer:
-                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, ret.developer)
+            if game.developer != thread["developer"]:
+                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, thread["developer"])
 
-            if game.type != ret.type:
-                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, ret.type.name)
+            if game.type != thread["type"]:
+                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, thread["type"].name)
 
-            if game.tags != ret.tags:
-                if difference := [tag.text for tag in ret.tags if tag not in game.tags]:
+            if game.tags != thread["tags"]:
+                if difference := [tag.text for tag in thread["tags"] if tag not in game.tags]:
                     game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
-                if difference := [tag.text for tag in game.tags if tag not in ret.tags]:
+                if difference := [tag.text for tag in game.tags if tag not in thread["tags"]]:
                     game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
 
-            if game.score != ret.score:
-                if game.score < ret.score:
-                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, ret.score, ret.votes)
+            if game.score != thread["score"]:
+                if game.score < thread["score"]:
+                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, thread["score"], thread["votes"])
                 else:
-                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, ret.score, ret.votes)
+                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, thread["score"], thread["votes"])
 
         breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
         breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
         breaking_keep_old_image  = last_check_before("9.0",   game.last_check_version)  # Keep existing image files
 
-        last_full_check = int(time.time())
+        last_full_check = last_changed
         last_check_version = globals.version
 
         # Skip update popup and don't reset finished/installed checkboxes if refreshing with braking changes
@@ -681,41 +678,41 @@ async def full_check(game: Game, version: str):
 
         # Don't include name change in popup for simple parsing adjustments
         if breaking_name_parsing:
-            old_name = ret.name
+            old_name = thread["name"]
 
         fetch_image = game.image.missing
         if not game.image_url == "custom" and not breaking_keep_old_image:
-            fetch_image = fetch_image or (ret.image_url != game.image_url)
+            fetch_image = fetch_image or (thread["image_url"] != game.image_url)
 
         unknown_tags_flag = game.unknown_tags_flag
-        if len(ret.unknown_tags) > 0 and game.unknown_tags != ret.unknown_tags:
+        if len(thread["unknown_tags"]) > 0 and game.unknown_tags != thread["unknown_tags"]:
             unknown_tags_flag = True
 
         async def update_game():
-            game.name = ret.name
+            game.name = thread["name"]
             game.version = version
-            game.developer = ret.developer
-            game.type = ret.type
-            game.status = ret.status
+            game.developer = thread["developer"]
+            game.type = thread["type"]
+            game.status = thread["status"]
             game.url = url
-            game.last_updated = ret.last_updated
+            game.last_updated = thread["last_updated"]
             game.last_full_check = last_full_check
             game.last_check_version = last_check_version
-            game.score = ret.score
-            game.votes = ret.votes
+            game.score = thread["score"]
+            game.votes = thread["votes"]
             game.finished = finished
             game.installed = installed
             game.updated = updated
-            game.description = ret.description
-            game.changelog = ret.changelog
-            game.tags = ret.tags
-            game.unknown_tags = ret.unknown_tags
+            game.description = thread["description"]
+            game.changelog = thread["changelog"]
+            game.tags = thread["tags"]
+            game.unknown_tags = thread["unknown_tags"]
             game.unknown_tags_flag = unknown_tags_flag
-            game.image_url = ret.image_url
-            game.downloads = ret.downloads
+            game.image_url = thread["image_url"]
+            game.downloads = thread["downloads"]
 
-            changed_name = ret.name != old_name
-            changed_status = ret.status != old_status
+            changed_name = thread["name"] != old_name
+            changed_status = thread["status"] != old_status
             changed_version = version != old_version
 
             if old_status is not Status.Unchecked:
@@ -778,11 +775,12 @@ async def full_check(game: Game, version: str):
         globals.refresh_progress += 1
 
 
-async def check_notifs(login=False):
-    if login:
+async def check_notifs(standalone=True):
+    if standalone:
         globals.refresh_total = 2
-        if not await assert_login():
-            return
+    if not await assert_login():
+        return
+    if standalone:
         globals.refresh_progress = 1
 
     try:
@@ -1078,17 +1076,14 @@ async def check_updates():
 
 
 async def refresh(*games: list[Game], full=False, notifs=True):
-    if not await assert_login():
-        return
-
     fast_queue: list[list[Game]] = [[]]
-    full_queue: list[tuple[Game, str]] = []
+    full_queue: list[tuple[Game, int]] = []
     for game in (games or globals.games.values()):
         if game.custom:
             continue
         if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games:
             continue
-        if len(fast_queue[-1]) == 100:
+        if len(fast_queue[-1]) == api_fast_check_max_ids:
             fast_queue.append([])
         fast_queue[-1].append(game)
 
@@ -1096,26 +1091,23 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     globals.refresh_progress += 1
     globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
 
-    global fast_checks_sem, full_checks_sem
-    fast_checks_sem = asyncio.Semaphore(globals.settings.refresh_workers)
-    full_checks_sem = asyncio.Semaphore(int(max(1, globals.settings.refresh_workers / 10)))
+    global workers_sem
+    workers_sem = asyncio.Semaphore(globals.settings.refresh_workers)
     tasks: list[asyncio.Task] = []
     try:
         tasks = [asyncio.create_task(fast_check(chunk, full_queue, full=full)) for chunk in fast_queue]
         await asyncio.gather(*tasks)
-        tasks = [asyncio.create_task(full_check(game, version)) for game, version in full_queue]
+        tasks = [asyncio.create_task(full_check(game, ts)) for game, ts in full_queue]
         await asyncio.gather(*tasks)
     except Exception:
         for task in tasks:
             task.cancel()
-        fast_checks_sem = None
-        full_checks_sem = None
+        workers_sem = None
         raise
-    fast_checks_sem = None
-    full_checks_sem = None
+    workers_sem = None
 
     if notifs:
-        await check_notifs()
+        await check_notifs(standalone=False)
 
     if not games:
         globals.settings.last_successful_refresh.update(time.time())
