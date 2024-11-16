@@ -1,4 +1,4 @@
-import datetime as dt
+import asyncio
 import json
 import logging
 
@@ -10,12 +10,19 @@ logger = logging.getLogger(__name__)
 
 async def thread(id: int) -> dict[str, str] | None:
     thread_url = f95zone.THREAD_URL.format(thread=id)
-    async with f95zone.XENFORO_RATELIMIT:
-        async with f95zone.session.get(
-            thread_url,
-            cookies=f95zone.cookies,
-        ) as req:
-            res = await req.read()
+    retries = 10
+    while retries:
+        async with f95zone.XENFORO_RATELIMIT:
+            async with f95zone.session.get(
+                thread_url,
+                cookies=f95zone.cookies,
+            ) as req:
+                if req.status == 429 and retries > 1:
+                    await asyncio.sleep(0.5)
+                    retries -= 1;
+                    continue
+                res = await req.read()
+                break
 
     if index_error := f95zone.check_error(res):
         return index_error

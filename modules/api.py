@@ -70,7 +70,7 @@ app_update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/rele
 updating = False
 session: aiohttp.ClientSession = None
 webpage_prefix = "F95Checker-Temp-"
-xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=3)
+xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=1)
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
 fast_checks_counter = 0
@@ -116,10 +116,11 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         cookies = globals.cookies
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
+    is_xenforo_request = url.startswith(f95_host)
     while retries:
         try:
             # Only ratelimit when connecting to F95zone
-            maybe_ratelimit = xenforo_ratelimit if url.startswith(host) else contextlib.nullcontext()
+            maybe_ratelimit = xenforo_ratelimit if is_xenforo_request else contextlib.nullcontext()
             async with maybe_ratelimit, session.request(
                 method,
                 url,
@@ -127,6 +128,10 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
                 **req_opts,
                 **kwargs
             ) as req:
+                if is_xenforo_request and req.status == 429 and retries > 1:
+                    await asyncio.sleep(1)
+                    retries -= 1
+                    continue
                 if not read:
                     yield b"", req
                     break
