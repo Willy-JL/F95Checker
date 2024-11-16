@@ -65,7 +65,7 @@ from modules import (
     db,
 )
 
-tool_page         = api.threads_page + "44173/"
+tool_page         = api.f95_threads_page + "44173/"
 github_page       = "https://github.com/Willy-JL/F95Checker"
 developer_page    = "https://linktr.ee/WillyJL"
 
@@ -975,7 +975,7 @@ class MainGUI():
                         if imgui.invisible_button("", width=text_size.x + _6, height=text_size.y + _3):
                             utils.push_popup(self.draw_about_popup)
                         elif imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-                            callbacks.open_webpage(api.host)
+                            callbacks.open_webpage(api.f95_host)
                         imgui.set_cursor_screen_pos((text_x, text_y))
                         imgui.text(text)
 
@@ -2359,11 +2359,11 @@ class MainGUI():
                                     imgui.same_line()
                                     if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.link + mirror).x + _20:
                                         imgui.dummy(0, 0)
-                                    if f"{api.domain}/masked/" in link:
+                                    if f"{api.f95_domain}/masked/" in link:
                                         clicked = imgui.small_button(icons.domino_mask + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.copy_masked_link(link)
-                                    elif f"{api.domain}/" in link:
+                                    elif f"{api.f95_domain}/" in link:
                                         clicked = imgui.small_button(icons.open_in_app + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.open_webpage(link)

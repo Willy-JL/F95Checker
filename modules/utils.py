@@ -233,7 +233,7 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
 @functools.cache
 def clean_thread_url(url: str):
     thread = re.search(r"threads/([^/]*)", url).group(1)
-    return f"{api.threads_page}{thread}/"
+    return f"{api.f95_threads_page}{thread}/"
 
 
 from modules.structs import MsgBox, ThreadMatch

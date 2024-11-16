@@ -547,7 +547,7 @@ async def create_game(thread: ThreadMatch | SearchResult = None, custom=False):
             (id, custom, name, url, added_on)
             VALUES
             (?,  ?,      ?,    ?,   ?       )
-        """, (thread.id, False, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", int(time.time())))
+        """, (thread.id, False, thread.title or f"Unknown ({thread.id})", f"{api.f95_threads_page}{thread.id}", int(time.time())))
         return thread.id
 
 
@@ -685,7 +685,7 @@ def legacy_json_to_dict(path: pathlib.Path):  # Pre v9.0
             if not link:
                 continue
             if link.startswith("/"):
-                link = api.host + link
+                link = api.f95_host + link
             match = utils.extract_thread_matches(link)
             if not match:
                 continue
@@ -718,7 +718,7 @@ def legacy_ini_to_dict(path: pathlib.Path):  # Pre v7.0
         if not link:
             continue
         if link.startswith("/"):
-            link = api.host + link
+            link = api.f95_host + link
         match = utils.extract_thread_matches(link)
         if not match:
             continue

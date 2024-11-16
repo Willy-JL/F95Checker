@@ -16,7 +16,7 @@ def main():
             globals.cookies["xf_user"] = xf_user
         if xf_tfa_trust := os.environ.get("XF_TFA_TRUST", None):
             globals.cookies["xf_tfa_trust"] = xf_tfa_trust
-        res = async_thread.wait(api.fetch("GET", f"{api.host}/sam/latest_alpha"))
+        res = async_thread.wait(api.fetch("GET", f"{api.f95_host}/sam/latest_alpha"))
         try:
             txt = html(res).find("body").find("script").text  # type: ignore
         except Exception:

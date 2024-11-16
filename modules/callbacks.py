@@ -377,7 +377,7 @@ def open_webpage(url: str):
                         *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
                         json.dumps(webview.kwargs() | dict(
                             cookies=globals.cookies,
-                            cookies_domain=api.domain,
+                            cookies_domain=api.f95_domain,
                             size=(1269, 969),
                         ))
                     )
@@ -386,7 +386,7 @@ def open_webpage(url: str):
                         target=webview.open, args=(url,),
                         kwargs=webview.kwargs() | dict(
                             cookies=globals.cookies,
-                            cookies_domain=api.domain,
+                            cookies_domain=api.f95_domain,
                             size=(1269, 969),
                         )
                     )
@@ -431,7 +431,7 @@ def copy_masked_link(masked_url: str):
         with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
             *shlex.split(globals.start_cmd), "webview", "redirect", json.dumps((masked_url, "a.host_link")), json.dumps(webview.kwargs() | dict(
                 cookies=globals.cookies,
-                cookies_domain=api.domain,
+                cookies_domain=api.f95_domain,
                 title=f"Unmask link{f' for {host}' if host else ''}",
                 size=(size := (520, 480)),
                 pos=(

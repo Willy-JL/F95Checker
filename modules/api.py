@@ -47,24 +47,25 @@ from modules import (
     db,
 )
 
-domain = "f95zone.to"
-host = "https://" + domain
-check_login_page    = host + "/account/"
-login_page          = host + "/login/"
-notif_endpoint      = host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
-alerts_page         = host + "/account/alerts/"
-inbox_page          = host + "/conversations/"
-threads_page        = host + "/threads/"
-bookmarks_page      = host + "/account/bookmarks?difference=0&page={page}"
-watched_page        = host + "/watched/threads?unread=0&page={page}"
-qsearch_endpoint    = host + "/quicksearch"
-update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+f95_domain = "f95zone.to"
+f95_host = "https://" + f95_domain
+f95_check_login_page    = f95_host + "/account/"
+f95_login_page          = f95_host + "/login/"
+f95_notif_endpoint      = f95_host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
+f95_alerts_page         = f95_host + "/account/alerts/"
+f95_inbox_page          = f95_host + "/conversations/"
+f95_threads_page        = f95_host + "/threads/"
+f95_bookmarks_page      = f95_host + "/account/bookmarks?difference=0&page={page}"
+f95_watched_page        = f95_host + "/watched/threads?unread=0&page={page}"
+f95_qsearch_endpoint    = f95_host + "/quicksearch"
 
 api_domain = "api.f95checker.dev"
 api_host = "https://" + api_domain
 api_fast_check_url = api_host + "/fast?ids={ids}"
 api_full_check_url = api_host + "/full/{id}?ts={ts}"
 api_fast_check_max_ids = 10
+
+app_update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
 
 updating = False
 session: aiohttp.ClientSession = None
@@ -91,7 +92,7 @@ def setup():
 
 
 def is_f95zone_url(url: str):
-    return bool(re.search(r"^https?://[^/]*\.?" + re.escape(domain) + r"/", url))
+    return bool(re.search(r"^https?://[^/]*\.?" + re.escape(f95_domain) + r"/", url))
 
 
 def cookiedict(cookies: http.cookies.SimpleCookie):
@@ -320,7 +321,7 @@ def raise_api_error(res: bytes | dict):
 
 async def is_logged_in():
     global xf_token
-    async with request("GET", check_login_page) as (res, req):
+    async with request("GET", f95_check_login_page) as (res, req):
         if not 200 <= req.status < 300:
             res += await req.content.read()
             if not raise_f95zone_error(res, return_login=True):
@@ -348,7 +349,7 @@ async def login():
     try:
         new_cookies = {}
         with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "webview", "cookies", json.dumps((login_page,)), json.dumps(webview.kwargs() | dict(
+            *shlex.split(globals.start_cmd), "webview", "cookies", json.dumps((f95_login_page,)), json.dumps(webview.kwargs() | dict(
                 title="F95Checker: Login to F95Zone",
                 size=(size := (500, 720)),
                 pos=(
@@ -393,7 +394,7 @@ async def download_webpage(url: str):
     for elem in html.find_all():
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
-                elem.attrs[key] = host + value
+                elem.attrs[key] = f95_host + value
     with tempfile.NamedTemporaryFile("wb", prefix=webpage_prefix, suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return pathlib.Path(f.name).as_uri()
@@ -410,7 +411,7 @@ def cleanup_webpages():
 async def quick_search(query: str):
     if not await assert_login():
         return
-    res = await fetch("POST", qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
+    res = await fetch("POST", f95_qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
     html = parser.html(res)
     results = []
     for row in html.find(parser.is_class("quicksearch-wrapper-wide")).find_all(parser.is_class("dataList-row")):
@@ -474,7 +475,7 @@ async def import_f95_bookmarks():
     threads = []
     while True:
         globals.refresh_total += 1
-        res = await fetch("GET", bookmarks_page.format(page=page))
+        res = await fetch("GET", f95_bookmarks_page.format(page=page))
         raise_f95zone_error(res)
         html = parser.html(res)
         bookmarks = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("listPlain"))
@@ -503,7 +504,7 @@ async def import_f95_watched_threads():
     threads = []
     while True:
         globals.refresh_total += 1
-        res = await fetch("GET", watched_page.format(page=page))
+        res = await fetch("GET", f95_watched_page.format(page=page))
         raise_f95zone_error(res)
         html = parser.html(res)
         watched = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("structItemContainer"))
@@ -626,7 +627,7 @@ async def full_check(game: Game, last_changed: int):
                 return
             thread = json.loads(res)
             raise_api_error(thread)
-            url = threads_page + str(game.id)
+            url = f95_threads_page + str(game.id)
 
         # Redis only allows string values, so API only gives str for simplicity
         thread["type"] = Type(int(thread["type"]))
@@ -769,7 +770,7 @@ async def full_check(game: Game, last_changed: int):
                     f95zone_ok = True
                     foreign_ok = True
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, f95_domain)
                     except Exception:
                         f95zone_ok = False
                     try:
@@ -799,7 +800,7 @@ async def check_notifs(standalone=True):
         globals.refresh_progress = 1
 
     try:
-        res = await fetch("GET", notif_endpoint.format(xf_token=xf_token))
+        res = await fetch("GET", f95_notif_endpoint.format(xf_token=xf_token))
         raise_f95zone_error(res)
         res = json.loads(res)
         raise_f95zone_error(res)
@@ -835,9 +836,9 @@ async def check_notifs(standalone=True):
         return
     def open_callback():
         if alerts > 0:
-            callbacks.open_webpage(alerts_page)
+            callbacks.open_webpage(f95_alerts_page)
         if inbox > 0:
-            callbacks.open_webpage(inbox_page)
+            callbacks.open_webpage(f95_inbox_page)
     buttons = {
         f"{icons.check} Yes": open_callback,
         f"{icons.cancel} No": None
@@ -864,7 +865,7 @@ async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
     try:
-        res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
+        res = await fetch("GET", app_update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(res)
         globals.last_update_check = time.time()
         if "tag_name" not in res:
