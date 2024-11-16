@@ -3,7 +3,7 @@ import contextlib
 import logging
 import os
 import pathlib
-import subprocess
+import re
 
 import fastapi
 import uvicorn
@@ -20,14 +20,10 @@ logger = logging.getLogger()
 
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
-    try:
-        version = subprocess.check_output(
-            ["git", "rev-parse", "--short=7", "HEAD"],
-            cwd=pathlib.Path(__file__).parent,
-            encoding="utf-8",
-        ).strip()
-    except subprocess.CalledProcessError:
-        version = "unknown"
+    path = pathlib.Path(__file__).absolute().parent
+    script = path / "main.py"
+    match = re.search(rb'version = "(\S+)"', script.read_bytes())
+    version = match.group(1).decode()
 
     async with (
         cache.lifespan(version),
