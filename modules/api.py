@@ -213,6 +213,17 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                 "press refresh to login again.",
                 MsgBox.warn
             )
+        if any(msg in res for msg in (
+            b"<title>429 Too Many Requests</title>",
+            b"<h1>429 Too Many Requests</h1>",
+            b"<title>Error 429</title>",
+        )):
+            raise msgbox.Exc(
+                "Rate limit",
+                "F95Zone servers are ratelimiting you,\n"
+                "please retry in a few minutes.",
+                MsgBox.warn
+            )
         if b"<title>502 Bad Gateway</title>" in res:
             raise msgbox.Exc(
                 "Server downtime",
