@@ -117,7 +117,7 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
     ddos_guard_first_challenge = False
     while retries:
         try:
-            # Only ratelimit when connectingto F95zone
+            # Only ratelimit when connecting to F95zone
             maybe_ratelimit = xenforo_ratelimit if url.startswith(host) else contextlib.nullcontext()
             async with maybe_ratelimit, session.request(
                 method,
