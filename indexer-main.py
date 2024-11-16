@@ -42,7 +42,7 @@ app.include_router(threads.router)
 
 
 def main() -> None:
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     log_handler = logging.StreamHandler()
     log_handler.setFormatter(_ColourFormatter())
     logger.addHandler(log_handler)
