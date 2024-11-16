@@ -647,7 +647,7 @@ async def full_check(game: Game, last_changed: int):
         old_status = game.status
 
         version = thread["version"]
-        if not version:
+        if not version or version == "Unknown":
             version = "N/A"
 
         if old_status is not Status.Unchecked:
