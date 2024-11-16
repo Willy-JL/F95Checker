@@ -675,9 +675,9 @@ async def full_check(game: Game, last_changed: int):
                 else:
                     game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, thread["score"], thread["votes"])
 
-        breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
-        breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
-        breaking_keep_old_image  = last_check_before("9.0",   game.last_check_version)  # Keep existing image files
+        breaking_name_parsing    = last_check_before("9.6.4",  game.last_check_version)  # Skip name change in update popup
+        breaking_version_parsing = last_check_before("10.1.1", game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
+        breaking_keep_old_image  = last_check_before("9.0",    game.last_check_version)  # Keep existing image files
 
         last_full_check = last_changed
         last_check_version = globals.version
@@ -755,22 +755,22 @@ async def full_check(game: Game, last_changed: int):
                 )
                 globals.updated_games[game.id] = old_game
 
-        if fetch_image and game.image_url and game.image_url.startswith("http"):
+        if fetch_image and thread["image_url"] and thread["image_url"].startswith("http"):
             with images_counter:
                 try:
-                    res = await fetch("GET", game.image_url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
+                    res = await fetch("GET", thread["image_url"], timeout=globals.settings.request_timeout * 4, raise_for_status=True)
                 except aiohttp.ClientResponseError as exc:
                     if exc.status < 400:
                         raise  # Not error status
-                    if game.image_url.startswith("https://i.imgur.com"):
-                        game.image_url = "blocked"
+                    if thread["image_url"].startswith("https://i.imgur.com"):
+                        thread["image_url"] = "blocked"
                     else:
-                        game.image_url = "dead"
+                        thread["image_url"] = "dead"
                     res = b""
                 except aiohttp.ClientConnectorError as exc:
                     if not isinstance(exc.os_error, socket.gaierror):
                         raise  # Not a dead link
-                    if is_f95zone_url(game.image_url):
+                    if is_f95zone_url(thread["image_url"]):
                         raise  # Not a foreign host, raise normal connection error message
                     f95zone_ok = True
                     foreign_ok = True
@@ -779,11 +779,11 @@ async def full_check(game: Game, last_changed: int):
                     except Exception:
                         f95zone_ok = False
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", game.image_url).group(1))
+                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", thread["image_url"]).group(1))
                     except Exception:
                         foreign_ok = False
                     if f95zone_ok and not foreign_ok:
-                        game.image_url = "dead"
+                        thread["image_url"] = "dead"
                         res = b""
                     else:
                         raise  # Foreign host might not actually be dead
