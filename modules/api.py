@@ -70,7 +70,8 @@ updating = False
 session: aiohttp.ClientSession = None
 webpage_prefix = "F95Checker-Temp-"
 xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=3)
-workers_sem: asyncio.Semaphore = None
+fast_checks_sem: asyncio.Semaphore = None
+full_checks_sem: asyncio.Semaphore = None
 fast_checks_counter = 0
 full_checks_counter = CounterContext()
 images_counter = CounterContext()
@@ -542,32 +543,33 @@ async def fast_check(games: list[Game], full=False):
     games = list(filter(lambda game: not game.custom, games))
     full_queue: list[tuple[Game, int]] = []
 
-    async with workers_sem:
-        global fast_checks_counter
-        fast_checks_counter += len(games)
-        try:
-            res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), no_cookies=True)
-            raise_api_error(res)
-            last_changes = json.loads(res)
-            raise_api_error(last_changes)
-        except Exception as exc:
-            if isinstance(exc, msgbox.Exc):
-                raise exc
-            async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
-                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
-            raise msgbox.Exc(
-                "Fast check error",
-                "Something went wrong checking some of your games:\n"
-                f"{error.text()}\n"
-                "\n"
-                "The response body has been saved to:\n"
-                f"{globals.self_path / 'check_broken.bin'}\n"
-                "Please submit a bug report on F95Zone or GitHub including this file.",
-                MsgBox.error,
-                more=error.traceback()
-            )
-        finally:
-            fast_checks_counter -= len(games)
+    global fast_checks_counter
+    fast_checks_counter += len(games)
+    try:
+        async with fast_checks_sem:
+            try:
+                res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), timeout=120, no_cookies=True)
+                raise_api_error(res)
+                last_changes = json.loads(res)
+                raise_api_error(last_changes)
+            except Exception as exc:
+                if isinstance(exc, msgbox.Exc):
+                    raise exc
+                async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
+                    await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+                raise msgbox.Exc(
+                    "Fast check error",
+                    "Something went wrong checking some of your games:\n"
+                    f"{error.text()}\n"
+                    "\n"
+                    "The response body has been saved to:\n"
+                    f"{globals.self_path / 'check_broken.bin'}\n"
+                    "Please submit a bug report on F95Zone or GitHub including this file.",
+                    MsgBox.error,
+                    more=error.traceback()
+                )
+    finally:
+        fast_checks_counter -= len(games)
 
         for game in games:
             last_changed = last_changes.get(str(game.id), 0)
@@ -596,7 +598,7 @@ async def fast_check(games: list[Game], full=False):
 
 
 async def full_check(game: Game, last_changed: int):
-    async with full_checks_counter, workers_sem:
+    async with full_checks_counter, full_checks_sem:
 
         async with request("GET", api_full_check_url.format(id=game.id, ts=last_changed), timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_api_error(res)
@@ -1103,8 +1105,9 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     globals.refresh_progress += 1
     globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
 
-    global workers_sem, fast_checks_counter
-    workers_sem = asyncio.Semaphore(globals.settings.refresh_workers)
+    global fast_checks_sem, full_checks_sem, fast_checks_counter
+    fast_checks_sem = asyncio.Semaphore(1)
+    full_checks_sem = asyncio.Semaphore(globals.settings.refresh_workers)
     fast_checks_counter = 0
     tasks: list[asyncio.Task] = []
     try:
@@ -1113,10 +1116,12 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     except Exception:
         for task in tasks:
             task.cancel()
-        workers_sem = None
+        fast_checks_sem = None
+        full_checks_sem = None
         fast_checks_counter = 0
         raise
-    workers_sem = None
+    fast_checks_sem = None
+    full_checks_sem = None
     fast_checks_counter = 0
 
     if notifs:
