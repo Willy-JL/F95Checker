@@ -6,6 +6,7 @@ import http.cookies
 import configparser
 import subprocess
 import contextlib
+import aiolimiter
 import tempfile
 import aiofiles
 import aiohttp
@@ -67,6 +68,7 @@ session: aiohttp.ClientSession = None
 full_interval = dt.timedelta(days=7)
 part_interval = dt.timedelta(days=2)
 webpage_prefix = "F95Checker-Temp-"
+xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=3)
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
 full_checks_counter = CounterContext()
@@ -118,7 +120,9 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
     ddos_guard_first_challenge = False
     while retries:
         try:
-            async with session.request(
+            # Only ratelimit when connectingto F95zone
+            maybe_ratelimit = xenforo_ratelimit if url.startswith(host) else contextlib.nullcontext()
+            async with maybe_ratelimit, session.request(
                 method,
                 url,
                 cookies=cookies | ddos_guard_cookies,
