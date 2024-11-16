@@ -537,11 +537,11 @@ def last_check_before(before_version: str, checked_version: str):
     return is_before
 
 
-async def fast_check(games: list[Game], full_queue: list[tuple[Game, int]]=None, full=False):
+async def fast_check(games: list[Game], full=False):
     games = list(filter(lambda game: not game.custom, games))
+    full_queue: list[tuple[Game, int]] = []
 
     async with workers_sem:
-
         try:
             res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), no_cookies=True)
             raise_api_error(res)
@@ -565,7 +565,6 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, int]]=None,
             )
 
         for game in games:
-
             last_changed = last_changes.get(str(game.id), 0)
             assert last_changed > 0, "Invalid last_changed from fast check API"
 
@@ -580,6 +579,15 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, int]]=None,
                 continue
 
             full_queue.append((game, last_changed))
+
+    tasks: list[asyncio.Task] = []
+    try:
+        tasks = [asyncio.create_task(full_check(game, ts)) for game, ts in full_queue]
+        await asyncio.gather(*tasks)
+    except Exception:
+        for task in tasks:
+            task.cancel()
+        raise
 
 
 async def full_check(game: Game, last_changed: int):
@@ -1077,7 +1085,6 @@ async def check_updates():
 
 async def refresh(*games: list[Game], full=False, notifs=True):
     fast_queue: list[list[Game]] = [[]]
-    full_queue: list[tuple[Game, int]] = []
     for game in (games or globals.games.values()):
         if game.custom:
             continue
@@ -1095,9 +1102,7 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     workers_sem = asyncio.Semaphore(globals.settings.refresh_workers)
     tasks: list[asyncio.Task] = []
     try:
-        tasks = [asyncio.create_task(fast_check(chunk, full_queue, full=full)) for chunk in fast_queue]
-        await asyncio.gather(*tasks)
-        tasks = [asyncio.create_task(full_check(game, ts)) for game, ts in full_queue]
+        tasks = [asyncio.create_task(fast_check(chunk, full=full)) for chunk in fast_queue]
         await asyncio.gather(*tasks)
     except Exception:
         for task in tasks:
