@@ -160,7 +160,7 @@ async def connect():
             "browser_private":             f'INTEGER DEFAULT {int(False)}',
             "browser":                     f'INTEGER DEFAULT {Browser.get(0).hash}',
             "cell_image_ratio":            f'REAL    DEFAULT 3.0',
-            "check_notifs":                f'INTEGER DEFAULT {int(True)}',
+            "check_notifs":                f'INTEGER DEFAULT {int(False)}',
             "compact_timeline":            f'INTEGER DEFAULT {int(False)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
