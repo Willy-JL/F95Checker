@@ -117,9 +117,8 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
     is_xenforo_request = url.startswith(f95_host)
-    if is_xenforo_request:
-        retries += 10
-    while retries:
+    xenforo_ratelimit_retries = 10
+    while retries and xenforo_ratelimit_retries:
         try:
             # Only ratelimit when connecting to F95zone
             maybe_ratelimit = xenforo_ratelimit if is_xenforo_request else contextlib.nullcontext()
@@ -130,8 +129,8 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
                 **req_opts,
                 **kwargs
             ) as req:
-                if is_xenforo_request and req.status == 429 and retries > 1:
-                    retries -= 1
+                if is_xenforo_request and req.status == 429 and xenforo_ratelimit_retries > 1:
+                    xenforo_ratelimit_retries -= 1
                     continue
                 if not read:
                     yield b"", req
