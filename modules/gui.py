@@ -951,9 +951,9 @@ class MainGUI():
                         if (count := api.images_counter.count) > 0:
                             text = f"Downloading {count} image{'s' if count > 1 else ''}..."
                         elif (count := api.full_checks_counter.count) > 0:
-                            text = f"Running {count} full recheck{'s' if count > 1 else ''}..."
+                            text = f"Fetching {count} full thread{'s' if count > 1 else ''}..."
                         elif (count := api.fast_checks_counter) > 0:
-                            text = f"Waiting for {count} re-cache{'s' if count > 1 else ''}..."
+                            text = f"Validating {count} cached item{'s' if count > 1 else ''}..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
                         else:
