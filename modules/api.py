@@ -71,6 +71,7 @@ session: aiohttp.ClientSession = None
 webpage_prefix = "F95Checker-Temp-"
 xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=3)
 workers_sem: asyncio.Semaphore = None
+fast_checks_counter = 0
 full_checks_counter = CounterContext()
 images_counter = CounterContext()
 xf_token = ""
@@ -542,6 +543,8 @@ async def fast_check(games: list[Game], full=False):
     full_queue: list[tuple[Game, int]] = []
 
     async with workers_sem:
+        global fast_checks_counter
+        fast_checks_counter += len(games)
         try:
             res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), no_cookies=True)
             raise_api_error(res)
@@ -563,6 +566,8 @@ async def fast_check(games: list[Game], full=False):
                 MsgBox.error,
                 more=error.traceback()
             )
+        finally:
+            fast_checks_counter -= len(games)
 
         for game in games:
             last_changed = last_changes.get(str(game.id), 0)
@@ -1098,8 +1103,9 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     globals.refresh_progress += 1
     globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
 
-    global workers_sem
+    global workers_sem, fast_checks_counter
     workers_sem = asyncio.Semaphore(globals.settings.refresh_workers)
+    fast_checks_counter = 0
     tasks: list[asyncio.Task] = []
     try:
         tasks = [asyncio.create_task(fast_check(chunk, full=full)) for chunk in fast_queue]
@@ -1108,8 +1114,10 @@ async def refresh(*games: list[Game], full=False, notifs=True):
         for task in tasks:
             task.cancel()
         workers_sem = None
+        fast_checks_counter = 0
         raise
     workers_sem = None
+    fast_checks_counter = 0
 
     if notifs:
         await check_notifs(standalone=False)
