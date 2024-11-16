@@ -105,15 +105,6 @@ async def get_thread(id: int) -> dict[str, str]:
     return thread
 
 
-async def refresh_thread(id: int) -> None:
-    assert isinstance(id, int)
-    name = NAME_FORMAT.format(id=id)
-    logger.info(f"Refresh {name}")
-
-    async with lock(id):
-        await _update_thread_cache(id, name)
-
-
 async def _maybe_update_thread_cache(id: int, name: str) -> None:
     last_cached, cached_with = await redis.hmget(name, (LAST_CACHED, CACHED_WITH))
     if (
