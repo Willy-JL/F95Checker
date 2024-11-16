@@ -26,7 +26,7 @@ async def thread(id: int) -> dict[str, str] | None:
     # TODO: Intensive operation, move to threads+queue
     ret = parser.thread(id, res, False)
     if isinstance(ret, parser.ParserException):
-        logger.error(f"Thread {id} parsing failed:" + ret.args[1])
+        logger.error(f"Thread {id} parsing failed: {ret.args[1]}\n{res}")
         return f95zone.ERROR_PARSING_FAILED
 
     # TODO: maybe add an error flag for threads outside of
