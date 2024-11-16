@@ -948,9 +948,9 @@ class MainGUI():
                         imgui.end_child()
 
                         # Prepare bottom status / watermark text (done before sidebar to get text offset from bottom of window)
-                        if (count := api.images.count) > 0:
+                        if (count := api.images_counter.count) > 0:
                             text = f"Downloading {count} image{'s' if count > 1 else ''}..."
-                        elif (count := api.full_checks.count) > 0:
+                        elif (count := api.full_checks_counter.count) > 0:
                             text = f"Running {count} full recheck{'s' if count > 1 else ''}..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."

@@ -69,8 +69,8 @@ part_interval = dt.timedelta(days=2)
 webpage_prefix = "F95Checker-Temp-"
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
-full_checks = CounterContext()
-images = CounterContext()
+full_checks_counter = CounterContext()
+images_counter = CounterContext()
 xf_token = ""
 
 
@@ -567,7 +567,7 @@ async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None,
 
 
 async def full_check(game: Game, version: str):
-    async with full_checks, (full_checks_sem or asyncio.Semaphore(1)):
+    async with full_checks_counter, (full_checks_sem or asyncio.Semaphore(1)):
 
         async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
             raise_f95zone_error(res)
@@ -724,7 +724,7 @@ async def full_check(game: Game, version: str):
                 globals.updated_games[game.id] = old_game
 
         if fetch_image and game.image_url and game.image_url.startswith("http"):
-            with images:
+            with images_counter:
                 try:
                     res = await fetch("GET", game.image_url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
                 except aiohttp.ClientResponseError as exc:
