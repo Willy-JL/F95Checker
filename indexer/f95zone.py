@@ -16,6 +16,8 @@ LOGIN_ERROR_MESSAGES = (
     b'<form action="/login/login" method="post" class="block"',
 )
 RATELIMIT_ERROR_MESSAGES = (
+    b"<title>429 Too Many Requests</title>",
+    b"<h1>429 Too Many Requests</h1>",
     b"<title>Error 429</title>",
     b"<title>DDOS-GUARD</title>",
 )
