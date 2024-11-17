@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import json
 import logging
 
@@ -32,9 +33,9 @@ async def thread(id: int) -> dict[str, str] | None:
         return f95zone.ERROR_THREAD_MISSING
 
     # TODO: Intensive operation, move to threads+queue
-    ret = parser.thread(id, res, False)
-    if isinstance(ret, parser.ParserException):
-        logger.error(f"Thread {id} parsing failed: {ret.args[1]}\n{res}")
+    ret = parser.thread(res)
+    if isinstance(ret, parser.ParserError):
+        logger.error(f"Thread {id} parsing failed: {ret.message}\n{ret.dump}")
         return f95zone.ERROR_PARSING_FAILED
 
     # TODO: maybe add an error flag for threads outside of
@@ -57,13 +58,13 @@ async def thread(id: int) -> dict[str, str] | None:
 
     # Redact unmasked links to prevent abuse, since this api is public
     # Replaces with thread link, so user can click it and go find it anyway
-    parsed = ret._asdict()
-    for label, links in parsed["downloads"]:
+    for label, links in ret.downloads:
         for link_i, (link_name, link_url) in enumerate(links):
             if not link_url.startswith(f95zone.MASKED_URL):
                 links[link_i] = (link_name, thread_url)
 
     # Prepare for redis, only strings allowed
+    parsed = dataclasses.asdict(ret)
     parsed["version"] = version if version else parsed["thread_version"]
     del parsed["thread_version"]  # TODO: Recache more often if using thread_version
     parsed["type"] = str(int(parsed["type"]))

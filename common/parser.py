@@ -1,39 +1,37 @@
-import collections
+import dataclasses
 import datetime as dt
 import functools
 import json
-import os
 import re
 
 import bs4
 
 from common.structs import (
-    MsgBox,
     Status,
-    Type,
     Tag,
+    Type,
 )
 from external import error
 
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
 
-ParsedThread = collections.namedtuple("ParsedThread", [
-    "name",  # str
-    "thread_version",  # str
-    "developer",  # str
-    "type",  # structs.Type(int)
-    "status",  # structs.Status(int)
-    "last_updated",  # int
-    "score",  # float
-    "votes",  # int
-    "description",  # str
-    "changelog",  # str
-    "tags",  # list[structs.Tag(int)]
-    "unknown_tags",  # list[str]
-    "image_url",  # str
-    "downloads",  # list[tuple[str, list[tuple[str, str]]]]
-])
+@dataclasses.dataclass
+class ParsedThread:
+    name: str
+    thread_version: str
+    developer: str
+    type: Type
+    status: Status
+    last_updated: int
+    score: float
+    votes: int
+    description: str
+    changelog: str
+    tags: list[Tag]
+    unknown_tags: list[str]
+    image_url: str
+    downloads: list[tuple[str, list[tuple[str, str]]]]
 
 # [^\S\r\n] = whitespace but not newlines
 sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
@@ -61,14 +59,14 @@ def datestamp(timestamp: int | float):
     return int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(timestamp).date().toordinal()).timestamp())
 
 
-class ParserException(Exception):
-    def __init__(self, *args, **kwargs):
+class ParserError(Exception):
+    def __init__(self, message: str, dump=None):
         super().__init__()
-        self.args = args
-        self.kwargs = kwargs
+        self.message = message
+        self.dump = dump
 
 
-def thread(game_id: int, res: bytes, save_broken: bool):
+def thread(res: bytes) -> ParsedThread | ParserError:
     def game_has_prefixes(*names: list[str]):
         for name in names:
             if head.find("span", text=f"{name}"):
@@ -161,19 +159,9 @@ def thread(game_id: int, res: bytes, save_broken: bool):
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
-            if save_broken:
-                from main import self_path
-                (self_path / f"{game_id}_broken.html").write_bytes(res)
-            e = ParserException(
-                "Thread parsing error",
-                "Failed to parse necessary sections in thread response." + (
-                    " The html file has been saved to:\n"
-                    f"{self_path}{os.sep}{game_id}_broken.html\n"
-                    "\n"
-                    "Please submit a bug report on F95Zone or GitHub including this file."
-                    if save_broken else ""
-                ),
-                MsgBox.error
+            e = ParserError(
+                message="Thread structure missing",
+                dump=res,
             )
             return e
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
@@ -376,11 +364,9 @@ def thread(game_id: int, res: bytes, save_broken: bool):
         downloads = get_game_downloads("downloads", "download")
 
     except Exception:
-        e = ParserException(
-            "Thread parsing error",
-            f"Something went wrong while parsing thread {game_id}:\n{error.text()}",
-            MsgBox.error,
-            more=error.traceback()
+        e = ParserError(
+            message=f"Unhandled exception: {error.text()}",
+            dump=error.traceback()
         )
         return e
 

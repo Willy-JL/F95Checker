@@ -1,5 +1,5 @@
-import collections
 import contextlib
+import dataclasses
 import datetime as dt
 import logging
 import os
@@ -37,13 +37,10 @@ MASKED_URL = HOST + "/masked/"
 LATEST_URL = HOST + "/sam/latest_alpha/latest_data.php?cmd={t}&cat={c}&page={p}&rows=90"
 VERCHK_URL = HOST + "/sam/checker.php?threads={threads}"
 
-IndexerError = collections.namedtuple(
-    "IndexerError",
-    (
-        "error_flag",
-        "retry_delay",
-    ),
-)
+@dataclasses.dataclass
+class IndexerError:
+    error_flag: str
+    retry_delay: int
 
 ERROR_SESSION_LOGGED_OUT = IndexerError(
     "SESSION_LOGGED_OUT", dt.timedelta(hours=2).total_seconds()
