@@ -1,20 +1,19 @@
-import datetime as dt
 import collections
+import datetime as dt
 import functools
 import json
-import bs4
-import re
 import os
+import re
 
-from modules.structs import (
+import bs4
+
+from common.structs import (
     MsgBox,
     Status,
     Type,
     Tag,
 )
-from modules import (
-    error,
-)
+from external import error
 
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html

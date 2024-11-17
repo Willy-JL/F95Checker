@@ -1,6 +1,6 @@
 # https://gist.github.com/Willy-JL/f733c960c6b0d2284bcbee0316f88878
-import traceback as _traceback
 import sys
+import traceback as _traceback
 
 
 def traceback(exc: Exception = None):

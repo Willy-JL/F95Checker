@@ -1,50 +1,53 @@
-from PyQt6.QtWidgets import QSystemTrayIcon
-import http.cookies
-import configparser
-import subprocess
-import contextlib
-import aiolimiter
-import tempfile
-import aiofiles
-import aiohttp
-import pathlib
 import asyncio
-import zipfile
+import configparser
+import contextlib
+import http.cookies
+import io
+import json
+import os
+import pathlib
+import re
+import shlex
 import shutil
 import socket
-import shlex
-import imgui
-import time
-import json
+import subprocess
 import sys
-import os
-import io
-import re
+import tempfile
+import time
+import zipfile
 
-from modules.structs import (
-    TimelineEventType,
+from PyQt6.QtWidgets import QSystemTrayIcon
+import aiofiles
+import aiohttp
+import aiolimiter
+import imgui
+
+from common.structs import (
     AsyncProcessPipe,
     CounterContext,
-    SearchResult,
-    OldGame,
-    MsgBox,
-    Status,
-    Type,
     Game,
-    Tag,
+    MsgBox,
+    OldGame,
     Os,
+    SearchResult,
+    Status,
+    Tag,
+    TimelineEventType,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
 )
 from modules import (
-    globals,
-    async_thread,
     callbacks,
-    webview,
-    msgbox,
-    parser,
-    utils,
-    icons,
-    error,
     db,
+    globals,
+    icons,
+    msgbox,
+    utils,
+    webview,
 )
 
 f95_domain = "f95zone.to"

@@ -1,42 +1,45 @@
-import configparser
-import subprocess
-import plistlib
-import pathlib
 import asyncio
+import configparser
 import difflib
-import typing
-import string
-import shlex
-import imgui
 import json
-import glfw
-import time
-import stat
-import re
 import os
+import pathlib
+import plistlib
+import re
+import shlex
+import stat
+import string
+import subprocess
+import time
+import typing
 
-from modules.structs import (
-    TimelineEventType,
+import glfw
+import imgui
+
+from common.structs import (
     AsyncProcessPipe,
     DaemonProcess,
-    SearchResult,
-    ThreadMatch,
-    MsgBox,
-    Status,
     Game,
+    MsgBox,
     Os,
+    SearchResult,
+    Status,
+    ThreadMatch,
+    TimelineEventType,
+)
+from external import (
+    async_thread,
+    error,
+    filepicker,
 )
 from modules import (
-    globals,
-    async_thread,
-    filepicker,
-    webview,
-    msgbox,
-    utils,
-    icons,
-    error,
     api,
     db,
+    globals,
+    icons,
+    msgbox,
+    utils,
+    webview,
 )
 
 

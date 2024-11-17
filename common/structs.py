@@ -1,18 +1,17 @@
-import multiprocessing.queues
-import multiprocessing
-import datetime as dt
-import dataclasses
-import functools
 import asyncio
-import weakref
-import pathlib
-import hashlib
-import typing
-import queue
+import dataclasses
+import datetime as dt
 import enum
+import functools
+import hashlib
 import json
-import time
 import os
+import pathlib
+import time
+import typing
+import weakref
+
+from modules import colors
 
 
 class CounterContext:
@@ -79,36 +78,6 @@ class DaemonProcess:
 
     def __exit__(self, *_):
         self.finalize()
-
-
-class MultiProcessPipe(multiprocessing.queues.Queue):  # Unused
-    __slots__ = ("proc", "daemon",)
-
-    def __init__(self):
-        super().__init__(0, ctx=multiprocessing.get_context())
-
-    def __call__(self, proc: multiprocessing.Process):
-        self.proc = proc
-        self.daemon = DaemonProcess(proc)
-        return self
-
-    async def get_async(self, poll_rate=0.1):
-        while self.proc.is_alive():
-            try:
-                return self.get_nowait()
-            except queue.Empty:
-                await asyncio.sleep(poll_rate)
-        return self.get_nowait()
-
-    def __enter__(self):
-        self.proc.start()
-        self.daemon.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.daemon.__exit__()
-        if exc_type is queue.Empty:
-            return True
 
 
 class AsyncProcessPipe:
@@ -760,9 +729,6 @@ class Settings:
             del self.default_exe_dir[""]
 
 
-from modules import colors
-
-
 Type = IntEnumHack("Type", [
     ("ADRIFT",     (2,  {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Games})),
     ("Flash",      (4,  {"color": colors.hex_to_rgba_0_1("#616161"), "category": Category.Games})),
@@ -851,7 +817,8 @@ class Game:
             self.finished = (self.installed or self.version)
         elif self.finished == "False" and self.installed != "False" and self.version != "False":
             self.finished = ""
-        from modules import globals, imagehelper
+        from external import imagehelper
+        from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executables()
 
@@ -869,8 +836,8 @@ class Game:
         self.image.resolve()
 
     async def set_image_async(self, data: bytes):
-        import aiofiles
         from modules import globals, utils
+        import aiofiles
         self.delete_images()
         if data:
             async with aiofiles.open(globals.images_path / f"{self.id}.{utils.image_ext(data)}", "wb") as f:
@@ -904,7 +871,8 @@ class Game:
                     executables_valids.append((base / exe).is_file())
             self.executables_valids = executables_valids
             if changed:
-                from modules import async_thread, db
+                from external import async_thread
+                from modules import db
                 async_thread.run(db.update_game(self, "executables"))
         else:
             self.executables_valids = [utils.is_uri(executable) or os.path.isfile(executable) for executable in self.executables]
@@ -924,19 +892,22 @@ class Game:
         if executable in self.executables:
             return
         self.executables.append(executable)
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
 
     def remove_executable(self, executable: str):
         self.executables.remove(executable)
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
 
     def clear_executables(self):
         self.executables.clear()
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
 
@@ -944,7 +915,8 @@ class Game:
         if label not in self.labels:
             self.labels.append(label)
         self.labels.sort(key=lambda label: Label.instances.index(label))
-        from modules import globals, async_thread, db
+        from external import async_thread
+        from modules import db, globals
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
             globals.gui.recalculate_ids = True
@@ -952,13 +924,15 @@ class Game:
     def remove_label(self, label: Label):
         while label in self.labels:
             self.labels.remove(label)
-        from modules import globals, async_thread, db
+        from external import async_thread
+        from modules import db, globals
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
             globals.gui.recalculate_ids = True
 
     def add_timeline_event(self, type: TimelineEventType, *args):
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.create_timeline_event(self.id, Timestamp(time.time()), list(args), type))
 
 
@@ -999,7 +973,8 @@ class Game:
                 attr.update(value)
             else:
                 super(Game, self).__setattr__(name, value)
-            from modules import globals, async_thread, db
+            from external import async_thread
+            from modules import db, globals
             async_thread.run(db.update_game(self, name))
             if globals.gui:
                 globals.gui.recalculate_ids = True

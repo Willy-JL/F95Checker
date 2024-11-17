@@ -1,27 +1,30 @@
-from PyQt6.QtWidgets import QSystemTrayIcon
-from PIL import Image
+import asyncio
 import concurrent
 import functools
-import asyncio
-import typing
-import random
-import imgui
-import time
-import math
-import glfw
-import re
 import io
+import math
+import random
+import re
+import time
+import typing
 
-from modules.structs import (
+from PIL import Image
+from PyQt6.QtWidgets import QSystemTrayIcon
+import glfw
+import imgui
+
+from common.structs import (
+    MsgBox,
     Popup,
+    ThreadMatch,
 )
+from external import async_thread
 from modules import (
-    globals,
-    async_thread,
-    callbacks,
-    msgbox,
-    icons,
     api,
+    callbacks,
+    globals,
+    icons,
+    msgbox,
 )
 
 
@@ -235,8 +238,6 @@ def clean_thread_url(url: str):
     thread = re.search(r"threads/([^/]*)", url).group(1)
     return f"{api.f95_threads_page}{thread}/"
 
-
-from modules.structs import MsgBox, ThreadMatch
 
 def extract_thread_matches(text: str) -> list[ThreadMatch]:
     matches = []

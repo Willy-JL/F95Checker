@@ -1,15 +1,16 @@
 # https://gist.github.com/Willy-JL/82137493896d385a74d148534691b6e1
-import pathlib
-import typing
-import string
-import imgui
-import glfw
-import sys
 import os
+import pathlib
+import string
+import sys
+import typing
+
+import glfw
+import imgui
 
 from modules import (  # added
-    globals,           # added
     callbacks,         # added
+    globals,           # added
     icons,             # added
     utils,             # added
 )                      # added

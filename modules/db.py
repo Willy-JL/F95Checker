@@ -1,43 +1,46 @@
+import asyncio
 import configparser
 import contextlib
-import aiosqlite
-import sqlite3
-import asyncio
-import pathlib
-import typing
-import shutil
-import types
 import enum
 import json
-import time
+import pathlib
 import re
+import shutil
+import sqlite3
+import time
+import types
+import typing
 
-from modules.structs import (
-    TimelineEventType,
-    TimelineEvent,
-    SearchResult,
-    DefaultStyle,
-    ThreadMatch,
-    DisplayMode,
-    Timestamp,
-    Settings,
+import aiosqlite
+
+from common.structs import (
     Browser,
-    MsgBox,
-    Status,
-    Label,
-    Type,
+    DefaultStyle,
+    DisplayMode,
     Game,
+    Label,
+    MsgBox,
+    SearchResult,
+    Settings,
+    Status,
     Tab,
+    ThreadMatch,
+    TimelineEvent,
+    TimelineEventType,
+    Timestamp,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
 )
 from modules import (
-    globals,
-    async_thread,
-    colors,
-    msgbox,
-    parser,
-    utils,
-    error,
     api,
+    colors,
+    globals,
+    msgbox,
+    utils,
 )
 
 connection: aiosqlite.Connection = None

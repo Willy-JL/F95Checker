@@ -3,13 +3,12 @@ import contextlib
 import datetime as dt
 import json
 import logging
-import time
 
+from external import error
 from indexer import (
     cache,
     f95zone,
 )
-from modules import error
 
 WATCH_INTERVAL = dt.timedelta(minutes=5).total_seconds()
 WATCH_CATEGORIES = (

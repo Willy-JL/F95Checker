@@ -2,10 +2,18 @@ from concurrent.futures import Future
 from functools import partial
 import os as _os
 import pathlib
-import shutil
-import shlex
-import sys
 import re
+import shlex
+import shutil
+import sys
+
+from common.structs import (
+    Browser,
+    Game,
+    OldGame,
+    Os,
+    Settings,
+)
 
 version = None
 release = None
@@ -45,7 +53,7 @@ def _():
         logging.basicConfig()
 _()
 
-from modules.structs import Browser, Game, OldGame, Os, Settings
+# Done here to avoid circular import
 from modules.gui import MainGUI
 
 os = None

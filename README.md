@@ -72,7 +72,7 @@ Also, it allows you to quickly see what games you have added to your list (and w
 
 The extension is available for both major browser families (Brave and Edge count as Chrome, LibreWolf counts as Firefox):
 
-- **Chrome:** Open `chrome://extensions/` in browser, enable "Developer mode", reload the page and drag `extension/chrome.zip` (from the tool folder) into the page
+- **Chrome:** Open `chrome://extensions/` in browser, enable "Developer mode", reload the page and drag `browser/chrome.zip` (from the tool folder) into the page
 
 - **Firefox:** Install from [AMO](https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/)
 

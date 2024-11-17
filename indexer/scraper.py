@@ -2,8 +2,8 @@ import asyncio
 import json
 import logging
 
+from common import parser
 from indexer import f95zone
-from modules import parser
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,8 @@
 # https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44
 import queue as _queue
 import threading
-import typing
 import time
+import typing
 
 fn_queue: _queue.Queue = None
 thread: threading.Thread = None

@@ -1,11 +1,15 @@
+import json
 import os
 import sys
-import json
 
-from modules import async_thread, db, globals
-from modules.structs import Tag
-from modules.parser import html
-from modules import api
+from common.parser import html
+from common.structs import Tag
+from external import async_thread
+from modules import (
+    api,
+    db,
+    globals,
+)
 
 
 def main():

@@ -1,68 +1,75 @@
-from imgui.integrations.glfw import GlfwRenderer
-from PyQt6 import QtCore, QtGui, QtWidgets
+import asyncio
+import builtins
 import concurrent.futures
-import OpenGL.GL as gl
-import datetime as dt
-from PIL import Image
 import configparser
 import dataclasses
+import datetime as dt
 import functools
-import threading
 import itertools
-import platform
-import builtins
-import asyncio
 import pathlib
-import tomllib
-import aiohttp
-import OpenGL
 import pickle
+import platform
 import string
-import imgui
-import time
-import glfw
 import sys
+import threading
+import time
+import tomllib
 
-from modules.structs import (
-    TimelineEventType,
-    TagHighlight,
+from imgui.integrations.glfw import GlfwRenderer
+from PIL import Image
+from PyQt6 import (
+    QtCore,
+    QtGui,
+    QtWidgets,
+)
+import aiohttp
+import glfw
+import imgui
+import OpenGL
+import OpenGL.GL as gl
+
+from common.structs import (
+    Browser,
+    Datestamp,
     DefaultStyle,
     DisplayMode,
-    FilterMode,
-    Datestamp,
-    Timestamp,
     ExeState,
-    SortSpec,
-    TrayMsg,
-    Browser,
     Filter,
-    MsgBox,
-    Status,
-    Label,
-    Type,
+    FilterMode,
     Game,
-    Tag,
-    Tab,
+    Label,
+    MsgBox,
     Os,
+    SortSpec,
+    Status,
+    Tab,
+    Tag,
+    TagHighlight,
+    TimelineEventType,
+    Timestamp,
+    TrayMsg,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
+    filepicker,
+    imagehelper,
+    ratingwidget,
 )
 from modules import (
-    globals,
-    async_thread,
-    ratingwidget,
-    imagehelper,
-    rpc_thread,
-    filepicker,
-    callbacks,
-    webview,
-    parser,
-    msgbox,
-    colors,
-    icons,
-    utils,
-    error,
-    rpdl,
     api,
+    callbacks,
+    colors,
     db,
+    globals,
+    icons,
+    msgbox,
+    rpc_thread,
+    rpdl,
+    utils,
+    webview,
 )
 
 tool_page         = api.f95_threads_page + "44173/"
@@ -2301,7 +2308,7 @@ class MainGUI():
                                     imgui.dummy(0, 0)
                                     imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
                                     if imgui.button(icons.open_in_new):
-                                        callbacks.open_webpage(rpdl.torrent_page.format(id=result.id))
+                                        callbacks.open_webpage(rpdl.rpdl_torrent_page.format(id=result.id))
                                     imgui.same_line()
                                     if imgui.button(icons.download_multiple):
                                         async_thread.run(rpdl.open_torrent_file(result.id))
@@ -4188,7 +4195,7 @@ class MainGUI():
                 imgui.push_disabled()
             if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
                 buttons={
-                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "extension")),
+                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "browser")),
                     f"{icons.cancel} Cancel": None
                 }
                 utils.push_popup(

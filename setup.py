@@ -1,9 +1,8 @@
 from ctypes.util import find_library
-import setuptools
 import pathlib
-import shutil
-import sys
 import re
+import setuptools
+import sys
 
 path = pathlib.Path(__file__).absolute().parent
 
@@ -37,11 +36,11 @@ platform_libs = {
     "darwin": ["intl"]
 }
 include_files = [
-    (path / "extension/chrome.zip",    "extension/chrome.zip"),
-    (path / "extension/firefox.zip",   "extension/firefox.zip"),
-    (path / "extension/integrated.js", "extension/integrated.js"),
-    (path / "resources/",              "resources/"),
-    (path / "LICENSE",                 "LICENSE")
+    (path / "browser/chrome.zip",    "browser/chrome.zip"),
+    (path / "browser/firefox.zip",   "browser/firefox.zip"),
+    (path / "browser/integrated.js", "browser/integrated.js"),
+    (path / "resources/",            "resources/"),
+    (path / "LICENSE",               "LICENSE")
 ]
 platform_qt_plugins = {
     "linux": [
@@ -85,11 +84,11 @@ for platform, plugins in platform_qt_plugins.items():
             include_files += cx_Freeze.hooks.get_qt_plugins_paths("PyQt6", plugin)
 
 
-# Extension packager command
-class Extension(setuptools.Command):
-    """Build extension packages."""
+# Browser extension packager command
+class BrowserExtension(setuptools.Command):
+    """Build browser extension packages."""
 
-    command_name = "extension"
+    command_name = "browser"
     user_options = []
 
     def initialize_options(self):
@@ -99,15 +98,15 @@ class Extension(setuptools.Command):
         pass
 
     def run(self):
-        from modules import ziparch
-        extension = pathlib.Path(__file__).parent / "extension"
+        from external import ziparch
+        browser = pathlib.Path(__file__).parent / "browser"
 
-        chrome_src = extension / "chrome"
-        chrome_zip = extension / ("chrome" + ziparch.ZIP_ARCH_EXTENSION)
+        chrome_src = browser / "chrome"
+        chrome_zip = browser / ("chrome" + ziparch.ZIP_ARCH_EXTENSION)
         ziparch.compress_tree_ziparch(str(chrome_src), str(chrome_zip), gz_level=0)
 
-        firefox_src = extension / "firefox"
-        firefox_zip = extension / ("firefox" + ziparch.ZIP_ARCH_EXTENSION)
+        firefox_src = browser / "firefox"
+        firefox_zip = browser / ("firefox" + ziparch.ZIP_ARCH_EXTENSION)
         ziparch.compress_tree_ziparch(str(firefox_src), str(firefox_zip), gz_level=0)
 
 
@@ -160,6 +159,7 @@ cx_Freeze.setup(
     },
     py_modules=[],
     cmdclass={
-        "extension": Extension,
+        "browser": BrowserExtension,
+        "extension": BrowserExtension,
     },
 )

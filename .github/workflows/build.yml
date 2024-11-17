@@ -163,7 +163,7 @@ jobs:
         run: |
           python ./setup.py || true
           mkdir ./dist/
-          cp -r ./extension/       ./dist/
+          cp -r ./browser/         ./dist/
           cp -r ./modules/         ./dist/
           cp -r ./resources/       ./dist/
           cp    ./LICENSE          ./dist/

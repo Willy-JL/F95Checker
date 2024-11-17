@@ -1,13 +1,16 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
-from PIL import Image, ImageSequence, UnidentifiedImageError
-import OpenGL.GL as gl
 import functools
 import pathlib
+
+from PIL import (
+    Image,
+    ImageSequence,
+    UnidentifiedImageError
+)
+import OpenGL.GL as gl
 import imgui
 
-from modules import (  # added
-    sync_thread,       # added
-)                      # added
+from external import sync_thread # added
 
 redraw = False  # added
 _dummy_texture_id = None
