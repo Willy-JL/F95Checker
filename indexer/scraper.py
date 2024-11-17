@@ -50,6 +50,8 @@ async def thread(id: int) -> dict[str, str] | None:
     versions = json.loads(res)
     if versions["status"] == "ok":
         version = versions["msg"][str(id)]
+        if version == "Unknown":
+            version = ""
     elif versions["status"] == "error" and versions["msg"] == "Thread not found":
         pass
     else:
