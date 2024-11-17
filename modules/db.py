@@ -117,7 +117,7 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 ({temp_column_list})
                 SELECT
                 {temp_column_list}
-                FROM {temp_table_name};
+                FROM {temp_table_name}
             """)
             await connection.execute(f"""
                 DROP TABLE {temp_table_name}

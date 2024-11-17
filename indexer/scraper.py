@@ -20,7 +20,7 @@ async def thread(id: int) -> dict[str, str] | None:
                 if req.status == 429 and retries > 1:
                     logger.warning("Hit a ratelimit, sleeping 2 seconds")
                     await asyncio.sleep(2)
-                    retries -= 1;
+                    retries -= 1
                     continue
                 res = await req.read()
                 break
