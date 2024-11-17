@@ -1,4 +1,3 @@
-import multiprocessing
 import configparser
 import subprocess
 import plistlib
@@ -372,25 +371,14 @@ def open_webpage(url: str):
     async def _open_webpage(url: str):
         try:
             if set.browser.integrated:
-                if globals.os is Os.Linux:
-                    proc = await asyncio.create_subprocess_exec(
-                        *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
-                        json.dumps(webview.kwargs() | dict(
-                            cookies=globals.cookies,
-                            cookies_domain=api.f95_domain,
-                            size=(1269, 969),
-                        ))
-                    )
-                else:
-                    proc = multiprocessing.Process(
-                        target=webview.open, args=(url,),
-                        kwargs=webview.kwargs() | dict(
-                            cookies=globals.cookies,
-                            cookies_domain=api.f95_domain,
-                            size=(1269, 969),
-                        )
-                    )
-                    proc.start()
+                proc = await asyncio.create_subprocess_exec(
+                    *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
+                    json.dumps(webview.kwargs() | dict(
+                        cookies=globals.cookies,
+                        cookies_domain=api.f95_domain,
+                        size=(1269, 969),
+                    ))
+                )
                 DaemonProcess(proc)
             else:
                 await asyncio.create_subprocess_exec(

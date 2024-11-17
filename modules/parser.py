@@ -1,4 +1,3 @@
-import multiprocessing
 import datetime as dt
 import collections
 import functools
@@ -70,7 +69,7 @@ class ParserException(Exception):
         self.kwargs = kwargs
 
 
-def thread(game_id: int, res: bytes, save_broken: bool, pipe: multiprocessing.Queue = None):
+def thread(game_id: int, res: bytes, save_broken: bool):
     def game_has_prefixes(*names: list[str]):
         for name in names:
             if head.find("span", text=f"{name}"):
@@ -177,11 +176,7 @@ def thread(game_id: int, res: bytes, save_broken: bool, pipe: multiprocessing.Qu
                 ),
                 MsgBox.error
             )
-            if pipe:
-                pipe.put_nowait(e)
-                return
-            else:
-                return e
+            return e
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:
                 next(spoiler.span.span.children).replace_with(html.new_string(""))
@@ -388,11 +383,7 @@ def thread(game_id: int, res: bytes, save_broken: bool, pipe: multiprocessing.Qu
             MsgBox.error,
             more=error.traceback()
         )
-        if pipe:
-            pipe.put_nowait(e)
-            return
-        else:
-            return e
+        return e
 
     ret = ParsedThread(
         name=name,
@@ -410,10 +401,7 @@ def thread(game_id: int, res: bytes, save_broken: bool, pipe: multiprocessing.Qu
         image_url=image_url,
         downloads=downloads,
     )
-    if pipe:
-        pipe.put_nowait(ret)
-    else:
-        return ret
+    return ret
 
 
 developer_strip_chars = "-–|｜/':,([{ "

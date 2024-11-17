@@ -72,9 +72,6 @@ def lock_singleton():
 
 
 if __name__ == "__main__":
-    import multiprocessing
-    multiprocessing.freeze_support()
-
     if "-c" in sys.argv:
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
