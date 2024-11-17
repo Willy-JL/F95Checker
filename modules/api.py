@@ -52,6 +52,8 @@ from modules import (
 
 f95_domain = "f95zone.to"
 f95_host = "https://" + f95_domain
+f95_sam_backend_root    = f95_host + "/sam/"
+f95_check_login_fast    = f95_host + "/sam/latest_alpha/"
 f95_check_login_page    = f95_host + "/account/"
 f95_login_page          = f95_host + "/login/"
 f95_notif_endpoint      = f95_host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
@@ -119,7 +121,7 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         cookies = globals.cookies
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
-    is_xenforo_request = url.startswith(f95_host)
+    is_xenforo_request = url.startswith(f95_host) and not url.startswith(f95_sam_backend_root)
     xenforo_ratelimit_retries = 10
     while retries and xenforo_ratelimit_retries:
         try:
@@ -329,6 +331,10 @@ def raise_api_error(res: bytes | dict):
 
 async def is_logged_in():
     global xf_token
+    # We have xf_token already, can skip the request to xenforo to avoid ratelimits
+    if xf_token:
+        res = await fetch("GET", f95_check_login_fast)
+        return b'<pre>Sorry, you have to be <a href="/login">logged in</a> to access this page</a></pre>' not in res
     async with request("GET", f95_check_login_page) as (res, req):
         if not 200 <= req.status < 300:
             res += await req.content.read()
