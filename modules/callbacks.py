@@ -373,7 +373,7 @@ def open_webpage(url: str):
         try:
             if set.browser.integrated:
                 if globals.os is Os.Linux:
-                    await asyncio.create_subprocess_exec(
+                    proc = await asyncio.create_subprocess_exec(
                         *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
                         json.dumps(webview.kwargs() | dict(
                             cookies=globals.cookies,
@@ -391,7 +391,7 @@ def open_webpage(url: str):
                         )
                     )
                     proc.start()
-                    DaemonProcess(proc)
+                DaemonProcess(proc)
             else:
                 await asyncio.create_subprocess_exec(
                     *args, url,
