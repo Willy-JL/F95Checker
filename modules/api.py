@@ -10,6 +10,7 @@ import re
 import shlex
 import shutil
 import socket
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -74,6 +75,7 @@ app_update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/rele
 
 updating = False
 session: aiohttp.ClientSession = None
+ssl_context: ssl.SSLContext = None
 webpage_prefix = "F95Checker-Temp-"
 xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
 fast_checks_sem: asyncio.Semaphore = None
@@ -86,12 +88,46 @@ xf_token = ""
 
 @contextlib.contextmanager
 def setup():
-    global session
+    global session, ssl_context
+
+    # Setup SSL context
+    if globals.os is Os.Windows:
+        # Python SSL module seems to import Windows CA certs fine by itself
+        ca_paths = None
+    elif globals.os is Os.Linux:
+        ca_paths = (
+            "/etc/ssl/certs/ca-certificates.crt",  # Ubuntu / Common
+            "/etc/pki/tls/certs/ca-bundle.crt",  # Fedora
+            "/etc/ssl/cert.pem",  # Alias
+        )
+    elif globals.os is Os.MacOS:
+        ca_paths = (
+            "/opt/homebrew/etc/ca-certificates/cert.pem",  # Homebrew
+            "/usr/local/etc/openssl/cert.pem",  # Homebrew?
+            "/opt/local/etc/openssl/cert.pem",  # MacPorts
+            "/opt/local/share/curl/curl-ca-bundle.crt",  # MacPorts
+            "/etc/ssl/cert.pem",  # Standard, maybe outdated?
+        )
+    if ca_paths:
+        # Prefer system-provided CA certs
+        for ca_path in ca_paths:
+            if pathlib.Path(ca_path).is_file():
+                break
+        else:  # Did not break, so no system CA exists, fallback to certifi
+            import certifi
+            ca_path = certifi.where()
+        ssl_context = ssl.create_default_context(cafile=ca_path)
+    else:
+        ssl_context = ssl.create_default_context()
+
+    # Setup HTTP session
     session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
     session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
+
     try:
         yield
     finally:
+
         async_thread.wait(session.close())
         cleanup_webpages()
 
@@ -114,6 +150,7 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         timeout=timeout,
         allow_redirects=True,
         max_redirects=None,
+        ssl=ssl_context
     )
     if no_cookies:
         cookies = {}
