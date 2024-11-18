@@ -1,23 +1,25 @@
-import socketserver
-import http.server
-import contextlib
-import threading
 import asyncio
+import contextlib
+import http.server
 import json
+import socketserver
+import threading
 
-from modules.structs import (
+from common.structs import (
     MsgBox,
-    Tab
+    Tab,
+)
+from external import (
+    async_thread,
+    error,
 )
 from modules import (
-    globals,
-    async_thread,
     callbacks,
-    msgbox,
     colors,
-    utils,
+    globals,
     icons,
-    error,
+    msgbox,
+    utils,
 )
 
 server: socketserver.TCPServer = None

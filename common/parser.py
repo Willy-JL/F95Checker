@@ -1,23 +1,37 @@
-import multiprocessing
+import dataclasses
 import datetime as dt
 import functools
 import json
-import bs4
 import re
-import os
 
-from modules.structs import (
-    MsgBox,
+import bs4
+
+from common.structs import (
     Status,
-    Type,
     Tag,
+    Type,
 )
-from modules import (
-    error,
-)
+from external import error
 
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
+
+@dataclasses.dataclass
+class ParsedThread:
+    name: str
+    thread_version: str
+    developer: str
+    type: Type
+    status: Status
+    last_updated: int
+    score: float
+    votes: int
+    description: str
+    changelog: str
+    tags: list[Tag]
+    unknown_tags: list[str]
+    image_url: str
+    downloads: list[tuple[str, list[tuple[str, str]]]]
 
 # [^\S\r\n] = whitespace but not newlines
 sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
@@ -45,14 +59,14 @@ def datestamp(timestamp: int | float):
     return int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(timestamp).date().toordinal()).timestamp())
 
 
-class ParserException(Exception):
-    def __init__(self, *args, **kwargs):
+class ParserError(Exception):
+    def __init__(self, message: str, dump=None):
         super().__init__()
-        self.args = args
-        self.kwargs = kwargs
+        self.message = message
+        self.dump = dump
 
 
-def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
+def thread(res: bytes) -> ParsedThread | ParserError:
     def game_has_prefixes(*names: list[str]):
         for name in names:
             if head.find("span", text=f"{name}"):
@@ -145,21 +159,11 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
-            from main import self_path
-            (self_path / f"{game_id}_broken.html").write_bytes(res)
-            e = ParserException(
-                "Thread parsing error",
-                "Failed to parse necessary sections in thread response, the html file has\n"
-                f"been saved to:\n{self_path}{os.sep}{game_id}_broken.html\n"
-                "\n"
-                "Please submit a bug report on F95Zone or GitHub including this file.",
-                MsgBox.error
+            e = ParserError(
+                message="Thread structure missing",
+                dump=res,
             )
-            if pipe:
-                pipe.put_nowait(e)
-                return
-            else:
-                return e
+            return e
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:
                 next(spoiler.span.span.children).replace_with(html.new_string(""))
@@ -179,8 +183,6 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         if not thread_version:
             if match := re.search(r"(?:\[.+?\] - )*.+?\[(.+?)\]", html.title.text):
                 thread_version = fixed_spaces(sanitize_whitespace(match.group(1)))
-        if not thread_version:
-            thread_version = None
 
         developer = get_game_attr(
             "developer/publisher",
@@ -362,23 +364,29 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         downloads = get_game_downloads("downloads", "download")
 
     except Exception:
-        e = ParserException(
-            "Thread parsing error",
-            f"Something went wrong while parsing thread {game_id}:\n{error.text()}",
-            MsgBox.error,
-            more=error.traceback()
+        e = ParserError(
+            message=f"Unhandled exception: {error.text()}",
+            dump=error.traceback()
         )
-        if pipe:
-            pipe.put_nowait(e)
-            return
-        else:
-            return e
+        return e
 
-    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads)
-    if pipe:
-        pipe.put_nowait(ret)
-    else:
-        return ret
+    ret = ParsedThread(
+        name=name,
+        thread_version=thread_version,
+        developer=developer,
+        type=type,
+        status=status,
+        last_updated=last_updated,
+        score=score,
+        votes=votes,
+        description=description,
+        changelog=changelog,
+        tags=tags,
+        unknown_tags=unknown_tags,
+        image_url=image_url,
+        downloads=downloads,
+    )
+    return ret
 
 
 developer_strip_chars = "-–|｜/':,([{ "

@@ -1,71 +1,78 @@
-from imgui.integrations.glfw import GlfwRenderer
-from PyQt6 import QtCore, QtGui, QtWidgets
+import asyncio
+import builtins
 import concurrent.futures
-import OpenGL.GL as gl
-import datetime as dt
-from PIL import Image
 import configparser
 import dataclasses
+import datetime as dt
 import functools
-import threading
 import itertools
-import platform
-import builtins
-import asyncio
 import pathlib
-import tomllib
-import aiohttp
-import OpenGL
 import pickle
+import platform
 import string
-import imgui
-import time
-import glfw
 import sys
+import threading
+import time
+import tomllib
 
-from modules.structs import (
-    TimelineEventType,
-    TagHighlight,
+from imgui.integrations.glfw import GlfwRenderer
+from PIL import Image
+from PyQt6 import (
+    QtCore,
+    QtGui,
+    QtWidgets,
+)
+import aiohttp
+import glfw
+import imgui
+import OpenGL
+import OpenGL.GL as gl
+
+from common.structs import (
+    Browser,
+    Datestamp,
     DefaultStyle,
     DisplayMode,
-    FilterMode,
-    Datestamp,
-    Timestamp,
     ExeState,
-    SortSpec,
-    TrayMsg,
-    Browser,
     Filter,
-    MsgBox,
-    Status,
-    Label,
-    Type,
+    FilterMode,
     Game,
-    Tag,
-    Tab,
+    Label,
+    MsgBox,
     Os,
+    SortSpec,
+    Status,
+    Tab,
+    Tag,
+    TagHighlight,
+    TimelineEventType,
+    Timestamp,
+    TrayMsg,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
+    filepicker,
+    imagehelper,
+    ratingwidget,
 )
 from modules import (
-    globals,
-    async_thread,
-    ratingwidget,
-    imagehelper,
-    rpc_thread,
-    filepicker,
-    callbacks,
-    webview,
-    parser,
-    msgbox,
-    colors,
-    icons,
-    utils,
-    error,
-    rpdl,
     api,
+    callbacks,
+    colors,
     db,
+    globals,
+    icons,
+    msgbox,
+    rpc_thread,
+    rpdl,
+    utils,
+    webview,
 )
 
-tool_page         = api.threads_page + "44173/"
+tool_page         = api.f95_threads_page + "44173/"
 github_page       = "https://github.com/Willy-JL/F95Checker"
 developer_page    = "https://linktr.ee/WillyJL"
 
@@ -948,10 +955,14 @@ class MainGUI():
                         imgui.end_child()
 
                         # Prepare bottom status / watermark text (done before sidebar to get text offset from bottom of window)
-                        if (count := api.images.count) > 0:
+                        if (count := api.images_counter.count) > 0:
                             text = f"Downloading {count} image{'s' if count > 1 else ''}..."
-                        elif (count := api.full_checks.count) > 0:
-                            text = f"Running {count} full recheck{'s' if count > 1 else ''}..."
+                        elif (count := api.full_checks_counter.count) > 0:
+                            text = f"Fetching {count} full thread{'s' if count > 1 else ''}..."
+                        elif (count := api.fast_checks_counter) > 0:
+                            text = f"Validating {count} cached item{'s' if count > 1 else ''}..."
+                        elif api.xenforo_ratelimit._waiters:
+                            text = f"Waiting for F95zone ratelimit..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
                         else:
@@ -973,7 +984,7 @@ class MainGUI():
                         if imgui.invisible_button("", width=text_size.x + _6, height=text_size.y + _3):
                             utils.push_popup(self.draw_about_popup)
                         elif imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-                            callbacks.open_webpage(api.host)
+                            callbacks.open_webpage(api.f95_host)
                         imgui.set_cursor_screen_pos((text_x, text_y))
                         imgui.text(text)
 
@@ -1022,7 +1033,7 @@ class MainGUI():
                             elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
                                 # Run scheduled notif check
                                 self.bg_mode_notifs_timer = None
-                                utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
+                                utils.start_refresh_task(api.check_notifs(standalone=True), reset_bg_timers=False)
                     # Wait idle time
                     if self.tray.menu_open:
                         time.sleep(1 / 60)
@@ -2297,7 +2308,7 @@ class MainGUI():
                                     imgui.dummy(0, 0)
                                     imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
                                     if imgui.button(icons.open_in_new):
-                                        callbacks.open_webpage(rpdl.torrent_page.format(id=result.id))
+                                        callbacks.open_webpage(rpdl.rpdl_torrent_page.format(id=result.id))
                                     imgui.same_line()
                                     if imgui.button(icons.download_multiple):
                                         async_thread.run(rpdl.open_torrent_file(result.id))
@@ -2357,11 +2368,11 @@ class MainGUI():
                                     imgui.same_line()
                                     if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.link + mirror).x + _20:
                                         imgui.dummy(0, 0)
-                                    if f"{api.domain}/masked/" in link:
+                                    if f"{api.f95_domain}/masked/" in link:
                                         clicked = imgui.small_button(icons.domino_mask + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.copy_masked_link(link)
-                                    elif f"{api.domain}/" in link:
+                                    elif f"{api.f95_domain}/" in link:
                                         clicked = imgui.small_button(icons.open_in_app + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.open_webpage(link)
@@ -3775,8 +3786,7 @@ class MainGUI():
                     closable=True,
                     outside=False
                 )
-                if login := await api.assert_login():
-                    results = await api.quick_search(query)
+                results = await api.quick_search(query)
             async_thread.run(_search_and_add(self.add_box_text))
             self.add_box_text = ""
             self.add_box_valid = False
@@ -3879,7 +3889,7 @@ class MainGUI():
             if imgui.begin_popup_context_item("###refresh_context"):
                 # Right click = more options context menu
                 if imgui.selectable(f"{icons.bell_badge_outline} Check notifs", False)[0]:
-                    utils.start_refresh_task(api.check_notifs(login=True))
+                    utils.start_refresh_task(api.check_notifs(standalone=True))
                 if imgui.selectable(f"{icons.reload_alert} Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
                 imgui.separator()
@@ -4185,7 +4195,7 @@ class MainGUI():
                 imgui.push_disabled()
             if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
                 buttons={
-                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "extension")),
+                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "browser")),
                     f"{icons.cancel} Cancel": None
                 }
                 utils.push_popup(
@@ -4740,15 +4750,6 @@ class MainGUI():
                 "you first try to repair your system with sfc and DISM (Google them) and update your drivers. Use this option as a last resort."
             )
             draw_settings_checkbox("ignore_semaphore_timeouts")
-
-            draw_settings_label(
-                "Use parser processes:",
-                "Parsing the game threads is an intensive task so when a full recheck is running the interface can stutter a lot. When "
-                "this setting is enabled the thread parsing will be offloaded to dedicated processes that might be (very slightly) slower "
-                "and less stable but that allow the interface to remain fully responsive. It is recommended you keep this enabled unless it "
-                "is causing problems."
-            )
-            draw_settings_checkbox("use_parser_processes")
 
             draw_settings_label(f"Async tasks count: {sum((0 if task.done() else 1) for task in asyncio.all_tasks(loop=async_thread.loop))}")
             imgui.text("")

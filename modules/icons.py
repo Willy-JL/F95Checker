@@ -1,9 +1,7 @@
 import builtins
 import struct
 
-from modules import (
-    globals,
-)
+from modules import globals
 
 font_path = next(globals.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf"))
 names: dict[str, str] = {}

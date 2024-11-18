@@ -1,9 +1,8 @@
 import typing
+
 import imgui
 
-from modules.structs import (
-    MsgBox,
-)
+from common.structs import MsgBox
 from modules import (
     globals,
     icons,

@@ -1,9 +1,18 @@
-from PyQt6 import QtCore, QtGui, QtWidgets, QtNetwork, QtWebChannel, QtWebEngineCore, QtWebEngineWidgets
-import pathlib
 import base64
 import json
-import sys
 import os
+import pathlib
+import sys
+
+from PyQt6 import (
+    QtCore,
+    QtGui,
+    QtNetwork,
+    QtWebChannel,
+    QtWebEngineCore,
+    QtWebEngineWidgets,
+    QtWidgets,
+)
 
 # Qt WebEngine doesn't like running alongside other OpenGL
 # applications so we need to run a dedicated multiprocess
@@ -28,8 +37,8 @@ def config_qt_flags(debug: bool, software: bool):
 
 def kwargs():
     from modules import (
-        globals,
         colors,
+        globals,
         icons,
     )
     return dict(
@@ -38,7 +47,7 @@ def kwargs():
         private=globals.settings.browser_private,
         icon=str(globals.gui.icon_path),
         icon_font=str(icons.font_path),
-        extension=str(globals.self_path / "extension/integrated.js"),
+        extension=str(globals.self_path / "browser/integrated.js"),
         col_bg=colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
         col_accent=colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
         col_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
@@ -132,7 +141,7 @@ def create(
         qwebchanneljs = qwebchanneljsfile.readAll().data().decode('utf-8')
         qwebchanneljsfile.close()
         extension = qwebchanneljs + pathlib.Path(extension).read_text()
-        from modules import async_thread
+        from external import async_thread
         import aiohttp
         async_thread.setup()
         class RPCProxy(QtCore.QObject):
