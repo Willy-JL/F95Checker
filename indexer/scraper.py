@@ -32,8 +32,8 @@ async def thread(id: int) -> dict[str, str] | None:
     if req.status in (403, 404):
         return f95zone.ERROR_THREAD_MISSING
 
-    # TODO: Intensive operation, move to threads+queue
-    ret = parser.thread(res)
+    loop = asyncio.get_event_loop()
+    ret = await loop.run_in_executor(None, parser.thread, res)
     if isinstance(ret, parser.ParserError):
         logger.error(f"Thread {id} parsing failed: {ret.message}\n{ret.dump}")
         return f95zone.ERROR_PARSING_FAILED
