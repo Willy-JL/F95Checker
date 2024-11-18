@@ -97,6 +97,18 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
     if added:
         has_column_names, has_column_defs = await get_table_info(table_name)
 
+    # Remove columns
+    removed = False
+    for has_column_name in has_column_names:
+        if has_column_name not in columns:
+            await connection.execute(f"""
+                ALTER TABLE {table_name}
+                DROP COLUMN {has_column_name}
+            """)
+            removed = True
+    if removed:
+        has_column_names, has_column_defs = await get_table_info(table_name)
+
     # Update column defs
     recreated = False
     for column_name, column_def in columns.items():
@@ -214,7 +226,6 @@ async def connect():
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
-            "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',  # Unused
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "weighted_score":              f'INTEGER DEFAULT {int(False)}',
             "zoom_area":                   f'INTEGER DEFAULT 50',

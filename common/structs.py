@@ -715,7 +715,6 @@ class Settings:
     style_text_dim              : tuple[float]
     tags_highlights             : dict[Tag, TagHighlight]
     timestamp_format            : str
-    use_parser_processes        : bool  # Unused
     vsync_ratio                 : int
     weighted_score              : bool
     zoom_area                   : int
