@@ -562,6 +562,7 @@ async def fast_check(games: list[Game], full=False):
     fast_checks_counter += len(games)
     try:
         async with fast_checks_sem:
+            res = None
             try:
                 res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), timeout=120, no_cookies=True)
                 raise_api_error(res)
@@ -570,16 +571,19 @@ async def fast_check(games: list[Game], full=False):
             except Exception as exc:
                 if isinstance(exc, msgbox.Exc):
                     raise exc
-                async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
-                    await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+                if res:
+                    async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
+                        await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
                 raise msgbox.Exc(
                     "Fast check error",
                     "Something went wrong checking some of your games:\n"
-                    f"{error.text()}\n"
-                    "\n"
-                    "The response body has been saved to:\n"
-                    f"{globals.self_path / 'check_broken.bin'}\n"
-                    "Please submit a bug report on F95Zone or GitHub including this file.",
+                    f"{error.text()}\n" + (
+                        "\n"
+                        "The response body has been saved to:\n"
+                        f"{globals.self_path / 'check_broken.bin'}\n"
+                        "Please submit a bug report on F95Zone or GitHub including this file."
+                        if res else ""
+                    ),
                     MsgBox.error,
                     more=error.traceback()
                 )
@@ -813,6 +817,7 @@ async def check_notifs(standalone=True):
     if standalone:
         globals.refresh_progress = 1
 
+    res = None
     try:
         res = await fetch("GET", f95_notif_endpoint.format(xf_token=xf_token))
         raise_f95zone_error(res)
@@ -823,16 +828,19 @@ async def check_notifs(standalone=True):
     except Exception as exc:
         if isinstance(exc, msgbox.Exc):
             raise exc
-        async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
-            await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+        if res:
+            async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
+                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Notifs check error",
             "Something went wrong checking your unread notifications:\n"
-            f"{error.text()}\n"
-            "\n"
-            "The response body has been saved to:\n"
-            f"{globals.self_path / 'notifs_broken.bin'}\n"
-            "Please submit a bug report on F95Zone or GitHub including this file.",
+            f"{error.text()}\n" + (
+                "\n"
+                "The response body has been saved to:\n"
+                f"{globals.self_path / 'notifs_broken.bin'}\n"
+                "Please submit a bug report on F95Zone or GitHub including this file."
+                if res else ""
+            ),
             MsgBox.error,
             more=error.traceback()
         )
@@ -878,6 +886,7 @@ async def check_notifs(standalone=True):
 async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
+    res = None
     try:
         res = await fetch("GET", app_update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(res)
@@ -921,16 +930,19 @@ async def check_updates():
         if not update_available or not asset_url or not asset_name or not asset_size:
             return
     except Exception:
-        async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
-            await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+        if res:
+            async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
+                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Update check error",
             "Something went wrong checking for F95Checker updates:\n"
-            f"{error.text()}\n"
-            "\n"
-            "The response body has been saved to:\n"
-            f"{globals.self_path / 'update_broken.bin'}\n"
-            "Please submit a bug report on F95Zone or GitHub including this file.",
+            f"{error.text()}\n" + (
+                "\n"
+                "The response body has been saved to:\n"
+                f"{globals.self_path / 'update_broken.bin'}\n"
+                "Please submit a bug report on F95Zone or GitHub including this file."
+                if res else ""
+            ),
             MsgBox.error,
             more=error.traceback()
         )
