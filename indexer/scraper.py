@@ -67,8 +67,15 @@ async def thread(id: int) -> dict[str, str] | None:
 
     # Prepare for redis, only strings allowed
     parsed = dataclasses.asdict(ret)
-    parsed["version"] = version if version else parsed["thread_version"]
-    del parsed["thread_version"]  # TODO: Recache more often if using thread_version
+    if version:
+        parsed["version"] = version
+        del parsed["thread_version"]
+    else:
+        parsed["version"] = parsed["thread_version"]
+        # Leave thread_version set so cache knows to use a lower TTL,
+        # but only if the thread had a valid version detected
+        if not parsed["thread_version"]:
+            del parsed["thread_version"]
     parsed["type"] = str(int(parsed["type"]))
     parsed["status"] = str(int(parsed["status"]))
     parsed["last_updated"] = str(parsed["last_updated"])

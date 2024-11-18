@@ -12,6 +12,7 @@ from indexer import (
 )
 
 CACHE_TTL = dt.timedelta(days=7).total_seconds()
+SHORT_TTL = dt.timedelta(days=2).total_seconds()
 LAST_CHANGE_ELIGIBLE_FIELDS = (
     "name",
     "thread_version",
@@ -143,6 +144,10 @@ async def _update_thread_cache(id: int, name: str) -> None:
             INDEX_ERROR: "",
             LAST_CACHED: int(now),
         }
+        # Recache more often if using thread_version
+        if "thread_version" in new_fields:
+            del new_fields["thread_version"]
+            new_fields[LAST_CACHED] = int(now - CACHE_TTL + SHORT_TTL)
         # Track last time that some meaningful data changed to tell clients to full check it
         if any(
             new_fields.get(key) != old_fields.get(key)
