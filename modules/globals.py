@@ -51,10 +51,12 @@ def _():
     PngImagePlugin.MAX_TEXT_CHUNK *= 10
 
     # Optimize OpenGL
+    import glfw
     import OpenGL
     for option in ("ERROR_LOGGING", "ERROR_CHECKING", "CONTEXT_CHECKING"):
         setattr(OpenGL, option, debug)
     if debug:
+        glfw.ERROR_REPORTING = "raise"
         import logging
         logging.basicConfig()
 _()
