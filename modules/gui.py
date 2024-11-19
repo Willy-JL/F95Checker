@@ -4704,7 +4704,6 @@ class MainGUI():
         if draw_settings_section("Proxy"):
             draw_settings_label(
                 "Type:",
-                "** Restart to apply changes **\n\n"
                 "All listed proxy types work with the main F95Checker functionality.\n\n"
                 "The integrated browser (also used for login) instead has some limitations due to Qt:\n"
                 "- SOCKS4 is not supported at all\n"
@@ -4715,13 +4714,13 @@ class MainGUI():
             if changed:
                 set.proxy_type = ProxyType[ProxyType._member_names_[value]]
                 async_thread.run(db.update_settings("proxy_type"))
+                api.make_session()
 
             if set.proxy_type is ProxyType.Disabled:
                 imgui.push_disabled()
 
             draw_settings_label(
                 "Host:",
-                "** Restart to apply changes **\n\n"
                 "Domain or IP address of proxy server.\n"
                 "For example: 127.0.0.1, myproxy.example.com"
             )
@@ -4729,29 +4728,24 @@ class MainGUI():
             if changed:
                 set.proxy_host = value
                 async_thread.run(db.update_settings("proxy_host"))
+                api.make_session()
 
-            draw_settings_label("Port:", "** Restart to apply changes **")
+            draw_settings_label("Port:")
             changed, value = imgui.drag_int("###proxy_port", set.proxy_port, change_speed=0.5, min_value=1, max_value=65535)
             set.proxy_port = min(max(value, 1), 65535)
             if changed:
                 set.proxy_port = int(value)
                 async_thread.run(db.update_settings("proxy_port"))
+                api.make_session()
 
-            draw_settings_label(
-                "Username:",
-                "** Restart to apply changes **\n\n"
-                "Leave empty if proxy does not require authentication"
-            )
+            draw_settings_label("Username:", "Leave empty if proxy does not require authentication")
             changed, value = imgui.input_text("###proxy_username", set.proxy_username)
             if changed:
                 set.proxy_username = value
                 async_thread.run(db.update_settings("proxy_username"))
+                api.make_session()
 
-            draw_settings_label(
-                "Password:",
-                "** Restart to apply changes **\n\n"
-                "Leave empty if proxy does not require authentication"
-            )
+            draw_settings_label("Password:", "Leave empty if proxy does not require authentication")
             changed, value = imgui.input_text(
                 "###proxy_password",
                 set.proxy_password,
@@ -4760,6 +4754,7 @@ class MainGUI():
             if changed:
                 set.proxy_password = value
                 async_thread.run(db.update_settings("proxy_password"))
+                api.make_session()
 
             if set.proxy_type is ProxyType.Disabled:
                 imgui.pop_disabled()
