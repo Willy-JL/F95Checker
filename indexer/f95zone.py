@@ -68,11 +68,13 @@ async def lifespan(version: str):
     session = aiohttp.ClientSession(
         cookie_jar=aiohttp.DummyCookieJar(),
         timeout=TIMEOUT,
-    )
-    session.headers["User-Agent"] = (
-        f"F95Indexer/{version} "
-        f"Python/{sys.version.split(' ')[0]} "
-        f"aiohttp/{aiohttp.__version__}"
+        headers={
+            "User-Agent": (
+                f"F95Indexer/{version} "
+                f"Python/{sys.version.split(' ')[0]} "
+                f"aiohttp/{aiohttp.__version__}"
+            ),
+        },
     )
     cookies = {
         "xf_user": os.environ.get("COOKIE_XF_USER"),
