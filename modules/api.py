@@ -20,8 +20,10 @@ import zipfile
 from PyQt6.QtWidgets import QSystemTrayIcon
 import aiofiles
 import aiohttp
+import aiohttp_socks
 import aiolimiter
 import imgui
+import python_socks
 
 from common.structs import (
     AsyncProcessPipe,
@@ -30,6 +32,7 @@ from common.structs import (
     MsgBox,
     OldGame,
     Os,
+    ProxyType,
     SearchResult,
     Status,
     Tag,
@@ -85,9 +88,47 @@ images_counter = CounterContext()
 xf_token = ""
 
 
+def make_session():
+    global session
+    old_session = session
+
+    # Setup new HTTP session and proxy
+    if globals.settings.proxy_type is ProxyType.Disabled:
+        connector = None
+    else:
+        proxy_type = python_socks.ProxyType.HTTP
+        match globals.settings.proxy_type:
+            case ProxyType.SOCKS4: proxy_type = python_socks.ProxyType.SOCKS4
+            case ProxyType.SOCKS5: proxy_type = python_socks.ProxyType.SOCKS5
+            case ProxyType.HTTP: proxy_type = python_socks.ProxyType.HTTP
+        connector = aiohttp_socks.ProxyConnector(
+            proxy_type=proxy_type,
+            host=globals.settings.proxy_host,
+            port=globals.settings.proxy_port,
+            username=globals.settings.proxy_username,
+            password=globals.settings.proxy_password,
+            loop=async_thread.loop,
+        )
+    session = aiohttp.ClientSession(
+        loop=async_thread.loop,
+        connector=connector,
+        cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop),
+        headers={
+            "User-Agent": (
+                f"F95Checker/{globals.version} "
+                f"Python/{sys.version.split(' ')[0]} "
+                f"aiohttp/{aiohttp.__version__}"
+            ),
+        },
+    )
+
+    if old_session:
+        async_thread.wait(old_session.close())
+
+
 @contextlib.contextmanager
 def setup():
-    global session, ssl_context
+    global ssl_context
 
     # Setup SSL context
     if globals.os is Os.Windows:
@@ -119,9 +160,7 @@ def setup():
     else:
         ssl_context = ssl.create_default_context()
 
-    # Setup HTTP session
-    session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
-    session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
+    make_session()
 
     try:
         yield

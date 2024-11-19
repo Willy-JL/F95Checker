@@ -40,6 +40,7 @@ from common.structs import (
     Label,
     MsgBox,
     Os,
+    ProxyType,
     SortSpec,
     Status,
     Tab,
@@ -4696,6 +4697,67 @@ class MainGUI():
                     game.installed = game.version
                 if globals.settings.select_executable_after_add:
                     callbacks.add_game_exe(game)
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Proxy"):
+            draw_settings_label(
+                "Type:",
+                "All listed proxy types work with the main F95Checker functionality.\n\n"
+                "The integrated browser (also used for login) instead has some limitations due to Qt:\n"
+                "- SOCKS4 is not supported at all\n"
+                "- SOCKS5 with authentication won't work\n"
+                "- HTTP with authentication is not implemented"
+            )
+            changed, value = imgui.combo("###proxy_type", set.proxy_type._index_, ProxyType._member_names_)
+            if changed:
+                set.proxy_type = ProxyType[ProxyType._member_names_[value]]
+                async_thread.run(db.update_settings("proxy_type"))
+                api.make_session()
+
+            if set.proxy_type is ProxyType.Disabled:
+                imgui.push_disabled()
+
+            draw_settings_label(
+                "Host:",
+                "Domain or IP address of proxy server.\n"
+                "For example: 127.0.0.1, myproxy.example.com"
+            )
+            changed, value = imgui.input_text_with_hint("###proxy_host", "Domain/IP", set.proxy_host)
+            if changed:
+                set.proxy_host = value
+                async_thread.run(db.update_settings("proxy_host"))
+                api.make_session()
+
+            draw_settings_label("Port:")
+            changed, value = imgui.drag_int("###proxy_port", set.proxy_port, change_speed=0.5, min_value=1, max_value=65535)
+            set.proxy_port = min(max(value, 1), 65535)
+            if changed:
+                set.proxy_port = int(value)
+                async_thread.run(db.update_settings("proxy_port"))
+                api.make_session()
+
+            draw_settings_label("Username:", "Leave empty if proxy does not require authentication")
+            changed, value = imgui.input_text("###proxy_username", set.proxy_username)
+            if changed:
+                set.proxy_username = value
+                async_thread.run(db.update_settings("proxy_username"))
+                api.make_session()
+
+            draw_settings_label("Password:", "Leave empty if proxy does not require authentication")
+            changed, value = imgui.input_text(
+                "###proxy_password",
+                set.proxy_password,
+                flags=imgui.INPUT_TEXT_PASSWORD,
+            )
+            if changed:
+                set.proxy_password = value
+                async_thread.run(db.update_settings("proxy_password"))
+                api.make_session()
+
+            if set.proxy_type is ProxyType.Disabled:
+                imgui.pop_disabled()
 
             imgui.end_table()
             imgui.spacing()
