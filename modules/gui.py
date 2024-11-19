@@ -15,20 +15,19 @@ import threading
 import time
 import tomllib
 
-import OpenGL
-import OpenGL.GL as gl
-import aiohttp
-import glfw
-import imgui
+from imgui.integrations.glfw import GlfwRenderer
 from PIL import Image
 from PyQt6 import (
     QtCore,
     QtGui,
     QtWidgets,
 )
-from imgui.integrations.glfw import GlfwRenderer
+import aiohttp
+import glfw
+import imgui
+import OpenGL
+import OpenGL.GL as gl
 
-from common import parser
 from common.structs import (
     Browser,
     Datestamp,
@@ -41,6 +40,7 @@ from common.structs import (
     Label,
     MsgBox,
     Os,
+    ProxyType,
     SortSpec,
     Status,
     Tab,
@@ -50,8 +50,8 @@ from common.structs import (
     Timestamp,
     TrayMsg,
     Type,
-    ProxyType,
 )
+from common import parser
 from external import (
     async_thread,
     error,
@@ -4445,62 +4445,6 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
-        if draw_settings_section("Proxy"):
-            draw_settings_label(
-                "Type:",
-                "** Restart to apply changes **\n\nProxies with authentication aren't supported in login "
-                "dialog (SOCKS4 is not supported by Qt at all, SOCKS5 with authentication won't work and HTTP proxy "
-                "authentication just not implemented"
-            )
-            if imgui.begin_combo(f"###proxy_type", set.proxy_type.display):
-                for proxy_type in ProxyType:
-                    selected = proxy_type is set.proxy_type
-                    pos = imgui.get_cursor_pos()
-                    if imgui.selectable(f"###proxy_type_{proxy_type.name}", selected)[0]:
-                        set.proxy_type = proxy_type
-                        async_thread.run(db.update_settings("proxy_type"))
-                    if selected:
-                        imgui.set_item_default_focus()
-                    imgui.set_cursor_pos(pos)
-                    # self.draw_status_widget(proxy_type)
-                    imgui.same_line()
-                    imgui.text(proxy_type.display)
-                imgui.end_combo()
-
-            if set.proxy_type != ProxyType.none:
-                draw_settings_label("Address:", "** Restart to apply changes **\n\nDomain or IP address")
-                changed, value = imgui.input_text("###proxy_address", set.proxy_address)
-                if changed:
-                    set.proxy_address = value
-                    async_thread.run(db.update_settings("proxy_address"))
-
-                draw_settings_label("Port:", "** Restart to apply changes **")
-                changed, value = imgui.drag_int("###proxy_port", set.proxy_port, change_speed=0.5, min_value=1, max_value=65535)
-                set.proxy_port = min(max(value, 1), 65535)
-                if changed:
-                    set.proxy_port = int(value)
-                    async_thread.run(db.update_settings("proxy_port"))
-
-                draw_settings_label("Username:", "** Restart to apply changes **\n\nLeave empty proxy does not require authentication")
-                changed, value = imgui.input_text("###proxy_username", set.proxy_username)
-                if changed:
-                    set.proxy_username = value
-                    async_thread.run(db.update_settings("proxy_username"))
-
-                draw_settings_label("Password:", "** Restart to apply changes **\n\nLeave empty proxy does not require authentication")
-                changed, value = imgui.input_text(
-                    "###proxy_password",
-                    set.proxy_password,
-                    flags=imgui.INPUT_TEXT_PASSWORD,
-                )
-                if changed:
-                    set.proxy_password = value
-                    async_thread.run(db.update_settings("proxy_password"))
-
-
-            imgui.end_table()
-            imgui.spacing()
-
 
         if draw_settings_section("Labels"):
             buttons_offset = right_width - (3 * frame_height + 2 * imgui.style.item_spacing.x)
@@ -4754,6 +4698,72 @@ class MainGUI():
                     game.installed = game.version
                 if globals.settings.select_executable_after_add:
                     callbacks.add_game_exe(game)
+
+            imgui.end_table()
+            imgui.spacing()
+
+        if draw_settings_section("Proxy"):
+            draw_settings_label(
+                "Type:",
+                "** Restart to apply changes **\n\n"
+                "All listed proxy types work with the main F95Checker functionality.\n\n"
+                "The integrated browser (also used for login) instead has some limitations due to Qt:\n"
+                "- SOCKS4 is not supported at all\n"
+                "- SOCKS5 with authentication won't work\n"
+                "- HTTP with authentication is not implemented"
+            )
+            changed, value = imgui.combo("###proxy_type", set.proxy_type._index_, ProxyType._member_names_)
+            if changed:
+                set.proxy_type = ProxyType[ProxyType._member_names_[value]]
+                async_thread.run(db.update_settings("proxy_type"))
+
+            if set.proxy_type is ProxyType.Disabled:
+                imgui.push_disabled()
+
+            draw_settings_label(
+                "Host:",
+                "** Restart to apply changes **\n\n"
+                "Domain or IP address of proxy server.\n"
+                "For example: 127.0.0.1, myproxy.example.com"
+            )
+            changed, value = imgui.input_text_with_hint("###proxy_host", "Domain/IP", set.proxy_host)
+            if changed:
+                set.proxy_host = value
+                async_thread.run(db.update_settings("proxy_host"))
+
+            draw_settings_label("Port:", "** Restart to apply changes **")
+            changed, value = imgui.drag_int("###proxy_port", set.proxy_port, change_speed=0.5, min_value=1, max_value=65535)
+            set.proxy_port = min(max(value, 1), 65535)
+            if changed:
+                set.proxy_port = int(value)
+                async_thread.run(db.update_settings("proxy_port"))
+
+            draw_settings_label(
+                "Username:",
+                "** Restart to apply changes **\n\n"
+                "Leave empty if proxy does not require authentication"
+            )
+            changed, value = imgui.input_text("###proxy_username", set.proxy_username)
+            if changed:
+                set.proxy_username = value
+                async_thread.run(db.update_settings("proxy_username"))
+
+            draw_settings_label(
+                "Password:",
+                "** Restart to apply changes **\n\n"
+                "Leave empty if proxy does not require authentication"
+            )
+            changed, value = imgui.input_text(
+                "###proxy_password",
+                set.proxy_password,
+                flags=imgui.INPUT_TEXT_PASSWORD,
+            )
+            if changed:
+                set.proxy_password = value
+                async_thread.run(db.update_settings("proxy_password"))
+
+            if set.proxy_type is ProxyType.Disabled:
+                imgui.pop_disabled()
 
             imgui.end_table()
             imgui.spacing()

@@ -464,10 +464,10 @@ Category = IntEnumHack("Category", [
 
 
 ProxyType = IntEnumHack("ProxyType", [
-    ("none",    (1, {"display": "None",     "protocol": ""})),
-    ("socks4",  (2, {"display": "SOCKS4",   "protocol": "socks4"})),
-    ("socks5",  (3, {"display": "SOCKS5",   "protocol": "socks5"})),
-    ("http",    (4, {"display": "HTTP",     "protocol": "http"})),
+    ("Disabled", 1),
+    ("SOCKS4",   2),
+    ("SOCKS5",   3),
+    ("HTTP",     4),
 ])
 
 
@@ -729,7 +729,7 @@ class Settings:
     zoom_enabled                : bool
     zoom_times                  : float
     proxy_type                  : ProxyType
-    proxy_address               : str
+    proxy_host                  : str
     proxy_port                  : int
     proxy_username              : str
     proxy_password              : str
