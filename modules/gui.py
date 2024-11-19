@@ -4445,7 +4445,6 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
-
         if draw_settings_section("Labels"):
             buttons_offset = right_width - (3 * frame_height + 2 * imgui.style.item_spacing.x)
             for label in Label.instances:
