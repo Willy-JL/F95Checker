@@ -1,39 +1,38 @@
-import bencode2
-import pathlib
 import asyncio
-import imgui
 import json
+import pathlib
 
-from modules.structs import (
-    TorrentResult,
-)
+import bencode2
+import imgui
+
+from common.structs import TorrentResult
+from external import async_thread
 from modules.api import (
     request,
     fetch,
 )
 from modules import (
-    globals,
-    async_thread,
     callbacks,
+    db,
+    globals,
     icons,
     utils,
-    db,
 )
 
-domain = "dl.rpdl.net"
-host = "https://" + domain
-login_endpoint    = host + "/api/user/login"
-register_endpoint = host + "/api/user/register"
-search_endpoint   = host + "/api/torrents?search={query}&sort={sort}"
-download_endpoint = host + "/api/torrent/download/{id}"
-details_endpoint  = host + "/api/torrent/{id}"
-torrent_page      = host + "/torrent/{id}"
+rpdl_domain = "dl.rpdl.net"
+rpdl_host = "https://" + rpdl_domain
+rpdl_login_endpoint    = rpdl_host + "/api/user/login"
+rpdl_register_endpoint = rpdl_host + "/api/user/register"
+rpdl_search_endpoint   = rpdl_host + "/api/torrents?search={query}&sort={sort}"
+rpdl_download_endpoint = rpdl_host + "/api/torrent/download/{id}"
+rpdl_details_endpoint  = rpdl_host + "/api/torrent/{id}"
+rpdl_torrent_page      = rpdl_host + "/torrent/{id}"
 
-auth = lambda: {"Authorization": f"Bearer {globals.settings.rpdl_token}"}
+rpdl_auth_headers = lambda: {"Authorization": f"Bearer {globals.settings.rpdl_token}"}
 
 
 async def torrent_search(query: str):
-    res = await fetch("GET", search_endpoint.format(query=query, sort="uploaded_DESC"))
+    res = await fetch("GET", rpdl_search_endpoint.format(query=query, sort="uploaded_DESC"))
     res = json.loads(res)
     results = []
     for result in res["data"]["results"]:
@@ -51,7 +50,7 @@ async def torrent_search(query: str):
 async def do_login(reset=False):
     if not globals.settings.rpdl_username or not globals.settings.rpdl_password:
         return "Missing credentials"
-    async with request("POST", login_endpoint, json={
+    async with request("POST", rpdl_login_endpoint, json={
         "login": globals.settings.rpdl_username,
         "password": globals.settings.rpdl_password
     }) as (res, req):
@@ -73,7 +72,7 @@ async def do_login(reset=False):
 async def do_register(confirm_password: str):
     if not globals.settings.rpdl_username or not globals.settings.rpdl_password or not confirm_password:
         return "Missing credentials"
-    async with request("POST", register_endpoint, json={
+    async with request("POST", rpdl_register_endpoint, json={
         "username": globals.settings.rpdl_username,
         "password": globals.settings.rpdl_password,
         "confirm_password": confirm_password
@@ -213,7 +212,7 @@ async def open_torrent_file(torrent_id: int):
     for _ in range(2):
         if not await assert_login():
             return
-        res = await fetch("GET", download_endpoint.format(id=torrent_id), headers={**auth()})
+        res = await fetch("GET", rpdl_download_endpoint.format(id=torrent_id), headers={**rpdl_auth_headers()})
         if not has_authenticated_tracker(res):
             globals.settings.rpdl_token = ""
             continue
