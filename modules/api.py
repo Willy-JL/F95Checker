@@ -1188,7 +1188,7 @@ async def check_updates():
         )
 
 
-async def refresh(*games: list[Game], full=False, notifs=True, force_completed=False, force_archived=False):
+async def refresh(*games: list[Game], full=False, notifs=True, force_archived=False, force_completed=False):
     fast_queue: list[list[Game]] = [[]]
     for game in (games or globals.games.values()):
         if game.custom:

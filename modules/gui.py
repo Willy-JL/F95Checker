@@ -3903,7 +3903,7 @@ class MainGUI():
                             utils.start_refresh_task(api.refresh(full=True, force_completed=True))
                     if not globals.settings.refresh_completed_games and not globals.settings.refresh_archived_games:
                         if imgui.selectable(f"{icons.reload_alert} Full Refresh (incl. everything)", False)[0]:
-                            utils.start_refresh_task(api.refresh(full=True, force_completed=True, force_archived=True))
+                            utils.start_refresh_task(api.refresh(full=True, force_archived=True, force_completed=True))
                 imgui.separator()
                 if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                     utils.push_popup(
