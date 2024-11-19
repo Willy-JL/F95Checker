@@ -1188,12 +1188,14 @@ async def check_updates():
         )
 
 
-async def refresh(*games: list[Game], full=False, notifs=True):
+async def refresh(*games: list[Game], full=False, notifs=True, force_archived=False, force_completed=False):
     fast_queue: list[list[Game]] = [[]]
     for game in (games or globals.games.values()):
         if game.custom:
             continue
-        if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games:
+        if not games and game.archived and not globals.settings.refresh_archived_games and not force_archived:
+            continue
+        if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games and not force_completed:
             continue
         if len(fast_queue[-1]) == api_fast_check_max_ids:
             fast_queue.append([])

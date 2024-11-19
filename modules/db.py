@@ -202,6 +202,7 @@ async def connect():
             "mark_installed_after_add":    f'INTEGER DEFAULT {int(False)}',
             "max_retries":                 f'INTEGER DEFAULT 2',
             "quick_filters":               f'INTEGER DEFAULT {int(True)}',
+            "refresh_archived_games":      f'INTEGER DEFAULT {int(True)}',
             "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
             "refresh_workers":             f'INTEGER DEFAULT 20',
             "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',

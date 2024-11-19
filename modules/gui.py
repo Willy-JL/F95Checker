@@ -3893,6 +3893,17 @@ class MainGUI():
                     utils.start_refresh_task(api.check_notifs(standalone=True))
                 if imgui.selectable(f"{icons.reload_alert} Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
+                if not globals.settings.refresh_completed_games or not globals.settings.refresh_archived_games:
+                    imgui.separator()
+                    if not globals.settings.refresh_archived_games:
+                        if imgui.selectable(f"{icons.reload_alert} Full Refresh (incl. archived)", False)[0]:
+                            utils.start_refresh_task(api.refresh(full=True, force_archived=True))
+                    if not globals.settings.refresh_completed_games:
+                        if imgui.selectable(f"{icons.reload_alert} Full Refresh (incl. completed)", False)[0]:
+                            utils.start_refresh_task(api.refresh(full=True, force_completed=True))
+                    if not globals.settings.refresh_completed_games and not globals.settings.refresh_archived_games:
+                        if imgui.selectable(f"{icons.reload_alert} Full Refresh (incl. everything)", False)[0]:
+                            utils.start_refresh_task(api.refresh(full=True, force_archived=True, force_completed=True))
                 imgui.separator()
                 if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                     utils.push_popup(
@@ -4765,6 +4776,9 @@ class MainGUI():
         if draw_settings_section("Refresh"):
             draw_settings_label("Check alerts and inbox:")
             draw_settings_checkbox("check_notifs")
+
+            draw_settings_label("Refresh if archived:")
+            draw_settings_checkbox("refresh_archived_games")
 
             draw_settings_label("Refresh if completed:")
             draw_settings_checkbox("refresh_completed_games")
