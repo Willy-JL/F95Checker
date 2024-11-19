@@ -41,9 +41,9 @@ An update checker and library tool for (NSFW) games on the [F95Zone](https://f95
 
 ## Compatibility:
 
-Built with Python 3.10+ for Windows, Linux and MacOS.
+Built with Python 3.11+ for Windows, Linux and MacOS.
 
-Binaries are available for all 3 platforms, requiring no setup at all. If instead you want to run from source note that Python 3.10+ is required and you'll need to
+Binaries are available for all 3 platforms, requiring no setup at all. If instead you want to run from source note that Python 3.11+ is required and you'll need to
 install the requirements with pip.
 
 ## Installation:
@@ -54,7 +54,7 @@ install the requirements with pip.
 
 - **MacOS:** Extract, right click `F95Checker.app`, select "Open" in the menu and click "Open" in the next popup **\***
 
-- **Source:** Make sure you have Python 3.10+, install requirements with `pip3 install -U -r requirements.txt` and run with `python3 main.py` (this file is marked
+- **Source:** Make sure you have Python 3.11+, install requirements with `pip3 install -U -r requirements.txt` and run with `python3 main.py` (this file is marked
 executable and has a shebang, you might be able to just double click it!)
 
 **\*** If you get a message saying that the application is damaged and should be moved to the trash you need to: close the popup, open a terminal, navigate to the
@@ -72,7 +72,7 @@ Also, it allows you to quickly see what games you have added to your list (and w
 
 The extension is available for both major browser families (Brave and Edge count as Chrome, LibreWolf counts as Firefox):
 
-- **Chrome:** Open `chrome://extensions/` in browser, enable "Developer mode", reload the page and drag `extension/chrome.zip` (from the tool folder) into the page
+- **Chrome:** Open `chrome://extensions/` in browser, enable "Developer mode", reload the page and drag `browser/chrome.zip` (from the tool folder) into the page
 
 - **Firefox:** Install from [AMO](https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/)
 
@@ -158,6 +158,8 @@ Please note that this extension is solely to aid the usage of the desktop tool, 
   open one, scroll down to the `Artifacts` section, look for your platform and click on it to download.
   **Keep in mind you will need to be logged into GitHub to download.** If the entry had a red icon, that means that the build has failed for some platforms, but yours
   might be fine so check anyway.
+
+  Have a look at this [visual guide](https://f95zone.to/threads/f95checker-willyjl.44173/post-15396547) if you still have doubts.
 
 ## About the speed™:
 

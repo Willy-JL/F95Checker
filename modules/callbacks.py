@@ -1,43 +1,45 @@
-import multiprocessing
-import configparser
-import subprocess
-import plistlib
-import pathlib
 import asyncio
+import configparser
 import difflib
-import typing
-import string
-import shlex
-import imgui
 import json
-import glfw
-import time
-import stat
-import re
 import os
+import pathlib
+import plistlib
+import re
+import shlex
+import stat
+import string
+import subprocess
+import time
+import typing
 
-from modules.structs import (
-    TimelineEventType,
+import glfw
+import imgui
+
+from common.structs import (
     AsyncProcessPipe,
     DaemonProcess,
-    SearchResult,
-    ThreadMatch,
-    MsgBox,
-    Status,
     Game,
+    MsgBox,
     Os,
+    SearchResult,
+    Status,
+    ThreadMatch,
+    TimelineEventType,
+)
+from external import (
+    async_thread,
+    error,
+    filepicker,
 )
 from modules import (
-    globals,
-    async_thread,
-    filepicker,
-    webview,
-    msgbox,
-    utils,
-    icons,
-    error,
     api,
     db,
+    globals,
+    icons,
+    msgbox,
+    utils,
+    webview,
 )
 
 
@@ -372,26 +374,15 @@ def open_webpage(url: str):
     async def _open_webpage(url: str):
         try:
             if set.browser.integrated:
-                if globals.os is Os.Linux:
-                    await asyncio.create_subprocess_exec(
-                        *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
-                        json.dumps(webview.kwargs() | dict(
-                            cookies=globals.cookies,
-                            cookies_domain=api.domain,
-                            size=(1269, 969),
-                        ))
-                    )
-                else:
-                    proc = multiprocessing.Process(
-                        target=webview.open, args=(url,),
-                        kwargs=webview.kwargs() | dict(
-                            cookies=globals.cookies,
-                            cookies_domain=api.domain,
-                            size=(1269, 969),
-                        )
-                    )
-                    proc.start()
-                    DaemonProcess(proc)
+                proc = await asyncio.create_subprocess_exec(
+                    *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
+                    json.dumps(webview.kwargs() | dict(
+                        cookies=globals.cookies,
+                        cookies_domain=api.f95_domain,
+                        size=(1269, 969),
+                    ))
+                )
+                DaemonProcess(proc)
             else:
                 await asyncio.create_subprocess_exec(
                     *args, url,
@@ -431,7 +422,7 @@ def copy_masked_link(masked_url: str):
         with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
             *shlex.split(globals.start_cmd), "webview", "redirect", json.dumps((masked_url, "a.host_link")), json.dumps(webview.kwargs() | dict(
                 cookies=globals.cookies,
-                cookies_domain=api.domain,
+                cookies_domain=api.f95_domain,
                 title=f"Unmask link{f' for {host}' if host else ''}",
                 size=(size := (520, 480)),
                 pos=(

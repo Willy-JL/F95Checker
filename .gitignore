@@ -6,3 +6,4 @@ __pycache__/
 build/
 dist/
 main-debug.py
+*.env

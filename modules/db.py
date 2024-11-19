@@ -1,43 +1,47 @@
+import asyncio
 import configparser
 import contextlib
-import aiosqlite
-import sqlite3
-import asyncio
-import pathlib
-import typing
-import shutil
-import types
 import enum
 import json
-import time
+import pathlib
 import re
+import shutil
+import sqlite3
+import time
+import types
+import typing
 
-from modules.structs import (
-    TimelineEventType,
-    TimelineEvent,
-    SearchResult,
-    DefaultStyle,
-    ThreadMatch,
-    DisplayMode,
-    Timestamp,
-    Settings,
+import aiosqlite
+
+from common.structs import (
     Browser,
-    MsgBox,
-    Status,
-    Label,
-    Type,
+    DefaultStyle,
+    DisplayMode,
     Game,
+    Label,
+    MsgBox,
+    ProxyType,
+    SearchResult,
+    Settings,
+    Status,
     Tab,
+    ThreadMatch,
+    TimelineEvent,
+    TimelineEventType,
+    Timestamp,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
 )
 from modules import (
-    globals,
-    async_thread,
-    colors,
-    msgbox,
-    parser,
-    utils,
-    error,
     api,
+    colors,
+    globals,
+    msgbox,
+    utils,
 )
 
 connection: aiosqlite.Connection = None
@@ -94,6 +98,18 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
     if added:
         has_column_names, has_column_defs = await get_table_info(table_name)
 
+    # Remove columns
+    removed = False
+    for has_column_name in has_column_names:
+        if has_column_name not in columns:
+            await connection.execute(f"""
+                ALTER TABLE {table_name}
+                DROP COLUMN {has_column_name}
+            """)
+            removed = True
+    if removed:
+        has_column_names, has_column_defs = await get_table_info(table_name)
+
     # Update column defs
     recreated = False
     for column_name, column_def in columns.items():
@@ -114,7 +130,7 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 ({temp_column_list})
                 SELECT
                 {temp_column_list}
-                FROM {temp_table_name};
+                FROM {temp_table_name}
             """)
             await connection.execute(f"""
                 DROP TABLE {temp_table_name}
@@ -160,7 +176,7 @@ async def connect():
             "browser_private":             f'INTEGER DEFAULT {int(False)}',
             "browser":                     f'INTEGER DEFAULT {Browser.get(0).hash}',
             "cell_image_ratio":            f'REAL    DEFAULT 3.0',
-            "check_notifs":                f'INTEGER DEFAULT {int(True)}',
+            "check_notifs":                f'INTEGER DEFAULT {int(False)}',
             "compact_timeline":            f'INTEGER DEFAULT {int(False)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
@@ -212,12 +228,16 @@ async def connect():
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
-            "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "weighted_score":              f'INTEGER DEFAULT {int(False)}',
             "zoom_area":                   f'INTEGER DEFAULT 50',
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',
             "zoom_times":                  f'REAL    DEFAULT 4.0',
+            "proxy_type":                  f'INTEGER DEFAULT {ProxyType.Disabled}',
+            "proxy_host":                  f'TEXT    DEFAULT ""',
+            "proxy_port":                  f'INTEGER DEFAULT 8080',
+            "proxy_username":              f'TEXT    DEFAULT ""',
+            "proxy_password":              f'TEXT    DEFAULT ""',
         },
         renames=[
             ("grid_image_ratio",      "cell_image_ratio"),
@@ -548,7 +568,7 @@ async def create_game(thread: ThreadMatch | SearchResult = None, custom=False):
             (id, custom, name, url, added_on)
             VALUES
             (?,  ?,      ?,    ?,   ?       )
-        """, (thread.id, False, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", int(time.time())))
+        """, (thread.id, False, thread.title or f"Unknown ({thread.id})", f"{api.f95_threads_page}{thread.id}", int(time.time())))
         return thread.id
 
 
@@ -686,7 +706,7 @@ def legacy_json_to_dict(path: pathlib.Path):  # Pre v9.0
             if not link:
                 continue
             if link.startswith("/"):
-                link = api.host + link
+                link = api.f95_host + link
             match = utils.extract_thread_matches(link)
             if not match:
                 continue
@@ -719,7 +739,7 @@ def legacy_ini_to_dict(path: pathlib.Path):  # Pre v7.0
         if not link:
             continue
         if link.startswith("/"):
-            link = api.host + link
+            link = api.f95_host + link
         match = utils.extract_thread_matches(link)
         if not match:
             continue
