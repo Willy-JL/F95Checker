@@ -697,6 +697,11 @@ class Settings:
     manual_sort_list            : list[int]
     mark_installed_after_add    : bool
     max_retries                 : int
+    proxy_type                  : ProxyType
+    proxy_host                  : str
+    proxy_port                  : int
+    proxy_username              : str
+    proxy_password              : str
     quick_filters               : bool
     refresh_archived_games      : bool
     refresh_completed_games     : bool
@@ -729,11 +734,6 @@ class Settings:
     zoom_area                   : int
     zoom_enabled                : bool
     zoom_times                  : float
-    proxy_type                  : ProxyType
-    proxy_host                  : str
-    proxy_port                  : int
-    proxy_username              : str
-    proxy_password              : str
 
     def __post_init__(self):
         if "" in self.default_exe_dir:
