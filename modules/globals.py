@@ -15,6 +15,7 @@ from common.structs import (
     Settings,
 )
 
+# Load version info, main globals, and some workarounds
 version = None
 release = None
 build_number = None
@@ -39,6 +40,11 @@ def _():
             if process.is_file():
                 _os.environ["QTWEBENGINEPROCESS_PATH"] = str(process)
 
+    # Workaround Wayland issues
+    if sys.platform.startswith("linux") and _os.environ.get("XDG_SESSION_TYPE") != "x11":
+        _os.environ["XDG_SESSION_TYPE"] = "x11"
+        _os.environ["QT_QPA_PLATFORM"] = "xcb"
+
     # Fix PIL image loading
     from PIL import ImageFile, PngImagePlugin
     ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -56,6 +62,7 @@ _()
 # Done here to avoid circular import
 from modules.gui import MainGUI
 
+# Configure data paths
 os = None
 data_path = None
 images_path = None
@@ -84,6 +91,7 @@ def _():
     images_path.mkdir(parents=True, exist_ok=True)
 _()
 
+# Discover available browsers
 def _():
     if os is Os.Windows:
         import winreg
@@ -156,6 +164,7 @@ def _():
                     break
 _()
 
+# Check self launch command and startup settings
 start_cmd = None
 autostart = None
 start_with_system = None
