@@ -16,6 +16,8 @@ WATCH_UPDATES_CATEGORIES = (
     "comics",
     "animations",
 )
+WATCH_VERSIONS_INTERVAL = dt.timedelta(hours=12).total_seconds()
+WATCH_VERSIONS_CHUNK_SIZE = 1000
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +27,20 @@ LAST_WATCH = "LAST_WATCH"
 @contextlib.asynccontextmanager
 async def lifespan():
     updates_task = asyncio.create_task(watch_updates())
+    versions_task = asyncio.create_task(watch_versions())
 
     try:
         yield
     finally:
 
         updates_task.cancel()
+        versions_task.cancel()
+
+
+# https://stackoverflow.com/a/312464
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
 
 
 async def watch_updates():
@@ -69,10 +79,11 @@ async def watch_updates():
 
                     # Clear cache instead of fetching new data, no point
                     # fetching it if no one cares is tracking it
+                    # Delete version too to avoid watch_versions() picking it up as mismatch
                     last_cached = await cache.redis.hget(name, cache.LAST_CACHED)
-                    await cache.redis.hdel(name, cache.LAST_CACHED)
+                    await cache.redis.hdel(name, cache.LAST_CACHED, "version")
                     logger.info(
-                        f"Invalidated cache for {name}"
+                        f"Updates: Invalidated cache for {name}"
                         + (
                             f" (was {dt.datetime.fromtimestamp(int(last_cached))})"
                             if last_cached
@@ -89,3 +100,76 @@ async def watch_updates():
             logger.error(f"Exception polling updates:\n{error.traceback()}")
 
         await asyncio.sleep(WATCH_UPDATES_INTERVAL)
+
+
+async def watch_versions():
+    while True:
+        await asyncio.sleep(WATCH_VERSIONS_INTERVAL)
+
+        try:
+            logger.debug("Poll versions start")
+
+            names = [n async for n in cache.redis.scan_iter("thread:*", 10000, "hash")]
+            invalidate_cache = cache.redis.pipeline()
+
+            for names_chunk in chunks(names, WATCH_VERSIONS_CHUNK_SIZE):
+
+                cached_versions = cache.redis.pipeline()
+                csv = ""
+                ids = []
+                for name in names_chunk:
+                    cached_versions.hget(name, "version")
+                    id = name.split(":")[1]
+                    csv += f"{id},"
+                    ids.append(id)
+                csv = csv.strip(",")
+
+                async with f95zone.session.get(
+                    f95zone.VERCHK_URL.format(threads=csv),
+                ) as req:
+                    # Await together for efficiency
+                    res, cached_versions = await asyncio.gather(
+                        req.read(), cached_versions.execute()
+                    )
+                if index_error := f95zone.check_error(res):
+                    raise Exception(index_error.error_flag)
+                try:
+                    versions = json.loads(res)
+                except Exception:
+                    logger.error(f"Versions invalid JSON: {res}")
+                    raise Exception(f95zone.ERROR_VERSION_FAILED.error_flag)
+                if (
+                    versions["status"] == "error"
+                    and versions["msg"] == "Thread not found"
+                ):
+                    continue
+                elif versions["status"] != "ok":
+                    logger.error(f"Versions failed: {versions}")
+                    raise Exception(f95zone.ERROR_VERSION_FAILED.error_flag)
+                versions = versions["msg"]
+
+                assert len(names_chunk) == len(ids) == len(cached_versions)
+                for name, id, cached_version in zip(names_chunk, ids, cached_versions):
+                    if cached_version is None:
+                        continue
+                    version = versions.get(id)
+                    if not version or version == "Unknown":
+                        continue
+
+                    if version != cached_version:
+                        # Delete version too to avoid ending up here again
+                        invalidate_cache.hdel(name, cache.LAST_CACHED, "version")
+                        logger.warning(
+                            f"Versions: Invalidating cache for {name}"
+                            f" ({cached_version!r} -> {version!r})"
+                        )
+
+            if len(invalidate_cache):
+                result = await invalidate_cache.execute()
+                invalidated = sum(ret != "0" for ret in result)
+                logger.warning(f"Version invalidated cache for {invalidated} threads")
+
+            logger.debug("Poll versions done")
+
+        except Exception:
+            logger.error(f"Exception polling versions:\n{error.traceback()}")
