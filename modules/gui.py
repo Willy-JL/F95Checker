@@ -2299,6 +2299,17 @@ class MainGUI():
                                 else:
                                     imgui.text("No results!")
                                 return
+
+                            imgui.spacing()
+                            imgui.text("Latest Version:")
+                            imgui.same_line()
+                            if game.unknown_tags_flag:
+                                self.draw_game_unknown_tags_icon(game)
+                                imgui.same_line()
+                            offset = imgui.calc_text_size("Latest Version:").x + imgui.style.item_spacing.x
+                            utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
+                            imgui.spacing()
+
                             if imgui.begin_table(
                                 "###rpdl_results",
                                 column=7,
