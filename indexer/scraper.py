@@ -44,7 +44,6 @@ async def thread(id: int) -> dict[str, str] | None:
     version = ""
     async with f95zone.session.get(
         f95zone.VERCHK_URL.format(threads=id),
-        cookies=f95zone.cookies,
     ) as req:
         res = await req.read()
     if index_error := f95zone.check_error(res):
