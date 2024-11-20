@@ -60,6 +60,9 @@ ERROR_PARSING_FAILED = IndexerError(
 ERROR_VERSION_FAILED = IndexerError(
     "VERSION_FAILED", dt.timedelta(hours=6).total_seconds()
 )
+ERROR_INTERNAL_ERROR = IndexerError(
+    "INTERNAL_ERROR", dt.timedelta(hours=6).total_seconds()
+)
 
 
 @contextlib.asynccontextmanager

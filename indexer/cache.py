@@ -6,6 +6,7 @@ import time
 
 import redis.asyncio as aredis
 
+from external import error
 from indexer import (
     f95zone,
     scraper,
@@ -119,7 +120,11 @@ async def _maybe_update_thread_cache(id: int, name: str) -> None:
 async def _update_thread_cache(id: int, name: str) -> None:
     logger.info(f"Update cached {name}")
 
-    result = await scraper.thread(id)
+    try:
+        result = await scraper.thread(id)
+    except Exception:
+        logger.error(f"Exception caching {name}:\n{error.traceback()}")
+        result = f95zone.ERROR_INTERNAL_ERROR
     old_fields = await redis.hgetall(name)
     now = time.time()
 
