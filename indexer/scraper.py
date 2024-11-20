@@ -47,7 +47,13 @@ async def thread(id: int) -> dict[str, str] | None:
         cookies=f95zone.cookies,
     ) as req:
         res = await req.read()
-    versions = json.loads(res)
+    if index_error := f95zone.check_error(res):
+        return index_error
+    try:
+        versions = json.loads(res)
+    except Exception:
+        logger.error(f"Thread {id} version invalid JSON: {res}")
+        return f95zone.ERROR_VERSION_FAILED
     if versions["status"] == "ok":
         version = versions["msg"][str(id)]
         if version == "Unknown":
