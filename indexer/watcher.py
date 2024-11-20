@@ -10,8 +10,8 @@ from indexer import (
     f95zone,
 )
 
-WATCH_INTERVAL = dt.timedelta(minutes=5).total_seconds()
-WATCH_CATEGORIES = (
+WATCH_UPDATES_INTERVAL = dt.timedelta(minutes=5).total_seconds()
+WATCH_UPDATES_CATEGORIES = (
     "games",
     "comics",
     "animations",
@@ -24,21 +24,21 @@ LAST_WATCH = "LAST_WATCH"
 
 @contextlib.asynccontextmanager
 async def lifespan():
-    watch_task = asyncio.create_task(watch_latest_updates())
+    updates_task = asyncio.create_task(watch_updates())
 
     try:
         yield
     finally:
 
-        watch_task.cancel()
+        updates_task.cancel()
 
 
-async def watch_latest_updates():
+async def watch_updates():
     while True:
         try:
             logger.debug("Poll updates start")
 
-            for category in WATCH_CATEGORIES:
+            for category in WATCH_UPDATES_CATEGORIES:
                 logger.debug(f"Poll category {category}")
                 caught_up_to_thread = ""
                 last_watch = await cache.redis.hget(LAST_WATCH, category)
@@ -86,6 +86,6 @@ async def watch_latest_updates():
             logger.debug("Poll updates done")
 
         except Exception:
-            logger.error(error.traceback())
+            logger.error(f"Exception polling updates:\n{error.traceback()}")
 
-        await asyncio.sleep(WATCH_INTERVAL)
+        await asyncio.sleep(WATCH_UPDATES_INTERVAL)
