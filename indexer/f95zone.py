@@ -8,7 +8,7 @@ import sys
 import aiohttp
 import aiolimiter
 
-XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=2, time_period=1)
+XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=1, time_period=0.5)
 TIMEOUT = aiohttp.ClientTimeout(total=30)
 LOGIN_ERROR_MESSAGES = (
     b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
