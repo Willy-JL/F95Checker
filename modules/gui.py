@@ -1602,6 +1602,14 @@ class MainGUI():
         if game and game.custom:
             imgui.pop_disabled()
 
+    def draw_game_tab_widget(self, game: Game):
+        self.draw_tab_widget(game.tab)
+        if imgui.begin_popup_context_item(f"###{game.id}_context_tab"):
+            imgui.text("Move To:")
+            imgui.separator()
+            self.draw_game_tab_select_widget(game)
+            imgui.end_popup()
+
     def draw_game_labels_select_widget(self, game: Game):
         if Label.instances:
             if game:
@@ -1923,7 +1931,7 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text_disabled("Tab: ")
                     imgui.same_line()
-                    self.draw_tab_widget(game.tab)
+                    self.draw_game_tab_widget(game)
 
                 for attr, offset in (("name", name_offset), ("version", version_offset)):
                     old_val =  getattr(old_game, attr) or "Unknown"
@@ -2118,20 +2126,29 @@ class MainGUI():
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
             imgui.spacing()
-            imgui.text_disabled("Version:")
-            imgui.same_line()
-            if game.updated:
-                self.draw_game_update_icon(game)
-                imgui.same_line()
-            if game.unknown_tags_flag:
-                self.draw_game_unknown_tags_icon(game)
-                imgui.same_line()
-            offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
-            utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
 
             if imgui.begin_table(f"###details", column=2):
                 imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
                 imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Version:")
+                imgui.same_line()
+                if game.updated:
+                    self.draw_game_update_icon(game)
+                    imgui.same_line()
+                if game.unknown_tags_flag:
+                    self.draw_game_unknown_tags_icon(game)
+                    imgui.same_line()
+                offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
+                utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
+
+                imgui.table_next_column()
+                imgui.text_disabled("Added On:")
+                imgui.same_line()
+                imgui.text(game.added_on.display)
 
                 imgui.table_next_row()
 
@@ -2142,9 +2159,9 @@ class MainGUI():
                 utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
 
                 imgui.table_next_column()
-                imgui.text_disabled("Added On:")
+                imgui.text_disabled("Last Updated:")
                 imgui.same_line()
-                imgui.text(game.added_on.display)
+                imgui.text(game.last_updated.display or "Unknown")
 
                 imgui.table_next_row()
 
@@ -2154,18 +2171,6 @@ class MainGUI():
                 imgui.text(game.status.name)
                 imgui.same_line()
                 self.draw_status_widget(game.status)
-
-                imgui.table_next_column()
-                imgui.text_disabled("Last Updated:")
-                imgui.same_line()
-                imgui.text(game.last_updated.display or "Unknown")
-
-                imgui.table_next_row()
-
-                imgui.table_next_column()
-                imgui.text_disabled("Type:")
-                imgui.same_line()
-                self.draw_type_widget(game.type)
 
                 imgui.table_next_column()
                 imgui.text_disabled("Last Played:")
@@ -2192,18 +2197,43 @@ class MainGUI():
                 imgui.same_line()
                 self.draw_game_rating_widget(game)
 
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Type:")
+                imgui.same_line()
+                self.draw_type_widget(game.type)
+
+                imgui.table_next_column()
+                imgui.text_disabled("Tab:")
+                imgui.same_line()
+                self.draw_game_tab_widget(game)
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.align_text_to_frame_padding()
+                if len(game.executables) <= 1:
+                    imgui.text_disabled("Executable:")
+                    imgui.same_line()
+                    if game.executables:
+                        offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
+                        utils.wrap_text(game.executables[0], width=offset + imgui.get_content_region_available_width(), offset=offset)
+                    else:
+                        imgui.text("Not set")
+                else:
+                    imgui.text_disabled("Executables:")
+
+                imgui.table_next_column()
+                self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe")
+                imgui.same_line()
+                self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder")
+                imgui.same_line()
+                self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes")
+
                 imgui.end_table()
 
-            if len(game.executables) <= 1:
-                imgui.text_disabled("Executable:")
-                imgui.same_line()
-                if game.executables:
-                    offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
-                    utils.wrap_text(game.executables[0], width=offset + imgui.get_content_region_available_width(), offset=offset)
-                else:
-                    imgui.text("Not set")
-            else:
-                imgui.text_disabled("Executables:")
+            if len(game.executables) > 1:
                 for executable in game.executables:
                     self.draw_game_play_button(game, icons.play, executable=executable)
                     imgui.same_line()
@@ -2213,15 +2243,6 @@ class MainGUI():
                         game.remove_executable(executable)
                     imgui.same_line()
                     imgui.text(executable)
-
-            imgui.align_text_to_frame_padding()
-            imgui.text_disabled("Manage Exes:")
-            imgui.same_line()
-            self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe")
-            imgui.same_line()
-            self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes")
-            imgui.same_line()
-            self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder")
 
             imgui.spacing()
 
