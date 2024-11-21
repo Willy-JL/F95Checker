@@ -66,6 +66,11 @@ f95_threads_page        = f95_host + "/threads/"
 f95_bookmarks_page      = f95_host + "/account/bookmarks?difference=0&page={page}"
 f95_watched_page        = f95_host + "/watched/threads?unread=0&page={page}"
 f95_qsearch_endpoint    = f95_host + "/quicksearch"
+f95_attachments_hosts = (
+    f"https://attachments.{f95_domain}/",
+    "https://attachments.f95zone.com/",
+    f95_attachments_rocks :=  "https://attachments.f95zone.rocks/",
+)
 
 api_domain = "api.f95checker.dev"
 api_host = "https://" + api_domain
@@ -74,6 +79,10 @@ api_full_check_url = api_host + "/full/{id}?ts={ts}"
 api_fast_check_max_ids = 10
 
 app_update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+
+insecure_ssl_allowed_hosts = (
+    f95_attachments_rocks,  # Invalid SSL cert but still works and is ran by F95zone
+)
 
 updating = False
 session: aiohttp.ClientSession = None
@@ -190,6 +199,10 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         max_redirects=None,
         ssl=ssl_context
     )
+    for insecure_ssl_allowed_host in insecure_ssl_allowed_hosts:
+        if url.startswith(insecure_ssl_allowed_host):
+            req_opts["ssl"] = False
+            break
     if no_cookies:
         cookies = {}
     else:
@@ -841,36 +854,48 @@ async def full_check(game: Game, last_changed: int):
 
         if fetch_image and thread["image_url"] and thread["image_url"].startswith("http"):
             with images_counter:
-                try:
-                    res = await fetch("GET", thread["image_url"], timeout=globals.settings.request_timeout * 4, raise_for_status=True)
-                except aiohttp.ClientResponseError as exc:
-                    if exc.status < 400:
-                        raise  # Not error status
-                    if thread["image_url"].startswith("https://i.imgur.com"):
-                        thread["image_url"] = "blocked"
-                    else:
-                        thread["image_url"] = "dead"
-                    res = b""
-                except aiohttp.ClientConnectorError as exc:
-                    if not isinstance(exc.os_error, socket.gaierror):
-                        raise  # Not a dead link
-                    if is_f95zone_url(thread["image_url"]):
-                        raise  # Not a foreign host, raise normal connection error message
-                    f95zone_ok = True
-                    foreign_ok = True
+                image_url = thread["image_url"]
+                while True:
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, f95_domain)
-                    except Exception:
-                        f95zone_ok = False
-                    try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", thread["image_url"]).group(1))
-                    except Exception:
-                        foreign_ok = False
-                    if f95zone_ok and not foreign_ok:
-                        thread["image_url"] = "dead"
+                        res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
+                    except aiohttp.ClientResponseError as exc:
+                        if exc.status < 400:
+                            raise  # Not error status
+                        if image_url.startswith("https://i.imgur.com"):
+                            thread["image_url"] = "blocked"
+                        else:
+                            thread["image_url"] = "dead"
                         res = b""
-                    else:
-                        raise  # Foreign host might not actually be dead
+                    except aiohttp.ClientConnectorError as exc:
+                        if not isinstance(exc.os_error, socket.gaierror):
+                            raise  # Not a dead link
+                        # Try alternative F95zone hosts (-1 because we're checking to then use the next link)
+                        changed_host = False
+                        for host_i in range(len(f95_attachments_hosts) - 1):
+                            if image_url.startswith(f95_attachments_hosts[host_i]):
+                                image_url = image_url.replace(f95_attachments_hosts[host_i], f95_attachments_hosts[host_i + 1], 1)
+                                changed_host = True
+                                break
+                        if changed_host:
+                            continue
+                        if is_f95zone_url(image_url):
+                            raise  # Not a foreign host, raise normal connection error message
+                        f95zone_ok = True
+                        foreign_ok = True
+                        try:
+                            await async_thread.loop.run_in_executor(None, socket.gethostbyname, f95_domain)
+                        except Exception:
+                            f95zone_ok = False
+                        try:
+                            await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
+                        except Exception:
+                            foreign_ok = False
+                        if f95zone_ok and not foreign_ok:
+                            thread["image_url"] = "dead"
+                            res = b""
+                        else:
+                            raise  # Foreign host might not actually be dead
+                    break  # Loop is only to retry with `continue`
                 async def set_image_and_update_game():
                     await game.set_image_async(res)
                     await update_game()
