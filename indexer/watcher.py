@@ -21,8 +21,6 @@ WATCH_VERSIONS_CHUNK_SIZE = 1000
 
 logger = logging.getLogger(__name__)
 
-LAST_WATCH = "LAST_WATCH"
-
 
 @contextlib.asynccontextmanager
 async def lifespan():
