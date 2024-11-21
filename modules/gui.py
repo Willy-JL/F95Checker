@@ -2277,9 +2277,11 @@ class MainGUI():
                     if imgui.small_button(f"{icons.magnify}Search"):
                         results = None
                         query = "".join(char for char in game.name.replace("&", "And") if char in (string.ascii_letters + string.digits))
+                        ran_query = query
                         def _rpdl_search_popup():
                             nonlocal results
                             nonlocal query
+                            nonlocal ran_query
 
                             pad = 3 * imgui.style.item_spacing.x
                             def _cluster_text(name, text):
@@ -2305,9 +2307,10 @@ class MainGUI():
                             )
                             imgui.same_line()
                             if imgui.button(f"{icons.magnify} Search") or activated:
+                                ran_query = query
                                 async_thread.run(_rpdl_run_search())
                             if not results:
-                                imgui.text(f"Running RPDL search for query '{query}'.")
+                                imgui.text(f"Running RPDL search for query '{ran_query}'...")
                                 imgui.text("Status:")
                                 imgui.same_line()
                                 if results is None:
@@ -2375,9 +2378,9 @@ class MainGUI():
                                 imgui.end_table()
                         async def _rpdl_run_search():
                             nonlocal results
-                            nonlocal query
+                            nonlocal ran_query
                             results = None
-                            results = await rpdl.torrent_search(query)
+                            results = await rpdl.torrent_search(ran_query)
                         utils.push_popup(
                             utils.popup, "RPDL torrent search",
                             _rpdl_search_popup,
