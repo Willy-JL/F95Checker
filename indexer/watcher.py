@@ -62,7 +62,10 @@ async def watch_updates():
                 if index_error := f95zone.check_error(res):
                     raise Exception(index_error.error_flag)
 
-                updates = json.loads(res)
+                try:
+                    updates = json.loads(res)
+                except Exception:
+                    raise Exception(f"Latest updates returned invalid JSON: {res}")
                 if updates["status"] != "ok":
                     raise Exception(f"Latest updates returned an error: {updates}")
 
@@ -97,7 +100,7 @@ async def watch_updates():
             logger.debug("Poll updates done")
 
         except Exception:
-            logger.error(f"Exception polling updates:\n{error.traceback()}")
+            logger.error(f"Error polling updates: {error.text()}\n{error.traceback()}")
 
         await asyncio.sleep(WATCH_UPDATES_INTERVAL)
 
@@ -131,21 +134,21 @@ async def watch_versions():
                     res, cached_versions = await asyncio.gather(
                         req.read(), cached_versions.execute()
                     )
+
                 if index_error := f95zone.check_error(res):
                     raise Exception(index_error.error_flag)
+
                 try:
                     versions = json.loads(res)
                 except Exception:
-                    logger.error(f"Versions invalid JSON: {res}")
-                    raise Exception(f95zone.ERROR_VERSION_FAILED.error_flag)
+                    raise Exception(f"Versions API returned invalid JSON: {res}")
                 if (
                     versions["status"] == "error"
                     and versions["msg"] == "Thread not found"
                 ):
                     continue
                 elif versions["status"] != "ok":
-                    logger.error(f"Versions failed: {versions}")
-                    raise Exception(f95zone.ERROR_VERSION_FAILED.error_flag)
+                    raise Exception(f"Versions API returned an error: {versions}")
                 versions = versions["msg"]
 
                 assert len(names_chunk) == len(ids) == len(cached_versions)
@@ -172,4 +175,4 @@ async def watch_versions():
             logger.debug("Poll versions done")
 
         except Exception:
-            logger.error(f"Exception polling versions:\n{error.traceback()}")
+            logger.error(f"Error polling versions: {error.text()}\n{error.traceback()}")

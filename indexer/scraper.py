@@ -51,8 +51,8 @@ async def thread(id: int) -> dict[str, str] | None:
     try:
         versions = json.loads(res)
     except Exception:
-        logger.error(f"Thread {id} version invalid JSON: {res}")
-        return f95zone.ERROR_VERSION_FAILED
+        logger.error(f"Thread {id} version returned invalid JSON: {res}")
+        return f95zone.ERROR_UNKNOWN_RESPONSE
     if versions["status"] == "ok":
         version = versions["msg"][str(id)]
         if version == "Unknown":
@@ -60,8 +60,8 @@ async def thread(id: int) -> dict[str, str] | None:
     elif versions["status"] == "error" and versions["msg"] == "Thread not found":
         pass
     else:
-        logger.error(f"Thread {id} version failed: {versions}")
-        return f95zone.ERROR_VERSION_FAILED
+        logger.error(f"Thread {id} version returned an error: {versions}")
+        return f95zone.ERROR_UNKNOWN_RESPONSE
 
     # Redact unmasked links to prevent abuse, since this api is public
     # Replaces with thread link, so user can click it and go find it anyway
