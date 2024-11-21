@@ -63,13 +63,6 @@ async def thread(id: int) -> dict[str, str] | None:
         logger.error(f"Thread {id} version returned an error: {versions}")
         return f95zone.ERROR_UNKNOWN_RESPONSE
 
-    # Redact unmasked links to prevent abuse, since this api is public
-    # Replaces with thread link, so user can click it and go find it anyway
-    for label, links in ret.downloads:
-        for link_i, (link_name, link_url) in enumerate(links):
-            if not link_url.startswith(f95zone.MASKED_URL):
-                links[link_i] = (link_name, thread_url)
-
     # Prepare for redis, only strings allowed
     parsed = dataclasses.asdict(ret)
     if version:
