@@ -2362,7 +2362,9 @@ class MainGUI():
                                     imgui.table_next_column()
                                     imgui.text(result.size)
                                     imgui.table_next_column()
+                                    imgui.push_font(imgui.fonts.mono)
                                     imgui.text(result.date)
+                                    imgui.pop_font()
                                     imgui.same_line()
                                     imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
                                     imgui.selectable(
