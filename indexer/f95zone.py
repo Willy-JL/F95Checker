@@ -8,7 +8,7 @@ import sys
 import aiohttp
 import aiolimiter
 
-XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=2, time_period=1)
+XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=1, time_period=0.5)
 TIMEOUT = aiohttp.ClientTimeout(total=30)
 LOGIN_ERROR_MESSAGES = (
     b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
@@ -37,10 +37,12 @@ MASKED_URL = HOST + "/masked/"
 LATEST_URL = HOST + "/sam/latest_alpha/latest_data.php?cmd={t}&cat={c}&page={p}&rows=90"
 VERCHK_URL = HOST + "/sam/checker.php?threads={threads}"
 
+
 @dataclasses.dataclass
 class IndexerError:
     error_flag: str
     retry_delay: int
+
 
 ERROR_SESSION_LOGGED_OUT = IndexerError(
     "SESSION_LOGGED_OUT", dt.timedelta(hours=2).total_seconds()
@@ -57,8 +59,11 @@ ERROR_THREAD_MISSING = IndexerError(
 ERROR_PARSING_FAILED = IndexerError(
     "PARSING_FAILED", dt.timedelta(hours=6).total_seconds()
 )
-ERROR_VERSION_FAILED = IndexerError(
-    "VERSION_FAILED", dt.timedelta(hours=6).total_seconds()
+ERROR_UNKNOWN_RESPONSE = IndexerError(
+    "UNKNOWN_RESPONSE", dt.timedelta(hours=6).total_seconds()
+)
+ERROR_INTERNAL_ERROR = IndexerError(
+    "INTERNAL_ERROR", dt.timedelta(hours=6).total_seconds()
 )
 
 

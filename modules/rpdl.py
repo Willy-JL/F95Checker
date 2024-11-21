@@ -5,7 +5,10 @@ import pathlib
 import bencode2
 import imgui
 
-from common.structs import TorrentResult
+from common.structs import (
+    MsgBox,
+    TorrentResult,
+)
 from external import async_thread
 from modules.api import (
     request,
@@ -16,6 +19,7 @@ from modules import (
     db,
     globals,
     icons,
+    msgbox,
     utils,
 )
 
@@ -31,9 +35,28 @@ rpdl_torrent_page      = rpdl_host + "/torrent/{id}"
 rpdl_auth_headers = lambda: {"Authorization": f"Bearer {globals.settings.rpdl_token}"}
 
 
+def raise_rpdl_error(res: bytes | dict):
+    if isinstance(res, bytes):
+        if any(msg in res for msg in (
+            b"<title>Site Maintenance</title>",
+            b"<h1>We&rsquo;ll be back soon!</h1>",
+        )):
+            raise msgbox.Exc(
+                "Server downtime",
+                "RPDL is currently unreachable,\n"
+                "please retry in a few minutes.",
+                MsgBox.warn
+            )
+        return True
+    elif isinstance(res, dict):
+        return True
+
+
 async def torrent_search(query: str):
     res = await fetch("GET", rpdl_search_endpoint.format(query=query, sort="uploaded_DESC"))
+    raise_rpdl_error(res)
     res = json.loads(res)
+    raise_rpdl_error(res)
     results = []
     for result in res["data"]["results"]:
         results.append(TorrentResult(
@@ -54,6 +77,7 @@ async def do_login(reset=False):
         "login": globals.settings.rpdl_username,
         "password": globals.settings.rpdl_password
     }) as (res, req):
+        raise_rpdl_error(res)
         res = json.loads(res)
         if req.ok:
             globals.settings.rpdl_username = res["data"]["username"]
@@ -77,6 +101,7 @@ async def do_register(confirm_password: str):
         "password": globals.settings.rpdl_password,
         "confirm_password": confirm_password
     }) as (res, req):
+        raise_rpdl_error(res)
         if req.ok:
             return True
         else:
@@ -213,6 +238,7 @@ async def open_torrent_file(torrent_id: int):
         if not await assert_login():
             return
         res = await fetch("GET", rpdl_download_endpoint.format(id=torrent_id), headers={**rpdl_auth_headers()})
+        raise_rpdl_error(res)
         if not has_authenticated_tracker(res):
             globals.settings.rpdl_token = ""
             continue
