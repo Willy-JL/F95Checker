@@ -174,7 +174,7 @@ class Columns:
             resizable=False,
         )
         self.name = self.Column(
-            self, f"{icons.information_variant} Name",
+            self, f"{icons.gamepad_variant} Name",
             imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT,
             default=True,
             sortable=True,
@@ -2280,6 +2280,22 @@ class MainGUI():
                         def _rpdl_search_popup():
                             nonlocal results
                             nonlocal query
+
+                            pad = 3 * imgui.style.item_spacing.x
+                            def _cluster_text(name, text):
+                                imgui.text_disabled(name[0])
+                                if imgui.is_item_hovered():
+                                    imgui.set_tooltip(name[2:])
+                                imgui.same_line()
+                                imgui.text(text)
+                                imgui.same_line(spacing=pad)
+                            _cluster_text(cols.name.name, game.name)
+                            _cluster_text(cols.version.name, game.version)
+                            _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
+                            _cluster_text(cols.developer.name, game.developer)
+                            imgui.spacing()
+                            imgui.spacing()
+
                             imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
                             activated, query = imgui.input_text_with_hint(
                                 "###search",
@@ -2300,22 +2316,14 @@ class MainGUI():
                                     imgui.text("No results!")
                                 return
 
-                            imgui.spacing()
-                            imgui.text("Latest Version:")
-                            imgui.same_line()
-                            if game.unknown_tags_flag:
-                                self.draw_game_unknown_tags_icon(game)
-                                imgui.same_line()
-                            offset = imgui.calc_text_size("Latest Version:").x + imgui.style.item_spacing.x
-                            utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
-                            imgui.spacing()
-
                             if imgui.begin_table(
                                 "###rpdl_results",
                                 column=7,
                                 flags=imgui.TABLE_NO_SAVED_SETTINGS
                             ):
                                 imgui.table_setup_scroll_freeze(0, 1)
+                                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_FIXED)
+                                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
                                 imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
                                 imgui.table_next_column()
                                 imgui.table_header("Actions")
