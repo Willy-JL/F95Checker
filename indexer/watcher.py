@@ -21,8 +21,6 @@ WATCH_VERSIONS_CHUNK_SIZE = 1000
 
 logger = logging.getLogger(__name__)
 
-LAST_WATCH = "LAST_WATCH"
-
 
 @contextlib.asynccontextmanager
 async def lifespan():
@@ -48,10 +46,12 @@ async def watch_updates():
         try:
             logger.debug("Poll updates start")
 
+            invalidate_cache = cache.redis.pipeline()
+
             for category in WATCH_UPDATES_CATEGORIES:
                 logger.debug(f"Poll category {category}")
-                caught_up_to_thread = ""
-                last_watch = await cache.redis.hget(LAST_WATCH, category)
+
+                cached_versions = cache.redis.pipeline()
 
                 async with f95zone.session.get(
                     f95zone.LATEST_URL.format(t="list", c=category, p=1),
@@ -69,33 +69,35 @@ async def watch_updates():
                 if updates["status"] != "ok":
                     raise Exception(f"Latest updates returned an error: {updates}")
 
+                names = []
+                versions = []
                 for update in updates["msg"]["data"]:
-                    thread_id = str(update["thread_id"])
-                    name = cache.NAME_FORMAT.format(id=thread_id)
+                    name = cache.NAME_FORMAT.format(id=update["thread_id"])
+                    names.append(name)
+                    cached_versions.hget(name, "version")
+                    versions.append(update["version"])
 
-                    if not caught_up_to_thread:
-                        caught_up_to_thread = thread_id
+                cached_versions = await cached_versions.execute()
 
-                    if thread_id == last_watch:
-                        logger.debug(f"Stopping at {name}")
-                        break
+                assert len(names) == len(versions) == len(cached_versions)
+                for name, version, cached_version in zip(names, versions, cached_versions):
+                    if cached_version is None:
+                        continue
+                    if not version or version == "Unknown":
+                        continue
 
-                    # Clear cache instead of fetching new data, no point
-                    # fetching it if no one cares is tracking it
-                    # Delete version too to avoid watch_versions() picking it up as mismatch
-                    last_cached = await cache.redis.hget(name, cache.LAST_CACHED)
-                    await cache.redis.hdel(name, cache.LAST_CACHED, "version")
-                    logger.info(
-                        f"Updates: Invalidated cache for {name}"
-                        + (
-                            f" (was {dt.datetime.fromtimestamp(int(last_cached))})"
-                            if last_cached
-                            else ""
+                    if version != cached_version:
+                        # Delete version too to avoid watch_versions() picking it up as mismatch
+                        invalidate_cache.hdel(name, cache.LAST_CACHED, "version")
+                        logger.info(
+                            f"Updates: Invalidating cache for {name}"
+                            f" ({cached_version!r} -> {version!r})"
                         )
-                    )
 
-                if caught_up_to_thread:
-                    await cache.redis.hset(LAST_WATCH, category, caught_up_to_thread)
+            if len(invalidate_cache):
+                result = await invalidate_cache.execute()
+                invalidated = sum(ret != "0" for ret in result)
+                logger.info(f"Updates: Invalidated cache for {invalidated} threads")
 
             logger.debug("Poll updates done")
 
@@ -170,7 +172,7 @@ async def watch_versions():
             if len(invalidate_cache):
                 result = await invalidate_cache.execute()
                 invalidated = sum(ret != "0" for ret in result)
-                logger.warning(f"Version invalidated cache for {invalidated} threads")
+                logger.warning(f"Versions: Invalidated cache for {invalidated} threads")
 
             logger.debug("Poll versions done")
 
