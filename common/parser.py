@@ -146,7 +146,8 @@ def thread(res: bytes) -> ParsedThread | ParserError:
                 if not link_url.startswith(f95_host):
                     # Cache API is public, to prevent abuse we replace naked links with XPath
                     # expressions to allow client to automatically find the link in main post
-                    xpath_expr = f'//{elem.name}[text()="{elem.text}"]'
+                    link_host = link_url[:link_url.find("/", len("https://")) + 1]
+                    xpath_expr = f"//{elem.name}[starts-with(@href,{link_host!r})]"
                     xpath_results = post_tree.xpath(xpath_expr)
                     for xpath_i, xpath_result in enumerate(xpath_results):
                         if xpath_result.get("href") == link_url:
