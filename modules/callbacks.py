@@ -420,7 +420,7 @@ def copy_masked_link(masked_url: str):
     host = (re.search(r"/masked/(.*?)/", masked_url) or ("", ""))[1]
     async def _unmask_and_copy():
         with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "webview", "redirect", json.dumps((masked_url, "a.host_link")), json.dumps(webview.kwargs() | dict(
+            *shlex.split(globals.start_cmd), "webview", "css_redirect", json.dumps((masked_url, "a.host_link")), json.dumps(webview.kwargs() | dict(
                 cookies=globals.cookies,
                 cookies_domain=api.f95_domain,
                 title=f"Unmask link{f' for {host}' if host else ''}",

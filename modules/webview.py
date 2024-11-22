@@ -346,7 +346,7 @@ def cookies(url: str, **kwargs):
     app.exec()
 
 
-def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
+def css_redirect(url: str, css_selector: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
     app = create(**kwargs | dict(buttons=False, extension=False, private=True))
     url = QtCore.QUrl(url)
     if cookies and cookies_domain:
@@ -357,10 +357,10 @@ def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = 
         if new != url and not new.url().startswith(url.url()):
             print(json.dumps(new.url()), flush=True)
     app.window.webview.urlChanged.connect(url_changed)
-    if click_selector:
+    if css_selector:
         def load_progress(_):
             app.window.webview.page.runJavaScript(f"""
-                redirectClickElement = document.querySelector({click_selector!r});
+                redirectClickElement = document.querySelector({css_selector!r});
                 if (redirectClickElement) {{
                     redirectClickElement.click();
                 }}
