@@ -32,9 +32,11 @@ def _():
     # Fix frozen load paths
     if frozen:
         if sys.platform.startswith("linux"):
-            library = self_path / f"lib/glfw/{_os.environ.get('XDG_SESSION_TYPE')}/libglfw.so"
-            if library.is_file():
-                _os.environ["PYGLFW_LIBRARY"] = str(library)
+            session_type = _os.environ.get('XDG_SESSION_TYPE')
+            if session_type in ("x11", "wayland"):
+                library = self_path / f"lib/glfw/{session_type}/libglfw.so"
+                if library.is_file():
+                    _os.environ["PYGLFW_LIBRARY"] = str(library)
         elif sys.platform.startswith("darwin"):
             process = self_path / "lib/PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
             if process.is_file():
