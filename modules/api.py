@@ -867,8 +867,6 @@ async def full_check(game: Game, last_changed: int):
                             thread["image_url"] = "dead"
                         res = b""
                     except aiohttp.ClientConnectorError as exc:
-                        if not isinstance(exc.os_error, socket.gaierror):
-                            raise  # Not a dead link
                         # Try alternative F95zone hosts (-1 because we're checking to then use the next link)
                         changed_host = False
                         for host_i in range(len(f95_attachments_hosts) - 1):
@@ -878,6 +876,8 @@ async def full_check(game: Game, last_changed: int):
                                 break
                         if changed_host:
                             continue
+                        if not isinstance(exc.os_error, socket.gaierror):
+                            raise  # Not a dead link
                         if is_f95zone_url(image_url):
                             raise  # Not a foreign host, raise normal connection error message
                         f95zone_ok = True
