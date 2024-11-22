@@ -69,7 +69,7 @@ f95_qsearch_endpoint    = f95_host + "/quicksearch"
 f95_attachments_hosts = (
     f"https://attachments.{f95_domain}/",
     "https://attachments.f95zone.com/",
-    f95_attachments_rocks :=  "https://attachments.f95zone.rocks/",
+    f95_attachments_rocks := "https://attachments.f95zone.rocks/",
 )
 
 api_domain = "api.f95checker.dev"
