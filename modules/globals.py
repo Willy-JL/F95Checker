@@ -48,11 +48,12 @@ def _():
     PngImagePlugin.MAX_TEXT_CHUNK *= 10
 
     # Optimize OpenGL
+    import glfw
     import OpenGL
+    glfw.ERROR_REPORTING = debug
     for option in ("ERROR_LOGGING", "ERROR_CHECKING", "CONTEXT_CHECKING"):
         setattr(OpenGL, option, debug)
     if debug:
-        import glfw
         import logging
         glfw.ERROR_REPORTING = {
             65548: "warn",
