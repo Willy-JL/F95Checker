@@ -436,6 +436,28 @@ def copy_masked_link(masked_url: str):
     async_thread.run(_unmask_and_copy())
 
 
+def copy_xpath_link(thread_url: str, xpath_expr: str):
+    host = (re.search(r"://(.*?)/", xpath_expr) or ("", ""))[1]
+    xpath_post = "//*[contains(@class,'message-threadStarterPost')][1]"
+    xpath_expr = xpath_post + xpath_expr  # Parser only looks inside main post element
+    async def _retrieve_and_copy():
+        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
+            *shlex.split(globals.start_cmd), "webview", "xpath_redirect", json.dumps((thread_url, xpath_expr)), json.dumps(webview.kwargs() | dict(
+                cookies=globals.cookies,
+                cookies_domain=api.f95_domain,
+                title=f"Retrieve link{f' for {host}' if host else ''}",
+                size=(size := (520, 480)),
+                pos=(
+                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
+                )
+            )),
+            stdout=subprocess.PIPE
+        )):
+            clipboard_copy(await pipe.get_async())
+    async_thread.run(_retrieve_and_copy())
+
+
 def convert_f95zone_to_custom(game: Game):
     async_thread.wait(db.update_game_id(game, utils.custom_id()))
     game.custom = True
