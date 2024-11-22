@@ -346,7 +346,7 @@ def cookies(url: str, **kwargs):
     app.exec()
 
 
-def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
+def css_redirect(url: str, css_selector: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
     app = create(**kwargs | dict(buttons=False, extension=False, private=True))
     url = QtCore.QUrl(url)
     if cookies and cookies_domain:
@@ -354,13 +354,39 @@ def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = 
         for key, value in cookies.items():
             app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     def url_changed(new: QtCore.QUrl):
-        if new != url and not new.url().startswith(url.url()):
+        if new.host() != url.host():
             print(json.dumps(new.url()), flush=True)
     app.window.webview.urlChanged.connect(url_changed)
-    if click_selector:
+    if css_selector:
         def load_progress(_):
             app.window.webview.page.runJavaScript(f"""
-                redirectClickElement = document.querySelector({click_selector!r});
+                redirectClickElement = document.querySelector({css_selector!r});
+                if (redirectClickElement) {{
+                    redirectClickElement.click();
+                }}
+            """)
+        app.window.webview.loadProgress.connect(load_progress)
+    app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+    app.window.webview.setUrl(url)
+    app.window.show()
+    app.exec()
+
+
+def xpath_redirect(url: str, xpath_expression: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
+    app = create(**kwargs | dict(buttons=False, extension=False, private=True))
+    url = QtCore.QUrl(url)
+    if cookies and cookies_domain:
+        cookies_domain = QtCore.QUrl("https://" + cookies_domain)
+        for key, value in cookies.items():
+            app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
+    def url_changed(new: QtCore.QUrl):
+        if new.host() != url.host():
+            print(json.dumps(new.url()), flush=True)
+    app.window.webview.urlChanged.connect(url_changed)
+    if xpath_expression:
+        def load_progress(_):
+            app.window.webview.page.runJavaScript(f"""
+                redirectClickElement = document.evaluate({xpath_expression!r}, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
                 if (redirectClickElement) {{
                     redirectClickElement.click();
                 }}

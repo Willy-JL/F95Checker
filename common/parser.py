@@ -4,6 +4,7 @@ import functools
 import json
 import re
 
+from lxml import etree
 import bs4
 
 from common.structs import (
@@ -32,6 +33,8 @@ class ParsedThread:
     unknown_tags: list[str]
     image_url: str
     downloads: list[tuple[str, list[tuple[str, str]]]]
+
+f95_host = "https://f95zone.to/"
 
 # [^\S\r\n] = whitespace but not newlines
 sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
@@ -130,6 +133,7 @@ def thread(res: bytes) -> ParsedThread | ParserError:
                 downloads.append((download_name, download_mirrors))
                 download_name = ""
                 download_mirrors = []
+        post_tree = etree.fromstring(post.encode(), etree.HTMLParser())
         while not (is_class("bbWrapper")(elem) or elem.parent.name == "article"):
             if elem.next_sibling:
                 elem = elem.next_sibling
@@ -138,8 +142,20 @@ def thread(res: bytes) -> ParsedThread | ParserError:
                 continue
             while not (is_link := is_class("link")(elem)) and (children := list(getattr(elem, "children", []))):
                 elem = children[0]
-            if is_link:
-                download_mirrors.append((clean_text(elem.text), elem.get("href")))
+            if is_link and (link_url := elem.get("href")):
+                if not link_url.startswith(f95_host):
+                    # Cache API is public, to prevent abuse we replace naked links with XPath
+                    # expressions to allow client to automatically find the link in main post
+                    link_host = link_url[:link_url.find("/", len("https://")) + 1]
+                    xpath_expr = f"//{elem.name}[starts-with(@href,{link_host!r})]"
+                    xpath_results = post_tree.xpath(xpath_expr)
+                    for xpath_i, xpath_result in enumerate(xpath_results):
+                        if xpath_result.get("href") == link_url:
+                            link_url = f"{xpath_expr}[{xpath_i + 1}]"
+                            break
+                    else:  # Did not break so no match for some reason, just redact it
+                        link_url = ""
+                download_mirrors.append((clean_text(elem.text), link_url))
             else:
                 if elem.name in ("img", "video"):
                     break
