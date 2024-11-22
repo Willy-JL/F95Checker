@@ -354,7 +354,7 @@ def css_redirect(url: str, css_selector: str = None, *, cookies: dict[str, str] 
         for key, value in cookies.items():
             app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     def url_changed(new: QtCore.QUrl):
-        if new != url and not new.url().startswith(url.url()):
+        if new.host() != url.host():
             print(json.dumps(new.url()), flush=True)
     app.window.webview.urlChanged.connect(url_changed)
     if css_selector:
