@@ -29,11 +29,6 @@ def _():
     global version, release, build_number, version_name, rpc_port, rpc_url, frozen, self_path, debug
     from main import version, release, build_number, version_name, rpc_port, rpc_url, frozen, self_path, debug
 
-    # Workaround Wayland issues
-    if sys.platform.startswith("linux") and _os.environ.get("XDG_SESSION_TYPE") != "x11":
-        _os.environ["XDG_SESSION_TYPE"] = "x11"
-        _os.environ["QT_QPA_PLATFORM"] = "xcb"
-
     # Fix frozen load paths
     if frozen:
         if sys.platform.startswith("linux"):
