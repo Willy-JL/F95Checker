@@ -34,7 +34,7 @@ class ParsedThread:
     image_url: str
     downloads: list[tuple[str, list[tuple[str, str]]]]
 
-f95_masked_url_prefix = "https://f95zone.to/masked/"
+f95_host = "https://f95zone.to/"
 
 # [^\S\r\n] = whitespace but not newlines
 sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
@@ -143,7 +143,7 @@ def thread(res: bytes) -> ParsedThread | ParserError:
             while not (is_link := is_class("link")(elem)) and (children := list(getattr(elem, "children", []))):
                 elem = children[0]
             if is_link and (link_url := elem.get("href")):
-                if not link_url.startswith(f95_masked_url_prefix):
+                if not link_url.startswith(f95_host):
                     # Cache API is public, to prevent abuse we replace naked links with XPath
                     # expressions to allow client to automatically find the link in main post
                     xpath_expr = f'//{elem.name}[text()="{elem.text}"]'
