@@ -1,6 +1,6 @@
 # OpenGL + glfw
 PyOpenGL==3.1.7
-glfw==2.7.0
+glfw==2.8.0
 
 # Interface stuff
 imgui==2.0.0

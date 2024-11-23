@@ -15,6 +15,7 @@ from common.structs import (
     Settings,
 )
 
+# Load version info, main globals, and some workarounds
 version = None
 release = None
 build_number = None
@@ -31,9 +32,11 @@ def _():
     # Fix frozen load paths
     if frozen:
         if sys.platform.startswith("linux"):
-            library = self_path / f"lib/glfw/{_os.environ.get('XDG_SESSION_TYPE')}/libglfw.so"
-            if library.is_file():
-                _os.environ["PYGLFW_LIBRARY"] = str(library)
+            session_type = _os.environ.get('XDG_SESSION_TYPE')
+            if session_type in ("x11", "wayland"):
+                library = self_path / f"lib/glfw/{session_type}/libglfw.so"
+                if library.is_file():
+                    _os.environ["PYGLFW_LIBRARY"] = str(library)
         elif sys.platform.startswith("darwin"):
             process = self_path / "lib/PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
             if process.is_file():
@@ -45,17 +48,24 @@ def _():
     PngImagePlugin.MAX_TEXT_CHUNK *= 10
 
     # Optimize OpenGL
+    import glfw
     import OpenGL
+    glfw.ERROR_REPORTING = debug
     for option in ("ERROR_LOGGING", "ERROR_CHECKING", "CONTEXT_CHECKING"):
         setattr(OpenGL, option, debug)
     if debug:
         import logging
+        glfw.ERROR_REPORTING = {
+            65548: "warn",  # Wayland: The platform does not support window position/icon
+            None: "raise",
+        }
         logging.basicConfig()
 _()
 
 # Done here to avoid circular import
 from modules.gui import MainGUI
 
+# Configure data paths
 os = None
 data_path = None
 images_path = None
@@ -84,6 +94,7 @@ def _():
     images_path.mkdir(parents=True, exist_ok=True)
 _()
 
+# Discover available browsers
 def _():
     if os is Os.Windows:
         import winreg
@@ -156,6 +167,7 @@ def _():
                     break
 _()
 
+# Check self launch command and startup settings
 start_cmd = None
 autostart = None
 start_with_system = None
