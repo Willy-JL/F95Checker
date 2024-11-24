@@ -1877,6 +1877,22 @@ class MainGUI():
         for x1, y1, x2, y2 in text_coordinates:
             dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
 
+    def draw_game_downloads_header(self, game: Game):
+        pad = 3 * imgui.style.item_spacing.x
+        def _cluster_text(name, text):
+            imgui.text_disabled(name[0])
+            if imgui.is_item_hovered():
+                imgui.set_tooltip(name[2:])
+            imgui.same_line()
+            imgui.text(text)
+            imgui.same_line(spacing=pad)
+        _cluster_text(cols.name.name, game.name)
+        _cluster_text(cols.version.name, game.version)
+        _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
+        _cluster_text(cols.developer.name, game.developer)
+        imgui.spacing()
+        imgui.spacing()
+
     def draw_updates_popup(self, updated_games, sorted_ids, popup_uuid: str = ""):
         def popup_content():
             indent = self.scaled(222)

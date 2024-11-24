@@ -20,7 +20,6 @@ from modules import (
     callbacks,
     db,
     globals,
-    gui,
     icons,
     msgbox,
     utils,
@@ -264,20 +263,7 @@ def open_search_popup(game: Game):
         nonlocal query
         nonlocal ran_query
 
-        pad = 3 * imgui.style.item_spacing.x
-        def _cluster_text(name, text):
-            imgui.text_disabled(name[0])
-            if imgui.is_item_hovered():
-                imgui.set_tooltip(name[2:])
-            imgui.same_line()
-            imgui.text(text)
-            imgui.same_line(spacing=pad)
-        _cluster_text(gui.cols.name.name, game.name)
-        _cluster_text(gui.cols.version.name, game.version)
-        _cluster_text(gui.cols.last_updated.name, game.last_updated.display or "Unknown")
-        _cluster_text(gui.cols.developer.name, game.developer)
-        imgui.spacing()
-        imgui.spacing()
+        globals.gui.draw_game_downloads_header(game)
 
         imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         activated, query = imgui.input_text_with_hint(
