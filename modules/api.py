@@ -55,6 +55,7 @@ from modules import (
 f95_domain = "f95zone.to"
 f95_host = "https://" + f95_domain
 f95_sam_backend_root    = f95_host + "/sam/"
+f95_check_login_fast    = f95_host + "/sam/latest_alpha/"
 f95_check_login_page    = f95_host + "/account/"
 f95_login_page          = f95_host + "/login/"
 f95_notif_endpoint      = f95_host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
@@ -415,7 +416,11 @@ def raise_api_error(res: bytes | dict):
         return True
 
 
-async def is_logged_in():
+async def is_logged_in(need_xf_token=False):
+    if not need_xf_token:
+        res = await fetch("GET", f95_check_login_fast)
+        return b'<pre>Sorry, you have to be <a href="/login">logged in</a> to access this page</a></pre>' not in res
+
     global xf_token
     async with request("GET", f95_check_login_page) as (res, req):
         if not 200 <= req.status < 300:
@@ -470,10 +475,10 @@ async def login():
         )
 
 
-async def assert_login():
-    if not await is_logged_in():
+async def assert_login(need_xf_token=False):
+    if not await is_logged_in(need_xf_token):
         await login()
-        if not await is_logged_in():
+        if not await is_logged_in(need_xf_token):
             return False
     return True
 
@@ -501,7 +506,7 @@ def cleanup_webpages():
 
 
 async def quick_search(query: str, login=False):
-    if login and not await assert_login():
+    if login and not await assert_login(need_xf_token=True):
         return
     res = await fetch("POST", f95_qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
     html = parser.html(res)
@@ -902,7 +907,7 @@ async def full_check(game: Game, last_changed: int):
 async def check_notifs(standalone=True):
     if standalone:
         globals.refresh_total = 2
-    if not await assert_login():
+    if not await assert_login(need_xf_token=True):
         return
     if standalone:
         globals.refresh_progress = 1

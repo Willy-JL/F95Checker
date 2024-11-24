@@ -3844,7 +3844,7 @@ class MainGUI():
                     closable=True,
                     outside=False
                 )
-                if login := await api.assert_login():
+                if login := await api.assert_login(need_xf_token=True):
                     results = await api.quick_search(query, login=False)
             async_thread.run(_search_and_add(self.add_box_text))
             self.add_box_text = ""
