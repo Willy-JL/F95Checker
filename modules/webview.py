@@ -73,7 +73,6 @@ def config_qt_flags(debug: bool, software: bool):
         )),
     ))
     if software: os.environ["QMLSCENE_DEVICE"] = "softwarecontext"
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
 
 
 def create_kwargs():

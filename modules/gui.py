@@ -70,7 +70,6 @@ from modules import (
     rpc_thread,
     rpdl,
     utils,
-    webview,
 )
 
 tool_page         = api.f95_threads_page + "44173/"
@@ -344,7 +343,6 @@ class MainGUI():
         self.show_games_ids: dict[Tab, list[int]] = {}
 
         # Setup Qt objects
-        webview.config_qt_flags(globals.debug, globals.settings.software_webview)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
 
