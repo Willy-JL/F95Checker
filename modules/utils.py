@@ -38,6 +38,15 @@ def rand_num_str(len=8):
     return "".join((random.choice('0123456789') for _ in range(len)))
 
 
+# https://stackoverflow.com/a/1094933
+def sizeof_fmt(num, suffix="B"):
+    for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
+
+
 @functools.cache
 def map_range(in_value: float, in_start: float, in_end: float, out_start: float, out_end: float):
     in_value -= in_start

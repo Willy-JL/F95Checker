@@ -188,12 +188,11 @@ class TorrentResult:
     date: int | str
 
     def __post_init__(self):
-        from modules import globals
-        for unit in ["B", "KB", "MB", "GB", "TB"]:
-            if self.size < 1024:
-                break
-            self.size /= 1024
-        self.size = f"{self.size:.1f}{unit}"
+        from modules import (
+            globals,
+            utils,
+        )
+        self.size = utils.sizeof_fmt(self.size)
         self.seeders = str(self.seeders)
         self.leechers = str(self.leechers)
         self.date = dt.datetime.fromtimestamp(self.date).strftime(globals.settings.datestamp_format)
