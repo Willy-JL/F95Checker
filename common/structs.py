@@ -199,6 +199,25 @@ class TorrentResult:
 
 
 @dataclasses.dataclass(slots=True)
+class DdlFile:
+    id: str
+    title: str
+    filename: str
+    size: str
+    date: str
+
+    def __post_init__(self):
+        if not self.id:
+            return
+        from modules import (
+            globals,
+            utils,
+        )
+        self.size = utils.sizeof_fmt(int(self.size))
+        self.date = dt.datetime.strptime(self.date, r"%Y-%m-%d").strftime(globals.settings.datestamp_format)
+
+
+@dataclasses.dataclass(slots=True)
 class SortSpec:
     index: int
     reverse: bool

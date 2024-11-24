@@ -26,6 +26,7 @@ import python_socks
 
 from common.structs import (
     CounterContext,
+    DdlFile,
     Game,
     MsgBox,
     OldGame,
@@ -65,6 +66,7 @@ f95_threads_page        = f95_host + "/threads/"
 f95_bookmarks_page      = f95_host + "/account/bookmarks?difference=0&page={page}"
 f95_watched_page        = f95_host + "/watched/threads?unread=0&page={page}"
 f95_qsearch_endpoint    = f95_host + "/quicksearch"
+f95_ddl_endpoint        = f95_host + "/sam/dddl.php"
 f95_attachments_hosts = (
     f"https://attachments.{f95_domain}/",
     "https://attachments.f95zone.com/",
@@ -1254,6 +1256,156 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
     if not games:
         globals.settings.last_successful_refresh.update(time.time())
         await db.update_settings("last_successful_refresh")
+
+
+async def ddl_file_list(thread_id: int):
+    res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
+        "thread_id": thread_id,
+    })
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    if res["status"] == "error" and res["msg"] == "Not a donor":
+        return False
+    raise_f95zone_error(res)
+    results = res["msg"]
+
+    for section, files in results["files"].items():
+        parsed = []
+        for title, file in files.items():
+            if not isinstance(file, dict):
+                parsed.append(DdlFile(
+                    id="",
+                    title=title,
+                    filename=file,
+                    size="",
+                    date="",
+                ))
+                continue
+            parsed.append(DdlFile(
+                id=file["file_id"],
+                title=title,
+                filename=file["filename"],
+                size=file["size"],
+                date=file["date"],
+            ))
+        results["files"][section] = parsed
+    return results
+
+
+async def ddl_file_link(thread_id: int, file_id: str, session_id: str):
+    res = await fetch("POST", f95_ddl_endpoint, data={
+        "thread_id": thread_id,
+        "file": file_id,
+        "session": session_id,
+    })
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    raise_f95zone_error(res)
+    return res["msg"]["url"]
+
+
+def open_ddl_popup(game: Game):
+    login = None
+    results = None
+    def _f95_ddl_popup():
+        nonlocal login, results
+
+        globals.gui.draw_game_downloads_header(game)
+
+        if not results:
+            imgui.text(f"Loading DDL file list for '{game.name}'...")
+            imgui.text("Status:")
+            imgui.same_line()
+            if login is None:
+                imgui.text("Logging in...")
+            elif not login:
+                return True
+            elif results is None:
+                imgui.text("Loading...")
+            elif results is False:
+                imgui.text("You don't have access to F95zone Donor DDL Service!")
+            else:
+                imgui.text("No DDL available for this item!")
+            return
+
+        if imgui.begin_table(
+            "###ddl_results",
+            column=4,
+            flags=imgui.TABLE_NO_SAVED_SETTINGS | imgui.TABLE_NO_CLIP,
+        ):
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_FIXED | imgui.TABLE_COLUMN_NO_CLIP)
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            for i, (ddl_section, ddl_files) in enumerate(results["files"].items()):
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.spacing()
+                imgui.push_font(imgui.fonts.bold)
+                pos = imgui.get_cursor_screen_pos()
+                imgui.selectable(f"###ddl_results_{i}", False, imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS)
+                imgui.get_window_draw_list().add_text(*pos, imgui.get_color_u32_rgba(1, 1, 1, 1), ddl_section)
+                imgui.pop_font()
+                for ddl_file in ddl_files:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.dummy(0, 0)
+                    imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
+                    if not ddl_file.id:
+                        imgui.push_disabled()
+                        imgui.button(icons.open_in_new)
+                        imgui.same_line()
+                        imgui.button(icons.content_copy)
+                        imgui.table_next_column()
+                        imgui.text(f"{ddl_file.title}: {ddl_file.filename}")
+                        imgui.table_next_column()
+                        imgui.text("N/A")
+                        imgui.table_next_column()
+                        imgui.text("N/A")
+                        imgui.pop_disabled()
+                        continue
+                    if imgui.button(icons.open_in_new):
+                        async def _open_ddl_link():
+                            link = await ddl_file_link(game.id, ddl_file.id, results["session"])
+                            callbacks.open_webpage(link)
+                        async_thread.run(_open_ddl_link())
+                    imgui.same_line()
+                    if imgui.button(icons.content_copy):
+                        async def _copy_ddl_link():
+                            link = await ddl_file_link(game.id, ddl_file.id, results["session"])
+                            callbacks.clipboard_copy(link)
+                        async_thread.run(_copy_ddl_link())
+                    imgui.table_next_column()
+                    imgui.text(ddl_file.title)
+                    imgui.same_line()
+                    globals.gui.draw_hover_text(ddl_file.filename)
+                    imgui.table_next_column()
+                    imgui.text(ddl_file.size)
+                    imgui.table_next_column()
+                    imgui.push_font(imgui.fonts.mono)
+                    imgui.text(ddl_file.date)
+                    imgui.pop_font()
+                    imgui.same_line()
+                    imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
+                    imgui.selectable(
+                        "", False,
+                        flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS,
+                        height=imgui.get_frame_height()
+                    )
+                imgui.spacing()
+                imgui.spacing()
+            imgui.end_table()
+    async def _ddl_load_files():
+        nonlocal login, results
+        if login := await assert_login():
+            results = await ddl_file_list(game.id)
+    utils.push_popup(
+        utils.popup, "F95zone Donor DDL",
+        _f95_ddl_popup,
+        buttons=True,
+        closable=True,
+        outside=False,
+        footer="Thanks for supporting F95zone!"
+    )
+    async_thread.run(_ddl_load_files())
 
 
 ddos_guard_bypass_fake_mark = {

@@ -2290,6 +2290,11 @@ class MainGUI():
                     if imgui.small_button(f"{icons.magnify}Search"):
                         rpdl.open_search_popup(game)
                     imgui.spacing()
+                    imgui.text("F95zone Donor DDL:")
+                    imgui.same_line()
+                    if imgui.small_button(f"{icons.magnify}Check"):
+                        api.open_ddl_popup(game)
+                    imgui.spacing()
                     imgui.spacing()
                     imgui.spacing()
                     imgui.text("Regular Downloads:")
