@@ -413,6 +413,8 @@ def redirect_masked_link(masked_url: str, copy=False):
     else:
         size = (520, 480)
     async def _unmask_and_copy():
+        if not await api.assert_login():
+            return
         with await webview.start(
             "css_redirect", masked_url, "a.host_link",
             title=f"Unmask link{f' for {host}' if host else ''}",
@@ -440,6 +442,8 @@ def redirect_xpath_link(thread_url: str, xpath_expr: str, copy=False):
     else:
         size = (520, 480)
     async def _retrieve_and_copy():
+        if not await api.assert_login():
+            return
         with await webview.start(
             "xpath_redirect", thread_url, xpath_expr,
             title=f"Retrieve link{f' for {host}' if host else ''}",
