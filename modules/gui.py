@@ -3701,7 +3701,7 @@ class MainGUI():
                 def popup_content():
                     nonlocal login, results
                     if not results:
-                        imgui.text(f"Running F95Zone search for query '{query}'.")
+                        imgui.text(f"Running F95Zone search for query '{query}'...")
                         imgui.text("Status:")
                         imgui.same_line()
                         if login is None:
