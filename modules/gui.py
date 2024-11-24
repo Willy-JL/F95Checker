@@ -2394,11 +2394,12 @@ class MainGUI():
                     imgui.text("Regular Downloads:")
                     imgui.same_line()
                     self.draw_hover_text(
-                        "Left clicking always opens the webpage in your chosen browser.\n"
-                        "Middle clicking works differently for each of the 3 types of links:\n"
-                        f"{icons.link}Direct: middle clicking loads the thread then copies the link\n"
-                        f"{icons.domino_mask}Masked: middle clicking shows the captcha then copies the link\n"
-                        f"{icons.open_in_app}Forum: middle clicking opens the F95Zone link in chosen browser\n"
+                        "Left clicking opens the webpage in your chosen browser.\n"
+                        "Middle clicking copies the link to your clipboard.\n\n"
+                        "There's 3 types of links that work slightly different:\n"
+                        f"{icons.link}Direct: Plain download link, retrieved with automated integrated browser\n"
+                        f"{icons.domino_mask}Masked: CAPTCHA protected link, unmasked with automated integrated browser\n"
+                        f"{icons.open_in_app}Forum: Link internal to F95zone, no special processing\n"
                     )
                     imgui.spacing()
                     if game.downloads:
@@ -2415,28 +2416,30 @@ class MainGUI():
                                     if not link:
                                         # Use thread url when link is missing
                                         link = game.url
-                                    if link.startswith(f"{api.f95_host}/masked/"):
-                                        # Masked link
-                                        clicked = imgui.small_button(icons.domino_mask + mirror)
+                                    if link.startswith("//"):
+                                        # XPath expression
+                                        if imgui.small_button(icons.link + mirror):
+                                            callbacks.redirect_xpath_link(game.url, link)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-                                            callbacks.copy_masked_link(link)
+                                            callbacks.redirect_xpath_link(game.url, link, copy=True)
+                                    elif link.startswith(f"{api.f95_host}/masked/"):
+                                        # Masked link
+                                        if imgui.small_button(icons.domino_mask + mirror):
+                                            callbacks.redirect_masked_link(link)
+                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+                                            callbacks.redirect_masked_link(link, copy=True)
                                     elif link.startswith(api.f95_host):
                                         # F95zone link
-                                        clicked = imgui.small_button(icons.open_in_app + mirror)
-                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+                                        if imgui.small_button(icons.open_in_app + mirror):
                                             callbacks.open_webpage(link)
-                                    elif link.startswith("//"):
-                                        # XPath expression
-                                        clicked = imgui.small_button(icons.link + mirror)
-                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-                                            callbacks.copy_xpath_link(game.url, link)
-                                    else:
-                                        # Should never happen, but here for backwards compatibility
-                                        clicked = imgui.small_button(icons.link + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.clipboard_copy(link)
-                                    if clicked:
-                                        callbacks.open_webpage(link)
+                                    else:
+                                        # Should never happen, but here for backwards compatibility
+                                        if imgui.small_button(icons.link + mirror):
+                                            callbacks.open_webpage(link)
+                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+                                            callbacks.clipboard_copy(link)
                             else:
                                 if can_add_spacing:
                                     imgui.text("")

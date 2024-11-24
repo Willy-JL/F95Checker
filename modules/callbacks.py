@@ -406,31 +406,55 @@ def clipboard_paste():
     return str(glfw.get_clipboard_string(globals.gui.window) or b"", encoding="utf-8")
 
 
-def copy_masked_link(masked_url: str):
+def redirect_masked_link(masked_url: str, copy=False):
     host = (re.search(r"/masked/(.*?)/", masked_url) or ("", ""))[1]
+    if not copy and globals.settings.browser.integrated:
+        size = (1269, 969)
+    else:
+        size = (520, 480)
     async def _unmask_and_copy():
         with await webview.start(
             "css_redirect", masked_url, "a.host_link",
             title=f"Unmask link{f' for {host}' if host else ''}",
-            size=(520, 480),
+            size=size,
             pipe=True,
+            minimal=copy,
         ) as pipe:
-            clipboard_copy(await pipe.get_async())
+            link = await pipe.get_async()
+            if copy:
+                clipboard_copy(link)
+            else:
+                if globals.settings.browser.integrated:
+                    pipe.daemon.finalize.detach()
+                else:
+                    open_webpage(link)
     async_thread.run(_unmask_and_copy())
 
 
-def copy_xpath_link(thread_url: str, xpath_expr: str):
+def redirect_xpath_link(thread_url: str, xpath_expr: str, copy=False):
     host = (re.search(r"://(.*?)/", xpath_expr) or ("", ""))[1]
     xpath_post = "//*[contains(@class,'message-threadStarterPost')][1]"
     xpath_expr = xpath_post + xpath_expr  # Parser only looks inside main post element
+    if not copy and globals.settings.browser.integrated:
+        size = (1269, 969)
+    else:
+        size = (520, 480)
     async def _retrieve_and_copy():
         with await webview.start(
             "xpath_redirect", thread_url, xpath_expr,
             title=f"Retrieve link{f' for {host}' if host else ''}",
-            size=(520, 480),
+            size=size,
             pipe=True,
+            minimal=copy,
         ) as pipe:
-            clipboard_copy(await pipe.get_async())
+            link = await pipe.get_async()
+            if copy:
+                clipboard_copy(link)
+            else:
+                if globals.settings.browser.integrated:
+                    pipe.daemon.finalize.detach()
+                else:
+                    open_webpage(link)
     async_thread.run(_retrieve_and_copy())
 
 

@@ -371,7 +371,13 @@ def open(url: str, *, cookies: dict[str, str] = {}, cookies_domain: str = None, 
     app.exec()
 
 
-def cookies(url: str, **kwargs):
+def cookies(url: str, *, minimal=True, **kwargs):
+    if minimal:
+        kwargs |= dict(
+            buttons=False,
+            extension=False,
+            private=True,
+        )
     app = create(**kwargs | dict(buttons=False, extension=False, private=True))
     url = QtCore.QUrl(url)
     def on_cookie_add(cookie: QtNetwork.QNetworkCookie):
@@ -385,8 +391,14 @@ def cookies(url: str, **kwargs):
     app.exec()
 
 
-def css_redirect(url: str, css_selector: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
-    app = create(**kwargs | dict(buttons=False, extension=False, private=True))
+def css_redirect(url: str, css_selector: str = None, *, minimal=True, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
+    if minimal:
+        kwargs |= dict(
+            buttons=False,
+            extension=False,
+            private=True,
+        )
+    app = create(**kwargs)
     url = QtCore.QUrl(url)
     if cookies and cookies_domain:
         cookies_domain = QtCore.QUrl("https://" + cookies_domain)
@@ -395,6 +407,10 @@ def css_redirect(url: str, css_selector: str = None, *, cookies: dict[str, str] 
     def url_changed(new: QtCore.QUrl):
         if new.host() != url.host():
             print(json.dumps(new.url()), flush=True)
+            nonlocal css_selector
+            if css_selector:
+                css_selector = None
+                app.window.webview.loadProgress.disconnect(load_progress)
     app.window.webview.urlChanged.connect(url_changed)
     if css_selector:
         def load_progress(_):
@@ -411,8 +427,14 @@ def css_redirect(url: str, css_selector: str = None, *, cookies: dict[str, str] 
     app.exec()
 
 
-def xpath_redirect(url: str, xpath_expression: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
-    app = create(**kwargs | dict(buttons=False, extension=False, private=True))
+def xpath_redirect(url: str, xpath_expression: str = None, *, minimal=True, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
+    if minimal:
+        kwargs |= dict(
+            buttons=False,
+            extension=False,
+            private=True,
+        )
+    app = create(**kwargs)
     url = QtCore.QUrl(url)
     if cookies and cookies_domain:
         cookies_domain = QtCore.QUrl("https://" + cookies_domain)
@@ -421,6 +443,10 @@ def xpath_redirect(url: str, xpath_expression: str = None, *, cookies: dict[str,
     def url_changed(new: QtCore.QUrl):
         if new.host() != url.host():
             print(json.dumps(new.url()), flush=True)
+            nonlocal xpath_expression
+            if xpath_expression:
+                xpath_expression = None
+                app.window.webview.loadProgress.disconnect(load_progress)
     app.window.webview.urlChanged.connect(url_changed)
     if xpath_expression:
         if index_match := re.search(r"\[(\d+)\]$", xpath_expression):
