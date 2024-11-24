@@ -17,8 +17,6 @@ import glfw
 import imgui
 
 from common.structs import (
-    AsyncProcessPipe,
-    DaemonProcess,
     Game,
     MsgBox,
     Os,
@@ -374,15 +372,7 @@ def open_webpage(url: str):
     async def _open_webpage(url: str):
         try:
             if set.browser.integrated:
-                proc = await asyncio.create_subprocess_exec(
-                    *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
-                    json.dumps(webview.kwargs() | dict(
-                        cookies=globals.cookies,
-                        cookies_domain=api.f95_domain,
-                        size=(1269, 969),
-                    ))
-                )
-                DaemonProcess(proc)
+                await webview.start("open", url, size=(1269, 969))
             else:
                 await asyncio.create_subprocess_exec(
                     *args, url,
@@ -419,19 +409,12 @@ def clipboard_paste():
 def copy_masked_link(masked_url: str):
     host = (re.search(r"/masked/(.*?)/", masked_url) or ("", ""))[1]
     async def _unmask_and_copy():
-        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "webview", "css_redirect", json.dumps((masked_url, "a.host_link")), json.dumps(webview.kwargs() | dict(
-                cookies=globals.cookies,
-                cookies_domain=api.f95_domain,
-                title=f"Unmask link{f' for {host}' if host else ''}",
-                size=(size := (520, 480)),
-                pos=(
-                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
-                )
-            )),
-            stdout=subprocess.PIPE
-        )):
+        with await webview.start(
+            "css_redirect", masked_url, "a.host_link",
+            title=f"Unmask link{f' for {host}' if host else ''}",
+            size=(520, 480),
+            pipe=True,
+        ) as pipe:
             clipboard_copy(await pipe.get_async())
     async_thread.run(_unmask_and_copy())
 
@@ -441,19 +424,12 @@ def copy_xpath_link(thread_url: str, xpath_expr: str):
     xpath_post = "//*[contains(@class,'message-threadStarterPost')][1]"
     xpath_expr = xpath_post + xpath_expr  # Parser only looks inside main post element
     async def _retrieve_and_copy():
-        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "webview", "xpath_redirect", json.dumps((thread_url, xpath_expr)), json.dumps(webview.kwargs() | dict(
-                cookies=globals.cookies,
-                cookies_domain=api.f95_domain,
-                title=f"Retrieve link{f' for {host}' if host else ''}",
-                size=(size := (520, 480)),
-                pos=(
-                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
-                )
-            )),
-            stdout=subprocess.PIPE
-        )):
+        with await webview.start(
+            "xpath_redirect", thread_url, xpath_expr,
+            title=f"Retrieve link{f' for {host}' if host else ''}",
+            size=(520, 480),
+            pipe=True,
+        ) as pipe:
             clipboard_copy(await pipe.get_async())
     async_thread.run(_retrieve_and_copy())
 

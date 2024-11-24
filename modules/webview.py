@@ -1,8 +1,10 @@
+import asyncio
 import base64
 import json
 import os
 import pathlib
 import re
+import shlex
 import sys
 
 from PyQt6 import (
@@ -18,6 +20,43 @@ from PyQt6.QtNetwork import QNetworkProxy
 
 # Qt WebEngine doesn't like running alongside other OpenGL
 # applications so we need to run a dedicated multiprocess
+
+
+async def start(action: str, *args, centered=True, use_f95_cookies=True, pipe=False, **kwargs):
+    import subprocess
+    import imgui
+    from common.structs import (
+        DaemonPipe,
+        DaemonProcess,
+    )
+    from modules import (
+        api,
+        globals,
+    )
+
+    if use_f95_cookies:
+        kwargs["cookies"] = globals.cookies
+        kwargs["cookies_domain"] = api.f95_domain
+
+    if centered and (size := kwargs.get("size")):
+        kwargs["pos"] = (
+            int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+            int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2),
+        )
+
+    proc = await asyncio.create_subprocess_exec(
+        *shlex.split(globals.start_cmd),
+        "webview", action,
+        json.dumps(args),
+        json.dumps(create_kwargs() | kwargs),
+        stdout=(subprocess.PIPE if pipe else None),
+    )
+
+    if pipe:
+        return DaemonPipe(proc)
+    else:
+        DaemonProcess(proc)
+        return proc
 
 
 def config_qt_flags(debug: bool, software: bool):
@@ -37,7 +76,7 @@ def config_qt_flags(debug: bool, software: bool):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
 
 
-def kwargs():
+def create_kwargs():
     from common.structs import ProxyType
     from modules import (
         colors,

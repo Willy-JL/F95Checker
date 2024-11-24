@@ -11,7 +11,6 @@ import shlex
 import shutil
 import socket
 import ssl
-import subprocess
 import sys
 import tempfile
 import time
@@ -26,7 +25,6 @@ import imgui
 import python_socks
 
 from common.structs import (
-    AsyncProcessPipe,
     CounterContext,
     Game,
     MsgBox,
@@ -446,17 +444,13 @@ async def is_logged_in():
 async def login():
     try:
         new_cookies = {}
-        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "webview", "cookies", json.dumps((f95_login_page,)), json.dumps(webview.kwargs() | dict(
-                title="F95Checker: Login to F95Zone",
-                size=(size := (500, 720)),
-                pos=(
-                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
-                )
-            )),
-            stdout=subprocess.PIPE
-        )):
+        with await webview.start(
+            "cookies", f95_login_page,
+            title="F95Checker: Login to F95Zone",
+            size=(500, 720),
+            use_f95_cookies=False,
+            pipe=True,
+        ) as pipe:
             while True:
                 (key, value) = await pipe.get_async()
                 new_cookies[key] = value

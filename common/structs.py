@@ -80,24 +80,23 @@ class DaemonProcess:
         self.finalize()
 
 
-class AsyncProcessPipe:
+class DaemonPipe:
     __slots__ = ("proc", "daemon",)
 
-    class process_exit(Exception):
+    class DaemonPipeExit(Exception):
         __slots__ = ()
 
-    def __call__(self, proc: asyncio.subprocess.Process):
+    def __init__(self, proc: asyncio.subprocess.Process):
         self.proc = proc
         self.daemon = DaemonProcess(proc)
-        return self
 
-    async def get_async(self, poll_rate=0.1):
+    async def get_async(self):
         while self.proc.returncode is None:
             try:
                 return json.loads(await self.proc.stdout.readline())
             except json.JSONDecodeError:
                 pass
-        raise self.process_exit()
+        raise self.DaemonPipeExit()
 
     def __enter__(self):
         self.daemon.__enter__()
@@ -105,7 +104,7 @@ class AsyncProcessPipe:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.daemon.__exit__()
-        if exc_type is self.process_exit:
+        if exc_type is self.DaemonPipeExit:
             return True
 
 
