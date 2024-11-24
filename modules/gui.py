@@ -9,7 +9,6 @@ import itertools
 import pathlib
 import pickle
 import platform
-import string
 import sys
 import threading
 import time
@@ -2273,121 +2272,7 @@ class MainGUI():
                     imgui.text("RPDL Torrents:")
                     imgui.same_line()
                     if imgui.small_button(f"{icons.magnify}Search"):
-                        results = None
-                        query = "".join(char for char in game.name.replace("&", "And") if char in (string.ascii_letters + string.digits))
-                        ran_query = query
-                        def _rpdl_search_popup():
-                            nonlocal results
-                            nonlocal query
-                            nonlocal ran_query
-
-                            pad = 3 * imgui.style.item_spacing.x
-                            def _cluster_text(name, text):
-                                imgui.text_disabled(name[0])
-                                if imgui.is_item_hovered():
-                                    imgui.set_tooltip(name[2:])
-                                imgui.same_line()
-                                imgui.text(text)
-                                imgui.same_line(spacing=pad)
-                            _cluster_text(cols.name.name, game.name)
-                            _cluster_text(cols.version.name, game.version)
-                            _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
-                            _cluster_text(cols.developer.name, game.developer)
-                            imgui.spacing()
-                            imgui.spacing()
-
-                            imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
-                            activated, query = imgui.input_text_with_hint(
-                                "###search",
-                                "Search torrents...",
-                                query,
-                                flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
-                            )
-                            imgui.same_line()
-                            if imgui.button(f"{icons.magnify} Search") or activated:
-                                ran_query = query
-                                async_thread.run(_rpdl_run_search())
-                            if not results:
-                                imgui.text(f"Running RPDL search for query '{ran_query}'...")
-                                imgui.text("Status:")
-                                imgui.same_line()
-                                if results is None:
-                                    imgui.text("Searching...")
-                                else:
-                                    imgui.text("No results!")
-                                return
-
-                            if imgui.begin_table(
-                                "###rpdl_results",
-                                column=7,
-                                flags=imgui.TABLE_NO_SAVED_SETTINGS
-                            ):
-                                imgui.table_setup_scroll_freeze(0, 1)
-                                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_FIXED)
-                                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
-                                imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
-                                imgui.table_next_column()
-                                imgui.table_header("Actions")
-                                self.draw_hover_text(
-                                    f"The {icons.open_in_new} view button will open the torrent webpage with your selected browser.\n"
-                                    f"The {icons.download_multiple} download button will save the torrent file to your user's downloads\n"
-                                    "folder and open it with the default torrenting application.\n",
-                                    text=None
-                                )
-                                imgui.table_next_column()
-                                imgui.table_header("Title")
-                                imgui.table_next_column()
-                                imgui.table_header("Seed")
-                                imgui.table_next_column()
-                                imgui.table_header("Leech")
-                                imgui.table_next_column()
-                                imgui.table_header("Size")
-                                imgui.table_next_column()
-                                imgui.table_header("Date")
-                                for result in results:
-                                    imgui.table_next_row()
-                                    imgui.table_next_column()
-                                    imgui.dummy(0, 0)
-                                    imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
-                                    if imgui.button(icons.open_in_new):
-                                        callbacks.open_webpage(rpdl.rpdl_torrent_page.format(id=result.id))
-                                    imgui.same_line()
-                                    if imgui.button(icons.download_multiple):
-                                        async_thread.run(rpdl.open_torrent_file(result.id))
-                                    imgui.table_next_column()
-                                    imgui.text(result.title)
-                                    imgui.table_next_column()
-                                    imgui.text(result.seeders)
-                                    imgui.table_next_column()
-                                    imgui.text(result.leechers)
-                                    imgui.table_next_column()
-                                    imgui.text(result.size)
-                                    imgui.table_next_column()
-                                    imgui.push_font(imgui.fonts.mono)
-                                    imgui.text(result.date)
-                                    imgui.pop_font()
-                                    imgui.same_line()
-                                    imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
-                                    imgui.selectable(
-                                        "", False,
-                                        flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS,
-                                        height=imgui.get_frame_height()
-                                    )
-                                imgui.end_table()
-                        async def _rpdl_run_search():
-                            nonlocal results
-                            nonlocal ran_query
-                            results = None
-                            results = await rpdl.torrent_search(ran_query)
-                        utils.push_popup(
-                            utils.popup, "RPDL torrent search",
-                            _rpdl_search_popup,
-                            buttons=True,
-                            closable=True,
-                            outside=False,
-                            footer="Donate at rpdl.net if you like the torrents!"
-                        )
-                        async_thread.run(_rpdl_run_search())
+                        rpdl.open_search_popup(game)
                     imgui.spacing()
                     imgui.spacing()
                     imgui.spacing()
