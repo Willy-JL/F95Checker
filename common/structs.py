@@ -503,21 +503,10 @@ TimelineEventType = IntEnumHack("TimelineEventType", [
 
 @dataclasses.dataclass(slots=True)
 class TimelineEvent:
-    instances = []
-
     game_id: int
     timestamp: Timestamp
     arguments: list[str]
     type: TimelineEventType
-
-    @classmethod
-    def add(cls, *args, **kwargs):
-        if args and isinstance(obj := args[0], cls):
-            self = obj
-        else:
-            self = cls(*args, **kwargs)
-        cls.instances.append(self)
-        return self
 
 
 @dataclasses.dataclass(slots=True)

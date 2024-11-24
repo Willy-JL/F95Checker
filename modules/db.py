@@ -427,14 +427,6 @@ async def load():
     for tab in await cursor.fetchall():
         Tab.add(row_to_cls(tab, Tab))
 
-    cursor = await connection.execute("""
-        SELECT *
-        FROM timeline_events
-        ORDER BY timestamp DESC
-    """)
-    for event in await cursor.fetchall():
-        TimelineEvent.add(row_to_cls(event, TimelineEvent))
-
     # Settings need Tabs to be loaded
     cursor = await connection.execute("""
         SELECT *
@@ -446,9 +438,21 @@ async def load():
     globals.games = {}
     await load_games()
 
-    # "join" games and timeline events
-    for event in TimelineEvent.instances:
+    # TimelineEvents need Games to be loaded
+    cursor = await connection.execute("""
+        SELECT *
+        FROM timeline_events
+        ORDER BY timestamp DESC
+    """)
+    unknown_game_ids = set()
+    for event in await cursor.fetchall():
+        event = row_to_cls(event, TimelineEvent)
+        if event.game_id not in globals.games:
+            unknown_game_ids.add(event.game_id)
+            continue
         globals.games[event.game_id].timeline_events.append(event)
+    for unknown_game_id in unknown_game_ids:
+        await delete_timeline_events(unknown_game_id)
 
     cursor = await connection.execute("""
         SELECT *
@@ -669,7 +673,7 @@ async def create_timeline_event(game_id: int, timestamp: Timestamp, arguments: l
         VALUES
         (?, ?, ?, ?)
     """, [py_to_sql(value) for value in (game_id, timestamp, arguments, type)])
-    event = TimelineEvent.add(game_id, timestamp, arguments, type)
+    event = TimelineEvent(game_id, timestamp, arguments, type)
     globals.games[game_id].timeline_events.insert(0, event)
 
 
