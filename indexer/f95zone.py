@@ -32,9 +32,9 @@ session: aiohttp.ClientSession = None
 cookies: dict = None
 
 HOST = "https://f95zone.to"
-THREAD_URL = HOST + "/threads/{thread}"
-LATEST_URL = HOST + "/sam/latest_alpha/latest_data.php?cmd={t}&cat={c}&page={p}&rows=90"
-VERCHK_URL = HOST + "/sam/checker.php?threads={threads}"
+THREAD_URL = f"{HOST}/threads/{{thread}}"
+LATEST_URL = f"{HOST}/sam/latest_alpha/latest_data.php?cmd={{cmd}}&cat={{cat}}&page={{page}}&sort={{sort}}&rows={{rows}}&_={{ts}}"
+VERCHK_URL = f"{HOST}/sam/checker.php?threads={{threads}}"
 
 
 @dataclasses.dataclass

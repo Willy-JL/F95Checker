@@ -3,6 +3,7 @@ import contextlib
 import datetime as dt
 import json
 import logging
+import time
 
 from external import error
 from indexer import (
@@ -54,7 +55,14 @@ async def watch_updates():
                 cached_versions = cache.redis.pipeline()
 
                 async with f95zone.session.get(
-                    f95zone.LATEST_URL.format(t="list", c=category, p=1),
+                    f95zone.LATEST_URL.format(
+                        cmd="list",
+                        cat=category,
+                        page=1,
+                        sort="date",
+                        rows=90,
+                        ts=int(time.time()),
+                    ),
                     cookies=f95zone.cookies,
                 ) as req:
                     res = await req.read()
@@ -80,7 +88,9 @@ async def watch_updates():
                 cached_versions = await cached_versions.execute()
 
                 assert len(names) == len(versions) == len(cached_versions)
-                for name, version, cached_version in zip(names, versions, cached_versions):
+                for name, version, cached_version in zip(
+                    names, versions, cached_versions
+                ):
                     if cached_version is None:
                         continue
                     if not version or version == "Unknown":
