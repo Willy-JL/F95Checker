@@ -8,7 +8,7 @@ import sys
 import aiohttp
 import aiolimiter
 
-XENFORO_RATELIMIT = aiolimiter.AsyncLimiter(max_rate=1, time_period=0.5)
+RATELIMIT = aiolimiter.AsyncLimiter(max_rate=1, time_period=0.5)
 TIMEOUT = aiohttp.ClientTimeout(total=30)
 LOGIN_ERROR_MESSAGES = (
     b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
@@ -46,8 +46,8 @@ class IndexerError:
 ERROR_SESSION_LOGGED_OUT = IndexerError(
     "SESSION_LOGGED_OUT", dt.timedelta(hours=2).total_seconds()
 )
-ERROR_XENFORO_RATELIMIT = IndexerError(
-    "XENFORO_RATELIMIT", dt.timedelta(minutes=15).total_seconds()
+ERROR_FORUM_RATELIMIT = IndexerError(
+    "FORUM_RATELIMIT", dt.timedelta(minutes=15).total_seconds()
 )
 ERROR_F95ZONE_UNAVAILABLE = IndexerError(
     "F95ZONE_UNAVAILABLE", dt.timedelta(minutes=15).total_seconds()
@@ -100,7 +100,7 @@ def check_error(res: bytes) -> IndexerError | None:
 
     if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
         logger.error("Hit F95zone ratelimit")
-        return ERROR_XENFORO_RATELIMIT
+        return ERROR_FORUM_RATELIMIT
 
     if any((msg in res) for msg in TEMP_ERROR_MESSAGES):
         logger.warning("F95zone temporarily unreachable")

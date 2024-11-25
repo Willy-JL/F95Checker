@@ -55,7 +55,6 @@ from modules import (
 
 f95_domain = "f95zone.to"
 f95_host = "https://" + f95_domain
-f95_sam_backend_root    = f95_host + "/sam/"
 f95_check_login_fast    = f95_host + "/sam/latest_alpha/"
 f95_check_login_page    = f95_host + "/account/"
 f95_login_page          = f95_host + "/login/"
@@ -71,6 +70,9 @@ f95_attachments_hosts = (
     f"https://attachments.{f95_domain}/",
     "https://attachments.f95zone.com/",
     f95_attachments_rocks := "https://attachments.f95zone.rocks/",
+)
+f95_no_ratelimit_urls = (
+    f95_check_login_fast,
 )
 
 api_domain = "api.f95checker.dev"
@@ -89,7 +91,7 @@ updating = False
 session: aiohttp.ClientSession = None
 ssl_context: ssl.SSLContext = None
 webpage_prefix = "F95Checker-Temp-"
-xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
+f95_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
 fast_checks_counter = 0
@@ -200,22 +202,20 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
         max_redirects=None,
         ssl=ssl_context
     )
-    for insecure_ssl_allowed_host in insecure_ssl_allowed_hosts:
-        if url.startswith(insecure_ssl_allowed_host):
-            req_opts["ssl"] = False
-            break
+    if url.startswith(insecure_ssl_allowed_hosts):
+        req_opts["ssl"] = False
     if cookies is True or cookies is None:
         cookies = globals.cookies
     elif cookies is False:
         cookies = {}
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
-    is_xenforo_request = url.startswith(f95_host) and not url.startswith(f95_sam_backend_root)
-    xenforo_ratelimit_retries = 10
-    while retries and xenforo_ratelimit_retries:
+    is_ratelimit_request = url.startswith(f95_host) and not url.startswith(f95_no_ratelimit_urls)
+    ratelimit_retries = 10
+    while retries and ratelimit_retries:
         try:
             # Only ratelimit when connecting to F95zone
-            maybe_ratelimit = xenforo_ratelimit if is_xenforo_request else contextlib.nullcontext()
+            maybe_ratelimit = f95_ratelimit if is_ratelimit_request else contextlib.nullcontext()
             async with maybe_ratelimit, session.request(
                 method,
                 url,
@@ -223,8 +223,8 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
                 **req_opts,
                 **kwargs
             ) as req:
-                if is_xenforo_request and req.status == 429 and xenforo_ratelimit_retries > 1:
-                    xenforo_ratelimit_retries -= 1
+                if is_ratelimit_request and req.status == 429 and ratelimit_retries > 1:
+                    ratelimit_retries -= 1
                     continue
                 if not read:
                     yield b"", req
