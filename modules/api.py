@@ -1363,16 +1363,16 @@ def open_ddl_popup(game: Game):
                         imgui.pop_disabled()
                         continue
                     if imgui.button(icons.open_in_new):
-                        async def _open_ddl_link():
-                            link = await ddl_file_link(game.id, ddl_file.id, results["session"])
+                        async def _open_ddl_link(thread_id: int, file_id: str, session_id: str):
+                            link = await ddl_file_link(thread_id, file_id, session_id)
                             callbacks.open_webpage(link)
-                        async_thread.run(_open_ddl_link())
+                        async_thread.run(_open_ddl_link(game.id, ddl_file.id, results["session"]))
                     imgui.same_line()
                     if imgui.button(icons.content_copy):
-                        async def _copy_ddl_link():
-                            link = await ddl_file_link(game.id, ddl_file.id, results["session"])
+                        async def _copy_ddl_link(thread_id: int, file_id: str, session_id: str):
+                            link = await ddl_file_link(thread_id, file_id, session_id)
                             callbacks.clipboard_copy(link)
-                        async_thread.run(_copy_ddl_link())
+                        async_thread.run(_copy_ddl_link(game.id, ddl_file.id, results["session"]))
                     imgui.table_next_column()
                     imgui.text(ddl_file.title)
                     imgui.same_line()
