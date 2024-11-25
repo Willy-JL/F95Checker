@@ -200,11 +200,13 @@ class TorrentResult:
 
 @dataclasses.dataclass(slots=True)
 class DdlFile:
+    thread_id: int
     id: str
     title: str
     filename: str
-    size: str
+    size: int
     date: str
+    size_display: str = None
 
     def __post_init__(self):
         if not self.id:
@@ -213,7 +215,7 @@ class DdlFile:
             globals,
             utils,
         )
-        self.size = utils.sizeof_fmt(int(self.size))
+        self.size_display = utils.sizeof_fmt(int(self.size))
         self.date = dt.datetime.strptime(self.date, r"%Y-%m-%d").strftime(globals.settings.datestamp_format)
 
 

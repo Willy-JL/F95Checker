@@ -1275,7 +1275,8 @@ async def download_file(name: str, download: FileDownload):
             aiofiles.open(download.path, "wb") as file,
         ):
             download.progress = 0
-            download.total = req.content_length
+            if not download.total:
+                download.total = req.content_length
             try:
                 async for chunk in req.content.iter_any():
                     if download.cancel:
@@ -1311,28 +1312,30 @@ async def ddl_file_list(thread_id: int):
         for title, file in files.items():
             if not isinstance(file, dict):
                 parsed.append(DdlFile(
+                    thread_id=thread_id,
                     id="",
                     title=title,
                     filename=file,
-                    size="",
+                    size=0,
                     date="",
                 ))
                 continue
             parsed.append(DdlFile(
+                thread_id=thread_id,
                 id=file["file_id"],
                 title=title,
                 filename=file["filename"],
-                size=file["size"],
+                size=int(file["size"]),
                 date=file["date"],
             ))
         results["files"][section] = parsed
     return results
 
 
-async def ddl_file_link(thread_id: int, file_id: str, session_id: str):
+async def ddl_file_link(session_id: str, file: DdlFile):
     res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
-        "thread_id": thread_id,
-        "file": file_id,
+        "thread_id": file.thread_id,
+        "file": file.id,
         "session": session_id,
     })
     raise_f95zone_error(res)
@@ -1404,30 +1407,30 @@ def open_ddl_popup(game: Game):
                         imgui.pop_disabled()
                         continue
                     if imgui.button(icons.open_in_new):
-                        async def _open_ddl_link(thread_id: int, file_id: str, session_id: str):
-                            link, _ = await ddl_file_link(thread_id, file_id, session_id)
+                        async def _open_ddl_link(session_id: str, file: DdlFile):
+                            link, _ = await ddl_file_link(session_id, file)
                             callbacks.open_webpage(link)
-                        async_thread.run(_open_ddl_link(game.id, ddl_file.id, results["session"]))
+                        async_thread.run(_open_ddl_link(results["session"], ddl_file))
                     imgui.same_line()
                     if imgui.button(icons.content_copy):
-                        async def _copy_ddl_link(thread_id: int, file_id: str, session_id: str):
-                            link, _ = await ddl_file_link(thread_id, file_id, session_id)
+                        async def _copy_ddl_link(session_id: str, file: DdlFile):
+                            link, _ = await ddl_file_link(session_id, file)
                             callbacks.clipboard_copy(link)
-                        async_thread.run(_copy_ddl_link(game.id, ddl_file.id, results["session"]))
+                        async_thread.run(_copy_ddl_link(results["session"], ddl_file))
                     imgui.same_line()
                     if already_downloading := ddl_file.filename in downloads:
                         imgui.push_disabled()
                     if imgui.button(icons.download_multiple):
-                        async def _download_ddl_link(thread_id: int, file_id: str, session_id: str, filename: str):
+                        async def _download_ddl_link(session_id: str, file: DdlFile):
                             try:
-                                downloads[filename] = None
-                                link, cookies = await ddl_file_link(thread_id, file_id, session_id)
-                                file = FileDownload(link, cookies)
+                                downloads[file.filename] = None
+                                link, cookies = await ddl_file_link(session_id, file)
+                                download = FileDownload(link, cookies, total=file.size)
                             except Exception:
-                                del downloads[filename]
+                                del downloads[file.filename]
                                 raise
-                            asyncio.create_task(download_file(filename, file))
-                        async_thread.run(_download_ddl_link(game.id, ddl_file.id, results["session"], ddl_file.filename))
+                            asyncio.create_task(download_file(file.filename, download))
+                        async_thread.run(_download_ddl_link(results["session"], ddl_file))
                     if already_downloading:
                         imgui.pop_disabled()
                     imgui.table_next_column()
@@ -1435,7 +1438,7 @@ def open_ddl_popup(game: Game):
                     imgui.same_line()
                     globals.gui.draw_hover_text(ddl_file.filename)
                     imgui.table_next_column()
-                    imgui.text(ddl_file.size)
+                    imgui.text(ddl_file.size_display)
                     imgui.table_next_column()
                     imgui.push_font(imgui.fonts.mono)
                     imgui.text(ddl_file.date)
