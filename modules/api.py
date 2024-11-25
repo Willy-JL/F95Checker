@@ -27,6 +27,7 @@ import python_socks
 from common.structs import (
     CounterContext,
     DdlFile,
+    FileDownload,
     Game,
     MsgBox,
     OldGame,
@@ -98,6 +99,7 @@ fast_checks_counter = 0
 full_checks_counter = CounterContext()
 images_counter = CounterContext()
 xf_token = ""
+downloads: dict[str, FileDownload] = {}
 
 
 def make_session():
@@ -1258,6 +1260,37 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
         await db.update_settings("last_successful_refresh")
 
 
+async def download_file(name: str, download: FileDownload):
+    downloads[name] = download
+    try:
+        if not download.path:
+            dest = pathlib.Path.home() / "Downloads"
+            download.path = dest / name
+        async with (
+            request("GET", download.url, cookies=download.cookies, timeout=3600 * 24, read=False) as (_, req),
+            aiofiles.open(download.path, "wb") as file,
+        ):
+            download.progress = 0
+            download.total = req.content_length
+            try:
+                async for chunk in req.content.iter_any():
+                    if download.cancel:
+                        download.error = "Interrupted by user"
+                        return
+                    if chunk:
+                        download.progress += await file.write(chunk)
+                    else:
+                        break
+            except aiohttp.ClientPayloadError as exc:
+                if "ContentLengthError" not in str(exc):
+                    raise
+    except Exception:
+        download.error = error.text()
+        download.traceback = error.traceback()
+    finally:
+        download.stopped = True
+
+
 async def ddl_file_list(thread_id: int):
     res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
         "thread_id": thread_id,
@@ -1375,6 +1408,22 @@ def open_ddl_popup(game: Game):
                             link, _ = await ddl_file_link(thread_id, file_id, session_id)
                             callbacks.clipboard_copy(link)
                         async_thread.run(_copy_ddl_link(game.id, ddl_file.id, results["session"]))
+                    imgui.same_line()
+                    if already_downloading := ddl_file.filename in downloads:
+                        imgui.push_disabled()
+                    if imgui.button(icons.download_multiple):
+                        async def _download_ddl_link(thread_id: int, file_id: str, session_id: str, filename: str):
+                            try:
+                                downloads[filename] = None
+                                link, cookies = await ddl_file_link(thread_id, file_id, session_id)
+                                file = FileDownload(link, cookies)
+                            except Exception:
+                                del downloads[filename]
+                                raise
+                            asyncio.create_task(download_file(filename, file))
+                        async_thread.run(_download_ddl_link(game.id, ddl_file.id, results["session"], ddl_file.filename))
+                    if already_downloading:
+                        imgui.pop_disabled()
                     imgui.table_next_column()
                     imgui.text(ddl_file.title)
                     imgui.same_line()

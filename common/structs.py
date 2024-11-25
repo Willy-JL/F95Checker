@@ -218,6 +218,19 @@ class DdlFile:
 
 
 @dataclasses.dataclass(slots=True)
+class FileDownload:
+    url: str
+    cookies: dict = True
+    path: pathlib.Path = None
+    progress: int = 0
+    total: int = 0
+    cancel: bool = False
+    stopped: bool = False
+    error: str = None
+    traceback: str = None
+
+
+@dataclasses.dataclass(slots=True)
 class SortSpec:
     index: int
     reverse: bool

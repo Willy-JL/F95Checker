@@ -4935,6 +4935,73 @@ class MainGUI():
 
             imgui.end_table()
 
+        if api.downloads:
+            to_remove = []
+            for name, download in api.downloads.items():
+                if not download:
+                    continue
+                imgui.spacing()
+                imgui.spacing()
+                imgui.spacing()
+                imgui.text("DDL: " + name)
+                errored = download.error or download.progress != download.total
+
+                if download.stopped:
+                    if imgui.button(icons.folder_open_outline):
+                        async_thread.run(callbacks.default_open(download.path.parent))
+                    imgui.same_line()
+                    if not errored:
+                        if imgui.button(icons.open_in_app):
+                            async_thread.run(callbacks.default_open(download.path))
+                        imgui.same_line()
+
+                ratio = download.progress / (download.total or 1)
+                height = imgui.get_frame_height()
+                width = imgui.get_content_region_available_width() - height - imgui.style.item_spacing.x - imgui.style.frame_border_size
+                imgui.progress_bar(ratio, (width, height))
+                if not download.stopped:
+                    text = f"{ratio:.0%}"
+                elif errored:
+                    text = "Error!"
+                    self.draw_hover_text(
+                        download.error or f"Server sent less data than expected ({download.progress} != {download.total})",
+                        text=None,
+                    )
+                    if download.traceback and imgui.is_item_clicked():
+                        utils.push_popup(
+                            msgbox.msgbox, f"Error downloading {name}",
+                            download.error,
+                            MsgBox.error,
+                            more=download.traceback,
+                        )
+                else:
+                    text = "Done!"
+                imgui.same_line()
+                draw_list = imgui.get_window_draw_list()
+                col = imgui.get_color_u32_rgba(1, 1, 1, 1)
+                text_size = imgui.calc_text_size(text)
+                screen_pos = imgui.get_cursor_screen_pos()
+                text_x = screen_pos.x - (width + text_size.x) / 2 - imgui.style.item_spacing.x
+                text_y = screen_pos.y + (height - text_size.y) / 2
+                draw_list.add_text(text_x, text_y, col, text)
+
+                if not download.stopped:
+                    if was_canceling := download.cancel:
+                        imgui.push_disabled()
+                    if imgui.button(icons.stop):
+                        download.cancel = True
+                    if was_canceling:
+                        imgui.pop_disabled()
+                else:
+                    if imgui.button(icons.trash_can_outline):
+                        download.path.unlink(missing_ok=True)
+                        to_remove.append(name)
+            for name in to_remove:
+                del api.downloads[name]
+
+        imgui.spacing()
+        imgui.spacing()
+        imgui.spacing()
         imgui.end_child()
 
 
