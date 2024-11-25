@@ -13,7 +13,7 @@ async def thread(id: int) -> dict[str, str] | None:
     thread_url = f95zone.THREAD_URL.format(thread=id)
     retries = 10
     while retries:
-        async with f95zone.XENFORO_RATELIMIT:
+        async with f95zone.RATELIMIT:
             async with f95zone.session.get(
                 thread_url,
                 cookies=f95zone.cookies,

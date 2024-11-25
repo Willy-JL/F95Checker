@@ -199,6 +199,40 @@ class TorrentResult:
 
 
 @dataclasses.dataclass(slots=True)
+class DdlFile:
+    thread_id: int
+    id: str
+    title: str
+    filename: str
+    size: int
+    date: str
+    size_display: str = None
+
+    def __post_init__(self):
+        if not self.id:
+            return
+        from modules import (
+            globals,
+            utils,
+        )
+        self.size_display = utils.sizeof_fmt(int(self.size))
+        self.date = dt.datetime.strptime(self.date, r"%Y-%m-%d").strftime(globals.settings.datestamp_format)
+
+
+@dataclasses.dataclass(slots=True)
+class FileDownload:
+    url: str
+    cookies: dict = True
+    path: pathlib.Path = None
+    progress: int = 0
+    total: int = 0
+    cancel: bool = False
+    stopped: bool = False
+    error: str = None
+    traceback: str = None
+
+
+@dataclasses.dataclass(slots=True)
 class SortSpec:
     index: int
     reverse: bool
@@ -668,6 +702,7 @@ class Settings:
     default_tab_is_new          : bool
     display_mode                : DisplayMode
     display_tab                 : Tab.get
+    downloads_dir               : dict[Os, str]
     ext_background_add          : bool
     ext_highlight_tags          : bool
     ext_icon_glow               : bool

@@ -26,6 +26,8 @@ import python_socks
 
 from common.structs import (
     CounterContext,
+    DdlFile,
+    FileDownload,
     Game,
     MsgBox,
     OldGame,
@@ -54,7 +56,6 @@ from modules import (
 
 f95_domain = "f95zone.to"
 f95_host = "https://" + f95_domain
-f95_sam_backend_root    = f95_host + "/sam/"
 f95_check_login_fast    = f95_host + "/sam/latest_alpha/"
 f95_check_login_page    = f95_host + "/account/"
 f95_login_page          = f95_host + "/login/"
@@ -65,10 +66,14 @@ f95_threads_page        = f95_host + "/threads/"
 f95_bookmarks_page      = f95_host + "/account/bookmarks?difference=0&page={page}"
 f95_watched_page        = f95_host + "/watched/threads?unread=0&page={page}"
 f95_qsearch_endpoint    = f95_host + "/quicksearch"
+f95_ddl_endpoint        = f95_host + "/sam/dddl.php"
 f95_attachments_hosts = (
     f"https://attachments.{f95_domain}/",
     "https://attachments.f95zone.com/",
     f95_attachments_rocks := "https://attachments.f95zone.rocks/",
+)
+f95_no_ratelimit_urls = (
+    f95_check_login_fast,
 )
 
 api_domain = "api.f95checker.dev"
@@ -87,13 +92,14 @@ updating = False
 session: aiohttp.ClientSession = None
 ssl_context: ssl.SSLContext = None
 webpage_prefix = "F95Checker-Temp-"
-xenforo_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
+f95_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
 fast_checks_counter = 0
 full_checks_counter = CounterContext()
 images_counter = CounterContext()
 xf_token = ""
+downloads: dict[str, FileDownload] = {}
 
 
 def make_session():
@@ -187,7 +193,7 @@ def cookiedict(cookies: http.cookies.SimpleCookie):
 
 
 @contextlib.asynccontextmanager
-async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
+async def request(method: str, url: str, read=True, cookies: dict = True, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
@@ -198,22 +204,20 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         max_redirects=None,
         ssl=ssl_context
     )
-    for insecure_ssl_allowed_host in insecure_ssl_allowed_hosts:
-        if url.startswith(insecure_ssl_allowed_host):
-            req_opts["ssl"] = False
-            break
-    if no_cookies:
-        cookies = {}
-    else:
+    if url.startswith(insecure_ssl_allowed_hosts):
+        req_opts["ssl"] = False
+    if cookies is True or cookies is None:
         cookies = globals.cookies
+    elif cookies is False:
+        cookies = {}
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
-    is_xenforo_request = url.startswith(f95_host) and not url.startswith(f95_sam_backend_root)
-    xenforo_ratelimit_retries = 10
-    while retries and xenforo_ratelimit_retries:
+    is_ratelimit_request = url.startswith(f95_host) and not url.startswith(f95_no_ratelimit_urls)
+    ratelimit_retries = 10
+    while retries and ratelimit_retries:
         try:
             # Only ratelimit when connecting to F95zone
-            maybe_ratelimit = xenforo_ratelimit if is_xenforo_request else contextlib.nullcontext()
+            maybe_ratelimit = f95_ratelimit if is_ratelimit_request else contextlib.nullcontext()
             async with maybe_ratelimit, session.request(
                 method,
                 url,
@@ -221,8 +225,8 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
                 **req_opts,
                 **kwargs
             ) as req:
-                if is_xenforo_request and req.status == 429 and xenforo_ratelimit_retries > 1:
-                    xenforo_ratelimit_retries -= 1
+                if is_ratelimit_request and req.status == 429 and ratelimit_retries > 1:
+                    ratelimit_retries -= 1
                     continue
                 if not read:
                     yield b"", req
@@ -646,7 +650,7 @@ async def fast_check(games: list[Game], full=False):
         async with fast_checks_sem:
             res = None
             try:
-                res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), timeout=120, no_cookies=True)
+                res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), timeout=120, cookies=False)
                 raise_api_error(res)
                 last_changes = json.loads(res)
                 raise_api_error(last_changes)
@@ -702,7 +706,7 @@ async def fast_check(games: list[Game], full=False):
 async def full_check(game: Game, last_changed: int):
     async with full_checks_counter, full_checks_sem:
 
-        async with request("GET", api_full_check_url.format(id=game.id, ts=last_changed), timeout=globals.settings.request_timeout * 2) as (res, req):
+        async with request("GET", api_full_check_url.format(id=game.id, ts=last_changed), timeout=globals.settings.request_timeout * 2, cookies=False) as (res, req):
             raise_api_error(res)
             if req.status in (403, 404):
                 if not game.archived:
@@ -1254,6 +1258,214 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
     if not games:
         globals.settings.last_successful_refresh.update(time.time())
         await db.update_settings("last_successful_refresh")
+
+
+async def download_file(name: str, download: FileDownload):
+    downloads[name] = download
+    try:
+        if not download.path:
+            downloads_dir = globals.settings.downloads_dir.get(globals.os)
+            if downloads_dir:
+                downloads_dir = pathlib.Path(downloads_dir)
+            else:
+                downloads_dir = pathlib.Path.home() / "Downloads"
+            download.path = downloads_dir / name
+        async with (
+            request("GET", download.url, cookies=download.cookies, timeout=3600 * 24, read=False) as (_, req),
+            aiofiles.open(download.path, "wb") as file,
+        ):
+            download.progress = 0
+            if not download.total:
+                download.total = req.content_length
+            try:
+                async for chunk in req.content.iter_any():
+                    if download.cancel:
+                        download.error = "Interrupted by user"
+                        return
+                    if chunk:
+                        download.progress += await file.write(chunk)
+                    else:
+                        break
+            except aiohttp.ClientPayloadError as exc:
+                if "ContentLengthError" not in str(exc):
+                    raise
+    except Exception:
+        download.error = error.text()
+        download.traceback = error.traceback()
+    finally:
+        download.stopped = True
+
+
+async def ddl_file_list(thread_id: int):
+    res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
+        "thread_id": thread_id,
+    })
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    if res["status"] == "error" and res["msg"] == "Not a donor":
+        return False
+    raise_f95zone_error(res)
+    results = res["msg"]
+
+    for section, files in results["files"].items():
+        parsed = []
+        for title, file in files.items():
+            if not isinstance(file, dict):
+                parsed.append(DdlFile(
+                    thread_id=thread_id,
+                    id="",
+                    title=title,
+                    filename=file,
+                    size=0,
+                    date="",
+                ))
+                continue
+            parsed.append(DdlFile(
+                thread_id=thread_id,
+                id=file["file_id"],
+                title=title,
+                filename=file["filename"],
+                size=int(file["size"]),
+                date=file["date"],
+            ))
+        results["files"][section] = parsed
+    return results
+
+
+async def ddl_file_link(session_id: str, file: DdlFile):
+    res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
+        "thread_id": file.thread_id,
+        "file": file.id,
+        "session": session_id,
+    })
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    raise_f95zone_error(res)
+    link = res["msg"]["url"]
+    cookies = res["msg"]["cookie"]
+    return link, cookies
+
+
+def open_ddl_popup(game: Game):
+    login = None
+    results = None
+    def _f95_ddl_popup():
+        nonlocal login, results
+
+        globals.gui.draw_game_downloads_header(game)
+
+        if not results:
+            imgui.text(f"Loading DDL file list for '{game.name}'...")
+            imgui.text("Status:")
+            imgui.same_line()
+            if login is None:
+                imgui.text("Logging in...")
+            elif not login:
+                return True
+            elif results is None:
+                imgui.text("Loading...")
+            elif results is False:
+                imgui.text("You don't have access to F95zone Donor DDL Service!")
+            else:
+                imgui.text("No DDL available for this item!")
+            return
+
+        if imgui.begin_table(
+            "###ddl_results",
+            column=4,
+            flags=imgui.TABLE_NO_SAVED_SETTINGS | imgui.TABLE_NO_CLIP,
+        ):
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_FIXED | imgui.TABLE_COLUMN_NO_CLIP)
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            for i, (ddl_section, ddl_files) in enumerate(results["files"].items()):
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.spacing()
+                imgui.push_font(imgui.fonts.bold)
+                pos = imgui.get_cursor_screen_pos()
+                imgui.selectable(f"###ddl_results_{i}", False, imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS)
+                imgui.get_window_draw_list().add_text(*pos, imgui.get_color_u32_rgba(1, 1, 1, 1), ddl_section)
+                imgui.pop_font()
+                for ddl_file in ddl_files:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.dummy(0, 0)
+                    imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
+                    if not ddl_file.id:
+                        imgui.push_disabled()
+                        imgui.button(icons.open_in_new)
+                        imgui.same_line()
+                        imgui.button(icons.content_copy)
+                        imgui.same_line()
+                        imgui.button(icons.download_multiple)
+                        imgui.table_next_column()
+                        imgui.text(f"{ddl_file.title}: {ddl_file.filename}")
+                        imgui.table_next_column()
+                        imgui.text("N/A")
+                        imgui.table_next_column()
+                        imgui.text("N/A")
+                        imgui.pop_disabled()
+                        continue
+                    if imgui.button(icons.open_in_new):
+                        async def _open_ddl_link(session_id: str, file: DdlFile):
+                            link, _ = await ddl_file_link(session_id, file)
+                            callbacks.open_webpage(link)
+                        async_thread.run(_open_ddl_link(results["session"], ddl_file))
+                    imgui.same_line()
+                    if imgui.button(icons.content_copy):
+                        async def _copy_ddl_link(session_id: str, file: DdlFile):
+                            link, _ = await ddl_file_link(session_id, file)
+                            callbacks.clipboard_copy(link)
+                        async_thread.run(_copy_ddl_link(results["session"], ddl_file))
+                    imgui.same_line()
+                    if already_downloading := ddl_file.filename in downloads:
+                        imgui.push_disabled()
+                    if imgui.button(icons.download_multiple):
+                        async def _download_ddl_link(session_id: str, file: DdlFile):
+                            try:
+                                downloads[file.filename] = None
+                                link, cookies = await ddl_file_link(session_id, file)
+                                download = FileDownload(link, cookies, total=file.size)
+                            except Exception:
+                                del downloads[file.filename]
+                                raise
+                            asyncio.create_task(download_file(file.filename, download))
+                        async_thread.run(_download_ddl_link(results["session"], ddl_file))
+                    if already_downloading:
+                        imgui.pop_disabled()
+                    imgui.table_next_column()
+                    imgui.text(ddl_file.title)
+                    imgui.same_line()
+                    globals.gui.draw_hover_text(ddl_file.filename)
+                    imgui.table_next_column()
+                    imgui.text(ddl_file.size_display)
+                    imgui.table_next_column()
+                    imgui.push_font(imgui.fonts.mono)
+                    imgui.text(ddl_file.date)
+                    imgui.pop_font()
+                    imgui.same_line()
+                    imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
+                    imgui.selectable(
+                        "", False,
+                        flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS,
+                        height=imgui.get_frame_height()
+                    )
+                imgui.spacing()
+                imgui.spacing()
+            imgui.end_table()
+    async def _ddl_load_files():
+        nonlocal login, results
+        if login := await assert_login():
+            results = await ddl_file_list(game.id)
+    utils.push_popup(
+        utils.popup, "F95zone Donor DDL",
+        _f95_ddl_popup,
+        buttons=True,
+        closable=True,
+        outside=False,
+        footer="Thanks for supporting F95zone!"
+    )
+    async_thread.run(_ddl_load_files())
 
 
 ddos_guard_bypass_fake_mark = {

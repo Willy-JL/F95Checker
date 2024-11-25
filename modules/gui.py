@@ -959,7 +959,7 @@ class MainGUI():
                             text = f"Fetching {count} full thread{'s' if count > 1 else ''}..."
                         elif (count := api.fast_checks_counter) > 0:
                             text = f"Validating {count} cached item{'s' if count > 1 else ''}..."
-                        elif api.xenforo_ratelimit._waiters:
+                        elif api.f95_ratelimit._waiters:
                             text = f"Waiting for F95zone ratelimit..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
@@ -2289,6 +2289,11 @@ class MainGUI():
                     imgui.same_line()
                     if imgui.small_button(f"{icons.magnify}Search"):
                         rpdl.open_search_popup(game)
+                    imgui.spacing()
+                    imgui.text("F95zone Donor DDL:")
+                    imgui.same_line()
+                    if imgui.small_button(f"{icons.cloud_check_variant_outline}Check"):
+                        api.open_ddl_popup(game)
                     imgui.spacing()
                     imgui.spacing()
                     imgui.spacing()
@@ -4624,7 +4629,9 @@ class MainGUI():
                 "Set exe dir:",
                 "This setting indicates what folder you keep all your games in (if you're organized). Executables inside this folder are "
                 "remembered relatively, this means you can select the executables with this setting on, then move your entire folder, update this "
-                f"setting, and all the executables are still valid.\n\nCurrent value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
+                "setting, and all the executables are still valid.\n"
+                "This setting is OS dependent, it has different values for different operating systems you use.\n\n"
+                f"Current value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
             )
             if imgui.button("Choose", width=right_width):
                 def select_callback(selected):
@@ -4635,6 +4642,24 @@ class MainGUI():
                 utils.push_popup(filepicker.DirPicker(
                     title="Select or drop default exe dir",
                     start_dir=set.default_exe_dir.get(globals.os),
+                    callback=select_callback
+                ).tick)
+
+            draw_settings_label(
+                "Downloads dir:",
+                "Where downloads will be saved to. Currently, only F95zone Donor DDL downloads are supported.\n"
+                "This setting is OS dependent, it has different values for different operating systems you use.\n\n"
+                f"Current value: {set.downloads_dir.get(globals.os) or 'Unset'}\n\n"
+                "For other download types, you may want to consider a download manager like JDownloader2, and configure it to monitor the "
+                "clipboard: then you will be able to copy links and have them automatically download in your external download manager."
+            )
+            if imgui.button("Choose", width=right_width):
+                def select_callback(selected):
+                    set.downloads_dir[globals.os] = selected or ""
+                    async_thread.run(db.update_settings("downloads_dir"))
+                utils.push_popup(filepicker.DirPicker(
+                    title="Select or drop downloads dir",
+                    start_dir=set.downloads_dir.get(globals.os),
                     callback=select_callback
                 ).tick)
 
@@ -4930,6 +4955,73 @@ class MainGUI():
 
             imgui.end_table()
 
+        if api.downloads:
+            to_remove = []
+            for name, download in api.downloads.items():
+                if not download:
+                    continue
+                imgui.spacing()
+                imgui.spacing()
+                imgui.spacing()
+                imgui.text("DDL: " + name)
+                errored = download.error or download.progress != download.total
+
+                if download.stopped:
+                    if imgui.button(icons.folder_open_outline):
+                        async_thread.run(callbacks.default_open(download.path.parent))
+                    imgui.same_line()
+                    if not errored:
+                        if imgui.button(icons.open_in_app):
+                            async_thread.run(callbacks.default_open(download.path))
+                        imgui.same_line()
+
+                ratio = download.progress / (download.total or 1)
+                height = imgui.get_frame_height()
+                width = imgui.get_content_region_available_width() - height - imgui.style.item_spacing.x - imgui.style.frame_border_size
+                imgui.progress_bar(ratio, (width, height))
+                if not download.stopped:
+                    text = f"{ratio:.0%}"
+                elif errored:
+                    text = "Error!"
+                    self.draw_hover_text(
+                        download.error or f"Server sent less data than expected ({download.progress} != {download.total})",
+                        text=None,
+                    )
+                    if download.traceback and imgui.is_item_clicked():
+                        utils.push_popup(
+                            msgbox.msgbox, f"Error downloading {name}",
+                            download.error,
+                            MsgBox.error,
+                            more=download.traceback,
+                        )
+                else:
+                    text = "Done!"
+                imgui.same_line()
+                draw_list = imgui.get_window_draw_list()
+                col = imgui.get_color_u32_rgba(1, 1, 1, 1)
+                text_size = imgui.calc_text_size(text)
+                screen_pos = imgui.get_cursor_screen_pos()
+                text_x = screen_pos.x - (width + text_size.x) / 2 - imgui.style.item_spacing.x
+                text_y = screen_pos.y + (height - text_size.y) / 2
+                draw_list.add_text(text_x, text_y, col, text)
+
+                if not download.stopped:
+                    if was_canceling := download.cancel:
+                        imgui.push_disabled()
+                    if imgui.button(icons.stop):
+                        download.cancel = True
+                    if was_canceling:
+                        imgui.pop_disabled()
+                else:
+                    if imgui.button(icons.trash_can_outline):
+                        download.path.unlink(missing_ok=True)
+                        to_remove.append(name)
+            for name in to_remove:
+                del api.downloads[name]
+
+        imgui.spacing()
+        imgui.spacing()
+        imgui.spacing()
         imgui.end_child()
 
 
