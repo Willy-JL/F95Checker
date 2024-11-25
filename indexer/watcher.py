@@ -45,12 +45,12 @@ def chunks(lst, n):
 async def watch_updates():
     while True:
         try:
-            logger.debug("Poll updates start")
+            logger.info("Poll updates start")
 
             invalidate_cache = cache.redis.pipeline()
 
             for category in WATCH_UPDATES_CATEGORIES:
-                logger.debug(f"Poll category {category}")
+                logger.info(f"Poll category {category}")
 
                 cached_versions = cache.redis.pipeline()
 
@@ -109,7 +109,7 @@ async def watch_updates():
                 invalidated = sum(ret != "0" for ret in result)
                 logger.info(f"Updates: Invalidated cache for {invalidated} threads")
 
-            logger.debug("Poll updates done")
+            logger.info("Poll updates done")
 
         except Exception:
             logger.error(f"Error polling updates: {error.text()}\n{error.traceback()}")
@@ -122,7 +122,7 @@ async def watch_versions():
         await asyncio.sleep(WATCH_VERSIONS_INTERVAL)
 
         try:
-            logger.debug("Poll versions start")
+            logger.info("Poll versions start")
 
             names = [n async for n in cache.redis.scan_iter("thread:*", 10000, "hash")]
             invalidate_cache = cache.redis.pipeline()
@@ -184,7 +184,7 @@ async def watch_versions():
                 invalidated = sum(ret != "0" for ret in result)
                 logger.warning(f"Versions: Invalidated cache for {invalidated} threads")
 
-            logger.debug("Poll versions done")
+            logger.info("Poll versions done")
 
         except Exception:
             logger.error(f"Error polling versions: {error.text()}\n{error.traceback()}")
