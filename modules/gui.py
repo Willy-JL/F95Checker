@@ -2292,7 +2292,7 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text("F95zone Donor DDL:")
                     imgui.same_line()
-                    if imgui.small_button(f"{icons.magnify}Check"):
+                    if imgui.small_button(f"{icons.cloud_check_variant_outline}Check"):
                         api.open_ddl_popup(game)
                     imgui.spacing()
                     imgui.spacing()
