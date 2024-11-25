@@ -189,7 +189,7 @@ def cookiedict(cookies: http.cookies.SimpleCookie):
 
 
 @contextlib.asynccontextmanager
-async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
+async def request(method: str, url: str, read=True, cookies: dict = True, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
@@ -204,10 +204,10 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         if url.startswith(insecure_ssl_allowed_host):
             req_opts["ssl"] = False
             break
-    if no_cookies:
-        cookies = {}
-    else:
+    if cookies is True:
         cookies = globals.cookies
+    elif cookies is False:
+        cookies = {}
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
     is_xenforo_request = url.startswith(f95_host) and not url.startswith(f95_sam_backend_root)
@@ -648,7 +648,7 @@ async def fast_check(games: list[Game], full=False):
         async with fast_checks_sem:
             res = None
             try:
-                res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), timeout=120, no_cookies=True)
+                res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), timeout=120, cookies=False)
                 raise_api_error(res)
                 last_changes = json.loads(res)
                 raise_api_error(last_changes)
@@ -704,7 +704,7 @@ async def fast_check(games: list[Game], full=False):
 async def full_check(game: Game, last_changed: int):
     async with full_checks_counter, full_checks_sem:
 
-        async with request("GET", api_full_check_url.format(id=game.id, ts=last_changed), timeout=globals.settings.request_timeout * 2) as (res, req):
+        async with request("GET", api_full_check_url.format(id=game.id, ts=last_changed), timeout=globals.settings.request_timeout * 2, cookies=False) as (res, req):
             raise_api_error(res)
             if req.status in (403, 404):
                 if not game.archived:
