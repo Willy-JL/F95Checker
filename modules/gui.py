@@ -4629,7 +4629,9 @@ class MainGUI():
                 "Set exe dir:",
                 "This setting indicates what folder you keep all your games in (if you're organized). Executables inside this folder are "
                 "remembered relatively, this means you can select the executables with this setting on, then move your entire folder, update this "
-                f"setting, and all the executables are still valid.\n\nCurrent value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
+                "setting, and all the executables are still valid.\n"
+                "This setting is OS dependent, it has different values for different operating systems you use.\n\n"
+                f"Current value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
             )
             if imgui.button("Choose", width=right_width):
                 def select_callback(selected):
