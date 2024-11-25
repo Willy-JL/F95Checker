@@ -1393,6 +1393,8 @@ def open_ddl_popup(game: Game):
                         imgui.button(icons.open_in_new)
                         imgui.same_line()
                         imgui.button(icons.content_copy)
+                        imgui.same_line()
+                        imgui.button(icons.download_multiple)
                         imgui.table_next_column()
                         imgui.text(f"{ddl_file.title}: {ddl_file.filename}")
                         imgui.table_next_column()
