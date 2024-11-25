@@ -1264,8 +1264,12 @@ async def download_file(name: str, download: FileDownload):
     downloads[name] = download
     try:
         if not download.path:
-            dest = pathlib.Path.home() / "Downloads"
-            download.path = dest / name
+            downloads_dir = globals.settings.downloads_dir.get(globals.os)
+            if downloads_dir:
+                downloads_dir = pathlib.Path(downloads_dir)
+            else:
+                downloads_dir = pathlib.Path.home() / "Downloads"
+            download.path = downloads_dir / name
         async with (
             request("GET", download.url, cookies=download.cookies, timeout=3600 * 24, read=False) as (_, req),
             aiofiles.open(download.path, "wb") as file,

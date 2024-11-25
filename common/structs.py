@@ -700,6 +700,7 @@ class Settings:
     default_tab_is_new          : bool
     display_mode                : DisplayMode
     display_tab                 : Tab.get
+    downloads_dir               : dict[Os, str]
     ext_background_add          : bool
     ext_highlight_tags          : bool
     ext_icon_glow               : bool

@@ -4643,6 +4643,24 @@ class MainGUI():
                     callback=select_callback
                 ).tick)
 
+            draw_settings_label(
+                "Downloads dir:",
+                "Where downloads will be saved to. Currently, only F95zone Donor DDL downloads are supported.\n"
+                "This setting is OS dependent, it has different values for different operating systems you use.\n\n"
+                f"Current value: {set.downloads_dir.get(globals.os) or 'Unset'}\n\n"
+                "For other download types, you may want to consider a download manager like JDownloader2, and configure it to monitor the "
+                "clipboard: then you will be able to copy links and have them automatically download in your external download manager."
+            )
+            if imgui.button("Choose", width=right_width):
+                def select_callback(selected):
+                    set.downloads_dir[globals.os] = selected or ""
+                    async_thread.run(db.update_settings("downloads_dir"))
+                utils.push_popup(filepicker.DirPicker(
+                    title="Select or drop downloads dir",
+                    start_dir=set.downloads_dir.get(globals.os),
+                    callback=select_callback
+                ).tick)
+
             draw_settings_label("Show remove button:")
             draw_settings_checkbox("show_remove_btn")
 
