@@ -1424,9 +1424,8 @@ def open_ddl_popup(game: Game):
                                 downloads[file.filename] = None
                                 link, cookies = await ddl_file_link(session_id, file)
                                 download = FileDownload(link, cookies, total=file.size)
-                            except Exception:
+                            finally:
                                 del downloads[file.filename]
-                                raise
                             asyncio.create_task(download_file(file.filename, download))
                         async_thread.run(_download_ddl_link(results["session"], ddl_file))
                     if already_downloading:
