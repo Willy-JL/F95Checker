@@ -1278,14 +1278,12 @@ async def download_file(name: str, download: FileDownload):
             if not download.total:
                 download.total = req.content_length
             try:
-                async for chunk in req.content.iter_any():
+                async for (chunk, _) in req.content.iter_chunks():
                     if download.cancel:
                         download.error = "Interrupted by user"
                         return
                     if chunk:
                         download.progress += await file.write(chunk)
-                    else:
-                        break
             except aiohttp.ClientPayloadError as exc:
                 if "ContentLengthError" not in str(exc):
                     raise
