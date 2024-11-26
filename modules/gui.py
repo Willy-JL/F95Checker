@@ -4974,10 +4974,29 @@ class MainGUI():
                         if imgui.button(icons.open_in_app):
                             async_thread.run(callbacks.default_open(download.path))
                         imgui.same_line()
+                    space_after = (
+                        2 * (
+                            2 * imgui.style.frame_padding.y +
+                            imgui.style.frame_border_size +
+                            imgui.style.item_spacing.x
+                        ) +
+                        imgui.calc_text_size(icons.cancel + icons.trash_can_outline).x +
+                        imgui.style.frame_border_size
+                    )
+                else:
+                    space_after = (
+                        1 * (
+                            2 * imgui.style.frame_padding.y +
+                            imgui.style.frame_border_size +
+                            imgui.style.item_spacing.x
+                        ) +
+                        imgui.calc_text_size(icons.stop).x +
+                        imgui.style.frame_border_size
+                    )
 
                 ratio = download.progress / (download.total or 1)
+                width = imgui.get_content_region_available_width() - space_after
                 height = imgui.get_frame_height()
-                width = imgui.get_content_region_available_width() - height - imgui.style.item_spacing.x - imgui.style.frame_border_size
                 imgui.progress_bar(ratio, (width, height))
                 if not download.stopped:
                     text = f"{ratio:.0%}"
@@ -5013,6 +5032,9 @@ class MainGUI():
                     if was_canceling:
                         imgui.pop_disabled()
                 else:
+                    if imgui.button(icons.cancel):
+                        to_remove.append(name)
+                    imgui.same_line()
                     if imgui.button(icons.trash_can_outline):
                         download.path.unlink(missing_ok=True)
                         to_remove.append(name)
