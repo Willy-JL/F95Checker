@@ -206,6 +206,7 @@ class DdlFile:
     filename: str
     size: int
     date: str
+    sha1: str
     size_display: str = None
 
     def __post_init__(self):
@@ -230,6 +231,7 @@ class FileDownload:
     stopped: bool = False
     error: str = None
     traceback: str = None
+    checksum: tuple[str, str] = None
 
 
 @dataclasses.dataclass(slots=True)

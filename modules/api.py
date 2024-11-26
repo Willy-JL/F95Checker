@@ -1,6 +1,7 @@
 import asyncio
 import configparser
 import contextlib
+import hashlib
 import http.cookies
 import io
 import json
@@ -886,11 +887,11 @@ async def full_check(game: Game, last_changed: int):
                         f95zone_ok = True
                         foreign_ok = True
                         try:
-                            await async_thread.loop.run_in_executor(None, socket.gethostbyname, f95_domain)
+                            await asyncio.get_event_loop().run_in_executor(None, socket.gethostbyname, f95_domain)
                         except Exception:
                             f95zone_ok = False
                         try:
-                            await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
+                            await asyncio.get_event_loop().run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
                         except Exception:
                             foreign_ok = False
                         if f95zone_ok and not foreign_ok:
@@ -1305,6 +1306,14 @@ async def download_file(name: str, download: FileDownload):
                         raise
                 break  # Loop is only to resume with `continue`
 
+        if download.checksum:
+            def _file_checksum_sync():
+                with open(download.path, "rb") as file:
+                    return hashlib.file_digest(file, download.checksum[0]).hexdigest()
+            checksum = await asyncio.get_event_loop().run_in_executor(None, _file_checksum_sync)
+            if checksum.lower() != download.checksum[1].lower():
+                download.error = f"{download.checksum[0].upper()} checksum mismatch"
+
     except Exception:
         download.error = error.text()
         download.traceback = error.traceback()
@@ -1334,6 +1343,7 @@ async def ddl_file_list(thread_id: int):
                     filename=file,
                     size=0,
                     date="",
+                    sha1="",
                 ))
                 continue
             parsed.append(DdlFile(
@@ -1343,6 +1353,7 @@ async def ddl_file_list(thread_id: int):
                 filename=file["filename"],
                 size=int(file["size"]),
                 date=file["date"],
+                sha1=file["hash"],
             ))
         results["files"][section] = parsed
     return results
@@ -1441,7 +1452,7 @@ def open_ddl_popup(game: Game):
                             try:
                                 downloads[file.filename] = None
                                 link, cookies = await ddl_file_link(session_id, file)
-                                download = FileDownload(link, cookies, total=file.size)
+                                download = FileDownload(link, cookies, total=file.size, checksum=("sha1", file.sha1))
                             finally:
                                 del downloads[file.filename]
                             asyncio.create_task(download_file(file.filename, download))
