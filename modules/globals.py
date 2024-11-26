@@ -38,7 +38,7 @@ def _():
                 if library.is_file():
                     _os.environ["PYGLFW_LIBRARY"] = str(library)
         elif sys.platform.startswith("darwin"):
-            process = self_path / "lib/PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
+            process = self_path.parent / "Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
             if process.is_file():
                 _os.environ["QTWEBENGINEPROCESS_PATH"] = str(process)
 
