@@ -225,7 +225,7 @@ class FileDownload:
     cookies: dict = True
     path: pathlib.Path = None
     progress: int = 0
-    total: int = 0
+    total: int = None
     cancel: bool = False
     stopped: bool = False
     error: str = None

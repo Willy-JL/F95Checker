@@ -1261,32 +1261,50 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
 
 
 async def download_file(name: str, download: FileDownload):
-    downloads[name] = download
     try:
-        if not download.path:
+        downloads[name] = download
+
+        if download.path is None:
             downloads_dir = globals.settings.downloads_dir.get(globals.os)
             if downloads_dir:
                 downloads_dir = pathlib.Path(downloads_dir)
             else:
                 downloads_dir = pathlib.Path.home() / "Downloads"
             download.path = downloads_dir / name
-        async with (
-            request("GET", download.url, cookies=download.cookies, timeout=3600 * 24, read=False) as (_, req),
-            aiofiles.open(download.path, "wb") as file,
-        ):
-            download.progress = 0
-            if not download.total:
-                download.total = req.content_length
-            try:
-                async for (chunk, _) in req.content.iter_chunks():
-                    if download.cancel:
-                        download.error = "Interrupted by user"
-                        return
-                    if chunk:
-                        download.progress += await file.write(chunk)
-            except aiohttp.ClientPayloadError as exc:
-                if "ContentLengthError" not in str(exc):
-                    raise
+        async with aiofiles.open(download.path, "wb") as file:
+
+            can_resume = None
+            while True:
+                if can_resume and download.total:
+                    headers = {"Range": f"bytes={download.progress}-{download.total}"}
+                else:
+                    headers = None
+
+                async with request(
+                    "GET", download.url,
+                    cookies=download.cookies,
+                    headers=headers,
+                    timeout=3600 * 24,
+                    read=False,
+                ) as (_, req):
+                    if can_resume is None:
+                        can_resume = req.headers.get("Accept-Ranges") == "bytes"
+                    if download.total is None:
+                        download.total = req.content_length
+
+                    try:
+                        async for (chunk, _) in req.content.iter_chunks():
+                            if download.cancel:
+                                download.error = "Interrupted by user"
+                                return
+                            if chunk:
+                                download.progress += await file.write(chunk)
+                    except aiohttp.ClientPayloadError as exc:
+                        if "ContentLengthError" in str(exc):
+                            continue
+                        raise
+                break  # Loop is only to resume with `continue`
+
     except Exception:
         download.error = error.text()
         download.traceback = error.traceback()
