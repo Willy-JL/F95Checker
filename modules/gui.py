@@ -576,13 +576,11 @@ class MainGUI():
     @property
     def recalculate_ids(self):
         with self._recalculate_ids_lock:
-            print("get")
             return self._recalculate_ids
 
     @recalculate_ids.setter
     def recalculate_ids(self, value):
         with self._recalculate_ids_lock:
-            print("set")
             self._recalculate_ids = value
 
     def refresh_styles(self):
