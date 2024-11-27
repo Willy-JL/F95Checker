@@ -322,7 +322,7 @@ class MainGUI():
         self.prev_manual_sort = 0
         self.add_box_valid = False
         self.bg_mode_paused = False
-        self.recalculate_ids = True
+        self._recalculate_ids = True
         self.current_tab: Tab = None
         self.selected_games_count = 0
         self.game_hitbox_click = False
@@ -339,6 +339,7 @@ class MainGUI():
         self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
         self.bg_mode_notifs_timer: float = None
+        self._recalculate_ids_lock = threading.Lock()
         self.show_games_ids: dict[Tab, list[int]] = {}
 
         # Setup Qt objects
@@ -571,6 +572,18 @@ class MainGUI():
         def is_topmost():
             return not imgui.is_popup_open("", imgui.POPUP_ANY_POPUP_ID)
         imgui.is_topmost = is_topmost
+
+    @property
+    def recalculate_ids(self):
+        with self._recalculate_ids_lock:
+            print("get")
+            return self._recalculate_ids
+
+    @recalculate_ids.setter
+    def recalculate_ids(self, value):
+        with self._recalculate_ids_lock:
+            print("set")
+            self._recalculate_ids = value
 
     def refresh_styles(self):
         _ = \
@@ -888,7 +901,7 @@ class MainGUI():
                     draw = draw or api.updating
                     draw = draw or self.new_styles
                     draw = draw or imagehelper.redraw
-                    draw = draw or self.recalculate_ids
+                    draw = draw or self._recalculate_ids
                     draw = draw or size != self.prev_size
                     draw = draw or prev_hidden != self.hidden
                     draw = draw or prev_focused != self.focused
@@ -2880,8 +2893,10 @@ class MainGUI():
             self.sorts = []
             for sort_spec in sorts.specs:
                 self.sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
-        if sorts.specs_dirty or self.recalculate_ids:
-            self.recalculate_ids = False
+        with self._recalculate_ids_lock:
+            if recalculate_ids_now := sorts.specs_dirty or self._recalculate_ids:
+                self._recalculate_ids = False
+        if recalculate_ids_now:
             # Pick base ID list
             if manual_sort:
                 changed = False
