@@ -1,5 +1,6 @@
 -r requirements.txt
 
 # Compiler
-cx_Freeze==7.0.0
+cx-Freeze==7.0.0
+cx-Logging==3.2.0 ; sys_platform == "win32"
 setuptools==69.5.1
