@@ -1273,6 +1273,7 @@ async def download_file(name: str, download: FileDownload):
                 downloads_dir = pathlib.Path.home() / "Downloads"
             download.path = downloads_dir / name
         async with aiofiles.open(download.path, "wb") as file:
+            download.state = download.State.Downloading
 
             can_resume = None
             while True:
@@ -1307,6 +1308,7 @@ async def download_file(name: str, download: FileDownload):
                 break  # Loop is only to resume with `continue`
 
         if download.checksum:
+            download.state = download.State.Verifying
             def _file_checksum_sync():
                 with open(download.path, "rb") as file:
                     return hashlib.file_digest(file, download.checksum[0]).hexdigest()
@@ -1318,7 +1320,7 @@ async def download_file(name: str, download: FileDownload):
         download.error = error.text()
         download.traceback = error.traceback()
     finally:
-        download.stopped = True
+        download.state = download.State.Stopped
 
 
 async def ddl_file_list(thread_id: int):
@@ -1450,11 +1452,11 @@ def open_ddl_popup(game: Game):
                     if imgui.button(icons.download_multiple):
                         async def _download_ddl_link(session_id: str, file: DdlFile):
                             try:
-                                downloads[file.filename] = None
-                                link, cookies = await ddl_file_link(session_id, file)
-                                download = FileDownload(link, cookies, total=file.size, checksum=("sha1", file.sha1))
-                            finally:
+                                downloads[file.filename] = download = FileDownload(total=file.size, checksum=("sha1", file.sha1))
+                                download.url, download.cookies = await ddl_file_link(session_id, file)
+                            except Exception:
                                 del downloads[file.filename]
+                                raise
                             asyncio.create_task(download_file(file.filename, download))
                         async_thread.run(_download_ddl_link(results["session"], ddl_file))
                     if already_downloading:

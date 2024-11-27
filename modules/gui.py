@@ -4966,7 +4966,17 @@ class MainGUI():
                 imgui.text("DDL: " + name)
                 errored = download.error or download.progress != download.total
 
-                if download.stopped:
+                if download.state == download.State.Downloading:
+                    space_after = (
+                        1 * (
+                            2 * imgui.style.frame_padding.y +
+                            imgui.style.frame_border_size +
+                            imgui.style.item_spacing.x
+                        ) +
+                        imgui.calc_text_size(icons.stop).x +
+                        imgui.style.frame_border_size
+                    )
+                elif download.state == download.State.Stopped:
                     if imgui.button(icons.folder_open_outline):
                         async_thread.run(callbacks.default_open(download.path.parent))
                     imgui.same_line()
@@ -4984,37 +4994,32 @@ class MainGUI():
                         imgui.style.frame_border_size
                     )
                 else:
-                    space_after = (
-                        1 * (
-                            2 * imgui.style.frame_padding.y +
-                            imgui.style.frame_border_size +
-                            imgui.style.item_spacing.x
-                        ) +
-                        imgui.calc_text_size(icons.stop).x +
-                        imgui.style.frame_border_size
-                    )
+                    space_after = 0
 
                 ratio = download.progress / (download.total or 1)
                 width = imgui.get_content_region_available_width() - space_after
                 height = imgui.get_frame_height()
                 imgui.progress_bar(ratio, (width, height))
-                if not download.stopped:
+                if download.state == download.State.Downloading:
                     text = f"{ratio:.0%}"
-                elif errored:
-                    text = "Error!"
-                    self.draw_hover_text(
-                        download.error or f"Server sent less data than expected ({download.progress} != {download.total})",
-                        text=None,
-                    )
-                    if download.traceback and imgui.is_item_clicked():
-                        utils.push_popup(
-                            msgbox.msgbox, f"Error downloading {name}",
-                            download.error,
-                            MsgBox.error,
-                            more=download.traceback,
+                elif download.state == download.State.Stopped:
+                    if not errored:
+                        text = "Done!"
+                    else:
+                        text = "Error!"
+                        self.draw_hover_text(
+                            download.error or f"Server sent less data than expected ({download.progress} != {download.total})",
+                            text=None,
                         )
+                        if download.traceback and imgui.is_item_clicked():
+                            utils.push_popup(
+                                msgbox.msgbox, f"Error downloading {name}",
+                                download.error,
+                                MsgBox.error,
+                                more=download.traceback,
+                            )
                 else:
-                    text = "Done!"
+                    text = f"{download.state.name}..."
                 imgui.same_line()
                 draw_list = imgui.get_window_draw_list()
                 col = imgui.get_color_u32_rgba(1, 1, 1, 1)
@@ -5024,14 +5029,14 @@ class MainGUI():
                 text_y = screen_pos.y + (height - text_size.y) / 2
                 draw_list.add_text(text_x, text_y, col, text)
 
-                if not download.stopped:
+                if download.state == download.State.Downloading:
                     if was_canceling := download.cancel:
                         imgui.push_disabled()
                     if imgui.button(icons.stop):
                         download.cancel = True
                     if was_canceling:
                         imgui.pop_disabled()
-                else:
+                elif download.state == download.State.Stopped:
                     if imgui.button(icons.cancel):
                         to_remove.append(name)
                     imgui.same_line()

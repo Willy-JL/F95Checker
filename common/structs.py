@@ -222,13 +222,20 @@ class DdlFile:
 
 @dataclasses.dataclass(slots=True)
 class FileDownload:
-    url: str
+    url: str = ""
     cookies: dict = True
     path: pathlib.Path = None
     progress: int = 0
     total: int = None
+
+    class State(enum.IntEnum):
+        Preparing = enum.auto()
+        Downloading = enum.auto()
+        Verifying = enum.auto()
+        Stopped = enum.auto()
+
     cancel: bool = False
-    stopped: bool = False
+    state: State = State.Preparing
     error: str = None
     traceback: str = None
     checksum: tuple[str, str] = None
