@@ -1,10 +1,10 @@
 # Indexer API
-fastapi==0.115.4
+fastapi==0.115.5
 redis[hiredis]==5.2.0
-uvicorn[standard]==0.32.0
+uvicorn[standard]==0.32.1
 
 # Async goodness
-aiohttp==3.10.5
+aiohttp==3.11.7
 aiolimiter==1.1.0
 
 # BeautifulSoup
