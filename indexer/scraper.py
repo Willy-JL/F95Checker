@@ -9,22 +9,27 @@ from indexer import f95zone
 logger = logging.getLogger(__name__)
 
 
-async def thread(id: int) -> dict[str, str] | None:
+async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     thread_url = f95zone.THREAD_URL.format(thread=id)
     retries = 10
     while retries:
         async with f95zone.RATELIMIT:
-            async with f95zone.session.get(
-                thread_url,
-                cookies=f95zone.cookies,
-            ) as req:
-                if req.status == 429 and retries > 1:
-                    logger.warning("Hit a ratelimit, sleeping 2 seconds")
-                    await asyncio.sleep(2)
-                    retries -= 1
-                    continue
-                res = await req.read()
-                break
+            try:
+                async with f95zone.session.get(
+                    thread_url,
+                    cookies=f95zone.cookies,
+                ) as req:
+                    if req.status == 429 and retries > 1:
+                        logger.warning("Hit a ratelimit, sleeping 2 seconds")
+                        await asyncio.sleep(2)
+                        retries -= 1
+                        continue
+                    res = await req.read()
+                    break
+            except Exception as exc:
+                if index_error := f95zone.check_error(exc):
+                    return index_error
+                raise
 
     if index_error := f95zone.check_error(res):
         return index_error
@@ -42,10 +47,15 @@ async def thread(id: int) -> dict[str, str] | None:
     # games/media/mods forums so it wont get cached for no reason
 
     version = ""
-    async with f95zone.session.get(
-        f95zone.VERCHK_URL.format(threads=id),
-    ) as req:
-        res = await req.read()
+    try:
+        async with f95zone.session.get(
+            f95zone.VERCHK_URL.format(threads=id),
+        ) as req:
+            res = await req.read()
+    except Exception as exc:
+        if index_error := f95zone.check_error(exc):
+            return index_error
+        raise
     if index_error := f95zone.check_error(res):
         return index_error
     try:

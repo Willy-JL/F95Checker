@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import dataclasses
 import datetime as dt
@@ -92,18 +93,26 @@ async def lifespan(version: str):
         session = None
 
 
-def check_error(res: bytes) -> IndexerError | None:
-    if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
-        logger.error("Logged out of F95zone")
-        # TODO: maybe auto login, but xf_user cookie should be enough for a long time
-        return ERROR_SESSION_LOGGED_OUT
+def check_error(res: bytes | Exception) -> IndexerError | None:
+    if isinstance(res, bytes):
+        if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
+            logger.error("Logged out of F95zone")
+            # TODO: maybe auto login, but xf_user cookie should be enough for a long time
+            return ERROR_SESSION_LOGGED_OUT
 
-    if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
-        logger.error("Hit F95zone ratelimit")
-        return ERROR_FORUM_RATELIMIT
+        if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
+            logger.error("Hit F95zone ratelimit")
+            return ERROR_FORUM_RATELIMIT
 
-    if any((msg in res) for msg in TEMP_ERROR_MESSAGES):
-        logger.warning("F95zone temporarily unreachable")
-        return ERROR_F95ZONE_UNAVAILABLE
+        if any((msg in res) for msg in TEMP_ERROR_MESSAGES):
+            logger.warning("F95zone temporarily unreachable")
+            return ERROR_F95ZONE_UNAVAILABLE
 
-    return None
+        return None
+
+    elif isinstance(res, Exception):
+        if isinstance(res, asyncio.TimeoutError):
+            logger.warning("F95zone temporarily unreachable")
+            return ERROR_F95ZONE_UNAVAILABLE
+
+        return None

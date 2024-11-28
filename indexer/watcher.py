@@ -54,21 +54,26 @@ async def watch_updates():
 
                 cached_versions = cache.redis.pipeline()
 
-                async with f95zone.session.get(
-                    f95zone.LATEST_URL.format(
-                        cmd="list",
-                        cat=category,
-                        page=1,
-                        sort="date",
-                        rows=90,
-                        ts=int(time.time()),
-                    ),
-                    cookies=f95zone.cookies,
-                ) as req:
-                    res = await req.read()
+                try:
+                    async with f95zone.session.get(
+                        f95zone.LATEST_URL.format(
+                            cmd="list",
+                            cat=category,
+                            page=1,
+                            sort="date",
+                            rows=90,
+                            ts=int(time.time()),
+                        ),
+                        cookies=f95zone.cookies,
+                    ) as req:
+                        res = await req.read()
+                except Exception as exc:
+                    if index_error := f95zone.check_error(exc):
+                        raise Exception(index_error)
+                    raise
 
                 if index_error := f95zone.check_error(res):
-                    raise Exception(index_error.error_flag)
+                    raise Exception(index_error)
 
                 try:
                     updates = json.loads(res)
@@ -111,8 +116,16 @@ async def watch_updates():
 
             logger.info("Poll updates done")
 
-        except Exception:
-            logger.error(f"Error polling updates: {error.text()}\n{error.traceback()}")
+        except Exception as exc:
+            is_index_error = (
+                type(exc) is Exception
+                and exc.args
+                and type(exc.args[0]) is f95zone.IndexerError
+            )
+            if not is_index_error:
+                logger.error(
+                    f"Error polling updates: {error.text()}\n{error.traceback()}"
+                )
 
         await asyncio.sleep(WATCH_UPDATES_INTERVAL)
 
@@ -139,16 +152,21 @@ async def watch_versions():
                     ids.append(id)
                 csv = csv.strip(",")
 
-                async with f95zone.session.get(
-                    f95zone.VERCHK_URL.format(threads=csv),
-                ) as req:
-                    # Await together for efficiency
-                    res, cached_versions = await asyncio.gather(
-                        req.read(), cached_versions.execute()
-                    )
+                try:
+                    async with f95zone.session.get(
+                        f95zone.VERCHK_URL.format(threads=csv),
+                    ) as req:
+                        # Await together for efficiency
+                        res, cached_versions = await asyncio.gather(
+                            req.read(), cached_versions.execute()
+                        )
+                except Exception as exc:
+                    if index_error := f95zone.check_error(exc):
+                        raise Exception(index_error)
+                    raise
 
                 if index_error := f95zone.check_error(res):
-                    raise Exception(index_error.error_flag)
+                    raise Exception(index_error)
 
                 try:
                     versions = json.loads(res)
@@ -186,5 +204,13 @@ async def watch_versions():
 
             logger.info("Poll versions done")
 
-        except Exception:
-            logger.error(f"Error polling versions: {error.text()}\n{error.traceback()}")
+        except Exception as exc:
+            is_index_error = (
+                type(exc) is Exception
+                and exc.args
+                and type(exc.args[0]) is f95zone.IndexerError
+            )
+            if not is_index_error:
+                logger.error(
+                    f"Error polling versions: {error.text()}\n{error.traceback()}"
+                )
