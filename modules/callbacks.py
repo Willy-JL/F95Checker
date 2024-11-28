@@ -1,7 +1,6 @@
 import asyncio
 import configparser
 import difflib
-import json
 import os
 import pathlib
 import plistlib
