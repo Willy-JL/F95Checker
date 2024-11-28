@@ -43,6 +43,8 @@ def chunks(lst, n):
 
 
 async def watch_updates():
+    await asyncio.sleep(10)
+
     while True:
         try:
             logger.info("Poll updates start")
@@ -131,9 +133,9 @@ async def watch_updates():
 
 
 async def watch_versions():
-    while True:
-        await asyncio.sleep(WATCH_VERSIONS_INTERVAL)
+    await asyncio.sleep(20)
 
+    while True:
         try:
             logger.info("Poll versions start")
 
@@ -214,3 +216,5 @@ async def watch_versions():
                 logger.error(
                     f"Error polling versions: {error.text()}\n{error.traceback()}"
                 )
+
+        await asyncio.sleep(WATCH_VERSIONS_INTERVAL)
