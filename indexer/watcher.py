@@ -119,12 +119,21 @@ async def watch_updates():
             logger.info("Poll updates done")
 
         except Exception as exc:
-            is_index_error = (
+            if (
                 type(exc) is Exception
                 and exc.args
                 and type(exc.args[0]) is f95zone.IndexerError
-            )
-            if not is_index_error:
+            ):
+                index_error = exc.args[0]
+            else:
+                index_error = None
+
+            if index_error:
+                await asyncio.sleep(
+                    min(index_error.retry_delay, WATCH_UPDATES_INTERVAL)
+                )
+                continue
+            else:
                 logger.error(
                     f"Error polling updates: {error.text()}\n{error.traceback()}"
                 )
@@ -207,12 +216,21 @@ async def watch_versions():
             logger.info("Poll versions done")
 
         except Exception as exc:
-            is_index_error = (
+            if (
                 type(exc) is Exception
                 and exc.args
                 and type(exc.args[0]) is f95zone.IndexerError
-            )
-            if not is_index_error:
+            ):
+                index_error = exc.args[0]
+            else:
+                index_error = None
+
+            if index_error:
+                await asyncio.sleep(
+                    min(index_error.retry_delay, WATCH_VERSIONS_INTERVAL)
+                )
+                continue
+            else:
                 logger.error(
                     f"Error polling versions: {error.text()}\n{error.traceback()}"
                 )
