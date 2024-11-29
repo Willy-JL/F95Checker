@@ -512,12 +512,32 @@ async def thread_search(category: str, search: str, query: str, sort="likes", co
 def open_search_popup(query: str):
     results = None
     ran_query = query
+    categories = [
+        "Games",
+        "Comics",
+        "Animations",
+        "Assets",
+        # Doesn't seem to work
+        # "Mods",
+    ]
+    category = 0
+    searches = [
+        "Title",
+        "Creator",
+    ]
+    search = 0
     def _f95zone_search_popup():
-        nonlocal query
+        nonlocal query, category, search
 
+        imgui.set_next_item_width(globals.gui.scaled(115))
+        _, category = imgui.combo("###category", category, categories)
+        imgui.same_line()
+        imgui.set_next_item_width(globals.gui.scaled(85))
+        _, search = imgui.combo("###search", search, searches)
+        imgui.same_line()
         imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         activated, query = imgui.input_text_with_hint(
-            "###search",
+            "###query",
             "Search threads...",
             query,
             flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
@@ -527,7 +547,7 @@ def open_search_popup(query: str):
             async_thread.run(_f95zone_run_search())
 
         if not results:
-            imgui.text(f"Running F95zone search for query '{ran_query}'...")
+            imgui.text(f"Running F95zone search for {searches[search].lower()} '{ran_query}' in {categories[category].lower()} category...")
             imgui.text("Status:")
             imgui.same_line()
             if results is None:
@@ -536,7 +556,7 @@ def open_search_popup(query: str):
                 imgui.text("No results!")
             return
 
-        imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
+        imgui.text("Click on any of the results to add it, click Ok when you're finished.\n\n")
         for result in results:
             if result.id in globals.games:
                 imgui.push_disabled()
@@ -551,7 +571,12 @@ def open_search_popup(query: str):
     async def _f95zone_run_search():
         nonlocal results
         results = None
-        results = await thread_search("games", "search", ran_query)
+        ran_query = query
+        real_category = categories[category].lower()
+        real_search = searches[search].lower()
+        if real_search == "title":
+            real_search = "search"
+        results = await thread_search(real_category, real_search, ran_query)
     utils.push_popup(
         utils.popup, "F95zone thread search",
         _f95zone_search_popup,
