@@ -485,12 +485,14 @@ def cleanup_webpages():
 
 
 async def thread_search(category: str, search: str, query: str, sort="likes", count=15, page=1):
+    for char in "':-":
+        query = query.replace(char, " ")
     res = await fetch("GET", f95_latest_endpoint.format(
         cmd="list",
         cat=category,
         page=page,
         search=search,
-        query=query.replace("'", " ").replace(":", " "),
+        query=query,
         sort=sort,
         rows=count,
         ts=int(time.time()),
