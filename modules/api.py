@@ -58,9 +58,8 @@ from modules import (
 f95_domain = "f95zone.to"
 f95_host = "https://" + f95_domain
 f95_check_login_fast    = f95_host + "/sam/latest_alpha/"
-f95_check_login_page    = f95_host + "/account/"
 f95_login_page          = f95_host + "/login/"
-f95_notif_endpoint      = f95_host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
+f95_notif_endpoint      = f95_host + "/conversations/popup?_xfResponseType=json"
 f95_alerts_page         = f95_host + "/account/alerts/"
 f95_inbox_page          = f95_host + "/conversations/"
 f95_threads_page        = f95_host + "/threads/"
@@ -99,7 +98,6 @@ full_checks_sem: asyncio.Semaphore = None
 fast_checks_counter = 0
 full_checks_counter = CounterContext()
 images_counter = CounterContext()
-xf_token = ""
 downloads: dict[str, FileDownload] = {}
 
 
@@ -421,34 +419,10 @@ def raise_api_error(res: bytes | dict):
         return True
 
 
-async def is_logged_in(need_xf_token=False):
-    if not need_xf_token:
-        res = await fetch("GET", f95_check_login_fast)
-        return b'<pre>Sorry, you have to be <a href="/login">logged in</a> to access this page</a></pre>' not in res
-
-    global xf_token
-    async with request("GET", f95_check_login_page) as (res, req):
-        if not 200 <= req.status < 300:
-            res += await req.content.read()
-            if not raise_f95zone_error(res, return_login=True):
-                return False
-            # Check login page was not in 200 range, but error is not a login issue
-            async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
-                await f.write(res)
-            raise msgbox.Exc(
-                "Login assertion failure",
-                "Something went wrong checking the validity of your login session.\n"
-                "\n"
-                f"F95Zone replied with a status code of {req.status} at this URL:\n"
-                f"{str(req.real_url)}\n"
-                "\n"
-                "The response body has been saved to:\n"
-                f"{globals.self_path / 'login_broken.bin'}\n"
-                "Please submit a bug report on F95Zone or GitHub including this file.",
-                MsgBox.error
-            )
-        xf_token = str(re.search(rb'<\s*input.*?name\s*=\s*"_xfToken"\s*value\s*=\s*"(.+)"', res).group(1), encoding="utf-8")
-        return True
+async def is_logged_in():
+    res = await fetch("GET", f95_check_login_fast)
+    raise_f95zone_error(res)
+    return b'<pre>Sorry, you have to be <a href="/login">logged in</a> to access this page</a></pre>' not in res
 
 
 async def login():
@@ -480,10 +454,10 @@ async def login():
         )
 
 
-async def assert_login(need_xf_token=False):
-    if not await is_logged_in(need_xf_token):
+async def assert_login():
+    if not await is_logged_in():
         await login()
-        if not await is_logged_in(need_xf_token):
+        if not await is_logged_in():
             return False
     return True
 
@@ -909,20 +883,27 @@ async def full_check(game: Game, last_changed: int):
         globals.refresh_progress += 1
 
 
-async def check_notifs(standalone=True):
+async def check_notifs(standalone=True, retry=False):
     if standalone:
-        globals.refresh_total = 2
-    if not await assert_login(need_xf_token=True):
-        return
-    if standalone:
-        globals.refresh_progress = 1
+        globals.refresh_total = 1
+        globals.refresh_progress = 0
 
     res = None
     try:
-        res = await fetch("GET", f95_notif_endpoint.format(xf_token=xf_token))
+        res = await fetch("GET", f95_notif_endpoint)
         raise_f95zone_error(res)
         res = json.loads(res)
-        raise_f95zone_error(res)
+        if "visitor" not in res:
+            if retry:
+                raise msgbox.Exc(
+                    "Notifs check error",
+                    "The F95zone notification endpoint returned an unknown response",
+                    MsgBox.error,
+                    more=json.dumps(res, indent=4)
+                )
+            if not await assert_login():
+                return
+            return await check_notifs(retry=True)
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
         inbox  = int(res["visitor"]["conversations_unread"].replace(",", "").replace(".", ""))
     except Exception as exc:
