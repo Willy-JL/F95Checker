@@ -520,12 +520,12 @@ def open_search_popup(query: str):
         # Doesn't seem to work
         # "Mods",
     ]
-    category = 0
+    ran_category = category = 0
     searches = [
         "Title",
         "Creator",
     ]
-    search = 0
+    ran_search = search = 0
     def _f95zone_search_popup():
         nonlocal query, category, search
 
@@ -547,7 +547,7 @@ def open_search_popup(query: str):
             async_thread.run(_f95zone_run_search())
 
         if not results:
-            imgui.text(f"Running F95zone search for {searches[search].lower()} '{ran_query}' in {categories[category].lower()} category...")
+            imgui.text(f"Running F95zone search for {searches[ran_search].lower()} '{ran_query}' in {categories[ran_category].lower()} category...")
             imgui.text("Status:")
             imgui.same_line()
             if results is None:
@@ -572,11 +572,11 @@ def open_search_popup(query: str):
         nonlocal results
         results = None
         ran_query = query
-        real_category = categories[category].lower()
-        real_search = searches[search].lower()
-        if real_search == "title":
-            real_search = "search"
-        results = await thread_search(real_category, real_search, ran_query)
+        ran_category = categories[category].lower()
+        ran_search = searches[search].lower()
+        if ran_search == "title":
+            ran_search = "search"
+        results = await thread_search(ran_category, ran_search, ran_query)
     utils.push_popup(
         utils.popup, "F95zone thread search",
         _f95zone_search_popup,
