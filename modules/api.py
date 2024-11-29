@@ -65,7 +65,7 @@ f95_inbox_page          = f95_host + "/conversations/"
 f95_threads_page        = f95_host + "/threads/"
 f95_bookmarks_page      = f95_host + "/account/bookmarks?difference=0&page={page}"
 f95_watched_page        = f95_host + "/watched/threads?unread=0&page={page}"
-f95_qsearch_endpoint    = f95_host + "/quicksearch"
+f95_latest_endpoint     = f95_host + "/sam/latest_alpha/latest_data.php?cmd={cmd}&cat={cat}&page={page}&{search}={query}&sort={sort}&rows={rows}&_={ts}"
 f95_ddl_endpoint        = f95_host + "/sam/dddl.php"
 f95_attachments_hosts = (
     f"https://attachments.{f95_domain}/",
@@ -484,27 +484,82 @@ def cleanup_webpages():
             pass
 
 
-async def quick_search(query: str, login=False):
-    if login and not await assert_login(need_xf_token=True):
-        return
-    res = await fetch("POST", f95_qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
-    html = parser.html(res)
+async def thread_search(category: str, search: str, query: str, sort="likes", count=15, page=1):
+    res = await fetch("GET", f95_latest_endpoint.format(
+        cmd="list",
+        cat=category,
+        page=page,
+        search=search,
+        query=query.replace("'", " ").replace(":", " "),
+        sort=sort,
+        rows=count,
+        ts=int(time.time()),
+    ))
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    raise_f95zone_error(res)
     results = []
-    for row in html.find(parser.is_class("quicksearch-wrapper-wide")).find_all(parser.is_class("dataList-row")):
-        title = list(row.find_all(parser.is_class("dataList-cell")))[1]
-        url = title.find("a")
-        if not url:
-            continue
-        url = url.get("href")
-        id = utils.extract_thread_matches(url)
-        if not id:
-            continue
-        id = id[0].id
-        title = re.sub(r"\s+", r" ", title.text).strip()
-        if not title:
-            continue
-        results.append(SearchResult(title=title, url=url, id=id))
+    for result in res["msg"]["data"]:
+        results.append(SearchResult(
+            title=result["title"],
+            creator=result["creator"],
+            url=f95_threads_page + str(result["thread_id"]),
+            id=int(result["thread_id"]),
+        ))
     return results
+
+
+def open_search_popup(query: str):
+    results = None
+    ran_query = query
+    def _f95zone_search_popup():
+        nonlocal query
+
+        imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
+        activated, query = imgui.input_text_with_hint(
+            "###search",
+            "Search threads...",
+            query,
+            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
+        )
+        imgui.same_line()
+        if imgui.button(f"{icons.magnify} Search") or activated:
+            async_thread.run(_f95zone_run_search())
+
+        if not results:
+            imgui.text(f"Running F95zone search for query '{ran_query}'...")
+            imgui.text("Status:")
+            imgui.same_line()
+            if results is None:
+                imgui.text("Searching...")
+            else:
+                imgui.text("No results!")
+            return
+
+        imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
+        for result in results:
+            if result.id in globals.games:
+                imgui.push_disabled()
+            text = result.title
+            if result.creator:
+                text += f" [{result.creator}]"
+            clicked = imgui.selectable(text, False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
+            if result.id in globals.games:
+                imgui.pop_disabled()
+            if clicked:
+                async_thread.run(callbacks.add_games(result))
+    async def _f95zone_run_search():
+        nonlocal results
+        results = None
+        results = await thread_search("games", "search", ran_query)
+    utils.push_popup(
+        utils.popup, "F95zone thread search",
+        _f95zone_search_popup,
+        buttons=True,
+        closable=True,
+        outside=False
+    )
+    async_thread.run(_f95zone_run_search())
 
 
 async def import_url_shortcut(file: str | pathlib.Path):

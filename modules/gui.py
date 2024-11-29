@@ -3729,43 +3729,7 @@ class MainGUI():
                 self.add_box_valid = False
                 self.recalculate_ids = True
         elif activated:
-            async def _search_and_add(query: str):
-                login = None
-                results = None
-                def popup_content():
-                    nonlocal login, results
-                    if not results:
-                        imgui.text(f"Running F95Zone search for query '{query}'...")
-                        imgui.text("Status:")
-                        imgui.same_line()
-                        if login is None:
-                            imgui.text("Logging in...")
-                        elif not login:
-                            return True
-                        elif results is None:
-                            imgui.text("Searching...")
-                        else:
-                            imgui.text("No results!")
-                        return
-                    imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
-                    for result in results:
-                        if result.id in globals.games:
-                            imgui.push_disabled()
-                        clicked = imgui.selectable(result.title, False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
-                        if result.id in globals.games:
-                            imgui.pop_disabled()
-                        if clicked:
-                            async_thread.run(callbacks.add_games(result))
-                utils.push_popup(
-                    utils.popup, "Quick search",
-                    popup_content,
-                    buttons=True,
-                    closable=True,
-                    outside=False
-                )
-                login = True  # Kept login logic in case we need to require auth later down the line
-                results = await api.quick_search(query, login=False)
-            async_thread.run(_search_and_add(self.add_box_text))
+            api.open_search_popup(self.add_box_text)
             self.add_box_text = ""
             self.add_box_valid = False
             self.recalculate_ids = True

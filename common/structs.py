@@ -174,6 +174,7 @@ class ThreadMatch:
 @dataclasses.dataclass(slots=True)
 class SearchResult:
     title: str
+    creator: str
     url: str
     id: int
 
