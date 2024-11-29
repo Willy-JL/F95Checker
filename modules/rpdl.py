@@ -259,9 +259,7 @@ def open_search_popup(game: Game):
     query = "".join(char for char in game.name.replace("&", "And") if char in (string.ascii_letters + string.digits))
     ran_query = query
     def _rpdl_search_popup():
-        nonlocal results
         nonlocal query
-        nonlocal ran_query
 
         globals.gui.draw_game_downloads_header(game)
 
@@ -274,8 +272,8 @@ def open_search_popup(game: Game):
         )
         imgui.same_line()
         if imgui.button(f"{icons.magnify} Search") or activated:
-            ran_query = query
             async_thread.run(_rpdl_run_search())
+
         if not results:
             imgui.text(f"Running RPDL search for query '{ran_query}'...")
             imgui.text("Status:")
@@ -344,9 +342,9 @@ def open_search_popup(game: Game):
                 )
             imgui.end_table()
     async def _rpdl_run_search():
-        nonlocal results
-        nonlocal ran_query
+        nonlocal results, ran_query
         results = None
+        ran_query = query
         results = await torrent_search(ran_query)
     utils.push_popup(
         utils.popup, "RPDL torrent search",
