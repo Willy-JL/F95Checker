@@ -1422,8 +1422,8 @@ async def ddl_file_list(thread_id: int):
                 date=file["date"],
                 sha1=file["hash"],
             ))
-        if "[SPOILER=" in section:
-            section = re.match(r"\[SPOILER=(.+)\]", section).group(1)
+        if match := re.match(r"\[SPOILER=(.+)\]", section):
+            section = match.group(1)
         results["files"][section] = parsed
     return results
 
