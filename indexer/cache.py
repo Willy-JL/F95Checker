@@ -38,10 +38,13 @@ locks_lock = asyncio.Lock()
 locks: dict[asyncio.Lock] = {}
 version: str = None
 
-LAST_CACHED = "LAST_CACHED"
-CACHED_WITH = "CACHED_WITH"
-LAST_CHANGE = "LAST_CHANGE"
-INDEX_ERROR = "INDEX_ERROR"
+CACHE_KEYWORDS = (
+    LAST_CACHED := "LAST_CACHED",
+    CACHED_WITH := "CACHED_WITH",
+    LAST_CHANGE := "LAST_CHANGE",
+    EXPIRE_TIME := "EXPIRE_TIME",
+    INDEX_ERROR := "INDEX_ERROR",
+)
 NAME_FORMAT = "thread:{id}"
 
 
@@ -101,17 +104,21 @@ async def get_thread(id: int) -> dict[str, str]:
         return {INDEX_ERROR: thread[INDEX_ERROR]}
 
     # Remove internal fields from response
-    for key in (LAST_CACHED, CACHED_WITH, LAST_CHANGE, INDEX_ERROR):
+    for key in CACHE_KEYWORDS:
         if key in thread:
             del thread[key]
     return thread
 
 
 async def _maybe_update_thread_cache(id: int, name: str) -> None:
-    last_cached, cached_with = await redis.hmget(name, (LAST_CACHED, CACHED_WITH))
+    last_cached, cached_with, expire_time = await redis.hmget(
+        name, (LAST_CACHED, CACHED_WITH, EXPIRE_TIME)
+    )
+    if last_cached and not expire_time:
+        expire_time = int(last_cached) + CACHE_TTL
     if (
         not last_cached  # Never cached
-        or (time.time() - int(last_cached)) > CACHE_TTL  # Cache expired
+        or time.time() >= int(expire_time)  # Cache expired
         or cached_with != version  # Cached on different version
     ):
         await _update_thread_cache(id, name)
@@ -132,7 +139,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
         # Something went wrong, keep cache and retry sooner/later
         new_fields = {
             INDEX_ERROR: result.error_flag,
-            LAST_CACHED: int(now - CACHE_TTL + result.retry_delay),
+            EXPIRE_TIME: int(now + result.retry_delay),
         }
         if result is f95zone.ERROR_THREAD_MISSING:
             # F95zone responded but thread is missing, remove any previous cache
@@ -147,12 +154,12 @@ async def _update_thread_cache(id: int, name: str) -> None:
         new_fields = {
             **result,
             INDEX_ERROR: "",
-            LAST_CACHED: int(now),
+            EXPIRE_TIME: int(now + CACHE_TTL),
         }
         # Recache more often if using thread_version
         if "thread_version" in new_fields:
             del new_fields["thread_version"]
-            new_fields[LAST_CACHED] = int(now - CACHE_TTL + SHORT_TTL)
+            new_fields[EXPIRE_TIME] = int(now + SHORT_TTL)
         # Track last time that some meaningful data changed to tell clients to full check it
         if any(
             new_fields.get(key) != old_fields.get(key)
@@ -161,6 +168,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
             new_fields[LAST_CHANGE] = int(now)
             logger.info(f"Data for {name} changed")
 
+    new_fields[LAST_CACHED] = int(now)
     new_fields[CACHED_WITH] = version
     if LAST_CHANGE not in old_fields and LAST_CHANGE not in new_fields:
         new_fields[LAST_CHANGE] = int(now)
