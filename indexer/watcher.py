@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import datetime as dt
+import hashlib
 import json
 import logging
 import time
@@ -54,7 +55,7 @@ async def watch_updates():
             for category in WATCH_UPDATES_CATEGORIES:
                 logger.info(f"Poll category {category}")
 
-                cached_versions = cache.redis.pipeline()
+                cached_data = cache.redis.pipeline()
 
                 try:
                     async with f95zone.session.get(
@@ -84,36 +85,60 @@ async def watch_updates():
                 if updates["status"] != "ok":
                     raise Exception(f"Latest updates returned an error: {updates}")
 
+                # We compare version strings to detect updates
+                # But also make a hash of other attributes to detect metadata changes
+                # We don't save these values directly because we parse from thread content instead
+                # But using this meta hash allows to discover metadata changes sooner
                 names = []
-                versions = []
+                current_data = []
                 for update in updates["msg"]["data"]:
                     name = cache.NAME_FORMAT.format(id=update["thread_id"])
                     names.append(name)
-                    cached_versions.hget(name, "version")
-                    versions.append(update["version"])
+                    cached_data.hmget(name, "version", cache.HASHED_META)
+                    version = update["version"]
+                    if version == "Unknown":
+                        version = None
+                    meta = (
+                        update["title"],
+                        update["creator"],
+                        update["prefixes"],
+                        update["tags"],
+                        round(update["rating"], 1),
+                        update["cover"],
+                        update["screens"],
+                    )
+                    meta = hashlib.md5(json.dumps(meta).encode()).hexdigest()
+                    current_data.append((version, meta))
 
-                cached_versions = await cached_versions.execute()
+                cached_data = await cached_data.execute()
 
-                assert len(names) == len(versions) == len(cached_versions)
-                for name, version, cached_version in zip(
-                    names, versions, cached_versions
+                assert len(names) == len(current_data) == len(cached_data)
+                for name, (version, meta), (cached_version, cached_meta) in zip(
+                    names, current_data, cached_data
                 ):
                     if cached_version is None:
                         continue
-                    if not version or version == "Unknown":
-                        continue
 
-                    if version != cached_version:
+                    version_outdated = version and version != cached_version
+                    meta_outdated = meta != cached_meta
+
+                    if version_outdated or meta_outdated:
                         # Delete version too to avoid watch_versions() picking it up as mismatch
                         invalidate_cache.hdel(name, cache.LAST_CACHED, "version")
+                        invalidate_cache.hset(name, cache.HASHED_META, meta)
                         logger.info(
                             f"Updates: Invalidating cache for {name}"
-                            f" ({cached_version!r} -> {version!r})"
+                            + (
+                                f" ({cached_version!r} -> {version!r})"
+                                if version_outdated
+                                else " (meta changed)"
+                            )
                         )
 
             if len(invalidate_cache):
                 result = await invalidate_cache.execute()
-                invalidated = sum(ret != "0" for ret in result)
+                # Skip every 2nd result, those are setting HASHED_META
+                invalidated = sum(ret != "0" for ret in result[::2])
                 logger.info(f"Updates: Invalidated cache for {invalidated} threads")
 
             logger.info("Poll updates done")
