@@ -217,19 +217,22 @@ Supporters:
 
 Contributors:
 
-- [r37r05p3C7](https://github.com/r37r05p3C7): Tab idea and customization, many extension features
+- [r37r05p3C7](https://github.com/r37r05p3C7): Tab idea and customization, timeline, many extension features
 - [littleraisins](https://github.com/littleraisins): Fixes, features and misc ideas from the (defunct) 'X' fork
-- [Sam](https://f95zone.to/members/7899/): Added the version API for fast refreshing
+- [FaceCrap](https://github.com/FaceCrap): Multiple small fixes, improvements and finetuning
+- [blackop](https://github.com/disaster2395): Proxy support, temporary ratelimit fix, linux login fix
+- [Sam](https://f95zone.to/members/7899/): Support from F95zone side to make much this possible
 - [GR3ee3N](https://github.com/GR3ee3N): Optimized build workflows and other PRs
 - [batblue](https://f95zone.to/members/4143766/): MacOS suppport and feedback guy
 - [unroot](https://f95zone.to/members/1585550/): Linux support and feedback guy
 - [ploper26](https://f95zone.to/members/1295524/): Suggested HEAD requests for refreshing
 - [ascsd](https://f95zone.to/members/3977760/): Helped with brainstorming on some issues and gave some tips
-- [blackop](https://f95zone.to/members/4831191/): Helped fix some login window issues on Linux
 
 Community:
 
 [abada25](https://f95zone.to/members/1679118/) - [AtotehZ](https://f95zone.to/members/840616/) - [bitogno](https://f95zone.to/members/605466/) -
-[d_pedestrian](https://f95zone.to/members/2616862/) - [DarK x Duke](https://f95zone.to/members/1852502/) - [GrammerCop](https://f95zone.to/members/2114990/) -
-[MillenniumEarl](https://f95zone.to/members/1470797/) - [SmurfyBlue](https://f95zone.to/members/671/) - [yohudood](https://f95zone.to/members/26049/) -
+[BrockLanders](https://f95zone.to/members/2707184/) -
+[d_pedestrian](https://f95zone.to/members/2616862/) -
+[Danv](https://f95zone.to/members/2758580/) - [DarK x Duke](https://f95zone.to/members/1852502/) - [Dukez](https://f95zone.to/members/3182770/) - [GrammerCop](https://f95zone.to/members/2114990/) - [harem.king](https://f95zone.to/members/6410446/) -
+[MillenniumEarl](https://f95zone.to/members/1470797/) - [simple_human](https://f95zone.to/members/1056502/) - [SmurfyBlue](https://f95zone.to/members/671/) - [WhiteVanDaycare](https://f95zone.to/members/3509231/) - [yohudood](https://f95zone.to/members/26049/) -
 And others that I might be forgetting

@@ -2723,11 +2723,15 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
-            imgui.text("r37r05p3C7: Tab idea and customization, many extension features")
+            imgui.text("r37r05p3C7: Tab idea and customization, timeline, many extension features")
             imgui.bullet()
             imgui.text("littleraisins: Fixes, features and misc ideas from the (defunct) 'X' fork")
             imgui.bullet()
-            imgui.text("Sam: Added the version API for fast refreshing")
+            imgui.text("FaceCrap: Multiple small fixes, improvements and finetuning")
+            imgui.bullet()
+            imgui.text("blackop: Proxy support, temporary ratelimit fix, linux login fix")
+            imgui.bullet()
+            imgui.text("Sam: Support from F95zone side to make much this possible")
             imgui.bullet()
             imgui.text("GR3ee3N: Optimized build workflows and other PRs")
             imgui.bullet()
@@ -2738,8 +2742,6 @@ class MainGUI():
             imgui.text("ploper26: Suggested HEAD checks (no longer used)")
             imgui.bullet()
             imgui.text("ascsd: Helped with brainstorming on some issues and gave some tips")
-            imgui.bullet()
-            imgui.text("blackop: Helped fix some login window issues on Linux")
             imgui.spacing()
             imgui.spacing()
             imgui.text("Community:")
@@ -2747,11 +2749,17 @@ class MainGUI():
                 "abada25",
                 "AtotehZ",
                 "bitogno",
+                "BrockLanders",
                 "d_pedestrian",
+                "Danv",
                 "DarK x Duke",
+                "Dukez",
                 "GrammerCop",
+                "harem.king",
                 "MillenniumEarl",
+                "simple_human",
                 "SmurfyBlue",
+                "WhiteVanDaycare",
                 "yohudood",
                 "And others that I might be forgetting"
             ]:
