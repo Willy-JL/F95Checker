@@ -908,6 +908,11 @@ class MainGUI():
                     draw = draw or prev_scaling != globals.settings.interface_scaling
                     draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                     draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
+                    if not draw and api.downloads:
+                        for download in api.downloads.values():
+                            if download.state is download.State.Verifying:
+                                draw = True
+                                break
                     if draw:
                         draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
                     if draw_next > 0.0:
