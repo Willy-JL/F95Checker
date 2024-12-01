@@ -1396,8 +1396,10 @@ async def ddl_file_list(thread_id: int):
         return False
     raise_f95zone_error(res)
     results = res["msg"]
+    sections = results["files"]
+    results["files"] = {}
 
-    for section, files in results["files"].items():
+    for section, files in sections.items():
         parsed = []
         for title, file in files.items():
             if not isinstance(file, dict):
@@ -1420,6 +1422,8 @@ async def ddl_file_list(thread_id: int):
                 date=file["date"],
                 sha1=file["hash"],
             ))
+        if match := re.match(r"\[SPOILER=(.+)\]", section):
+            section = match.group(1)
         results["files"][section] = parsed
     return results
 
