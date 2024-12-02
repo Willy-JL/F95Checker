@@ -75,6 +75,11 @@ f95_attachments_hosts = (
 f95_no_ratelimit_urls = (
     f95_check_login_fast,
 )
+f95_ratelimit_messages = (
+    b"<title>429 Too Many Requests</title>",
+    b"<h1>429 Too Many Requests</h1>",
+    b"<title>Error 429</title>",
+)
 
 api_domain = "api.f95checker.dev"
 api_host = "https://" + api_domain
@@ -224,13 +229,16 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
                 **req_opts,
                 **kwargs
             ) as req:
-                if is_ratelimit_request and req.status == 429 and ratelimit_retries > 1:
+                if is_ratelimit_request and ratelimit_retries > 1 and req.status == 429:
                     ratelimit_retries -= 1
                     continue
                 if not read:
                     yield b"", req
                     break
                 res = await req.read()
+                if is_ratelimit_request and ratelimit_retries > 1 and any(msg in res for msg in f95_ratelimit_messages):
+                    ratelimit_retries -= 1
+                    continue
                 if req.headers.get("server") in ("ddos-guard", "", None) and re.search(rb"<title>DDOS-GUARD</title>", res, flags=re.IGNORECASE):
                     # Attempt DDoS-Guard bypass (credits to https://git.gay/a/ddos-guard-bypass)
                     ddos_guard_cookies.update(cookiedict(req.cookies))
@@ -315,11 +323,7 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                 "press refresh to login again.",
                 MsgBox.warn
             )
-        if any(msg in res for msg in (
-            b"<title>429 Too Many Requests</title>",
-            b"<h1>429 Too Many Requests</h1>",
-            b"<title>Error 429</title>",
-        )):
+        if any(msg in res for msg in f95_ratelimit_messages):
             raise msgbox.Exc(
                 "Rate limit",
                 "F95Zone servers are ratelimiting you,\n"
