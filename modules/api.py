@@ -98,6 +98,7 @@ session: aiohttp.ClientSession = None
 ssl_context: ssl.SSLContext = None
 webpage_prefix = "F95Checker-Temp-"
 f95_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
+f95_ratelimit_sleeping = CounterContext()
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
 fast_checks_counter = 0
@@ -218,6 +219,14 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
     ddos_guard_first_challenge = False
     is_ratelimit_request = url.startswith(f95_host) and not url.startswith(f95_no_ratelimit_urls)
     ratelimit_retries = 10
+    ratelimit_sleep = 0
+    _can_ratelimit = lambda: is_ratelimit_request and ratelimit_retries > 1
+    async def _do_ratelimit():
+        nonlocal ratelimit_retries, ratelimit_sleep
+        ratelimit_retries -= 1
+        with f95_ratelimit_sleeping:
+            ratelimit_sleep += 5
+            await asyncio.sleep(ratelimit_sleep)
     while retries and ratelimit_retries:
         try:
             # Only ratelimit when connecting to F95zone
@@ -229,15 +238,15 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
                 **req_opts,
                 **kwargs
             ) as req:
-                if is_ratelimit_request and ratelimit_retries > 1 and req.status == 429:
-                    ratelimit_retries -= 1
+                if _can_ratelimit() and req.status == 429:
+                    await _do_ratelimit()
                     continue
                 if not read:
                     yield b"", req
                     break
                 res = await req.read()
-                if is_ratelimit_request and ratelimit_retries > 1 and any(msg in res for msg in f95_ratelimit_messages):
-                    ratelimit_retries -= 1
+                if _can_ratelimit() and any(msg in res for msg in f95_ratelimit_messages):
+                    await _do_ratelimit()
                     continue
                 if req.headers.get("server") in ("ddos-guard", "", None) and re.search(rb"<title>DDOS-GUARD</title>", res, flags=re.IGNORECASE):
                     # Attempt DDoS-Guard bypass (credits to https://git.gay/a/ddos-guard-bypass)
