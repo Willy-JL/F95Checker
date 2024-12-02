@@ -1528,6 +1528,11 @@ def open_ddl_popup(game: Game):
                         async_thread.run(_download_ddl_link(results["session"], ddl_file))
                     if already_downloading:
                         imgui.pop_disabled()
+                        globals.gui.draw_hover_text(
+                            "This file is already downloading in F95Checker.\n"
+                            "You can find it in the sidebar, below the settings.",
+                            text=None,
+                        )
                     imgui.table_next_column()
                     imgui.text(ddl_file.title)
                     imgui.same_line()
