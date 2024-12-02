@@ -17,6 +17,9 @@ WATCH_UPDATES_CATEGORIES = (
     "games",
     "comics",
     "animations",
+    "assets",
+    # Doesn't seem to work
+    # "mods",
 )
 WATCH_VERSIONS_INTERVAL = dt.timedelta(hours=12).total_seconds()
 WATCH_VERSIONS_CHUNK_SIZE = 1000
