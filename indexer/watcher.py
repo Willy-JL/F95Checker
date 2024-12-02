@@ -74,11 +74,11 @@ async def watch_updates():
                     ) as req:
                         res = await req.read()
                 except Exception as exc:
-                    if index_error := f95zone.check_error(exc):
+                    if index_error := f95zone.check_error(exc, logger):
                         raise Exception(index_error)
                     raise
 
-                if index_error := f95zone.check_error(res):
+                if index_error := f95zone.check_error(res, logger):
                     raise Exception(index_error)
 
                 try:
@@ -200,11 +200,11 @@ async def watch_versions():
                             req.read(), cached_versions.execute()
                         )
                 except Exception as exc:
-                    if index_error := f95zone.check_error(exc):
+                    if index_error := f95zone.check_error(exc, logger):
                         raise Exception(index_error)
                     raise
 
-                if index_error := f95zone.check_error(res):
+                if index_error := f95zone.check_error(res, logger):
                     raise Exception(index_error)
 
                 try:

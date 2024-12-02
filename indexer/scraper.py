@@ -27,11 +27,11 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
                     res = await req.read()
                     break
             except Exception as exc:
-                if index_error := f95zone.check_error(exc):
+                if index_error := f95zone.check_error(exc, logger):
                     return index_error
                 raise
 
-    if index_error := f95zone.check_error(res):
+    if index_error := f95zone.check_error(res, logger):
         return index_error
 
     if req.status in (403, 404):
@@ -53,10 +53,10 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
         ) as req:
             res = await req.read()
     except Exception as exc:
-        if index_error := f95zone.check_error(exc):
+        if index_error := f95zone.check_error(exc, logger):
             return index_error
         raise
-    if index_error := f95zone.check_error(res):
+    if index_error := f95zone.check_error(res, logger):
         return index_error
     try:
         versions = json.loads(res)

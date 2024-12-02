@@ -93,7 +93,7 @@ async def lifespan(version: str):
         session = None
 
 
-def check_error(res: bytes | Exception) -> IndexerError | None:
+def check_error(res: bytes | Exception, logger: logging.Logger) -> IndexerError | None:
     if isinstance(res, bytes):
         if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
             logger.error("Logged out of F95zone")
