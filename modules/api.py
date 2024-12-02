@@ -872,7 +872,7 @@ async def full_check(game: Game, last_changed: int):
             old_name = thread["name"]
 
         fetch_image = game.image.missing
-        if not game.image_url == "custom" and not breaking_keep_old_image:
+        if game.image_url != "custom" and not breaking_keep_old_image:
             fetch_image = fetch_image or (thread["image_url"] != game.image_url)
 
         unknown_tags_flag = game.unknown_tags_flag
@@ -899,7 +899,8 @@ async def full_check(game: Game, last_changed: int):
             game.tags = thread["tags"]
             game.unknown_tags = thread["unknown_tags"]
             game.unknown_tags_flag = unknown_tags_flag
-            game.image_url = thread["image_url"]
+            if fetch_image:
+                game.image_url = thread["image_url"]
             game.downloads = thread["downloads"]
 
             changed_name = thread["name"] != old_name
