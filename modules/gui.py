@@ -9,6 +9,7 @@ import itertools
 import pathlib
 import pickle
 import platform
+import shutil
 import sys
 import threading
 import time
@@ -5032,6 +5033,8 @@ class MainGUI():
                     imgui.same_line()
                     if imgui.button(icons.trash_can_outline):
                         download.path.unlink(missing_ok=True)
+                        if download.extracted:
+                            shutil.rmtree(download.extracted, ignore_errors=True)
                         to_remove.append(name)
             for name in to_remove:
                 del api.downloads[name]
