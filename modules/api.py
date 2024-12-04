@@ -1349,6 +1349,7 @@ async def download_file(name: str, download: FileDownload):
             else:
                 downloads_dir = pathlib.Path.home() / "Downloads"
             download.path = downloads_dir / name
+        download.path.parent.mkdir(parents=True, exist_ok=True)
         async with aiofiles.open(download.path, "wb") as file:
             download.state = download.State.Downloading
 
