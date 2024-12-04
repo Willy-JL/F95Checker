@@ -1522,12 +1522,14 @@ def open_ddl_popup(game: Game):
                             link, _ = await ddl_file_link(session_id, file)
                             callbacks.open_webpage(link)
                         async_thread.run(_open_ddl_link(results["session"], ddl_file))
+                    globals.gui.draw_hover_text(f"Open download link in browser", text=None)
                     imgui.same_line()
                     if imgui.button(icons.content_copy):
                         async def _copy_ddl_link(session_id: str, file: DdlFile):
                             link, _ = await ddl_file_link(session_id, file)
                             callbacks.clipboard_copy(link)
                         async_thread.run(_copy_ddl_link(results["session"], ddl_file))
+                    globals.gui.draw_hover_text(f"Copy download link to clipboard", text=None)
                     imgui.same_line()
                     if already_downloading := ddl_file.filename in downloads:
                         imgui.push_disabled()
@@ -1548,6 +1550,8 @@ def open_ddl_popup(game: Game):
                             "You can find it in the sidebar, below the settings.",
                             text=None,
                         )
+                    else:
+                        globals.gui.draw_hover_text(f"Start downloading in F95Checker", text=None)
                     imgui.table_next_column()
                     imgui.text(ddl_file.title)
                     imgui.same_line()
