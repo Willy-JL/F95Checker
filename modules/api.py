@@ -1397,15 +1397,14 @@ async def download_file(name: str, download: FileDownload):
 
         if archive_format := shutil._find_unpack_format(str(download.path)):
             download.state = download.State.Extracting
-            extract_path = download.path.with_suffix("")
+            download.extracted = download.path.with_suffix("")
             await asyncio.get_event_loop().run_in_executor(
                 None,
                 shutil.unpack_archive,
                 download.path,
-                extract_path,
+                download.extracted,
                 archive_format,
             )
-            download.extracted = extract_path
 
     except Exception:
         download.error = error.text()
