@@ -4968,7 +4968,7 @@ class MainGUI():
                     )
                 elif download.state == download.State.Stopped:
                     if imgui.button(icons.folder_open_outline):
-                        async_thread.run(callbacks.default_open(download.path.parent))
+                        async_thread.run(callbacks.default_open(download.extracted or download.path.parent))
                     imgui.same_line()
                     if not errored:
                         if imgui.button(icons.open_in_app):
