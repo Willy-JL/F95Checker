@@ -4621,7 +4621,7 @@ class MainGUI():
                 "This setting indicates what folder you keep all your games in (if you're organized). Executables inside this folder are "
                 "remembered relatively, this means you can select the executables with this setting on, then move your entire folder, update this "
                 "setting, and all the executables are still valid.\n"
-                "This setting is OS dependent, it has different values for different operating systems you use.\n\n"
+                "This setting is OS dependent, it has different values for different operating systems you use F95Checker on.\n\n"
                 f"Current value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
             )
             if imgui.button("Choose", width=right_width):
@@ -4638,9 +4638,10 @@ class MainGUI():
 
             draw_settings_label(
                 "Downloads dir:",
-                "Where downloads will be saved to. Currently, only F95zone Donor DDL downloads are supported.\n"
-                "This setting is OS dependent, it has different values for different operating systems you use.\n\n"
-                f"Current value: {set.downloads_dir.get(globals.os) or 'Unset'}\n\n"
+                "Where downloads will be saved to. Currently, only F95zone Donor DDL downloads are supported in F95Checker, but this "
+                "setting is also used for saving RPDL torrent files.\n"
+                "This setting is OS dependent, it has different values for different operating systems you use F95Checker on.\n\n"
+                f"Current value: {set.downloads_dir.get(globals.os) or pathlib.Path.home() / 'Downloads'}\n\n"
                 "For other download types, you may want to consider a download manager like JDownloader2, and configure it to monitor the "
                 "clipboard: then you will be able to copy links and have them automatically download in your external download manager."
             )
