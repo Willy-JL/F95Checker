@@ -2,6 +2,7 @@ import asyncio
 import json
 import pathlib
 import string
+import tempfile
 
 import bencode2
 import imgui
@@ -13,8 +14,9 @@ from common.structs import (
 )
 from external import async_thread
 from modules.api import (
-    request,
     fetch,
+    request,
+    temp_prefix,
 )
 from modules import (
     callbacks,
@@ -235,7 +237,7 @@ def has_authenticated_tracker(res: bytes | dict):
     return bool(tracker.split("/announce")[-1])
 
 
-async def open_torrent_file(torrent_id: int):
+async def get_torrent_file(torrent_id: int):
     for _ in range(2):
         if not await assert_login():
             return
@@ -247,11 +249,25 @@ async def open_torrent_file(torrent_id: int):
         break
     else:  # Didn't break
         return
+    return res
+
+
+async def save_torrent_file(torrent_id: int):
+    if not (res := await get_torrent_file(torrent_id)):
+        return
     name = bencode2.bdecode(res).get(b"info", {}).get(b"name", str(torrent_id).encode()).decode()
     torrent = (pathlib.Path.home() / "Downloads") / f"{name}.torrent"
     torrent.parent.mkdir(parents=True, exist_ok=True)
     torrent.write_bytes(res)
     await callbacks.default_open(str(torrent))
+
+
+async def open_torrent_file(torrent_id: int):
+    if not (res := await get_torrent_file(torrent_id)):
+        return
+    with tempfile.NamedTemporaryFile("wb", prefix=temp_prefix, suffix=".torrent", delete=False) as f:
+        f.write(res)
+    await callbacks.default_open(f.name)
 
 
 def open_search_popup(game: Game):
@@ -295,12 +311,6 @@ def open_search_popup(game: Game):
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
             imgui.table_next_column()
             imgui.table_header("Actions")
-            globals.gui.draw_hover_text(
-                f"The {icons.open_in_new} view button will open the torrent webpage with your selected browser.\n"
-                f"The {icons.download_multiple} download button will save the torrent file to your user's downloads\n"
-                "folder and open it with the default torrenting application.\n",
-                text=None
-            )
             imgui.table_next_column()
             imgui.table_header("Title")
             imgui.table_next_column()
@@ -318,9 +328,15 @@ def open_search_popup(game: Game):
                 imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
                 if imgui.button(icons.open_in_new):
                     callbacks.open_webpage(rpdl_torrent_page.format(id=result.id))
+                globals.gui.draw_hover_text(f"Open the webpage in browser", text=None)
                 imgui.same_line()
                 if imgui.button(icons.download_multiple):
+                    async_thread.run(save_torrent_file(result.id))
+                globals.gui.draw_hover_text(f"Save torrent file to downloads and open with torrent client", text=None)
+                imgui.same_line()
+                if imgui.button(icons.open_in_app):
                     async_thread.run(open_torrent_file(result.id))
+                globals.gui.draw_hover_text(f"Open temporary torrent file with torrent client", text=None)
                 imgui.table_next_column()
                 imgui.text(result.title)
                 imgui.table_next_column()

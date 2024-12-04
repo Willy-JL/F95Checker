@@ -96,7 +96,7 @@ insecure_ssl_allowed_hosts = (
 updating = False
 session: aiohttp.ClientSession = None
 ssl_context: ssl.SSLContext = None
-webpage_prefix = "F95Checker-Temp-"
+temp_prefix = "F95Checker-Temp-"
 f95_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
 f95_ratelimit_sleeping = CounterContext()
 fast_checks_sem: asyncio.Semaphore = None
@@ -186,7 +186,7 @@ def setup():
     finally:
 
         async_thread.wait(session.close())
-        cleanup_webpages()
+        cleanup_temp_files()
 
 
 def is_f95zone_url(url: str):
@@ -484,13 +484,13 @@ async def download_webpage(url: str):
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
                 elem.attrs[key] = f95_host + value
-    with tempfile.NamedTemporaryFile("wb", prefix=webpage_prefix, suffix=".html", delete=False) as f:
+    with tempfile.NamedTemporaryFile("wb", prefix=temp_prefix, suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return pathlib.Path(f.name).as_uri()
 
 
-def cleanup_webpages():
-    for item in pathlib.Path(tempfile.gettempdir()).glob(f"{webpage_prefix}*"):
+def cleanup_temp_files():
+    for item in pathlib.Path(tempfile.gettempdir()).glob(f"{temp_prefix}*"):
         try:
             item.unlink()
         except Exception:
