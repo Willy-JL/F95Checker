@@ -1,5 +1,6 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
 import functools
+import gc
 import pathlib
 
 from PIL import (
@@ -167,6 +168,7 @@ class ImageHelper:
             gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
         self.frames.clear()
         self.applied = True
+        gc.collect()
 
     @property
     def texture_id(self):
@@ -201,6 +203,8 @@ class ImageHelper:
         return self.texture_ids[self.frame]
 
     def render(self, width: int, height: int, *args, **kwargs):
+        if self.loaded and not (self.missing or self.invalid) and not self.applied:
+            self.apply()
         if imgui.is_rect_visible(width, height):
             if self.animated or self.loading:  # added
                 global redraw  # added
