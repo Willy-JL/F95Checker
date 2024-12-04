@@ -11,10 +11,17 @@ from PIL import (
 import OpenGL.GL as gl
 import imgui
 
-from external import sync_thread # added
+from external import sync_thread  # added
 
 redraw = False  # added
+_apply_texture_queue = []
 _dummy_texture_id = None
+
+
+def apply_textures():
+    for apply_texture in reversed(_apply_texture_queue):
+        apply_texture()
+        _apply_texture_queue.remove(apply_texture)
 
 
 def dummy_texture_id():
@@ -152,6 +159,7 @@ class ImageHelper:
         image.close()
         self.loaded = True
         self.loading = False
+        _apply_texture_queue.append(self.apply)
 
     def apply(self):
         if self.texture_ids:
@@ -188,7 +196,7 @@ class ImageHelper:
             return dummy_texture_id()
 
         if not self.applied:
-            self.apply()
+            return dummy_texture_id()
 
         if self.animated:
             if self.prev_time != (new_time := imgui.get_time()):
@@ -203,8 +211,6 @@ class ImageHelper:
         return self.texture_ids[self.frame]
 
     def render(self, width: int, height: int, *args, **kwargs):
-        if self.loaded and not (self.missing or self.invalid) and not self.applied:
-            self.apply()
         if imgui.is_rect_visible(width, height):
             if self.animated or self.loading:  # added
                 global redraw  # added

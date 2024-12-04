@@ -867,6 +867,7 @@ class MainGUI():
                 glfw.poll_events()
                 self.input_chars, self.poll_chars = self.poll_chars, self.input_chars
                 self.impl.process_inputs()
+                imagehelper.apply_textures()
                 # Window state handling
                 size = imgui.io.display_size
                 mouse_pos = imgui.io.mouse_pos
