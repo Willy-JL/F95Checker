@@ -256,7 +256,12 @@ async def save_torrent_file(torrent_id: int):
     if not (res := await get_torrent_file(torrent_id)):
         return
     name = bencode2.bdecode(res).get(b"info", {}).get(b"name", str(torrent_id).encode()).decode()
-    torrent = (pathlib.Path.home() / "Downloads") / f"{name}.torrent"
+    downloads_dir = globals.settings.downloads_dir.get(globals.os)
+    if downloads_dir:
+        downloads_dir = pathlib.Path(downloads_dir)
+    else:
+        downloads_dir = pathlib.Path.home() / "Downloads"
+    torrent = downloads_dir / f"{name}.torrent"
     torrent.parent.mkdir(parents=True, exist_ok=True)
     torrent.write_bytes(res)
     await callbacks.default_open(str(torrent))
