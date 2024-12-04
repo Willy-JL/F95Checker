@@ -335,11 +335,11 @@ def open_search_popup(game: Game):
                     callbacks.open_webpage(rpdl_torrent_page.format(id=result.id))
                 globals.gui.draw_hover_text(f"Open the webpage in browser", text=None)
                 imgui.same_line()
-                if imgui.button(icons.download_multiple):
+                if imgui.button(icons.floppy):
                     async_thread.run(save_torrent_file(result.id))
                 globals.gui.draw_hover_text(f"Save torrent file to downloads and open with torrent client", text=None)
                 imgui.same_line()
-                if imgui.button(icons.open_in_app):
+                if imgui.button(icons.download_multiple):
                     async_thread.run(open_torrent_file(result.id))
                 globals.gui.draw_hover_text(f"Open temporary torrent file with torrent client", text=None)
                 imgui.table_next_column()
