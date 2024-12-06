@@ -99,6 +99,7 @@ class DaemonPipe:
                 return json.loads(await self.proc.stdout.readline())
             except json.JSONDecodeError:
                 pass
+            await asyncio.sleep(0)
         raise self.DaemonPipeExit()
 
     def __enter__(self):
