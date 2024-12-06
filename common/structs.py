@@ -63,15 +63,18 @@ class DaemonProcess:
 
     @staticmethod
     def kill(proc):
-        # Multiprocessing
-        if getattr(proc, "exitcode", False) is None:
-            proc.kill()
-        # Asyncio subprocess
-        elif getattr(proc, "returncode", False) is None:
-            proc.kill()
-        # Standard subprocess
-        elif getattr(proc, "poll", lambda: False)() is None:
-            proc.kill()
+        try:
+            # Multiprocessing
+            if getattr(proc, "exitcode", False) is None:
+                proc.kill()
+            # Asyncio subprocess
+            elif getattr(proc, "returncode", False) is None:
+                proc.kill()
+            # Standard subprocess
+            elif getattr(proc, "poll", lambda: False)() is None:
+                proc.kill()
+        except Exception:
+            pass
 
     def __enter__(self):
         return self
@@ -91,7 +94,7 @@ class DaemonPipe:
         self.daemon = DaemonProcess(proc)
 
     async def get_async(self):
-        while self.proc.returncode is None:
+        while self.proc.returncode is None and not self.proc.stdout.at_eof():
             try:
                 return json.loads(await self.proc.stdout.readline())
             except json.JSONDecodeError:
