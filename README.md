@@ -172,7 +172,7 @@ This project makes a compromise: I run an independent cache API `api.f95checker.
 the threads from F95zone when someone refreshes them from F95Checker, parse them for relevant data and then cache this data. When you refresh, you only get data from this
 dedicated API, not directly from F95zone. This data is cached for up to 7 days, with some exceptions:
 - it monitors F95zone Latest Updates every 5 minutes, most updates are detected within this time frame
-- all version numbers tracked by F95zone Latest Updates are checked every 12 hours, this detects unpublished changes
+- all version numbers tracked by F95zone Latest Updates are checked every 12 hours, this detects unpromoted updates
 - threads not tracked by F95zone Latest Updates at all are checked at least every 2 days
 - other thread types and other changes not in F95zone Latest Updates are checked at least every 7 days
 - if a requested thread does not exist, it will not be checked again for 14 days
