@@ -1196,12 +1196,12 @@ async def check_updates():
         if macos_app := (globals.frozen and globals.os is Os.MacOS):
             src = next(asset_path.glob("*.app")).absolute()  # F95Checker-123/F95Checker.app
             dst = globals.self_path.parent.parent.absolute()  # F95Checker.app/Contents/MacOS
-        ppid = os.getppid()  # main.py launches a subprocess for the main script, so we need the parent pid
+        pid = os.getpid()
         if globals.os is Os.Windows:
             script = "\n".join((
                 "try {"
                 'Write-Host "Waiting for F95Checker to quit..."',
-                f"Wait-Process -Id {ppid}",
+                f"Wait-Process -Id {pid}",
                 'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
                 'Write-Host "Deleting old version files..."',
@@ -1212,7 +1212,11 @@ async def check_updates():
                     "Remove-Item -Force -Recurse",
                 )),
                 'Write-Host "Moving new version files..."',
-                f"Get-ChildItem -Force -Path {shlex.quote(str(src))} | Select-Object -ExpandProperty FullName | Move-Item -Force -Destination {shlex.quote(str(dst))}",
+                " | ".join((
+                    f"Get-ChildItem -Force -Path {shlex.quote(str(src))}",
+                    "Select-Object -ExpandProperty FullName",
+                    f"Move-Item -Force -Destination {shlex.quote(str(dst))}",
+                )),
                 'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
                 'Write-Host "Starting F95Checker..."',
@@ -1238,7 +1242,7 @@ async def check_updates():
                     pass
             script = "\n".join([
                 shlex.join(["echo", "Waiting for F95Checker to quit..."]),
-                shlex.join(["tail", "--pid", str(ppid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(ppid), "+r", "1"]),
+                shlex.join(["tail", "--pid", str(pid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(pid), "+r", "1"]),
                 shlex.join(["echo", "Sleeping 3 seconds..."]),
                 shlex.join(["sleep", "3"]),
                 shlex.join(["echo", "Starting F95Checker..."]),
