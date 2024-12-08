@@ -453,7 +453,7 @@ class MainGUI():
                     " - Your timeout value is too low, try increasing it in settings\n"
                     " - The server is experiencing difficulties, try waiting a bit and retrying\n"
                     " - The web address is blocked in your country, network, antivirus, DNS or firewall, try a VPN\n"
-                    " - You are refreshing with too many workers, try lowering them in settings\n"
+                    " - You are refreshing with too many connections, try lowering them in settings\n"
                     " - Your retries value is too low, try increasing it in settings (last resort!)",
                     MsgBox.warn,
                     more=tb
@@ -3866,16 +3866,25 @@ class MainGUI():
                     utils.push_popup(
                         msgbox.msgbox, "About refreshing",
                         "Refreshing is the process by which F95Checker goes through your games and checks\n"
-                        "if they have received updates. To keep it fast and smooth this is done by checking\n"
-                        "version number changes in chunks with a dedicated API.\n"
+                        "if they have received updates, aswell as syncing other game info.\n"
+                        "To keep it fast and smooth while avoiding excessive stress on F95zone servers, this\n"
+                        "is done using a dedicated F95Checker Cache API.\n"
                         "\n"
-                        "This means that sometimes it might not be able to pick up some subtle changes and\n"
-                        "small updates. To fix this it also runs a full refresh every week or so (each game has\n"
-                        "its own timer).\n"
+                        "This Cache API gets data from F95zone, parses the relevant details, then saves them for\n"
+                        "up to 7 days. To make sure you don't fall behind, it also monitors the F95zone Latest\n"
+                        "Updates to invalidate cache when games are updated / some details change. However,\n"
+                        "not all details are tracked by Latest Updates, so games are still periodically checked.\n"
+                        "There's a bit more complexity to it, but that's the gist of it. Check the OP / README for\n"
+                        "a more detailed explanation and all the caveats and behaviors.\n"
                         "\n"
-                        "So a full recheck of a game will happen every time the version changes, or every 7 days.\n"
-                        "You can force full rechecks for single games or for the whole list with the right click\n"
-                        "menu on the game and on the refresh button.",
+                        "All this data can become quite large if you have lots of games (~2MiB for 100 games) so\n"
+                        "fetching everything at each refresh would be quite expensive. Instead F95Checker will\n"
+                        "ask the Cache API when each game last changed any of its details (which will also update\n"
+                        "the cache if needed) 10 games at a time, then fetch the full game details only for those\n"
+                        "that have changed since the last refresh.\n"
+                        "You can force full rechecks to fetch all cached game data again, either for single games\n"
+                        "or for the whole list, with the right click menu on the game and on the refresh button,\n"
+                        "but this usually should not be necessary.",
                         MsgBox.info
                     )
                 imgui.end_popup()
@@ -4762,10 +4771,10 @@ class MainGUI():
             draw_settings_checkbox("refresh_completed_games")
 
             draw_settings_label(
-                "Workers:",
-                "Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
-                "connection at a time. Having more workers means more connections happen simultaneously, but having too many "
-                "will freeze the program. In most cases 20 workers is a good compromise."
+                "Connections:",
+                "Games are checked 10 at a time for updates, and of those only those with new data are fetched for all game "
+                "info from the F95Checker Cache API. This setting determines how many of those can be fetched simultaneously. "
+                "In most cases 10 should be fine, but lower it if your internet struggles when doing a full refresh."
             )
             changed, value = imgui.drag_int("###refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
             set.refresh_workers = min(max(value, 1), 100)
@@ -4774,9 +4783,10 @@ class MainGUI():
 
             draw_settings_label(
                 "Timeout:",
-                "To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
-                "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
-                "A timeout 10-30 seconds is most typical."
+                "To check for updates, notifications and other functionality, F95Checker sends web requests (to its dedicated "
+                "Cache API, to F95zone itself, and to other third-parties like RPDL.net if you so choose). However this can sometimes "
+                "go  wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails.\n"
+                "A timeout of 10-30 seconds is most typical."
             )
             changed, value = imgui.drag_int("###request_timeout", set.request_timeout, change_speed=0.6, min_value=1, max_value=120, format="%d sec")
             set.request_timeout = min(max(value, 1), 120)
@@ -4785,11 +4795,11 @@ class MainGUI():
 
             draw_settings_label(
                 "Retries:",
-                "While refreshing, a lot of connections are made to F95Zone very quickly, so some might fail. This setting "
-                "determines how many times a failed connection will be reattempted before failing completely. However these "
-                "connection errors are often caused by misconfigured workers and timeout values, so try to tinker with those "
-                "instead of the retries value. This setting should only be used if you know your connection is very unreliable. "
-                "Otherwise 2 max retries are usually fine for stable connections."
+                "While refreshing, a lot of web requests are made quite quickly, so some of them might fail. This setting "
+                "determines how many times a failed request will be reattempted before failing completely. However these "
+                "connection errors are often caused by misconfigured connections and timeout values, so try to tinker with those "
+                "instead of the retries value. This setting should only be used if you know your connection is very unreliable.\n"
+                "Usually 2 max retries are fine for stable connections."
             )
             changed, value = imgui.drag_int("###max_retries", set.max_retries, change_speed=0.05, min_value=0, max_value=10)
             set.max_retries = min(max(value, 0), 10)
