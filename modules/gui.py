@@ -1021,8 +1021,8 @@ class MainGUI():
                         time.sleep(1 / 15)
                 else:
                     # Tray bg mode and not paused
-                    if self.hidden and not self.bg_mode_paused:
-                        if not self.bg_mode_timer and not utils.is_refreshing():
+                    if self.hidden and not self.bg_mode_paused and not utils.is_refreshing():
+                        if not self.bg_mode_timer:
                             # Schedule next refresh
                             self.bg_mode_timer = time.time() + globals.settings.bg_refresh_interval * 60
                             self.tray.update_status()
@@ -1031,7 +1031,7 @@ class MainGUI():
                             self.bg_mode_timer = None
                             utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
                         elif globals.settings.check_notifs:
-                            if not self.bg_mode_notifs_timer and not utils.is_refreshing():
+                            if not self.bg_mode_notifs_timer:
                                 # Schedule next notif check
                                 self.bg_mode_notifs_timer = time.time() + globals.settings.bg_notifs_interval * 60
                                 self.tray.update_status()
