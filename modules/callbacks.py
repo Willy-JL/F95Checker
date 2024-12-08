@@ -52,7 +52,7 @@ def update_start_with_system(toggle: bool):
                 config.optionxform = lambda option: option
                 config.add_section("Desktop Entry")
                 config.set("Desktop Entry", "Name", "F95Checker")
-                config.set("Desktop Entry", "Comment", "An update checker tool for (NSFW) games on the F95Zone platform")
+                config.set("Desktop Entry", "Comment", "An update checker tool for (NSFW) games on the F95zone platform")
                 config.set("Desktop Entry", "Type", "Application")
                 config.set("Desktop Entry", "Exec", globals.start_cmd)
                 with globals.autostart.open("w") as f:
@@ -472,7 +472,7 @@ def convert_custom_to_f95zone(game: Game):
     if not new_id:
         utils.push_popup(
             msgbox.msgbox, "Invalid URL",
-            "The URL you provided for this game is not a valid F95Zone thread link!",
+            "The URL you provided for this game is not a valid F95zone thread link!",
             MsgBox.warn
         )
         return

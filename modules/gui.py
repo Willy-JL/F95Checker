@@ -445,14 +445,15 @@ class MainGUI():
             if isinstance(exc, (aiohttp.ClientError, asyncio.TimeoutError)):
                 utils.push_popup(
                     msgbox.msgbox, "Connection error",
-                    "A connection request to F95Zone has failed:\n"
+                    "A connection request has failed:\n"
                     f"{err}\n"
                     "\n"
                     "Possible causes include:\n"
-                    " - You are refreshing with too many workers, try lowering them in settings\n"
+                    " - You're not connected to the internet, or your connection is unstable\n"
                     " - Your timeout value is too low, try increasing it in settings\n"
-                    " - F95Zone is experiencing difficulties, try waiting a bit and retrying\n"
-                    " - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n"
+                    " - The server is experiencing difficulties, try waiting a bit and retrying\n"
+                    " - The web address is blocked in your country, network, antivirus, DNS or firewall, try a VPN\n"
+                    " - You are refreshing with too many workers, try lowering them in settings\n"
                     " - Your retries value is too low, try increasing it in settings (last resort!)",
                     MsgBox.warn,
                     more=tb
@@ -2432,10 +2433,10 @@ class MainGUI():
                     if game.custom:
                         imgui.text(
                             "This is a custom game. You can edit all its details below (except downloads). "
-                            "If you wish to convert it back to a F95Zone game, then make sure to fill the "
-                            "game url with a valid F95Zone thread url before pressing the button below."
+                            "If you wish to convert it back to a F95zone game, then make sure to fill the "
+                            "game url with a valid F95zone thread url before pressing the button below."
                         )
-                        if imgui.button(f"{icons.puzzle_remove} Convert to F95Zone game"):
+                        if imgui.button(f"{icons.puzzle_remove} Convert to F95zone game"):
                             callbacks.convert_custom_to_f95zone(game)
                         imgui.text("")
                         imgui.push_item_width(-imgui.FLOAT_MIN)
@@ -2588,9 +2589,9 @@ class MainGUI():
                         imgui.pop_item_width()
                     else:
                         imgui.text(
-                            "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95Zone. "
+                            "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95zone. "
                             "This is useful for games that have been removed for breaking forum rules, or for adding games from other platforms to your library. Custom "
-                            "games allow you to edit all their details (except downloads) that would normally be fetched from F95Zone."
+                            "games allow you to edit all their details (except downloads) that would normally be fetched from F95zone."
                         )
                         if imgui.button(f"{icons.puzzle_check} Convert to custom game"):
                             callbacks.convert_f95zone_to_custom(game)
@@ -2676,7 +2677,7 @@ class MainGUI():
             imgui.spacing()
             width = imgui.get_content_region_available_width()
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
-            if imgui.button(f"{icons.open_in_new} F95Zone Thread", width=btn_width):
+            if imgui.button(f"{icons.open_in_new} F95zone Thread", width=btn_width):
                 callbacks.open_webpage(tool_page)
             imgui.same_line()
             if imgui.button(f"{icons.github} GitHub Repo", width=btn_width):
@@ -2693,15 +2694,15 @@ class MainGUI():
             imgui.spacing()
             imgui.spacing()
             imgui.text("However, F95Checker is actively developed by one person only, WillyJL, and not with the aim of profit but out of personal "
-                       "interest and benefit for the whole F95Zone community. Donations are although greatly appreciated and aid the development "
+                       "interest and benefit for the whole F95zone community. Donations are although greatly appreciated and aid the development "
                        "of this software. You can find donation links above.")
             imgui.spacing()
             imgui.spacing()
             imgui.text("If you find bugs or have some feedback, don't be afraid to let me know either on GitHub (using issues or pull requests) "
-                       "or on F95Zone (in the thread comments or in direct messages).")
+                       "or on F95zone (in the thread comments or in direct messages).")
             imgui.spacing()
             imgui.spacing()
-            imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95Zone platform.")
+            imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95zone platform.")
             imgui.spacing()
             imgui.spacing()
             imgui.text("")
@@ -3727,10 +3728,10 @@ class MainGUI():
                 utils.push_popup(
                     msgbox.msgbox, "About the bottom bar",
                     "This is the filter/add bar. By typing inside it you can search your game list.\n"
-                    "Pressing enter will search F95Zone for a matching thread and ask if you wish to\n"
+                    "Pressing enter will search F95zone for a matching thread and ask if you wish to\n"
                     "add it to your list.\n"
                     "\n"
-                    "When you instead paste a link to a F95Zone thread, the 'Add!' button will show\n"
+                    "When you instead paste a link to a F95zone thread, the 'Add!' button will show\n"
                     "up, allowing you to add that thread to your list. When a link is detected you\n"
                     "can also press enter on your keyboard to trigger the 'Add!' button.",
                     MsgBox.info
@@ -4170,7 +4171,7 @@ class MainGUI():
                     msgbox.msgbox, "Chrome extension",
                     "Unfortunately, the F95Checker extension is banned from the Chrome Webstore.\n"
                     "Therefore, you must install it manually via developer mode:\n"
-                    " - Open your chromium-based browser\n"
+                    " - Open your Chromium-based browser\n"
                     " - Navigate to 'chrome://extensions/'\n"
                     " - Enable the 'Developer mode' toggle\n"
                     " - Refresh the page\n"
@@ -4462,7 +4463,7 @@ class MainGUI():
                     def popup_content():
                         nonlocal thread_links
                         imgui.text(
-                            "Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\n"
+                            "Any kind of F95zone thread link, preferably 1 per line. Will be parsed and cleaned,\n"
                             "so don't worry about tidiness and paste like it's anarchy!"
                         )
                         _, thread_links._ = imgui.input_text_multiline(
@@ -4672,9 +4673,9 @@ class MainGUI():
 
             draw_settings_label(
                 "Custom game:",
-                "Add a custom game that is untied from F95Zone. Useful for games removed for breaking forum rules, or for adding games "
+                "Add a custom game that is untied from F95zone. Useful for games removed for breaking forum rules, or for adding games "
                 "from other platforms. Custom games are not checked for updates and you have to add the core details (name, url, version...) "
-                "yourself. You can later convert a custom game to an F95Zone game from the info popup."
+                "yourself. You can later convert a custom game to an F95zone game from the info popup."
             )
             if imgui.button("Add", width=right_width):
                 game_id = async_thread.wait(db.create_game(custom=True))
@@ -5002,7 +5003,7 @@ class MainGUI():
                     else:
                         text = "Error!"
                         self.draw_hover_text(
-                            download.error or f"Server sent less data than expected ({download.progress} != {download.total})",
+                            download.error or f"Received less data than expected ({download.progress} != {download.total})",
                             text=None,
                         )
                         if download.traceback and imgui.is_item_clicked():
