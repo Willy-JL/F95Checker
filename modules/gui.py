@@ -1174,7 +1174,7 @@ class MainGUI():
         if (tab and tab.icon) and (tab and (tab.name or 'New Tab')):
             imgui.small_button(f"{tab.icon} {tab.name or 'New Tab'}")
         else:
-            imgui.small_button(f"{Tab.first_tab_label}")
+            imgui.small_button(f"{Tab.first_tab_label()}")
         imgui.pop_style_color()
         self.end_framed_text(interaction=False)
 
@@ -1647,7 +1647,7 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{Tab.first_tab_label}###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{Tab.first_tab_label()}###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
@@ -2791,7 +2791,7 @@ class MainGUI():
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 hide = globals.settings.hide_empty_tabs
                 count = len(self.show_games_ids.get(None, ()))
-                if (count or not hide) and imgui.begin_tab_item(f"{Tab.first_tab_label} ({count})###tab_-1")[0]:
+                if (count or not hide) and imgui.begin_tab_item(f"{Tab.first_tab_label()} ({count})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
@@ -2846,7 +2846,7 @@ class MainGUI():
                             imgui.end_popup()
                         imgui.same_line()
                         if imgui.button("Reset icon", width=imgui.get_content_region_available_width()):
-                            tab.icon = Tab.base_icon
+                            tab.icon = Tab.base_icon()
                             async_thread.run(db.update_tab(tab, "icon"))
                         color = tab.color[:3] if tab.color else (0.0, 0.0, 0.0)
                         changed, value = imgui.color_edit3(f"###tab_color_{tab.id}", *color, flags=imgui.COLOR_EDIT_NO_INPUTS)
@@ -2867,7 +2867,7 @@ class MainGUI():
                                 utils.push_popup(
                                     msgbox.msgbox, f"Close tab {tab.icon} {tab.name or 'New Tab'}",
                                     "Are you sure you want to close this tab?\n"
-                                    f"The games will go back to {Tab.first_tab_label} tab.",
+                                    f"The games will go back to {Tab.first_tab_label()} tab.",
                                     MsgBox.warn,
                                     buttons
                                 )

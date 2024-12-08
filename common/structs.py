@@ -620,13 +620,11 @@ class Tab:
             cls.instances.remove(self)
 
     @classmethod
-    @property
     def base_icon(cls):
         from modules import icons
         return icons.heart_box
 
     @classmethod
-    @property
     def first_tab_label(cls):
         from modules import globals, icons
         if globals.settings.default_tab_is_new:

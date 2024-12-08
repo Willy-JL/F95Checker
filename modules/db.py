@@ -319,7 +319,7 @@ async def connect():
         columns={
             "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
             "name":                        f'TEXT    DEFAULT ""',
-            "icon":                        f'TEXT    DEFAULT "{Tab.base_icon}"',
+            "icon":                        f'TEXT    DEFAULT "{Tab.base_icon()}"',
             "color":                       f'TEXT    DEFAULT NULL',
         }
     )
