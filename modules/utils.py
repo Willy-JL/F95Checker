@@ -320,7 +320,14 @@ def push_popup(*args, bottom=False, **kwargs):
     popup = Popup(*args, **kwargs)
     if globals.gui:
         if (globals.gui.hidden or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
-            if globals.gui.hidden and args[1] == "Daily backups":
+            # Ignore some temporary errors in background mode, taken from modules/api.py
+            if globals.gui.hidden and args[1] in (
+                "Rate limit",
+                "Server downtime",
+                "Database overload",
+                "Daily backups",
+                "DDoS-Guard bypass failure",
+            ):
                 return
             globals.gui.tray.push_msg(
                 title="Oops",
