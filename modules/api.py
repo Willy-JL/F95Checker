@@ -1313,7 +1313,7 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
 
     global fast_checks_sem, full_checks_sem, fast_checks_counter
     fast_checks_sem = asyncio.Semaphore(1)
-    full_checks_sem = asyncio.Semaphore(globals.settings.refresh_workers)
+    full_checks_sem = asyncio.Semaphore(globals.settings.max_connections)
     fast_checks_counter = 0
     tasks: list[asyncio.Task] = []
     try:

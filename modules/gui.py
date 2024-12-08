@@ -4776,10 +4776,10 @@ class MainGUI():
                 "info from the F95Checker Cache API. This setting determines how many of those can be fetched simultaneously. "
                 "In most cases 10 should be fine, but lower it if your internet struggles when doing a full refresh."
             )
-            changed, value = imgui.drag_int("###refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
-            set.refresh_workers = min(max(value, 1), 100)
+            changed, value = imgui.drag_int("###max_connections", set.max_connections, change_speed=0.5, min_value=1, max_value=10)
+            set.max_connections = min(max(value, 1), 10)
             if changed:
-                async_thread.run(db.update_settings("refresh_workers"))
+                async_thread.run(db.update_settings("max_connections"))
 
             draw_settings_label(
                 "Timeout:",
