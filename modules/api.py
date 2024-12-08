@@ -328,43 +328,43 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                 return False
             raise msgbox.Exc(
                 "Login expired",
-                "Your F95Zone login session has expired,\n"
-                "press refresh to login again.",
+                "Your F95zone login session has expired,\n"
+                "press try again to login.",
                 MsgBox.warn
             )
         if any(msg in res for msg in f95_ratelimit_messages):
             raise msgbox.Exc(
                 "Rate limit",
-                "F95Zone servers are ratelimiting you,\n"
-                "please retry in a few minutes.",
+                "F95zone servers are ratelimiting you,\n"
+                "please try again later.",
                 MsgBox.warn
             )
         if b"<title>502 Bad Gateway</title>" in res:
             raise msgbox.Exc(
                 "Server downtime",
-                "F95Zone servers are currently unreachable,\n"
+                "F95zone servers are currently unreachable,\n"
                 "please retry in a few minutes.",
                 MsgBox.warn
             )
         if b"<!-- Too many connections -->" in res:
             raise msgbox.Exc(
                 "Database overload",
-                "F95Zone databases are currently overloaded,\n"
+                "F95zone databases are currently overloaded,\n"
                 "please retry in a few minutes.",
                 MsgBox.warn
             )
         if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
             raise msgbox.Exc(
                 "Daily backups",
-                "F95Zone daily backups are currently running,\n"
+                "F95zone daily backups are currently running,\n"
                 "please retry in a few minutes.",
                 MsgBox.warn
             )
         if b"<title>DDOS-GUARD</title>" in res:
             raise msgbox.Exc(
                 "DDoS-Guard bypass failure",
-                "F95Zone requested a DDoS-Guard browser challenge and F95Checker\n"
-                "was unable to bypass it. Try waiting a few minutes, opening F95Zone\n"
+                "F95zone requested a DDoS-Guard browser challenge and F95Checker\n"
+                "was unable to bypass it. Try waiting a few minutes, opening F95zone\n"
                 "in browser, rebooting your router, or connecting through a VPN.",
                 MsgBox.error
             )
@@ -375,7 +375,7 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
             if msg := res.get("msg"):
                 raise msgbox.Exc(
                     "API error",
-                    "The F95Zone API returned an 'error' status with the following message:\n"
+                    "The F95zone API returned an 'error' status with the following message:\n"
                     f"{msg}",
                     MsgBox.error,
                     more=more
@@ -386,20 +386,20 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                         return False
                     raise msgbox.Exc(
                         "Login expired",
-                        "Your F95Zone login session has expired,\n"
-                        "press refresh to login again.",
+                        "Your F95zone login session has expired,\n"
+                        "press try again to login.",
                         MsgBox.warn
                     )
                 raise msgbox.Exc(
                     "API error",
-                    "The F95Zone API returned an 'error' status with the following messages:\n"
+                    "The F95zone API returned an 'error' status with the following messages:\n"
                     " - " + "\n - ".join(errors),
                     MsgBox.error,
                     more=more
                 )
             raise msgbox.Exc(
                 "API error",
-                "The F95Zone API returned an 'error' status.",
+                "The F95zone API returned an 'error' status.",
                 MsgBox.error,
                 more=more
             )
@@ -443,7 +443,7 @@ async def login():
         new_cookies = {}
         with await webview.start(
             "cookies", f95_login_page,
-            title="F95Checker: Login to F95Zone",
+            title="F95Checker: Login to F95zone",
             size=(500, 720),
             use_f95_cookies=False,
             pipe=True,
@@ -461,7 +461,7 @@ async def login():
             f"{error.text()}\n"
             "\n"
             "The console output contain more information.\n"
-            "Please submit a bug report on F95Zone or GitHub including this file.",
+            "Please submit a bug report on F95zone or GitHub including this file.",
             MsgBox.error,
             more=error.traceback()
         )
@@ -661,7 +661,7 @@ async def import_f95_bookmarks():
     else:
         utils.push_popup(
             msgbox.msgbox, "No threads",
-            "Your F95Zone bookmarks contains no valid threads to import!",
+            "Your F95zone bookmarks contain no valid threads to import!",
             MsgBox.warn
         )
 
@@ -690,7 +690,7 @@ async def import_f95_watched_threads():
     else:
         utils.push_popup(
             msgbox.msgbox, "No threads",
-            "Your F95Zone watched threads contains no valid threads to import!",
+            "Your F95zone watched threads contain no valid threads to import!",
             MsgBox.warn
         )
 
@@ -737,7 +737,7 @@ async def fast_check(games: list[Game], full=False):
                         "\n"
                         "The response body has been saved to:\n"
                         f"{globals.self_path / 'check_broken.bin'}\n"
-                        "Please submit a bug report on F95Zone or GitHub including this file."
+                        "Please submit a bug report on F95zone or GitHub including this file."
                         if res else ""
                     ),
                     MsgBox.error,
@@ -787,13 +787,13 @@ async def full_check(game: Game, last_changed: int):
                     }
                     utils.push_popup(
                         msgbox.msgbox, "Thread not found",
-                        "The F95Zone thread for this game could not be found:\n"
+                        "The F95zone thread for this game could not be found:\n"
                         f"{game.name}\n"
                         "It might have been privated, moved or deleted, maybe for breaking forum rules.\n"
                         "\n"
                         "You can remove this game from your library, or convert it to a custom game.\n"
-                        "Custom games are untied from F95Zone and are not checked for updates, so\n"
-                        "you won't get this error anymore. You can later convert it back to an F95Zone\n"
+                        "Custom games are untied from F95zone and are not checked for updates, so\n"
+                        "you won't get this error anymore. You can later convert it back to an F95zone\n"
                         "game from its info popup. You can also find more details there.",
                         MsgBox.error,
                         buttons=buttons
@@ -1015,7 +1015,7 @@ async def check_notifs(standalone=True, retry=False):
                 "\n"
                 "The response body has been saved to:\n"
                 f"{globals.self_path / 'notifs_broken.bin'}\n"
-                "Please submit a bug report on F95Zone or GitHub including this file."
+                "Please submit a bug report on F95zone or GitHub including this file."
                 if res else ""
             ),
             MsgBox.error,
@@ -1117,7 +1117,7 @@ async def check_updates():
                 "\n"
                 "The response body has been saved to:\n"
                 f"{globals.self_path / 'update_broken.bin'}\n"
-                "Please submit a bug report on F95Zone or GitHub including this file."
+                "Please submit a bug report on F95zone or GitHub including this file."
                 if res else ""
             ),
             MsgBox.error,
@@ -1317,7 +1317,7 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
 
     global fast_checks_sem, full_checks_sem, fast_checks_counter
     fast_checks_sem = asyncio.Semaphore(1)
-    full_checks_sem = asyncio.Semaphore(globals.settings.refresh_workers)
+    full_checks_sem = asyncio.Semaphore(globals.settings.max_connections)
     fast_checks_counter = 0
     tasks: list[asyncio.Task] = []
     try:

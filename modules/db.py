@@ -201,6 +201,7 @@ async def connect():
             "last_successful_refresh":     f'INTEGER DEFAULT 0',
             "manual_sort_list":            f'TEXT    DEFAULT "[]"',
             "mark_installed_after_add":    f'INTEGER DEFAULT {int(False)}',
+            "max_connections":             f'INTEGER DEFAULT 10',
             "max_retries":                 f'INTEGER DEFAULT 2',
             "proxy_type":                  f'INTEGER DEFAULT {ProxyType.Disabled}',
             "proxy_host":                  f'TEXT    DEFAULT ""',
@@ -210,7 +211,6 @@ async def connect():
             "quick_filters":               f'INTEGER DEFAULT {int(True)}',
             "refresh_archived_games":      f'INTEGER DEFAULT {int(True)}',
             "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
-            "refresh_workers":             f'INTEGER DEFAULT 20',
             "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',
             "request_timeout":             f'INTEGER DEFAULT 30',
             "rpc_enabled":                 f'INTEGER DEFAULT {int(True)}',
@@ -246,6 +246,7 @@ async def connect():
             ("start_in_tray",         "start_in_background"),
             ("tray_notifs_interval",  "bg_notifs_interval"),
             ("tray_refresh_interval", "bg_refresh_interval"),
+            ("refresh_workers",       "max_connections"),
         ]
     )
     await connection.execute("""

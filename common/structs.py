@@ -732,6 +732,7 @@ class Settings:
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]
     mark_installed_after_add    : bool
+    max_connections             : int
     max_retries                 : int
     proxy_type                  : ProxyType
     proxy_host                  : str
@@ -741,7 +742,6 @@ class Settings:
     quick_filters               : bool
     refresh_archived_games      : bool
     refresh_completed_games     : bool
-    refresh_workers             : int
     render_when_unfocused       : bool
     request_timeout             : int
     rpc_enabled                 : bool
