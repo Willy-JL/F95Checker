@@ -1021,6 +1021,9 @@ async def check_notifs(standalone=True, retry=False):
             more=error.traceback()
         )
     globals.refresh_progress += 1
+    for popup in globals.popup_stack:
+        if popup.func is msgbox.msgbox and popup.args[0] == "Notifications":
+            globals.popup_stack.remove(popup)
     if alerts != 0 and inbox != 0:
         msg = (
             f"You have {alerts + inbox} unread notifications.\n"
@@ -1041,9 +1044,6 @@ async def check_notifs(standalone=True, retry=False):
         f"{icons.check} Yes": open_callback,
         f"{icons.cancel} No": None
     }
-    for popup in globals.popup_stack:
-        if popup.func is msgbox.msgbox and popup.args[0] == "Notifications":
-            globals.popup_stack.remove(popup)
     utils.push_popup(
         msgbox.msgbox, "Notifications",
         msg +
