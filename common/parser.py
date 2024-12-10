@@ -32,6 +32,7 @@ class ParsedThread:
     tags: list[Tag]
     unknown_tags: list[str]
     image_url: str
+    previews_urls: list[str]
     downloads: list[tuple[str, list[tuple[str, str]]]]
 
 f95_host = "https://f95zone.to/"
@@ -383,6 +384,9 @@ def thread(res: bytes) -> ParsedThread | ParserError:
         else:
             image_url = "missing"
 
+        # FIXME: find preview images in thread
+        previews_urls = []
+
         downloads = get_game_downloads("downloads", "download")
 
     except Exception:
@@ -406,6 +410,7 @@ def thread(res: bytes) -> ParsedThread | ParserError:
         tags=tags,
         unknown_tags=unknown_tags,
         image_url=image_url,
+        previews_urls=previews_urls,
         downloads=downloads,
     )
     return ret

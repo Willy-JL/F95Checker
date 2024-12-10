@@ -120,6 +120,10 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
                     ret.developer = update["creator"] or ret.developer
                     ret.score = round(update["rating"], 1)
                     ret.image_url = parser.attachment(update["cover"]) or ret.image_url
+                    ret.previews_urls = [
+                        parser.attachment(preview_url)
+                        for preview_url in update["screens"]
+                    ] or ret.previews_urls
                     ret.last_updated = parser.datestamp(update["ts"])
                     break
             else:  # Didn't break
@@ -147,5 +151,6 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     parsed["votes"] = str(parsed["votes"])
     parsed["tags"] = json.dumps(parsed["tags"])
     parsed["unknown_tags"] = json.dumps(parsed["unknown_tags"])
+    parsed["previews_urls"] = json.dumps(parsed["previews_urls"])
     parsed["downloads"] = json.dumps(parsed["downloads"])
     return parsed
