@@ -2123,7 +2123,8 @@ class MainGUI():
                     ).tick)
                 if imgui.selectable(f"{icons.trash_can_outline} Reset image", False)[0]:
                     game.delete_images()
-                    game.refresh_image()
+                    game.image.loaded = False
+                    game.image.resolve()
                 imgui.end_popup()
             if close_image:
                 imgui.end_child()
