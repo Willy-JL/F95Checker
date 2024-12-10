@@ -3529,17 +3529,17 @@ class MainGUI():
             # Skip if outside view
             imgui.invisible_button(f"###{game.id}_hitbox", cell_width, cell_height)
             self.handle_game_hitbox_events(game, drag_drop=drag_drop)
-            pos = imgui.get_item_rect_min()
-            pos2 = imgui.get_item_rect_max()
+            rect_min = imgui.get_item_rect_min()
+            rect_max = imgui.get_item_rect_max()
             if game.selected:
                 imgui.push_alpha(0.5)
                 draw_list.add_rect_filled(
-                    *pos, *pos2, imgui.get_color_u32_rgba(*globals.settings.style_accent),
+                    *rect_min, *rect_max, imgui.get_color_u32_rgba(*globals.settings.style_accent),
                     rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL
                 )
                 imgui.pop_alpha()
             else:
-                draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+                draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
         else:
             imgui.dummy(cell_width, cell_height)
         draw_list.channels_merge()
