@@ -2151,6 +2151,14 @@ class MainGUI():
             self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
             imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
+            # FIXME: move to a proper place and show all images
+            if disabled_previews := utils.is_refreshing():
+                imgui.push_disabled()
+            if imgui.button(f"{icons.folder_download_outline} Download Previews"):
+                game.delete_images(False, all_previews=True)
+                utils.start_refresh_task(api.download_game_previews(game), reset_bg_timers=False)
+            if disabled_previews:
+                imgui.pop_disabled()
 
             imgui.spacing()
 
