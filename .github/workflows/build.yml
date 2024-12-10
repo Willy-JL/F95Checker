@@ -164,6 +164,8 @@ jobs:
           python ./setup.py || true
           mkdir ./dist/
           cp -r ./browser/         ./dist/
+          cp -r ./common/          ./dist/
+          cp -r ./external/        ./dist/
           cp -r ./modules/         ./dist/
           cp -r ./resources/       ./dist/
           cp    ./LICENSE          ./dist/
