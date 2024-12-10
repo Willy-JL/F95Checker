@@ -587,7 +587,7 @@ def open_search_popup(query: str):
             if clicked:
                 async_thread.run(callbacks.add_games(result))
     async def _f95zone_run_search():
-        nonlocal results
+        nonlocal results, ran_query, ran_category, ran_search
         results = None
         ran_query = query
         ran_category = categories[category].lower()
