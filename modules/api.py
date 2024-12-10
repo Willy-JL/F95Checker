@@ -589,11 +589,13 @@ def open_search_popup(query: str):
         nonlocal results, ran_query, ran_category, ran_search
         results = None
         ran_query = query
-        ran_category = categories[category].lower()
-        ran_search = searches[search].lower()
-        if ran_search == "title":
-            ran_search = "search"
-        results = await thread_search(ran_category, ran_search, ran_query)
+        ran_category = category
+        real_category = categories[ran_category].lower()
+        ran_search = search
+        real_search = searches[ran_search].lower()
+        if real_search == "title":
+            real_search = "search"
+        results = await thread_search(real_category, real_search, ran_query)
     utils.push_popup(
         utils.popup, "F95zone thread search",
         _f95zone_search_popup,
