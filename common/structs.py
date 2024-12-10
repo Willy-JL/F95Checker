@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import pathlib
+import shutil
 import time
 import typing
 import weakref
@@ -848,6 +849,8 @@ class Game:
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
     image              : "imagehelper.ImageHelper" = None
+    previews           : list["imagehelper.ImageHelper"] = dataclasses.field(default_factory=list)
+    previews_path      : pathlib.Path = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
     timeline_events    : list[TimelineEvent] = dataclasses.field(default_factory=list)
@@ -867,39 +870,127 @@ class Game:
             self.finished = (self.installed or self.version)
         elif self.finished == "False" and self.installed != "False" and self.version != "False":
             self.finished = ""
+        self.init_images()
+        self.validate_executables()
+
+    def change_id(self, new_id: int):
+        from modules import globals
+        for i, img in enumerate(sorted(list(globals.images_path.glob(f"{self.id}.*")), key=lambda path: path.suffix != ".gif")):
+            if i == 0:
+                img.rename(img.with_stem(str(new_id)))
+            else:
+                try:
+                    img.unlink()
+                except Exception:
+                    pass
+        self.image.glob = f"{new_id}.*"
+        self.image.loaded = False
+        self.image.resolve()
+        new_previews_path = globals.images_path / str(new_id)
+        self.previews_path.rename(new_previews_path)
+        for preview in self.previews:
+            preview.path = new_previews_path
+            preview.loaded = False
+            preview.resolve()
+        self.previews_path = new_previews_path
+        self.id = new_id
+
+    def init_images(self):
         from external import imagehelper
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
-        self.validate_executables()
+        self.previews_path = globals.images_path / str(self.id)
+        self.previews_path.mkdir(parents=True, exist_ok=True)
+        self.previews = []
+        for image in self.previews_path.iterdir():
+            if image.is_file() and image.stem.isnumeric():
+                self.previews.append(imagehelper.ImageHelper(self.previews_path, glob=f"{image.stem}.*"))
+        if self.previews:
+            self.sort_images()
+            self.apply_image_order()
 
-    def delete_images(self):
+    def sort_images(self):
+        self.previews.sort(key=lambda preview: int(preview.resolved_path.stem))
+
+    def apply_image_order(self):
+        if not self.previews:
+            pass
+        # We add an underscore to avoid name conflicts during rename
+        for new_index, image in enumerate(self.previews):
+            old_path = image.resolved_path
+            if new_index != int(old_path.stem):
+                old_path.rename(old_path.with_stem(f"_{new_index}"))
+        for old_path in self.previews_path.iterdir():
+            if old_path.is_file() and old_path.stem.startswith("_"):
+                new_name = old_path.stem.removeprefix("_")
+                if new_name.isnumeric():
+                    index = int(new_name)
+                    if index < len(self.previews):
+                        new_path = old_path.with_stem(new_name)
+                        old_path.rename(new_path)
+                        image = self.previews[index]
+                        image.glob = f"{new_name}.*"
+                        image.loaded = False
+                        image.resolve()
+
+    def delete_images(self, preview_index: int = None, all_previews=False):
         from modules import globals
-        for img in globals.images_path.glob(f"{self.id}.*"):
-            try:
-                img.unlink()
-            except Exception:
-                pass
+        try:
+            if all_previews:
+                shutil.rmtree(self.previews_path, ignore_errors=True)
+                self.previews_path.mkdir(parents=True, exist_ok=True)
+                if preview_index not in (None, False):
+                    preview_index = False
+            if preview_index is None:
+                files = globals.images_path.glob(f"{self.id}.*")
+            elif preview_index is not False:
+                files = self.previews_path.glob(f"{preview_index}.*")
+            for file in files:
+                file.unlink()
+        except Exception:
+            pass
 
-    def refresh_image(self):
-        self.image.glob = f"{self.id}.*"
-        self.image.loaded = False
-        self.image.resolve()
-
-    async def set_image_async(self, data: bytes):
+    async def set_image_async(self, data: bytes, preview_index: int = None):
         from modules import globals, utils
         import aiofiles
-        self.delete_images()
+        self.delete_images(preview_index)
+        if preview_index is None:
+            path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
+            image = self.image
+        else:
+            path = self.previews_path / f"{preview_index}.{utils.image_ext(data)}"
+            image = self.previews[preview_index]
         if data:
-            async with aiofiles.open(globals.images_path / f"{self.id}.{utils.image_ext(data)}", "wb") as f:
+            async with aiofiles.open(path, "wb") as f:
                 await f.write(data)
-        self.refresh_image()
+        image.loaded = False
+        image.resolve()
 
-    def set_image_sync(self, data: bytes):
+    def set_image_sync(self, data: bytes, preview_index: int = None):
         from modules import globals, utils
-        self.delete_images()
+        self.delete_images(preview_index)
+        if preview_index is None:
+            path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
+            image = self.image
+        else:
+            path = self.previews_path / f"{preview_index}.{utils.image_ext(data)}"
+            image = self.previews[preview_index]
         if data:
-            (globals.images_path / f"{self.id}.{utils.image_ext(data)}").write_bytes(data)
-        self.refresh_image()
+            path.write_bytes(data)
+        image.loaded = False
+        image.resolve()
+
+    def add_image(self, data: bytes):
+        from external import imagehelper
+        new_index = len(self.previews)
+        self.previews.append(imagehelper.ImageHelper(self.previews_path, glob=f"{new_index}.*"))
+        self.set_image_sync(data, new_index)
+
+    async def add_image_async(self, data: bytes):
+        from external import imagehelper
+        new_index = len(self.previews)
+        self.previews.append(imagehelper.ImageHelper(self.previews_path, glob=f"{new_index}.*"))
+        await self.set_image_async(data, new_index)
 
     def validate_executables(self):
         from modules import globals, utils

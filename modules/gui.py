@@ -338,9 +338,11 @@ class MainGUI():
         self.type_label_width: float = None
         self.last_selected_game: Game = None
         self.prev_filters: list[Filter] = []
+        self.hovered_game_image_idx: int = 0
         self.ghost_columns_enabled_count = 0
         self.bg_mode_notifs_timer: float = None
         self.show_games_ids: dict[Tab, list[int]] = {}
+        self.hovered_game_image_prev_time: float = 0.0
 
         # Setup Qt objects
         self.qt_app = QtWidgets.QApplication(sys.argv)
@@ -898,6 +900,7 @@ class MainGUI():
                         or size != self.prev_size
                         or self.recalculate_ids
                         or imagehelper.redraw
+                        or self.hovered_game
                         or self.new_styles
                         or api.updating
                     )
@@ -1067,6 +1070,8 @@ class MainGUI():
                 new_ini = ini
             with open(imgui.io.ini_file_name, "w") as f:
                 f.write(new_ini)
+            for game in globals.games.values():
+                game.apply_image_order()
             self.impl.shutdown()
             glfw.terminate()
 
@@ -3027,8 +3032,27 @@ class MainGUI():
     def handle_game_hitbox_events(self, game: Game, drag_drop: bool = False):
         manual_sort = cols.manual_sort.enabled
         if imgui.is_item_hovered(imgui.HOVERED_ALLOW_WHEN_BLOCKED_BY_ACTIVE_ITEM):
-            # Hover = image on refresh button
+            # Hover = image on refresh button and cycle
             self.hovered_game = game
+            # FIXME: settings
+            if game.previews:# and globals.settings.cycle_images and globals.settings.cycle_on_hover:
+                final_index = len(game.previews)  # No -1 because we also count banner image
+                time_now_ms = imgui.get_time() * 1000
+                if time_now_ms - self.hovered_game_image_prev_time > 2000:#globals.settings.cycle_length:
+                    self.hovered_game_image_prev_time = time_now_ms
+                    if False:#globals.settings.cycle_random_order:
+                        # No deadlock, we know there's atleast 1 banner and 1 preview, random will find a new value
+                        while (new_random_id := random.randint(0, final_index)) == self.hovered_game_image_idx:
+                            pass
+                        self.hovered_game_image_idx = new_random_id
+                    else:
+                        self.hovered_game_image_idx = (self.hovered_game_image_idx + 1) % (final_index + 1)
+                else:
+                    # Not time to cycle yet, but make sure index is ok if hovered game is different
+                    self.hovered_game_image_idx = min(self.hovered_game_image_idx, final_index)
+            else:
+                # Show banner
+                self.hovered_game_image_idx = 0
             if imgui.is_item_clicked():
                 self.game_hitbox_click = True
             if self.game_hitbox_click and not imgui.is_mouse_down():
@@ -3338,31 +3362,9 @@ class MainGUI():
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
         imgui.begin_group()
-        # Image
-        if game.image.missing:
-            text = "Image missing!"
-            text_size = imgui.calc_text_size(text)
-            showed_img = imgui.is_rect_visible(cell_width, img_height)
-            if text_size.x < cell_width:
-                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_game_image_missing_text(game, text)
-                imgui.set_cursor_pos(pos)
-            imgui.dummy(cell_width, img_height)
-        elif game.image.invalid:
-            text = "Invalid image!"
-            text_size = imgui.calc_text_size(text)
-            showed_img = imgui.is_rect_visible(cell_width, img_height)
-            if text_size.x < cell_width:
-                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
-                )
-                imgui.set_cursor_pos(pos)
-            imgui.dummy(cell_width, img_height)
-        else:
-            crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
-            showed_img = game.image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+        # We show the image later to account for hovered or not
+        showed_img = imgui.is_rect_visible(cell_width, img_height)
+        imgui.dummy(cell_width, img_height)
         # Alignments
         imgui.indent(side_indent)
         imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
@@ -3540,6 +3542,30 @@ class MainGUI():
                 imgui.pop_alpha()
             else:
                 draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+            # Draw image after hitbox so we know if it's hovered
+            if game is self.hovered_game:
+                image = (game.image, *game.previews)[self.hovered_game_image_idx]
+            else:
+                image = game.image
+            if image.missing:
+                text = "Image missing!"
+                text_size = imgui.calc_text_size(text)
+                if text_size.x < cell_width:
+                    imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
+                    self.draw_game_image_missing_text(game, text)
+            elif image.invalid:
+                text = "Invalid image!"
+                text_size = imgui.calc_text_size(text)
+                if text_size.x < cell_width:
+                    imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
+                    self.draw_hover_text(
+                        text=text,
+                        hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
+                    )
+            else:
+                imgui.set_cursor_pos(pos)
+                crop = image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
+                image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         else:
             imgui.dummy(cell_width, cell_height)
         draw_list.channels_merge()
@@ -3812,13 +3838,14 @@ class MainGUI():
         elif self.hovered_game:
             # Hover = show image
             game = self.hovered_game
-            if game.image.missing:
+            image = (game.image, *game.previews)[self.hovered_game_image_idx]
+            if image.missing:
                 imgui.button("Image missing!", width=width, height=height)
-            elif game.image.invalid:
+            elif image.invalid:
                 imgui.button("Invalid image!", width=width, height=height)
             else:
-                crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                crop = image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
+                image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
         else:
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):

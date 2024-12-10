@@ -988,6 +988,33 @@ async def full_check(game: Game, last_changed: int):
         globals.refresh_progress += 1
 
 
+# TODO: this is mid
+async def download_game_previews(game: Game):
+    globals.refresh_total = len(game.previews_urls)
+    async def download_preview(url: str):
+        with images_counter:
+            try:
+                res = await fetch("GET", url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
+                await asyncio.shield(game.add_image_async(res))
+            except aiohttp.ClientResponseError as exc:
+                if exc.status < 400:
+                    raise  # Not error status
+                return
+            except aiohttp.ClientConnectorError as exc:
+                if not isinstance(exc.os_error, socket.gaierror):
+                    raise  # Not a dead link
+                if is_f95zone_url(url):
+                    raise  # Not a foreign host, raise normal connection error message
+                if check_host(f95_domain) and not check_host(get_url_domain(url)):
+                    return
+                else:
+                    raise  # Foreign host might not actually be dead
+            finally:
+                globals.refresh_progress += 1
+    tasks = [asyncio.create_task(download_preview(url)) for url in game.previews_urls]
+    await asyncio.gather(*tasks)
+
+
 async def check_notifs(standalone=True, retry=False):
     if standalone:
         globals.refresh_total = 1
