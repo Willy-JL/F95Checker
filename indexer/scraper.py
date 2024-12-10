@@ -83,8 +83,8 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
         for char in "?&/':;-":
             query = query.replace(char, " ")
         query = re.sub(r"\s+", " ", query).strip()[:28]
-        if chop := " ".join(word for word in query.split(" ") if len(word) > 1):
-            query = chop
+        if len(words := query.split(" ")) > 2 and len(words[-1]) < 3:
+            query = " ".join(words[:-1])
         for category in f95zone.LATEST_CATEGORIES:
 
             try:
