@@ -81,8 +81,7 @@ f95_ratelimit_messages = (
     b"<title>Error 429</title>",
 )
 
-api_domain = "api.f95checker.dev"
-api_host = "https://" + api_domain
+api_host = os.environ.get("F95INDEXER_URL") or "https://api.f95checker.dev"
 api_fast_check_url = api_host + "/fast?ids={ids}"
 api_full_check_url = api_host + "/full/{id}?ts={ts}"
 api_fast_check_max_ids = 10
