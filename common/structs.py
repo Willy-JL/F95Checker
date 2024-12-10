@@ -933,12 +933,11 @@ class Game:
                         image.loaded = False
                         image.resolve()
 
-    def delete_images(self, preview_index: int = None, all_previews=False):
+    def delete_images(self, preview_index: int = None, all_previews=False, reinit=True):
         from modules import globals
         try:
             if all_previews:
                 shutil.rmtree(self.previews_path, ignore_errors=True)
-                self.previews_path.mkdir(parents=True, exist_ok=True)
                 if preview_index not in (None, False):
                     preview_index = False
             if preview_index is None:
@@ -949,11 +948,12 @@ class Game:
                 file.unlink()
         except Exception:
             pass
+        if reinit:
+            self.init_images()
 
     async def set_image_async(self, data: bytes, preview_index: int = None):
         from modules import globals, utils
         import aiofiles
-        self.delete_images(preview_index)
         if preview_index is None:
             path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
             image = self.image
@@ -968,7 +968,6 @@ class Game:
 
     def set_image_sync(self, data: bytes, preview_index: int = None):
         from modules import globals, utils
-        self.delete_images(preview_index)
         if preview_index is None:
             path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
             image = self.image
