@@ -2303,7 +2303,6 @@ class MainGUI():
                     if disabled_previews := (utils.is_refreshing() or not game.previews_urls):
                         imgui.push_disabled()
                     if imgui.button(f"{icons.folder_download_outline} Sync Previews"):
-                        game.delete_images(False, all_previews=True)
                         utils.start_refresh_task(api.download_game_previews(game), reset_bg_timers=False)
                     self.draw_hover_text("Deletes all saved previews and downloads again", text=None)
                     if disabled_previews:
@@ -4311,6 +4310,15 @@ class MainGUI():
                 async_thread.run(db.update_settings("zoom_times"))
 
             if not set.zoom_enabled:
+                imgui.pop_disabled()
+
+            imgui.table_next_row()
+            imgui.table_next_column()
+            if disabled_previews := utils.is_refreshing():
+                imgui.push_disabled()
+            if imgui.button(f"{icons.folder_download_outline} Sync All Previews"):
+                utils.start_refresh_task(api.download_all_game_previews())
+            if disabled_previews:
                 imgui.pop_disabled()
 
             imgui.end_table()
