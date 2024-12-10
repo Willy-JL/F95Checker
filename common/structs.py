@@ -844,6 +844,7 @@ class Game:
     tab                : Tab.get
     notes              : str
     image_url          : str
+    previews_urls      : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
     image              : "imagehelper.ImageHelper" = None
@@ -1020,6 +1021,7 @@ class Game:
             "tab",
             "notes",
             "image_url",
+            "previews_urls",
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):

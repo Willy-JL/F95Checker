@@ -832,6 +832,7 @@ async def full_check(game: Game, last_changed: int):
         for label, links in thread["downloads"]:
             for link_i, link_pair in enumerate(links):
                 links[link_i] = tuple(link_pair)
+        thread["previews_urls"] = json.loads(thread.get("previews_urls", "[]"))
         thread["downloads"] = tuple(thread["downloads"])
 
         old_name = game.name
@@ -917,6 +918,7 @@ async def full_check(game: Game, last_changed: int):
             game.unknown_tags_flag = unknown_tags_flag
             if fetch_image:
                 game.image_url = thread["image_url"]
+            game.previews_urls = thread["previews_urls"]
             game.downloads = thread["downloads"]
 
             changed_name = thread["name"] != old_name

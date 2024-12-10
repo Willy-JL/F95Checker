@@ -290,6 +290,7 @@ async def connect():
             "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""',
+            "previews_urls":               f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
         },
         renames=[
