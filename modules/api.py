@@ -497,8 +497,12 @@ def cleanup_temp_files():
 
 
 async def thread_search(category: str, search: str, query: str, sort="likes", count=15, page=1):
-    for char in "':-":
+    query = query.encode("ascii", errors="replace").decode()
+    for char in "?&/':;-.":
         query = query.replace(char, " ")
+    query = re.sub(r"\s+", " ", query).strip()[:28]
+    if chop := " ".join(word for word in query.split(" ") if len(word) > 1):
+        query = chop
     res = await fetch("GET", f95_latest_endpoint.format(
         cmd="list",
         cat=category,
