@@ -3838,7 +3838,7 @@ class MainGUI():
         height = self.scaled(100)
         if utils.is_refreshing():
             # Refresh progress bar
-            ratio = globals.refresh_progress / globals.refresh_total
+            ratio = globals.refresh_progress / (globals.refresh_total or 1)
             self.refresh_ratio_smooth += (ratio - self.refresh_ratio_smooth) * imgui.io.delta_time * 8
             imgui.progress_bar(self.refresh_ratio_smooth, (width, height))
             draw_list = imgui.get_window_draw_list()

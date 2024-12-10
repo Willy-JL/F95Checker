@@ -990,8 +990,7 @@ async def full_check(game: Game, last_changed: int):
 
 # TODO: this is mid
 async def download_game_previews(game: Game, semaphore: asyncio.Semaphore = None):
-    if globals.refresh_total == 1:
-        globals.refresh_total = len(game.previews_urls)
+    globals.refresh_total += len(game.previews_urls)
     if not semaphore:
         semaphore = asyncio.Semaphore(globals.settings.max_connections)
     game.delete_images(False, all_previews=True)
@@ -1021,7 +1020,6 @@ async def download_game_previews(game: Game, semaphore: asyncio.Semaphore = None
 
 
 async def download_all_game_previews():
-    globals.refresh_total = sum(len(game.previews_urls) for game in globals.games.values())
     semaphore = asyncio.Semaphore(globals.settings.max_connections)
     tasks = [download_game_previews(game, semaphore) for game in globals.games.values()]
     await asyncio.gather(*tasks)
@@ -1360,7 +1358,6 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
         fast_queue[-1].append(game)
 
     notifs = notifs and globals.settings.check_notifs
-    globals.refresh_progress += 1
     globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
 
     global fast_checks_sem, full_checks_sem, fast_checks_counter
