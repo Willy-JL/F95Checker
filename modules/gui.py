@@ -887,19 +887,20 @@ class MainGUI():
                         imgui.io.mouse_wheel = scroll_now
 
                     # Redraw only when needed
-                    draw = False
-                    draw = draw or api.updating
-                    draw = draw or self.new_styles
-                    draw = draw or imagehelper.redraw
-                    draw = draw or self.recalculate_ids
-                    draw = draw or size != self.prev_size
-                    draw = draw or prev_hidden != self.hidden
-                    draw = draw or prev_focused != self.focused
-                    draw = draw or prev_minimized != self.minimized
-                    draw = draw or bool(api.session.connector._acquired)
-                    draw = draw or prev_scaling != globals.settings.interface_scaling
-                    draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
-                    draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
+                    draw = (
+                        imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
+                        or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
+                        or prev_scaling != globals.settings.interface_scaling
+                        or prev_minimized != self.minimized
+                        or api.session.connector._acquired
+                        or prev_focused != self.focused
+                        or prev_hidden != self.hidden
+                        or size != self.prev_size
+                        or self.recalculate_ids
+                        or imagehelper.redraw
+                        or self.new_styles
+                        or api.updating
+                    )
                     if not draw and api.downloads:
                         for download in api.downloads.values():
                             if download.state is download.State.Verifying:
