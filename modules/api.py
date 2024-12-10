@@ -188,6 +188,18 @@ def setup():
         cleanup_temp_files()
 
 
+async def check_host(domain: str):
+    try:
+        await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
+        return True
+    except Exception:
+        return False
+
+
+def get_url_domain(url: str):
+    return re.search(r"^https?://([^/]+)", url).group(1)
+
+
 def is_f95zone_url(url: str):
     return bool(re.search(r"^https?://[^/]*\.?" + re.escape(f95_domain) + r"/", url))
 
@@ -958,17 +970,8 @@ async def full_check(game: Game, last_changed: int):
                             raise  # Not a dead link
                         if is_f95zone_url(image_url):
                             raise  # Not a foreign host, raise normal connection error message
-                        f95zone_ok = True
-                        foreign_ok = True
-                        try:
-                            await asyncio.get_event_loop().run_in_executor(None, socket.gethostbyname, f95_domain)
-                        except Exception:
-                            f95zone_ok = False
-                        try:
-                            await asyncio.get_event_loop().run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
-                        except Exception:
-                            foreign_ok = False
-                        if f95zone_ok and not foreign_ok:
+                        if check_host(f95_domain) and not check_host(get_url_domain(image_url)):
+                            # Link is actually dead
                             thread["image_url"] = "dead"
                             res = b""
                         else:
