@@ -2,6 +2,7 @@ import asyncio
 import dataclasses
 import json
 import logging
+import time
 
 from common import parser
 from indexer import f95zone
@@ -46,6 +47,7 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     # TODO: maybe add an error flag for threads outside of
     # games/media/mods forums so it wont get cached for no reason
 
+    # Check if thread is tracked by latest updates using version API, then keep this version value
     version = ""
     try:
         async with f95zone.session.get(
@@ -72,6 +74,60 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     else:
         logger.error(f"Thread {id} version returned an error: {versions}")
         return f95zone.ERROR_UNKNOWN_RESPONSE
+
+    # If tracked by latest updates, try to search the thread there to get more precise details
+    if version:
+        query = ret.name
+        for char in "'":
+            query = query.replace(char, " ")
+        for char in ":-":
+            query = query.split(char, 1)[0]
+        for category in f95zone.LATEST_CATEGORIES:
+
+            try:
+                async with f95zone.session.get(
+                    f95zone.SEARCH_URL.format(
+                        cmd="list",
+                        cat=category,
+                        page=1,
+                        search="search",
+                        query=query,
+                        sort="likes",
+                        rows=90,
+                        ts=int(time.time()),
+                    ),
+                    cookies=f95zone.cookies,
+                ) as req:
+                    res = await req.read()
+            except Exception as exc:
+                if index_error := f95zone.check_error(exc, logger):
+                    return index_error
+                raise
+            if index_error := f95zone.check_error(res, logger):
+                return index_error
+            try:
+                updates = json.loads(res)
+            except Exception:
+                logger.error(f"Thread {id} search returned invalid JSON: {res}")
+                return f95zone.ERROR_UNKNOWN_RESPONSE
+            if updates["status"] != "ok":
+                logger.error(f"Thread {id} search returned an error: {updates}")
+                return f95zone.ERROR_UNKNOWN_RESPONSE
+
+            for update in updates["msg"]["data"]:
+                if update["thread_id"] == id:
+                    ret.name = update["title"] or ret.name
+                    ret.developer = update["creator"] or ret.developer
+                    ret.score = round(update["rating"], 1)
+                    ret.image_url = parser.attachment(update["cover"]) or ret.image_url
+                    ret.last_updated = parser.datestamp(update["ts"])
+                    break
+            else:  # Didn't break
+                continue
+            break
+
+        else:  # Didn't break
+            logger.warning(f"Thread {id} not found in latest updates search")
 
     # Prepare for redis, only strings allowed
     parsed = dataclasses.asdict(ret)

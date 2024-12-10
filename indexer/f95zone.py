@@ -34,8 +34,17 @@ cookies: dict = None
 
 HOST = "https://f95zone.to"
 THREAD_URL = f"{HOST}/threads/{{thread}}"
-LATEST_URL = f"{HOST}/sam/latest_alpha/latest_data.php?cmd={{cmd}}&cat={{cat}}&page={{page}}&sort={{sort}}&rows={{rows}}&_={{ts}}"
 VERCHK_URL = f"{HOST}/sam/checker.php?threads={{threads}}"
+SEARCH_URL = f"{HOST}/sam/latest_alpha/latest_data.php?cmd={{cmd}}&cat={{cat}}&page={{page}}&{{search}}={{query}}&sort={{sort}}&rows={{rows}}&_={{ts}}"
+LATEST_URL = f"{HOST}/sam/latest_alpha/latest_data.php?cmd={{cmd}}&cat={{cat}}&page={{page}}&sort={{sort}}&rows={{rows}}&_={{ts}}"
+LATEST_CATEGORIES = (
+    "games",
+    "comics",
+    "animations",
+    "assets",
+    # Doesn't seem to work
+    # "mods",
+)
 
 
 @dataclasses.dataclass

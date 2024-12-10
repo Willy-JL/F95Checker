@@ -62,6 +62,12 @@ def datestamp(timestamp: int | float):
     return int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(timestamp).date().toordinal()).timestamp())
 
 
+def attachment(preview: str):
+    if preview.startswith("https://preview."):
+        return "https://attachments." + preview.removeprefix("https://preview.")
+    return preview
+
+
 class ParserError(Exception):
     def __init__(self, message: str, dump=None):
         super().__init__()

@@ -6,6 +6,7 @@ import json
 import logging
 import time
 
+from common import parser
 from external import error
 from indexer import (
     cache,
@@ -13,14 +14,7 @@ from indexer import (
 )
 
 WATCH_UPDATES_INTERVAL = dt.timedelta(minutes=5).total_seconds()
-WATCH_UPDATES_CATEGORIES = (
-    "games",
-    "comics",
-    "animations",
-    "assets",
-    # Doesn't seem to work
-    # "mods",
-)
+WATCH_UPDATES_CATEGORIES = f95zone.LATEST_CATEGORIES
 WATCH_VERSIONS_INTERVAL = dt.timedelta(hours=12).total_seconds()
 WATCH_VERSIONS_CHUNK_SIZE = 1000
 
@@ -109,6 +103,7 @@ async def watch_updates():
                         round(update["rating"], 1),
                         update["cover"],
                         update["screens"],
+                        parser.datestamp(update["ts"]),
                     )
                     meta = hashlib.md5(json.dumps(meta).encode()).hexdigest()
                     current_data.append((version, meta))
