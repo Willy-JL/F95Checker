@@ -2152,14 +2152,6 @@ class MainGUI():
             self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
             imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
-            # FIXME: move to a proper place and show all images
-            if disabled_previews := utils.is_refreshing():
-                imgui.push_disabled()
-            if imgui.button(f"{icons.folder_download_outline} Download Previews"):
-                game.delete_images(False, all_previews=True)
-                utils.start_refresh_task(api.download_game_previews(game), reset_bg_timers=False)
-            if disabled_previews:
-                imgui.pop_disabled()
 
             imgui.spacing()
 
@@ -2304,6 +2296,29 @@ class MainGUI():
                         imgui.text(game.description)
                     else:
                         imgui.text_disabled("Either this game doesn't have a description, or the thread is not formatted properly!")
+                    imgui.end_tab_item()
+
+                if imgui.begin_tab_item(f"{icons.camera_burst} Previews###previews")[0]:
+                    imgui.spacing()
+                    if disabled_previews := (utils.is_refreshing() or not game.previews_urls):
+                        imgui.push_disabled()
+                    if imgui.button(f"{icons.folder_download_outline} Sync Previews"):
+                        game.delete_images(False, all_previews=True)
+                        utils.start_refresh_task(api.download_game_previews(game), reset_bg_timers=False)
+                    self.draw_hover_text("Deletes all saved previews and downloads again", text=None)
+                    if disabled_previews:
+                        imgui.pop_disabled()
+                    if not game.previews_urls:
+                        imgui.same_line()
+                        imgui.text_disabled("Either this game doesn't have any previews, or the thread is not formatted properly!")
+                    ratio = 16/9
+                    preview_width = (imgui.get_content_region_available_width() - imgui.style.item_spacing.x) / 2
+                    preview_heigth = preview_width / ratio
+                    for i, preview in enumerate(game.previews):
+                        if i % 2 == 1:
+                            imgui.same_line()
+                        crop = preview.crop_to_ratio(16/9, fit=True)
+                        preview.render(preview_width, preview_heigth, *crop, rounding=globals.settings.style_corner_radius)
                     imgui.end_tab_item()
 
                 if not game.custom and imgui.begin_tab_item(icons.tray_arrow_down + " Downloads###downloads")[0]:
