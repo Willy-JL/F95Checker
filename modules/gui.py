@@ -4363,6 +4363,11 @@ class MainGUI():
                 imgui.push_disabled()
             if imgui.button(f"{icons.folder_download_outline} Sync All Previews"):
                 utils.start_refresh_task(api.download_all_game_previews())
+            self.draw_hover_text(
+                "Deletes all saved previews and downloads again\n"
+                f"There are {sum(len(game.previews_urls) for game in globals.games.values())} previews available to download",
+                text=None
+            )
             if disabled_previews:
                 imgui.pop_disabled()
 
