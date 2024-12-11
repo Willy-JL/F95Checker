@@ -90,7 +90,7 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
         globals.gui.bg_mode_timer = None
         globals.gui.bg_mode_notifs_timer = None
     globals.refresh_progress = 0
-    globals.refresh_total = 1
+    globals.refresh_total = 0
     globals.gui.refresh_ratio_smooth = 0.0
     async def coro_wrapper():
         await coro
