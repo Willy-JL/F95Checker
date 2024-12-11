@@ -2311,13 +2311,58 @@ class MainGUI():
                         imgui.same_line()
                         imgui.text_disabled("Either this game doesn't have any previews, or the thread is not formatted properly!")
                     ratio = 16/9
-                    preview_width = (imgui.get_content_region_available_width() - imgui.style.item_spacing.x) / 2
-                    preview_heigth = preview_width / ratio
+                    width = (imgui.get_content_region_available_width() - imgui.style.item_spacing.x) / 2
+                    height = width / ratio
                     for i, preview in enumerate(game.previews):
                         if i % 2 == 1:
                             imgui.same_line()
                         crop = preview.crop_to_ratio(16/9, fit=True)
-                        preview.render(preview_width, preview_heigth, *crop, rounding=globals.settings.style_corner_radius)
+                        image_pos = imgui.get_cursor_screen_pos()
+                        imgui.begin_child(f"###preview_zoomer_{i}", width=width, height=height + 1.0, flags=imgui.WINDOW_NO_SCROLLBAR)
+                        imgui.dummy(width + 2.0, height)
+                        imgui.set_scroll_x(1.0)
+                        imgui.set_cursor_screen_pos(image_pos)
+                        preview.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                        if imgui.is_item_hovered():
+                            # Preview popup
+                            if imgui.is_mouse_down():
+                                popup_ratio = preview.height / preview.width
+                                size = imgui.io.display_size
+                                if popup_ratio > size.y / size.x:
+                                    popup_height = size.y - self.scaled(10)
+                                    popup_width = popup_height / popup_ratio
+                                else:
+                                    popup_width = size.x - self.scaled(10)
+                                    popup_height = popup_width * popup_ratio
+                                x = (size.x - popup_width) / 2
+                                y = (size.y - popup_height) / 2
+                                fg_draw_list = imgui.get_foreground_draw_list()
+                                fg_draw_list.add_image_rounded(preview.texture_id, (x, y), (x + popup_width, y + popup_height), rounding=globals.settings.style_corner_radius)
+                            # Zoom
+                            elif globals.settings.zoom_enabled:
+                                if diff := int(imgui.get_scroll_x() - 1.0):
+                                    if imgui.is_key_down(glfw.KEY_LEFT_ALT):
+                                        globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 500)
+                                    else:
+                                        globals.settings.zoom_times = min(max(globals.settings.zoom_times * (-diff / 50.0 + 1.0), 1), 20)
+                                zoom_popup = True
+                                out_size = min(*imgui.io.display_size) * globals.settings.zoom_area / 100
+                                in_size = out_size / globals.settings.zoom_times
+                                mouse_pos = imgui.io.mouse_pos
+                                off_x = utils.map_range(in_size, 0.0, width, 0.0, 1.0) / 2.0
+                                off_y = utils.map_range(in_size, 0.0, height, 0.0, 1.0) / 2.0
+                                x = utils.map_range(mouse_pos.x, image_pos.x, image_pos.x + width, 0.0, 1.0)
+                                y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
+                                imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
+                                imgui.begin_tooltip()
+                                preview.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
+                                imgui.end_tooltip()
+                        if imgui.begin_popup_context_item(f"###preview_context_{i}"):
+                            if imgui.selectable(f"{icons.trash_can_outline} Delete preview", False)[0]:
+                                game.delete_images(i)
+                            # TODO: add custom previews
+                            imgui.end_popup()
+                        imgui.end_child()
                     imgui.end_tab_item()
 
                 if not game.custom and imgui.begin_tab_item(icons.tray_arrow_down + " Downloads###downloads")[0]:
