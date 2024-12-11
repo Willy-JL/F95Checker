@@ -1071,7 +1071,7 @@ class MainGUI():
             with open(imgui.io.ini_file_name, "w") as f:
                 f.write(new_ini)
             for game in globals.games.values():
-                game.apply_image_order()
+                game.apply_previews_order()
             self.impl.shutdown()
             glfw.terminate()
 

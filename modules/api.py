@@ -999,7 +999,7 @@ async def download_game_previews(game: Game, semaphore: asyncio.Semaphore = None
             async with semaphore:
                 try:
                     res = await fetch("GET", url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
-                    await asyncio.shield(game.add_image_async(res))
+                    await asyncio.shield(game.add_preview_async(res))
                 except aiohttp.ClientResponseError as exc:
                     if exc.status < 400:
                         raise  # Not error status

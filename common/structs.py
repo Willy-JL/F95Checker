@@ -900,19 +900,19 @@ class Game:
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.previews_path = globals.images_path / str(self.id)
-        self.previews_path.mkdir(parents=True, exist_ok=True)
         self.previews = []
-        for image in self.previews_path.iterdir():
-            if image.is_file() and image.stem.isnumeric():
-                self.previews.append(imagehelper.ImageHelper(self.previews_path, glob=f"{image.stem}.*"))
+        if self.previews_path.is_dir():
+            for image in self.previews_path.iterdir():
+                if image.is_file() and image.stem.isnumeric():
+                    self.previews.append(imagehelper.ImageHelper(self.previews_path, glob=f"{image.stem}.*"))
         if self.previews:
-            self.sort_images()
-            self.apply_image_order()
+            self.sort_previews()
+            self.apply_previews_order()
 
-    def sort_images(self):
+    def sort_previews(self):
         self.previews.sort(key=lambda preview: int(preview.resolved_path.stem))
 
-    def apply_image_order(self):
+    def apply_previews_order(self):
         if not self.previews:
             pass
         # We add an underscore to avoid name conflicts during rename
@@ -933,23 +933,32 @@ class Game:
                         image.loaded = False
                         image.resolve()
 
-    def delete_images(self, preview_index: int = None, all_previews=False, reinit=True):
+    def delete_images(self, preview_index: int = None, all_previews=False):
         from modules import globals
-        try:
-            if all_previews:
+        if all_previews:
+            try:
                 shutil.rmtree(self.previews_path, ignore_errors=True)
-                if preview_index not in (None, False):
-                    preview_index = False
-            if preview_index is None:
-                files = globals.images_path.glob(f"{self.id}.*")
-            elif preview_index is not False:
-                files = self.previews_path.glob(f"{preview_index}.*")
-            for file in files:
-                file.unlink()
-        except Exception:
-            pass
-        if reinit:
-            self.init_images()
+            except Exception:
+                pass
+            self.previews = []
+            if preview_index not in (None, False):
+                preview_index = False
+        if preview_index is None:
+            try:
+                for file in globals.images_path.glob(f"{self.id}.*"):
+                    file.unlink()
+            except Exception:
+                pass
+            self.image.loaded = False
+            self.image.resolve()
+        elif preview_index is not False:
+            try:
+                for file in self.previews_path.glob(f"{preview_index}.*"):
+                    file.unlink()
+            except Exception:
+                pass
+            del self.previews[preview_index]
+            self.apply_previews_order()
 
     async def set_image_async(self, data: bytes, preview_index: int = None):
         from modules import globals, utils
@@ -958,6 +967,7 @@ class Game:
             path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
             image = self.image
         else:
+            self.previews_path.mkdir(parents=True, exist_ok=True)
             path = self.previews_path / f"{preview_index}.{utils.image_ext(data)}"
             image = self.previews[preview_index]
         if data:
@@ -972,6 +982,7 @@ class Game:
             path = globals.images_path / f"{self.id}.{utils.image_ext(data)}"
             image = self.image
         else:
+            self.previews_path.mkdir(parents=True, exist_ok=True)
             path = self.previews_path / f"{preview_index}.{utils.image_ext(data)}"
             image = self.previews[preview_index]
         if data:
@@ -979,16 +990,20 @@ class Game:
         image.loaded = False
         image.resolve()
 
-    def add_image(self, data: bytes):
+    def add_preview_sync(self, data: bytes):
         from external import imagehelper
-        new_index = len(self.previews)
-        self.previews.append(imagehelper.ImageHelper(self.previews_path, glob=f"{new_index}.*"))
+        preview = imagehelper.ImageHelper(self.previews_path)
+        self.previews.append(preview)
+        new_index = self.previews.index(preview)
+        preview.glob = f"{new_index}.*"
         self.set_image_sync(data, new_index)
 
-    async def add_image_async(self, data: bytes):
+    async def add_preview_async(self, data: bytes):
         from external import imagehelper
-        new_index = len(self.previews)
-        self.previews.append(imagehelper.ImageHelper(self.previews_path, glob=f"{new_index}.*"))
+        preview = imagehelper.ImageHelper(self.previews_path)
+        self.previews.append(preview)
+        new_index = self.previews.index(preview)
+        preview.glob = f"{new_index}.*"
         await self.set_image_async(data, new_index)
 
     def validate_executables(self):
