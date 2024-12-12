@@ -889,6 +889,7 @@ class MainGUI():
                     # Redraw only when needed
                     draw = (
                         imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
+                        or (api.downloads and any(dl.state is dl.State.Verifying for dl in api.downloads.values()))
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                         or prev_scaling != globals.settings.interface_scaling
                         or prev_minimized != self.minimized
@@ -901,11 +902,6 @@ class MainGUI():
                         or self.new_styles
                         or api.updating
                     )
-                    if not draw and api.downloads:
-                        for download in api.downloads.values():
-                            if download.state is download.State.Verifying:
-                                draw = True
-                                break
                     if draw:
                         draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
                     if draw_next > 0.0:

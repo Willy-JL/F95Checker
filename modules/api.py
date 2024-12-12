@@ -559,10 +559,14 @@ def open_search_popup(query: str):
         nonlocal query, category, search
 
         imgui.set_next_item_width(globals.gui.scaled(115))
-        _, category = imgui.combo("###category", category, categories)
+        changed, category = imgui.combo("###category", category, categories)
+        if changed:
+            async_thread.run(_f95zone_run_search())
         imgui.same_line()
         imgui.set_next_item_width(globals.gui.scaled(85))
-        _, search = imgui.combo("###search", search, searches)
+        changed, search = imgui.combo("###search", search, searches)
+        if changed:
+            async_thread.run(_f95zone_run_search())
         imgui.same_line()
         imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
         activated, query = imgui.input_text_with_hint(
@@ -587,6 +591,7 @@ def open_search_popup(query: str):
 
         imgui.text("Click on any of the results to add it, click Ok when you're finished.\n\n")
         for result in results:
+            # TODO: make this pretty and show more info from latest updates
             if result.id in globals.games:
                 imgui.push_disabled()
             text = result.title
@@ -963,7 +968,7 @@ async def full_check(game: Game, last_changed: int):
                         changed_host = False
                         for host_i in range(len(f95_attachments_hosts) - 1):
                             if image_url.startswith(f95_attachments_hosts[host_i]):
-                                image_url = image_url.replace(f95_attachments_hosts[host_i], f95_attachments_hosts[host_i + 1], 1)
+                                image_url = f95_attachments_hosts[host_i + 1] + image_url.removeprefix(f95_attachments_hosts[host_i])
                                 changed_host = True
                                 break
                         if changed_host:

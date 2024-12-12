@@ -17,7 +17,7 @@ from external import error
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class ParsedThread:
     name: str
     thread_version: str
