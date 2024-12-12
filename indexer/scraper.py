@@ -66,15 +66,15 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     except Exception:
         logger.error(f"Thread {id} version returned invalid JSON: {res}")
         return f95zone.ERROR_UNKNOWN_RESPONSE
-    if versions["status"] == "ok":
+    if versions.get("msg") in ("Missing threads data", "Thread not found"):
+        versions["status"] = "ok"
+        versions["msg"] = {}
+    if index_error := f95zone.check_error(versions, logger):
+        return index_error
+    if str(id) in versions["msg"]:
         version = versions["msg"][str(id)]
         if version == "Unknown":
             version = ""
-    elif versions["status"] == "error" and versions["msg"] == "Thread not found":
-        pass
-    else:
-        logger.error(f"Thread {id} version returned an error: {versions}")
-        return f95zone.ERROR_UNKNOWN_RESPONSE
 
     # If tracked by latest updates, try to search the thread there to get more precise details
     if version:
@@ -113,9 +113,8 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
             except Exception:
                 logger.error(f"Thread {id} search returned invalid JSON: {res}")
                 return f95zone.ERROR_UNKNOWN_RESPONSE
-            if updates["status"] != "ok":
-                logger.error(f"Thread {id} search returned an error: {updates}")
-                return f95zone.ERROR_UNKNOWN_RESPONSE
+            if index_error := f95zone.check_error(updates, logger):
+                return index_error
 
             for update in updates["msg"]["data"]:
                 if update["thread_id"] == id:

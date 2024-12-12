@@ -79,8 +79,8 @@ async def watch_updates():
                     updates = json.loads(res)
                 except Exception:
                     raise Exception(f"Latest updates returned invalid JSON: {res}")
-                if updates["status"] != "ok":
-                    raise Exception(f"Latest updates returned an error: {updates}")
+                if index_error := f95zone.check_error(updates, logger):
+                    raise Exception(index_error)
 
                 # We compare version strings to detect updates
                 # But also make a hash of other attributes to detect metadata changes
@@ -206,13 +206,11 @@ async def watch_versions():
                     versions = json.loads(res)
                 except Exception:
                     raise Exception(f"Versions API returned invalid JSON: {res}")
-                if (
-                    versions["status"] == "error"
-                    and versions["msg"] == "Thread not found"
-                ):
-                    continue
-                elif versions["status"] != "ok":
-                    raise Exception(f"Versions API returned an error: {versions}")
+                if versions.get("msg") in ("Missing threads data", "Thread not found"):
+                    versions["status"] = "ok"
+                    versions["msg"] = {}
+                if index_error := f95zone.check_error(versions, logger):
+                    raise Exception(index_error)
                 versions = versions["msg"]
 
                 assert len(names_chunk) == len(ids) == len(cached_versions)
