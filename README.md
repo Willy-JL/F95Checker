@@ -230,7 +230,7 @@ Please note that this software is not ( yet ;) ) officially affiliated with the 
 Supporters:
 
 [FaceCrap](https://f95zone.to/members/2913051/) - [ascsd](https://f95zone.to/members/3977760/) - [Jarulf](https://f95zone.to/members/2709937/) -
-[rozzic](https://f95zone.to/members/449099/) - [warez_gamez](https://f95zone.to/members/81517/) - [DarkVermilion](https://f95zone.to/members/4392187/) - And 1 anon
+[rozzic](https://f95zone.to/members/449099/) - [warez_gamez](https://f95zone.to/members/81517/) - [DarkVermilion](https://f95zone.to/members/4392187/) - And 3 anons
 
 Contributors:
 

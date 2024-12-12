@@ -2707,7 +2707,7 @@ class MainGUI():
                 "rozzic",
                 "warez_gamez",
                 "DarkVermilion",
-                "And 1 anon"
+                "And 3 anons"
             ]:
                 if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
                     imgui.dummy(0, 0)
