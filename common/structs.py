@@ -731,6 +731,7 @@ class Settings:
     highlight_tags              : bool
     ignore_semaphore_timeouts   : bool
     independent_tab_views       : bool
+    insecure_ssl                : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]

@@ -1,5 +1,5 @@
 ### Added:
-- Nothing
+- Insecure SSL option (by @Willy-JL)
 
 ### Updated:
 - Nothing

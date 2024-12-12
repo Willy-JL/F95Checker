@@ -4799,6 +4799,9 @@ class MainGUI():
             )
             draw_settings_checkbox("ignore_semaphore_timeouts")
 
+            draw_settings_label(f"Insecure SSL:")
+            draw_settings_checkbox("insecure_ssl")
+
             draw_settings_label(f"Async tasks count: {sum((0 if task.done() else 1) for task in asyncio.all_tasks(loop=async_thread.loop))}")
             imgui.text("")
             imgui.spacing()
