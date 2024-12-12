@@ -1,110 +1,14 @@
 ### Added:
-- Tabs system, more ways to organize your library (by @Willy-JL)
-- Tab customization and colored icons in extension (#112 #117 #118 #126 by @r37r05p3C7 & @Willy-JL)
-- F95zone Donor DDL integration, download and extract in-app (#190 by @Willy-JL, #192 by @FaceCrap)
-- Tag highlighting and extension settings (#115 by @r37r05p3C7)
-- Timeline events system, keep track of what happened and when (#138 #152 by @r37r05p3C7)
-- Show some game details above RPDL and Donor DDL downloads as reminder (#185 by @FaceCrap & @Willy-JL)
-- Number of votes after forum score and weighted score option (#140 by @r37r05p3C7)
-- Gracefully handle unrecognized tags (#148 by @r37r05p3C7)
-- Support proxy for network calls (#171 by @disaster2395 & @Willy-JL)
-- Filters persist between app restarts (#86 by @littleraisins)
-- Option to not focus the app when adding games from extension (#116 by @r37r05p3C7)
-- Extension icons on all thread links (#90 by @littleraisins, #134 by @r37r05p3C7)
-- Notes in extension icons tooltips (#160 by @FaceCrap)
-- Extension install instructions in settings sidebar (by @Willy-JL)
-- Show last refresh time on refresh button when hovered (#159 by @FaceCrap)
-- Downloads dir option for F95zone Donor DDL and RPDL torrent files (by @Willy-JL)
-- Skip/force refresh for completed/archived games (#170 by @disaster2395)
-- Middle click bottom right text to open F95zone (by @Willy-JL)
-- Middle click game name to copy it (by @Willy-JL)
-- Middle click open folder to copy exe path (by @Willy-JL)
-- Press Ctrl+A to select all currently shown games (by @Willy-JL)
-- Show async tasks count in refresh settings (by @Willy-JL)
-- Filter by custom game flag (by @Willy-JL)
-- Software webview option for integrated browser (by @Willy-JL)
-- Style loading from `styles.toml` file (#130 by @r37r05p3C7)
+- Nothing
 
 ### Updated:
-- Refresh process with F95Checker Cache API (#180 #184 #187 #188 by @Willy-JL):
-  - Due to strain this tool was causing on F95zone servers they now have many ratelimits which make it unfeasible to continue as before
-  - From now on F95Checker will not get game info directly from F95zone, but from a middleman F95Checker Cache API
-  - Check the README/OP for more info, but basically:
-    - No longer required to login with an F95zone account to use F95Checker, except for:
-      - Regular, Masked and Donor DDL downloads
-      - Notification checking
-      - Importing bookmarked/watched threads
-      - Opening webpages if you enabled Browser > Download pages
-    - Refreshing is MUCH faster, semantics of "fast/full refresh" changed (check README/OP)
-    - Regular download links are not publicly available, thus they now work similarly to masked download links
-    - In rare occasions some updates/changes may be slightly slower to be detected and this is out of your control
-  - Workers setting renamed to Connections, has different meaning, and max is now 10
-  - Bunch of other things tweaked slightly to fit this new paradigm
-- Finished/Played checkbox behavior (by @Willy-JL):
-  - Renamed from Played to Finished as its semantics changed
-  - Now remembers what version you marked as finished
-  - Finished checkbox is relative to Installed checkbox:
-    - Marking as finished saves the currently installed version as the one you finished
-    - If you mark as finished when you don't have the latest version installed, Finished checkbox will be half-set when you mark a new version as installed
-  - Basically reflects the previous behavior of Installed checkbox, but now for Finished checkbox too
-  - Check README/OP FAQ for more info
-- Redesigned grid/kanban cells, more compact data and nicer to look at (by @Willy-JL)
-- More efficient image loading, prioritizes newly shown images (by @Willy-JL)
-- Option to open RPDL torrents as temporary files (by @Willy-JL)
-- Adding game executable auto-navigates to closest named folder in default exe dir (by @Willy-JL, #129 by @r37r05p3C7)
-- Quick search now uses latest updates search, more search options and no login required (by @Willy-JL)
-- More info popup organized in 2 columns (by @Willy-JL)
-- Dates shown in monospace font for consistent spacing (by @Willy-JL)
-- Enabled smooth scrolling for integrated browser (by @Willy-JL)
-- Default exe dir is OS dependent, useful if you dual-boot (by @Willy-JL)
-- Default datestamp format changed to more readable `%b %d, %Y` (by @Willy-JL)
-- Notification checking disabled by default to use F95Checker without logging in (by @Willy-JL)
-- Animated tray icon during refresh (#114 by @FaceCrap)
-- Mark installed after adding executable (#172 by @FaceCrap)
-- Clicking masked download links will process the captcha then open in chosen browser (by @Willy-JL)
-- Regular download links now grabbed from thread in small integrated browser (#187 by @Willy-JL)
-- Integrated browser now supports private mode (by @Willy-JL)
-- Custom game flag separate from status, can now set status for custom games (by @Willy-JL)
-- Allow setting last updated for custom games (by @Willy-JL)
-- Adding a custom game now opens a more info popup for it (by @Willy-JL)
-- Open button in file picker as alternative to double click (by @Willy-JL)
-- Bumped OS targets and dependencies, Python 3.11 minimum (by @Willy-JL)
+- Nothing
 
 ### Fixed:
-- F95zone ratelimits properly handled (by @Willy-JL)
-- Improve detection of many game details and add fallbacks (by @Willy-JL)
-- SSL certificates verified, and SSL trusted CA loaded from system store (by @Willy-JL)
-- Many memory usage optimizations (by @Willy-JL)
-- Fix refresh cancel leaving many background tasks (by @Willy-JL)
-- Fetch images with alternative hosts when main domain is blocked (by @Willy-JL)
-- Custom images won't reset after threads change images (by @Willy-JL)
-- Imgur images caught and marked as blocked as imgur does not allow fetching them (by @Willy-JL)
-- Fix image loading issues due to file size and truncated data (#93 by @littleraisins)
-- Choose font color with enough contrast for labels, types and tabs (#109 #131 by @r37r05p3C7)
-- Notification popup removed if next check finds no more notifs (by @Willy-JL)
-- Temporary connection errors ignored while in background mode (by @Willy-JL)
-- Fixed issues on Wayland Linux (#182 by @Willy-JL)
-- Detect all browsers on Linux according to `XDG_DATA_DIRS` (by @Willy-JL)
-- Detect shebang and exe/msi magic numbers to correctly launch games on Linux/MacOS (by @Willy-JL)
-- Open HTML files in chosen browser when clicking play (by @Willy-JL)
-- Quickly reverse direction when smooth scrolling (#139 by @harikattar)
-- Bookmarks import correctly with more than 99 pages (#99 by @initialseed)
-- Improve RPDL search query generation with special characters (by @Willy-JL)
-- Fix integrated browser extension connection errors (by @Willy-JL)
-- Improved error handling for RPDL torrents downtime (by @Willy-JL)
-- Fix latest updates extension icons conflicting with forum watched icon (#113 by @FaceCrap)
-- Fix visual clipping due to rounding errors in interface scaling (#128 by @r37r05p3C7)
-- Fix MacOS PyQt segfault (#87 by @batblue)
-- Fix integrated browser on Linux (#96 by @littleraisins)
-- Fix integrated browser race condition hanging at 100% CPU usage (by @Willy-JL)
-- Fix BG mode refresh/notifs race condition causing runtime warning (by @Willy-JL)
-- Fix many old typos or weird wording (#194 by @Willy-JL)
-- Fixed running without stdout or stderr (by @Willy-JL)
+- Nothing
 
 ### Removed:
-- MacOS binaries no longer codesigned as Apple broke it and made it pointless
-- Main process doesn't re-launch itself to make a `log.txt` anymore, use the Debug binaries in console to get log output
-- Parser processes option and multiprocessing logic are gone, as parsing is no longer done clientside
+- Nothing
 
 ### Known Issues:
 - Sorting can be sporadically break/change with some actions, seems to be memory corruption inside (py)imgui, re-launch to fix it or change sorting manually
