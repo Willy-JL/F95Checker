@@ -47,7 +47,7 @@ LATEST_CATEGORIES = (
 )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class IndexerError:
     error_flag: str
     retry_delay: int
