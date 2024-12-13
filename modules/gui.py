@@ -1746,14 +1746,6 @@ class MainGUI():
                 f"###{game.id}_notes_inline",
                 value=first_line
             )
-            if game.notes and game.notes.find("\n") > -1 and imgui.is_item_hovered():
-                imgui.begin_tooltip()
-                imgui.push_font(imgui.fonts.default)
-                imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-                imgui.text(game.notes)
-                imgui.pop_text_wrap_pos()
-                imgui.pop_font()
-                imgui.end_tooltip()
             def setter_extra(value: str):
                 # Merge with remaining lines
                 if (offset := game.notes.find("\n")) != -1:
@@ -3174,6 +3166,7 @@ class MainGUI():
                             if game.notes:
                                 imgui.same_line()
                                 imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+                                self.draw_hover_text(game.notes,text=None)
                             if game.labels:
                                 imgui.same_line()
                                 self.draw_game_labels_widget(game, wrap=False, small=True, align=True)
