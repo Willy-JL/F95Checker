@@ -3276,6 +3276,7 @@ class MainGUI():
         checkboxes = cols.finished.enabled + cols.installed.enabled
         buttons = cols.play_button.enabled + cols.open_folder.enabled + cols.open_thread.enabled + cols.copy_link.enabled
         action_items = checkboxes + buttons
+        cluster_pad = imgui.style.item_spacing.x * 3
         bg_col = imgui.get_color_u32_rgba(*imgui.style.colors[imgui.COLOR_TABLE_ROW_BACKGROUND_ALT])
         frame_height = imgui.get_frame_height()
 
@@ -3325,11 +3326,11 @@ class MainGUI():
             )
         )
 
-        config = (side_indent, action_items, bg_col, frame_height)
+        config = (side_indent, action_items, cluster_pad, bg_col, frame_height)
         return min_cell_width, min_expand_width, config
 
     def draw_game_cell(self, game: Game, drag_drop: bool, draw_list, cell_width: float, expand: bool, img_height: float, config: tuple):
-        (side_indent, action_items, bg_col, frame_height) = config
+        (side_indent, action_items, cluster_pad, bg_col, frame_height) = config
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
@@ -3460,17 +3461,16 @@ class MainGUI():
             self.draw_game_labels_widget(game, short=True, align=False)
             imgui.same_line()
             cluster = True
-        pad = 3 * imgui.style.item_spacing.x
         def _cluster_text(name, text):
             nonlocal cluster
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(name[0] + text[:10]).x + pad:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(name[0] + text[:10]).x + cluster_pad:
                 imgui.dummy(0, 0)
             imgui.text_disabled(name[0])
             if imgui.is_item_hovered():
                 imgui.set_tooltip(name[2:])
             imgui.same_line()
             utils.wrap_text(text, width=cell_width - side_indent, offset=imgui.get_cursor_pos_x() - pos.x)
-            imgui.same_line(spacing=pad)
+            imgui.same_line(spacing=cluster_pad)
             cluster = True
         if cols.score.enabled:
             _cluster_text(cols.score.name, f"{game.score:.1f} ({game.votes})")
@@ -3481,10 +3481,10 @@ class MainGUI():
         if cols.added_on.enabled:
             _cluster_text(cols.added_on.name, game.added_on.display)
         if cols.rating.enabled:
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.star * 5).x + pad:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.star * 5).x + cluster_pad:
                 imgui.dummy(0, 0)
             self.draw_game_rating_widget(game)
-            imgui.same_line(spacing=pad)
+            imgui.same_line(spacing=cluster_pad)
             cluster = True
         if cols.developer.enabled:
             _cluster_text(cols.developer.name, game.developer)
