@@ -888,8 +888,8 @@ class MainGUI():
 
                     # Redraw only when needed
                     draw = (
-                        imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
-                        or (api.downloads and any(dl.state is dl.State.Verifying for dl in api.downloads.values()))
+                        (api.downloads and any(dl.state in (dl.State.Verifying, dl.State.Extracting) for dl in api.downloads.values()))
+                        or imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                         or prev_scaling != globals.settings.interface_scaling
                         or prev_minimized != self.minimized

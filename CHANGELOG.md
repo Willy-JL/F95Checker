@@ -6,6 +6,7 @@
 
 ### Fixed:
 - Fix Windows start with system setting and quotes usage (#156 by @oneshoekid & @Willy-JL)
+- Redraw screen when DDL is extracting to show when complete (by @Willy-JL)
 
 ### Removed:
 - Nothing
