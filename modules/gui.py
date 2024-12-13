@@ -3451,6 +3451,7 @@ class MainGUI():
             cluster = True
         if game.notes:
             imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+            self.draw_hover_text(game.notes, text=None)
             imgui.same_line()
             cluster = True
         if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
