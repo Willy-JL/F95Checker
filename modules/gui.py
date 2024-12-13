@@ -3463,13 +3463,13 @@ class MainGUI():
             cluster = True
         def _cluster_text(name, text):
             nonlocal cluster
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(name[0] + text[:10]).x + cluster_pad:
+            if imgui.get_content_region_available_width() < imgui.calc_text_size(name[0] + text).x + cluster_pad:
                 imgui.dummy(0, 0)
             imgui.text_disabled(name[0])
             if imgui.is_item_hovered():
                 imgui.set_tooltip(name[2:])
             imgui.same_line()
-            utils.wrap_text(text, width=cell_width - side_indent, offset=imgui.get_cursor_pos_x() - pos.x)
+            imgui.text(text)
             imgui.same_line(spacing=cluster_pad)
             cluster = True
         if cols.score.enabled:
