@@ -2715,7 +2715,7 @@ class MainGUI():
                 "rozzic",
                 "warez_gamez",
                 "DarkVermilion",
-                "And 1 anon"
+                "And 3 anons"
             ]:
                 if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
                     imgui.dummy(0, 0)
@@ -4806,6 +4806,9 @@ class MainGUI():
                 "you first try to repair your system with sfc and DISM (Google them) and update your drivers. Use this option as a last resort."
             )
             draw_settings_checkbox("ignore_semaphore_timeouts")
+
+            draw_settings_label(f"Insecure SSL:")
+            draw_settings_checkbox("insecure_ssl")
 
             draw_settings_label(f"Async tasks count: {sum((0 if task.done() else 1) for task in asyncio.all_tasks(loop=async_thread.loop))}")
             imgui.text("")

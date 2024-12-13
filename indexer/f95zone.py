@@ -16,11 +16,14 @@ LOGIN_ERROR_MESSAGES = (
     b"<title>Log in | F95zone</title>",
     b'<form action="/login/login" method="post" class="block"',
 )
-RATELIMIT_ERROR_MESSAGES = (
+RATELIMIT_FORUM_ERRORS = (
     b"<title>429 Too Many Requests</title>",
     b"<h1>429 Too Many Requests</h1>",
     b"<title>Error 429</title>",
     b"<title>DDOS-GUARD</title>",
+)
+RATELIMIT_API_ERRORS = (
+    "You have been temporarily blocked because of a large amount of requests, please try again later",
 )
 TEMP_ERROR_MESSAGES = (
     b"<title>502 Bad Gateway</title>",
@@ -56,8 +59,8 @@ class IndexerError:
 ERROR_SESSION_LOGGED_OUT = IndexerError(
     "SESSION_LOGGED_OUT", dt.timedelta(hours=2).total_seconds()
 )
-ERROR_FORUM_RATELIMIT = IndexerError(
-    "FORUM_RATELIMIT", dt.timedelta(minutes=15).total_seconds()
+ERROR_F95ZONE_RATELIMIT = IndexerError(
+    "F95ZONE_RATELIMIT", dt.timedelta(minutes=15).total_seconds()
 )
 ERROR_F95ZONE_UNAVAILABLE = IndexerError(
     "F95ZONE_UNAVAILABLE", dt.timedelta(minutes=15).total_seconds()
@@ -102,26 +105,32 @@ async def lifespan(version: str):
         session = None
 
 
-def check_error(res: bytes | Exception, logger: logging.Logger) -> IndexerError | None:
+def check_error(res: bytes | dict | Exception, logger: logging.Logger) -> IndexerError | None:
     if isinstance(res, bytes):
         if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
             logger.error("Logged out of F95zone")
             # TODO: maybe auto login, but xf_user cookie should be enough for a long time
             return ERROR_SESSION_LOGGED_OUT
 
-        if any((msg in res) for msg in RATELIMIT_ERROR_MESSAGES):
-            logger.error("Hit F95zone ratelimit")
-            return ERROR_FORUM_RATELIMIT
+        if any((msg in res) for msg in RATELIMIT_FORUM_ERRORS):
+            logger.error("Hit F95zone Forum ratelimit")
+            return ERROR_F95ZONE_RATELIMIT
 
         if any((msg in res) for msg in TEMP_ERROR_MESSAGES):
             logger.warning("F95zone temporarily unreachable")
             return ERROR_F95ZONE_UNAVAILABLE
 
-        return None
+    elif isinstance(res, dict):
+        if res.get("status") == "error":
+
+            if any((msg == res.get("msg")) for msg in RATELIMIT_API_ERRORS):
+                logger.error("Hit F95zone API ratelimit")
+                return ERROR_F95ZONE_RATELIMIT
+
+            logger.error(f"F95zone API returned an error: {res}")
+            return ERROR_UNKNOWN_RESPONSE
 
     elif isinstance(res, Exception):
         if isinstance(res, asyncio.TimeoutError):
             logger.warning("F95zone temporarily unreachable")
             return ERROR_F95ZONE_UNAVAILABLE
-
-        return None

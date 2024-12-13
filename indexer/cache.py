@@ -120,7 +120,7 @@ async def _maybe_update_thread_cache(id: int, name: str) -> None:
     if (
         not last_cached  # Never cached
         or time.time() >= int(expire_time)  # Cache expired
-        or cached_with != version  # Cached on different version
+        # or cached_with != version  # Cached on different version
     ):
         await _update_thread_cache(id, name)
 

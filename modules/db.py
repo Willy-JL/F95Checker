@@ -197,6 +197,7 @@ async def connect():
             "highlight_tags":              f'INTEGER DEFAULT {int(True)}',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "independent_tab_views":       f'INTEGER DEFAULT {int(False)}',
+            "insecure_ssl":                f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',
             "last_successful_refresh":     f'INTEGER DEFAULT 0',
             "manual_sort_list":            f'TEXT    DEFAULT "[]"',

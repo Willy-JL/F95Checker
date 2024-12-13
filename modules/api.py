@@ -220,7 +220,7 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
         max_redirects=None,
         ssl=ssl_context
     )
-    if url.startswith(insecure_ssl_allowed_hosts):
+    if url.startswith(insecure_ssl_allowed_hosts) or globals.settings.insecure_ssl:
         req_opts["ssl"] = False
     if cookies is True or cookies is None:
         cookies = globals.cookies
