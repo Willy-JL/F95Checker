@@ -5,7 +5,7 @@
 - Nothing
 
 ### Fixed:
-- Nothing
+- Fix Windows start with system setting and quotes usage (#156 by @oneshoekid & @Willy-JL)
 
 ### Removed:
 - Nothing
