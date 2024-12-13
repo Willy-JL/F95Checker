@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import contextlib
+import os
 import pathlib
 import sys
-import os
 
-version = "11.0"
+version = "11.0.1"
 release = False
 build_number = 0
 version_name = f"{version}{'' if release else ' beta'}{'' if release or not build_number else ' ' + str(build_number)}"
@@ -25,7 +25,7 @@ def main():
     # Must import globals first to fix load paths when frozen
     from modules import globals
 
-    from modules.structs import Os
+    from common.structs import Os
     try:
         # Install uvloop on MacOS and Linux, non essential so ignore errors
         if globals.os is not Os.Windows:
@@ -34,11 +34,11 @@ def main():
     except Exception:
         pass
 
-    from modules import async_thread, sync_thread
+    from external import async_thread, sync_thread
     async_thread.setup()
     sync_thread.setup()
 
-    from modules import db, api
+    from modules import api, db
     with db.setup(), api.setup():
 
         from modules import gui
@@ -52,7 +52,7 @@ def main():
 
 @contextlib.contextmanager
 def lock_singleton():
-    from modules import singleton
+    from external import singleton
     try:
         singleton.lock("F95Checker")
         locked = True
@@ -72,17 +72,14 @@ def lock_singleton():
 
 
 if __name__ == "__main__":
-    import multiprocessing
-    multiprocessing.freeze_support()
-
     if "-c" in sys.argv:
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
 
     elif "webview" in sys.argv:
         # Run webviews as subprocesses since Qt doesn't like threading
-        from modules import webview
         import json
+        from modules import webview
         i = sys.argv.index("webview")
         cb = getattr(webview, sys.argv[i + 1])
         args = json.loads(sys.argv[i + 2])
@@ -99,7 +96,7 @@ if __name__ == "__main__":
                 except Exception:
                     if debug and release:
                         try:
-                            from modules import error
+                            from external import error
                             print(error.traceback())
                             input(f"Unhandled exception, press [Enter] to quit... ")
                         except Exception:

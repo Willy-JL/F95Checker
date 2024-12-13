@@ -1,34 +1,55 @@
 # https://gist.github.com/Willy-JL/82137493896d385a74d148534691b6e1
-import pathlib
-import typing
-import string
-import imgui
-import glfw
-import sys
 import os
+import pathlib
+import string
+import sys
+import typing
+
+import glfw
+import imgui
 
 from modules import (  # added
-    globals,           # added
     callbacks,         # added
+    globals,           # added
     icons,             # added
     utils,             # added
 )                      # added
 
-dir_icon     = f"{icons.folder_outline}  "  # changed
-file_icon    = f"{icons.file_outline}  "    # changed
-up_icon      = icons.arrow_up               # changed
-refresh_icon = icons.refresh                # changed
-cancel_icon  = f"{icons.cancel} Cancel"     # changed
-ok_icon      = f"{icons.check} Ok"          # changed
+dir_icon     = f"{icons.folder_outline}  "         # changed
+file_icon    = f"{icons.file_outline}  "           # changed
+up_icon      = icons.arrow_up                      # changed
+refresh_icon = icons.refresh                       # changed
+cancel_icon  = f"{icons.cancel} Cancel"            # changed
+open_icon    = f"{icons.folder_open_outline} Open" # changed
+ok_icon      = f"{icons.check} Ok"                 # changed
 
 
 class FilePicker:
-    flags = (
+    default_flags = (
         imgui.WINDOW_NO_MOVE |
         imgui.WINDOW_NO_RESIZE |
         imgui.WINDOW_NO_COLLAPSE |
         imgui.WINDOW_NO_SAVED_SETTINGS |
         imgui.WINDOW_ALWAYS_AUTO_RESIZE
+    )
+
+    __slots__ = (
+        "current",
+        "title",
+        "active",
+        "elapsed",
+        "buttons",
+        "callback",
+        "selected",
+        "filter_box_text",
+        "update_filter",
+        "items",
+        "dir_picker",
+        "dir",
+        "flags",
+        "windows",
+        "drives",
+        "current_drive",
     )
 
     def __init__(
@@ -52,7 +73,7 @@ class FilePicker:
         self.items: list[str] = []
         self.dir_picker = dir_picker
         self.dir: pathlib.Path = None
-        self.flags = custom_popup_flags or self.flags
+        self.flags = custom_popup_flags or self.default_flags
         self.windows = sys.platform.startswith("win")
         if self.windows:
             self.drives: list[str] = []
@@ -192,6 +213,16 @@ class FilePicker:
                     self.selected = button
                     imgui.close_current_popup()
                     closed = True  # added
+            # Open button
+            imgui.same_line()
+            if value == -1 or not is_dir:
+                imgui.internal.push_item_flag(imgui.internal.ITEM_DISABLED, True)
+                imgui.push_style_var(imgui.STYLE_ALPHA, style.alpha *  0.5)
+            if imgui.button(open_icon):
+                self.goto(self.dir / item[len(dir_icon if self.dir_picker else file_icon):])
+            if value == -1 or not is_dir:
+                imgui.internal.pop_item_flag()
+                imgui.pop_style_var()
             # Ok button
             imgui.same_line()
             if not (is_file and not self.dir_picker) and not (is_dir and self.dir_picker):

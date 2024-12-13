@@ -1,23 +1,25 @@
-import socketserver
-import http.server
-import contextlib
-import threading
 import asyncio
+import contextlib
+import http.server
 import json
+import socketserver
+import threading
 
-from modules.structs import (
+from common.structs import (
     MsgBox,
-    Tab
+    Tab,
+)
+from external import (
+    async_thread,
+    error,
 )
 from modules import (
-    globals,
-    async_thread,
     callbacks,
-    msgbox,
     colors,
-    utils,
+    globals,
     icons,
-    error,
+    msgbox,
+    utils,
 )
 
 server: socketserver.TCPServer = None
@@ -49,7 +51,7 @@ def start():
             def do_OPTIONS(self):
                 self.send_response(200, "ok")
                 self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Access-Control-Allow-Methods', 'GET. POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
                 self.send_header("Access-Control-Allow-Headers", "X-Requested-With")
                 self.send_header("Access-Control-Allow-Headers", "Content-Type")
                 self.end_headers()
@@ -70,11 +72,14 @@ def start():
                 try:
                     match self.path:
                         case "/games":
-                            self.send_json(200, [{
+                            self.send_json(200, [
+                                {
                                     "id": g.id,
-                                    "icon": g.tab.icon if g.tab else Tab.first_tab_label[0],
-                                    "color": colors.rgba_0_1_to_hex(g.tab.color) if g.tab and g.tab.color else "#FD5555"
-                                } for g in globals.games.values()
+                                    "icon": g.tab.icon if g.tab else Tab.first_tab_label()[0],
+                                    "color": colors.rgba_0_1_to_hex(g.tab.color) if g.tab and g.tab.color else "#FD5555",
+                                    "notes": g.notes,
+                                }
+                                for g in globals.games.values()
                             ])
                             return
                         case "/settings":

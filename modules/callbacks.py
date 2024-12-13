@@ -1,43 +1,42 @@
-import multiprocessing
-import configparser
-import subprocess
-import plistlib
-import pathlib
 import asyncio
+import configparser
 import difflib
-import typing
-import string
-import shlex
-import imgui
-import json
-import glfw
-import time
-import stat
-import re
 import os
+import pathlib
+import plistlib
+import re
+import shlex
+import stat
+import string
+import subprocess
+import time
+import typing
 
-from modules.structs import (
-    TimelineEventType,
-    AsyncProcessPipe,
-    DaemonProcess,
-    SearchResult,
-    ThreadMatch,
-    MsgBox,
-    Status,
+import glfw
+import imgui
+
+from common.structs import (
     Game,
+    MsgBox,
     Os,
+    SearchResult,
+    Status,
+    ThreadMatch,
+    TimelineEventType,
+)
+from external import (
+    async_thread,
+    error,
+    filepicker,
 )
 from modules import (
-    globals,
-    async_thread,
-    filepicker,
-    webview,
-    msgbox,
-    utils,
-    icons,
-    error,
     api,
     db,
+    globals,
+    icons,
+    msgbox,
+    utils,
+    webview,
 )
 
 
@@ -54,7 +53,7 @@ def update_start_with_system(toggle: bool):
                 config.optionxform = lambda option: option
                 config.add_section("Desktop Entry")
                 config.set("Desktop Entry", "Name", "F95Checker")
-                config.set("Desktop Entry", "Comment", "An update checker tool for (NSFW) games on the F95Zone platform")
+                config.set("Desktop Entry", "Comment", "An update checker tool for (NSFW) games on the F95zone platform")
                 config.set("Desktop Entry", "Type", "Application")
                 config.set("Desktop Entry", "Exec", globals.start_cmd)
                 with globals.autostart.open("w") as f:
@@ -118,12 +117,15 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
         if (start_dir / clean_dir).is_dir():
             start_dir /= clean_dir
         else:
-            ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
-            dirs = [node for node in os.listdir(start_dir) if os.path.isdir(start_dir / node)]
-            similarity = {d: ratio(d, game.name) for d in dirs}
-            best_match = max(similarity, key=similarity.get)
-            if similarity[best_match] > 0.85:
-                start_dir /= best_match
+            try:
+                ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
+                dirs = [node for node in os.listdir(start_dir) if os.path.isdir(start_dir / node)]
+                similarity = {d: ratio(d, game.name) for d in dirs}
+                best_match = max(similarity, key=similarity.get)
+                if similarity[best_match] > 0.85:
+                    start_dir /= best_match
+            except Exception:
+                pass
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
         start_dir=start_dir,
@@ -371,26 +373,7 @@ def open_webpage(url: str):
     async def _open_webpage(url: str):
         try:
             if set.browser.integrated:
-                if globals.os is Os.Linux:
-                    await asyncio.create_subprocess_exec(
-                        *shlex.split(globals.start_cmd), "webview", "open", json.dumps((url,)),
-                        json.dumps(webview.kwargs() | dict(
-                            cookies=globals.cookies,
-                            cookies_domain=api.domain,
-                            size=(1269, 969),
-                        ))
-                    )
-                else:
-                    proc = multiprocessing.Process(
-                        target=webview.open, args=(url,),
-                        kwargs=webview.kwargs() | dict(
-                            cookies=globals.cookies,
-                            cookies_domain=api.domain,
-                            size=(1269, 969),
-                        )
-                    )
-                    proc.start()
-                    DaemonProcess(proc)
+                await webview.start("open", url, size=(1269, 969))
             else:
                 await asyncio.create_subprocess_exec(
                     *args, url,
@@ -424,24 +407,60 @@ def clipboard_paste():
     return str(glfw.get_clipboard_string(globals.gui.window) or b"", encoding="utf-8")
 
 
-def copy_masked_link(masked_url: str):
+def redirect_masked_link(masked_url: str, copy=False):
     host = (re.search(r"/masked/(.*?)/", masked_url) or ("", ""))[1]
+    if not copy and globals.settings.browser.integrated:
+        size = (1269, 969)
+    else:
+        size = (520, 480)
     async def _unmask_and_copy():
-        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "webview", "redirect", json.dumps((masked_url, "a.host_link")), json.dumps(webview.kwargs() | dict(
-                cookies=globals.cookies,
-                cookies_domain=api.domain,
-                title=f"Unmask link{f' for {host}' if host else ''}",
-                size=(size := (520, 480)),
-                pos=(
-                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
-                )
-            )),
-            stdout=subprocess.PIPE
-        )):
-            clipboard_copy(await pipe.get_async())
+        if not await api.assert_login():
+            return
+        with await webview.start(
+            "css_redirect", masked_url, "a.host_link",
+            title=f"Unmask link{f' for {host}' if host else ''}",
+            size=size,
+            pipe=True,
+            minimal=copy,
+        ) as pipe:
+            link = await pipe.get_async()
+            if copy:
+                clipboard_copy(link)
+            else:
+                if globals.settings.browser.integrated:
+                    pipe.daemon.finalize.detach()
+                else:
+                    open_webpage(link)
     async_thread.run(_unmask_and_copy())
+
+
+def redirect_xpath_link(thread_url: str, xpath_expr: str, copy=False):
+    host = (re.search(r"://(.*?)/", xpath_expr) or ("", ""))[1]
+    xpath_post = "//*[contains(@class,'message-threadStarterPost')][1]"
+    xpath_expr = xpath_post + xpath_expr  # Parser only looks inside main post element
+    if not copy and globals.settings.browser.integrated:
+        size = (1269, 969)
+    else:
+        size = (520, 480)
+    async def _retrieve_and_copy():
+        if not await api.assert_login():
+            return
+        with await webview.start(
+            "xpath_redirect", thread_url, xpath_expr,
+            title=f"Retrieve link{f' for {host}' if host else ''}",
+            size=size,
+            pipe=True,
+            minimal=copy,
+        ) as pipe:
+            link = await pipe.get_async()
+            if copy:
+                clipboard_copy(link)
+            else:
+                if globals.settings.browser.integrated:
+                    pipe.daemon.finalize.detach()
+                else:
+                    open_webpage(link)
+    async_thread.run(_retrieve_and_copy())
 
 
 def convert_f95zone_to_custom(game: Game):
@@ -455,7 +474,7 @@ def convert_custom_to_f95zone(game: Game):
     if not new_id:
         utils.push_popup(
             msgbox.msgbox, "Invalid URL",
-            "The URL you provided for this game is not a valid F95Zone thread link!",
+            "The URL you provided for this game is not a valid F95zone thread link!",
             MsgBox.warn
         )
         return

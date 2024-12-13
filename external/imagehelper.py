@@ -1,16 +1,27 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
-from PIL import Image, ImageSequence, UnidentifiedImageError
-import OpenGL.GL as gl
 import functools
+import gc
 import pathlib
+
+from PIL import (
+    Image,
+    ImageSequence,
+    UnidentifiedImageError
+)
+import OpenGL.GL as gl
 import imgui
 
-from modules import (  # added
-    sync_thread,       # added
-)                      # added
+from external import sync_thread  # added
 
 redraw = False  # added
+_apply_texture_queue = []
 _dummy_texture_id = None
+
+
+def apply_textures():
+    for apply_texture in reversed(_apply_texture_queue):
+        apply_texture()
+        _apply_texture_queue.remove(apply_texture)
 
 
 def dummy_texture_id():
@@ -56,6 +67,26 @@ def _crop_to_ratio(width, height, ratio: int | float, fit=False):
 
 
 class ImageHelper:
+    __slots__ = (
+        "width",
+        "height",
+        "frame",
+        "glob",
+        "elapsed",
+        "loaded",
+        "loading",
+        "applied",
+        "missing",
+        "invalid",
+        "prev_time",
+        "animated",
+        "frames",
+        "durations",
+        "texture_ids",
+        "resolved_path",
+        "path",
+    )
+
     def __init__(self, path: str | pathlib.Path, glob=""):
         self.width = 1
         self.height = 1
@@ -128,6 +159,7 @@ class ImageHelper:
         image.close()
         self.loaded = True
         self.loading = False
+        _apply_texture_queue.append(self.apply)
 
     def apply(self):
         if self.texture_ids:
@@ -144,6 +176,7 @@ class ImageHelper:
             gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
         self.frames.clear()
         self.applied = True
+        gc.collect()
 
     @property
     def texture_id(self):
@@ -163,7 +196,7 @@ class ImageHelper:
             return dummy_texture_id()
 
         if not self.applied:
-            self.apply()
+            return dummy_texture_id()
 
         if self.animated:
             if self.prev_time != (new_time := imgui.get_time()):

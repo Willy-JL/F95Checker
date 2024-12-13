@@ -1,8 +1,8 @@
 # https://gist.github.com/Willy-JL/183cb7134e940db1cfab72480e95a357
-import threading
 import asyncio
-import typing
+import threading
 import time
+import typing
 
 loop: asyncio.BaseEventLoop = None
 thread: threading.Thread = None

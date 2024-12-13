@@ -1,22 +1,41 @@
-import multiprocessing
+import dataclasses
 import datetime as dt
 import functools
-import bs4
+import json
 import re
-import os
 
-from modules.structs import (
-    MsgBox,
+from lxml import etree
+import bs4
+
+from common.structs import (
     Status,
-    Type,
     Tag,
+    Type,
 )
-from modules import (
-    error,
-)
+from external import error
 
 html = functools.partial(bs4.BeautifulSoup, features="lxml")
 _html = html
+
+@dataclasses.dataclass(slots=True)
+class ParsedThread:
+    name: str
+    thread_version: str
+    developer: str
+    type: Type
+    status: Status
+    last_updated: int
+    score: float
+    votes: int
+    description: str
+    changelog: str
+    tags: list[Tag]
+    unknown_tags: list[str]
+    image_url: str
+    previews_urls: list[str]
+    downloads: list[tuple[str, list[tuple[str, str]]]]
+
+f95_host = "https://f95zone.to/"
 
 # [^\S\r\n] = whitespace but not newlines
 sanitize_whitespace = lambda text: re.sub(r" *(?:\r\n?|\n)", r"\n", re.sub(r"(?:[^\S\r\n]|\u200b)", " ", text))
@@ -44,14 +63,20 @@ def datestamp(timestamp: int | float):
     return int(dt.datetime.fromordinal(dt.datetime.fromtimestamp(timestamp).date().toordinal()).timestamp())
 
 
-class ParserException(Exception):
-    def __init__(self, *args, **kwargs):
+def attachment(preview: str):
+    if preview.startswith("https://preview."):
+        return "https://attachments." + preview.removeprefix("https://preview.")
+    return preview
+
+
+class ParserError(Exception):
+    def __init__(self, message: str, dump=None):
         super().__init__()
-        self.args = args
-        self.kwargs = kwargs
+        self.message = message
+        self.dump = dump
 
 
-def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
+def thread(res: bytes) -> ParsedThread | ParserError:
     def game_has_prefixes(*names: list[str]):
         for name in names:
             if head.find("span", text=f"{name}"):
@@ -115,6 +140,7 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 downloads.append((download_name, download_mirrors))
                 download_name = ""
                 download_mirrors = []
+        post_tree = etree.fromstring(post.encode(), etree.HTMLParser())
         while not (is_class("bbWrapper")(elem) or elem.parent.name == "article"):
             if elem.next_sibling:
                 elem = elem.next_sibling
@@ -123,8 +149,20 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 continue
             while not (is_link := is_class("link")(elem)) and (children := list(getattr(elem, "children", []))):
                 elem = children[0]
-            if is_link:
-                download_mirrors.append((clean_text(elem.text), elem.get("href")))
+            if is_link and (link_url := elem.get("href")):
+                if not link_url.startswith(f95_host):
+                    # Cache API is public, to prevent abuse we replace naked links with XPath
+                    # expressions to allow client to automatically find the link in main post
+                    link_host = link_url[:link_url.find("/", len("https://")) + 1]
+                    xpath_expr = f"//{elem.name}[starts-with(@href,{link_host!r})]"
+                    xpath_results = post_tree.xpath(xpath_expr)
+                    for xpath_i, xpath_result in enumerate(xpath_results):
+                        if xpath_result.get("href") == link_url:
+                            link_url = f"{xpath_expr}[{xpath_i + 1}]"
+                            break
+                    else:  # Did not break so no match for some reason, just redact it
+                        link_url = ""
+                download_mirrors.append((clean_text(elem.text), link_url))
             else:
                 if elem.name in ("img", "video"):
                     break
@@ -144,21 +182,11 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
-            from main import self_path
-            (self_path / f"{game_id}_broken.html").write_bytes(res)
-            e = ParserException(
-                "Thread parsing error",
-                "Failed to parse necessary sections in thread response, the html file has\n"
-                f"been saved to:\n{self_path}{os.sep}{game_id}_broken.html\n"
-                "\n"
-                "Please submit a bug report on F95Zone or GitHub including this file.",
-                MsgBox.error
+            e = ParserError(
+                message="Thread structure missing",
+                dump=res,
             )
-            if pipe:
-                pipe.put_nowait(e)
-                return
-            else:
-                return e
+            return e
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:
                 next(spoiler.span.span.children).replace_with(html.new_string(""))
@@ -178,8 +206,6 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         if not thread_version:
             if match := re.search(r"(?:\[.+?\] - )*.+?\[(.+?)\]", html.title.text):
                 thread_version = fixed_spaces(sanitize_whitespace(match.group(1)))
-        if not thread_version:
-            thread_version = None
 
         developer = get_game_attr(
             "developer/publisher",
@@ -297,19 +323,34 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
                 pass
         last_updated = datestamp(last_updated)
 
-        score = 0.0
-        if elem := head.find("select", attrs={"name": "rating"}):
-            score = float(elem.get("data-initial-rating"))
-        elif elem := head.find(is_class("bratr-rating")):
-            score = float(re.search(r"(\d(?:\.\d\d?)?)", elem.get("title")).group(1))
+        score = None
+        votes = None
+        for ldjson in html.find_all("script", type="application/ld+json"):
+            try:
+                schema = json.loads(ldjson.get_text())
+                if schema["@context"] != "http://schema.org/" or "aggregateRating" not in schema:
+                    continue
+                score = float(schema["aggregateRating"]["ratingValue"])
+                votes = int(schema["aggregateRating"]["ratingCount"])
+                break
+            except Exception:
+                pass
 
-        votes = 0
-        if elem := html.find(is_class("tabs")):
-            if match := re.search(r"reviews\s*\((\d+)\)", elem.get_text(), re.M | re.I):
-                try:
-                    votes = int(match.group(1))
-                except Exception:
-                    pass
+        if score is None:
+            score = 0.0
+            if elem := head.find("select", attrs={"name": "rating"}):
+                score = float(elem.get("data-initial-rating"))
+            elif elem := head.find(is_class("bratr-rating")):
+                score = float(re.search(r"(\d(?:\.\d\d?)?)", elem.get("title")).group(1))
+
+        if votes is None:
+            votes = 0
+            if elem := html.find(is_class("tabs")):
+                if match := re.search(r"reviews\s*\(([\d,]+)\)", elem.get_text(), re.M | re.I):
+                    try:
+                        votes = int(match.group(1).replace(",", ""))
+                    except Exception:
+                        pass
 
         description_html, description_regex = get_long_game_attr("overview", "story")
         changelog_html, changelog_regex = get_long_game_attr("changelog", "change-log", "change log")
@@ -343,26 +384,36 @@ def thread(game_id: int, res: bytes, pipe: multiprocessing.Queue = None):
         else:
             image_url = "missing"
 
+        # FIXME: find preview images in thread
+        previews_urls = []
+
         downloads = get_game_downloads("downloads", "download")
 
     except Exception:
-        e = ParserException(
-            "Thread parsing error",
-            f"Something went wrong while parsing thread {game_id}:\n{error.text()}",
-            MsgBox.error,
-            more=error.traceback()
+        e = ParserError(
+            message=f"Unhandled exception: {error.text()}",
+            dump=error.traceback()
         )
-        if pipe:
-            pipe.put_nowait(e)
-            return
-        else:
-            return e
+        return e
 
-    ret = (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads)
-    if pipe:
-        pipe.put_nowait(ret)
-    else:
-        return ret
+    ret = ParsedThread(
+        name=name,
+        thread_version=thread_version,
+        developer=developer,
+        type=type,
+        status=status,
+        last_updated=last_updated,
+        score=score,
+        votes=votes,
+        description=description,
+        changelog=changelog,
+        tags=tags,
+        unknown_tags=unknown_tags,
+        image_url=image_url,
+        previews_urls=previews_urls,
+        downloads=downloads,
+    )
+    return ret
 
 
 developer_strip_chars = "-–|｜/':,([{ "

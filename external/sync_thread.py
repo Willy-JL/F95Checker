@@ -1,31 +1,33 @@
 # https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44
-import queue as _queue
 import threading
 import typing
-import time
 
-fn_queue: _queue.Queue = None
+stack: list = None
 thread: threading.Thread = None
+_condition: threading.Condition = None
 
 
 def setup():
-    global fn_queue, thread
+    global stack, thread, _condition
 
-    fn_queue = _queue.Queue()
+    stack = []
+    _condition = threading.Condition()
 
     def run_loop():
         while True:
-            if fn_queue.not_empty:
-                fn_queue.get()()
-            else:
-                time.sleep(0.1)
+            while stack:
+                stack.pop()()
+            with _condition:
+                _condition.wait()
 
     thread = threading.Thread(target=run_loop, daemon=True)
     thread.start()
 
 
 def queue(fn: typing.Callable):
-    fn_queue.put(fn)
+    stack.append(fn)
+    with _condition:
+        _condition.notify()
 
 
 # Example usage

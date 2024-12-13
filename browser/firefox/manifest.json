@@ -1,13 +1,13 @@
 {
-    "manifest_version": 3,
+    "manifest_version": 2,
     "name": "F95Checker Browser Addon",
     "short_name": "F95Checker",
     "author": "WillyJL",
     "version": "11.0.0",
-    "description": "Integration between the F95Zone forum and the F95Checker app",
+    "description": "Integration between the F95zone forum and the F95Checker app",
     "homepage_url": "https://github.com/Willy-JL/F95Checker",
 
-    "action": {
+    "browser_action": {
         "default_icon": {
             "16": "icons/16.png",
             "32": "icons/32.png",
@@ -22,13 +22,13 @@
     },
 
     "background": {
-        "service_worker": "extension.js"
+        "scripts": ["extension.js"]
     },
     "permissions": [
         "scripting",
         "activeTab",
         "contextMenus",
-        "webNavigation"
-    ],
-    "host_permissions": ["*://*.f95zone.to/*"]
+        "webNavigation",
+        "*://*.f95zone.to/*"
+    ]
 }

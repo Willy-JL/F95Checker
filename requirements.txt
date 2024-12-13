@@ -1,27 +1,30 @@
 # OpenGL + glfw
-PyOpenGL-accelerate>=3.1.7
-PyOpenGL>=3.1.7
-glfw>=2.6.2
+PyOpenGL==3.1.7
+glfw==2.8.0
 
 # Interface stuff
-imgui>=2.0.0
-PyQt6-WebEngine>=6.5.0 ; sys_platform != "darwin"
-PyQt6>=6.5.0 ; sys_platform != "darwin"
-PyQt6-WebEngine>=6.4.0, <6.5.0 ; sys_platform == "darwin"
-PyQt6>=6.4.0, <6.5.0 ; sys_platform == "darwin"
+imgui==2.0.0
+PyQt6-WebEngine==6.7.0 ; sys_platform != "darwin"
+PyQt6==6.7.1 ; sys_platform != "darwin"
+PyQt6-WebEngine==6.4.0 ; sys_platform == "darwin"
+PyQt6==6.4.2 ; sys_platform == "darwin"
 
 # Async goodness
-async_timeout>=4.0.0
-aiosqlite>=0.19.0
-aiofiles>=23.1.0
-aiohttp>=3.8.5
+aiolimiter==1.2.0
+aiosqlite==0.20.0
+aiofiles==24.1.0
+aiohttp==3.11.7
 
 # BeautifulSoup
-beautifulsoup4>=4.12.2
-lxml>=4.9.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
 
 # Misc
-pywin32>=0.3.1 ; sys_platform == "win32"
-uvloop>=0.17.0 ; sys_platform != "win32"
-bencode3>=0.1.0
-Pillow>=10.0.0
+pywin32==308 ; sys_platform == "win32"
+uvloop==0.21.0 ; sys_platform != "win32"
+bencode2==0.3.17
+pillow==11.0.0
+
+# Proxy support
+python-socks[asyncio]==2.5.3
+aiohttp-socks==0.9.1

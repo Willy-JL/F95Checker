@@ -1,27 +1,30 @@
-from PyQt6.QtWidgets import QSystemTrayIcon
-from PIL import Image
+import asyncio
 import concurrent
 import functools
-import asyncio
-import typing
-import random
-import imgui
-import time
-import math
-import glfw
-import re
 import io
+import math
+import random
+import re
+import time
+import typing
 
-from modules.structs import (
+from PIL import Image
+from PyQt6.QtWidgets import QSystemTrayIcon
+import glfw
+import imgui
+
+from common.structs import (
+    MsgBox,
     Popup,
+    ThreadMatch,
 )
+from external import async_thread
 from modules import (
-    globals,
-    async_thread,
-    callbacks,
-    msgbox,
-    icons,
     api,
+    callbacks,
+    globals,
+    icons,
+    msgbox,
 )
 
 
@@ -33,6 +36,15 @@ def bayesian_average(avg_rating, num_votes):
 
 def rand_num_str(len=8):
     return "".join((random.choice('0123456789') for _ in range(len)))
+
+
+# https://stackoverflow.com/a/1094933
+def sizeof_fmt(num, suffix="B"):
+    for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
 
 
 @functools.cache
@@ -233,10 +245,8 @@ def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda 
 @functools.cache
 def clean_thread_url(url: str):
     thread = re.search(r"threads/([^/]*)", url).group(1)
-    return f"{api.threads_page}{thread}/"
+    return f"{api.f95_threads_page}{thread}/"
 
-
-from modules.structs import MsgBox, ThreadMatch
 
 def extract_thread_matches(text: str) -> list[ThreadMatch]:
     matches = []
@@ -310,7 +320,14 @@ def push_popup(*args, bottom=False, **kwargs):
     popup = Popup(*args, **kwargs)
     if globals.gui:
         if (globals.gui.hidden or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
-            if globals.gui.hidden and args[1] == "Daily backups":
+            # Ignore some temporary errors in background mode, taken from modules/api.py
+            if globals.gui.hidden and args[1] in (
+                "Rate limit",
+                "Server downtime",
+                "Database overload",
+                "Daily backups",
+                "DDoS-Guard bypass failure",
+            ):
                 return
             globals.gui.tray.push_msg(
                 title="Oops",
