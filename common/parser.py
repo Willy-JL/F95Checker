@@ -384,8 +384,11 @@ def thread(res: bytes) -> ParsedThread | ParserError:
         else:
             image_url = "missing"
 
-        # FIXME: find preview images in thread
-        previews_urls = []
+        # FIXME: check if this works right
+        elems = post.find(is_class("bbWrapper")).find_all(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
+        previews_urls = [elem.get("data-src") for elem in elems]
+        previews_urls = filter(lambda url: "/thumb/" in url, previews_urls)
+        previews_urls = list(map(lambda url: url.replace("/thumb/", "/"), previews_urls))
 
         downloads = get_game_downloads("downloads", "download")
 
