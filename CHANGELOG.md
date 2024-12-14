@@ -1,5 +1,6 @@
 ### Added:
 - Insecure SSL option (by @Willy-JL)
+- Archive/Unarchive button to more info popup (by @Willy-JL)
 
 ### Updated:
 - Rename "Last Played" to "Last Launched" and add timeline event when manually setting launched date (by @Willy-JL)

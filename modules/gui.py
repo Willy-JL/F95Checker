@@ -2140,6 +2140,8 @@ class MainGUI():
             imgui.same_line(spacing=_10)
             self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
             imgui.same_line()
+            self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive")
+            imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
             imgui.spacing()
