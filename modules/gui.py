@@ -2703,11 +2703,13 @@ class MainGUI():
             imgui.text("Supporters:")
             for name in [
                 "FaceCrap",
+                "WhiteVanDaycare",
                 "ascsd",
                 "Jarulf",
                 "rozzic",
+                "Belfaier",
                 "warez_gamez",
-                "DarkVermilion",
+                "DeadMoan",
                 "And 3 anons"
             ]:
                 if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
