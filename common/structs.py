@@ -535,7 +535,7 @@ class Filter:
 
 TimelineEventType = IntEnumHack("TimelineEventType", [
     ("GameAdded",        (1,  {"display": "Added",             "icon": "alert_decagram", "args_min": 0, "template": "Added to the library"})),
-    ("GameLaunched",     (2,  {"display": "Launched",          "icon": "play",           "args_min": 1, "template": "Launched \"{}\""})),
+    ("GameLaunched",     (2,  {"display": "Launched",          "icon": "play",           "args_min": 1, "template": "Launched {}"})),
     ("GameFinished",     (3,  {"display": "Finished",          "icon": "flag_checkered", "args_min": 1, "template": "Finished {}"})),
     ("GameInstalled",    (4,  {"display": "Installed",         "icon": "download",       "args_min": 1, "template": "Installed {}"})),
     ("ChangedName",      (5,  {"display": "Changed name",      "icon": "spellcheck",     "args_min": 2, "template": "Name changed from \"{}\" to \"{}\""})),
@@ -830,7 +830,7 @@ class Game:
     last_updated       : Datestamp
     last_full_check    : int
     last_check_version : str
-    last_played        : Datestamp
+    last_launched      : Datestamp
     score              : float
     votes              : int
     rating             : int
@@ -1007,7 +1007,7 @@ class Game:
             "last_updated",
             "last_full_check",
             "last_check_version",
-            "last_played",
+            "last_launched",
             "score",
             "votes",
             "rating",

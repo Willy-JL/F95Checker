@@ -416,7 +416,7 @@ def thread(res: bytes) -> ParsedThread | ParserError:
     return ret
 
 
-developer_strip_chars = "-–|｜/':,([{ "
+developer_strip_chars = "-–|｜\\/':,)(][}{ "
 
 developer_chop_separators = [
     "is creating",
@@ -425,13 +425,14 @@ developer_chop_separators = [
     " – ",
     " | ",
     " ｜ ",
+    " \\ ",
     " / ",
     "'s ",
     ": ",
     ", ",
-    " (",
-    " [",
-    " {"
+    "(",
+    "[",
+    "{"
 ]
 
 developer_remove_patterns = [
