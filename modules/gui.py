@@ -312,6 +312,7 @@ class MainGUI():
         # Variables
         self.hidden = False
         self.focused = True
+        self.dpi_mult = 1.0
         self.minimized = False
         self.filtering = False
         self.add_box_text = ""
@@ -386,6 +387,7 @@ class MainGUI():
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)  # OS X supports only forward-compatible core profiles from 3.2
+        self.dpi_mult = max(glfw.get_monitor_content_scale(glfw.get_primary_monitor()))
 
         # Create a windowed mode window and its OpenGL context
         self.window: glfw._GLFWwindow = glfw.create_window(*size, "F95Checker", None, None)
@@ -412,6 +414,7 @@ class MainGUI():
         glfw.set_window_iconify_callback(self.window, self.minimize_callback)
         glfw.set_window_focus_callback(self.window, self.focus_callback)
         glfw.set_window_pos_callback(self.window, self.pos_callback)
+        glfw.set_window_content_scale_callback(self.window, self.scale_callback)
         glfw.set_drop_callback(self.window, self.drop_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
 
@@ -469,11 +472,6 @@ class MainGUI():
 
         # Load style configuration
         imgui.style = imgui.get_style()
-        imgui.style.item_spacing = (imgui.style.item_spacing.y, imgui.style.item_spacing.y)
-        imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
-        imgui.style.scrollbar_size = 10
-        imgui.style.frame_border_size = 1.6
-        imgui.style.colors[imgui.COLOR_TABLE_BORDER_STRONG] = (0, 0, 0, 0)
         self.refresh_styles()
         # No redundant vprintf
         imgui.text = imgui.text_unformatted
@@ -575,6 +573,9 @@ class MainGUI():
         imgui.is_topmost = is_topmost
 
     def refresh_styles(self):
+        # Colors
+        imgui.style.colors[imgui.COLOR_MODAL_WINDOW_DIM_BACKGROUND] = (0, 0, 0, 0.5)
+        imgui.style.colors[imgui.COLOR_TABLE_BORDER_STRONG] = (0, 0, 0, 0)
         _ = \
             imgui.style.colors[imgui.COLOR_CHECK_MARK] = \
             imgui.style.colors[imgui.COLOR_TAB_ACTIVE] = \
@@ -622,6 +623,13 @@ class MainGUI():
             imgui.style.colors[imgui.COLOR_SEPARATOR] = \
         globals.settings.style_border
         _ = \
+            imgui.style.colors[imgui.COLOR_TEXT] = \
+        globals.settings.style_text
+        _ = \
+            imgui.style.colors[imgui.COLOR_TEXT_DISABLED] = \
+        globals.settings.style_text_dim
+        # Rounding
+        _ = \
             imgui.style.tab_rounding  = \
             imgui.style.grab_rounding = \
             imgui.style.frame_rounding = \
@@ -630,12 +638,11 @@ class MainGUI():
             imgui.style.window_rounding = \
             imgui.style.scrollbar_rounding = \
         self.scaled(globals.settings.style_corner_radius)
-        _ = \
-            imgui.style.colors[imgui.COLOR_TEXT] = \
-        globals.settings.style_text
-        _ = \
-            imgui.style.colors[imgui.COLOR_TEXT_DISABLED] = \
-        globals.settings.style_text_dim
+        # Scaling
+        imgui.style.item_spacing = (self.scaled(4), self.scaled(4))
+        imgui.style.scrollbar_size = self.scaled(10)
+        imgui.style.frame_border_size = self.scaled(1.6)
+        # Qt tray icon menu
         self.qt_app.setStyleSheet(f"""
             QMenu {{
                 padding: 5px;
@@ -659,10 +666,6 @@ class MainGUI():
         imgui.io.fonts.clear()
         max_tex_size = gl.glGetIntegerv(gl.GL_MAX_TEXTURE_SIZE)
         imgui.io.fonts.texture_desired_width = max_tex_size
-        win_w, win_h = glfw.get_window_size(self.window)
-        fb_w, fb_h = glfw.get_framebuffer_size(self.window)
-        font_scaling_factor = max(fb_w / win_w, fb_h / win_h)
-        imgui.io.font_global_scale = 1 / font_scaling_factor
         karlar_path = str(next(globals.self_path.glob("resources/fonts/Karla-Regular.*.ttf")))
         karlab_path = str(next(globals.self_path.glob("resources/fonts/Karla-Bold.*.ttf")))
         meslo_path  = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
@@ -683,14 +686,17 @@ class MainGUI():
             msgbox_range_values += [ord(icon), ord(icon)]
         msgbox_range_values.append(0)
         msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
-        size_14 = round(self.scaled(14 * font_scaling_factor))
-        size_15 = round(self.scaled(15 * font_scaling_factor))
-        size_17 = round(self.scaled(17 * font_scaling_factor))
-        size_18 = round(self.scaled(18 * font_scaling_factor))
-        size_22 = round(self.scaled(22 * font_scaling_factor))
-        size_28 = round(self.scaled(28 * font_scaling_factor))
-        size_32 = round(self.scaled(32 * font_scaling_factor))
-        size_69 = round(self.scaled(69 * font_scaling_factor))
+        # Not using self.scale() as we want DPI scale applied to fonts by ImGui global scale
+        # Otherwise font texture blows out of proportion on HiDPI screens if we multiply it here
+        imgui.io.font_global_scale = self.dpi_mult
+        size_14 = round(14 * globals.settings.interface_scaling)
+        size_15 = round(15 * globals.settings.interface_scaling)
+        size_17 = round(17 * globals.settings.interface_scaling)
+        size_18 = round(18 * globals.settings.interface_scaling)
+        size_22 = round(22 * globals.settings.interface_scaling)
+        size_28 = round(28 * globals.settings.interface_scaling)
+        size_32 = round(32 * globals.settings.interface_scaling)
+        size_69 = round(69 * globals.settings.interface_scaling)
         fonts = type("FontStore", (), {})()
         imgui.fonts = fonts
         add_font = imgui.io.fonts.add_font_from_file_ttf
@@ -777,6 +783,9 @@ class MainGUI():
         if not glfw.get_window_attrib(self.window, glfw.ICONIFIED):
             self.screen_pos = (x, y)
 
+    def scale_callback(self, window: glfw._GLFWwindow, x: float, y: float):
+        self.dpi_mult = max(x, y)
+
     def drop_callback(self, window: glfw._GLFWwindow, items: list[str]):
         paths = [pathlib.Path(item) for item in items]
         if globals.popup_stack and isinstance(picker := getattr(globals.popup_stack[-1].func, "__self__", None), filepicker.FilePicker):
@@ -812,13 +821,14 @@ class MainGUI():
         self.tray.update_status()
 
     def scaled(self, size: int | float):
-        return _scaled(globals.settings.interface_scaling, size)
+        return _scaled(self.dpi_mult * globals.settings.interface_scaling, size)
 
     def main_loop(self):
         if globals.settings.start_refresh and not self.hidden:
             utils.start_refresh_task(api.refresh())
         # Loop variables
         prev_scaling = globals.settings.interface_scaling
+        prev_dpi = self.dpi_mult
         prev_any_hovered = None
         prev_win_hovered = None
         prev_mouse_pos = None
@@ -894,6 +904,7 @@ class MainGUI():
                         or api.session.connector._acquired
                         or prev_focused != self.focused
                         or prev_hidden != self.hidden
+                        or prev_dpi != self.dpi_mult
                         or size != self.prev_size
                         or self.recalculate_ids
                         or imagehelper.redraw
@@ -922,7 +933,6 @@ class MainGUI():
                             utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids)
 
                         # Start drawing
-                        prev_scaling = globals.settings.interface_scaling
                         imgui.new_frame()
                         self.new_styles = False
                         imagehelper.redraw = False
@@ -1006,11 +1016,13 @@ class MainGUI():
                         # Render interface
                         imgui.render()
                         self.impl.render(imgui.get_draw_data())
-                        # Rescale fonts
-                        if prev_scaling != globals.settings.interface_scaling:
+                        # Rescale fonts and sizes
+                        if prev_dpi != self.dpi_mult or prev_scaling != globals.settings.interface_scaling:
                             self.refresh_fonts()
                             self.refresh_styles()
                             async_thread.run(db.update_settings("interface_scaling"))
+                            prev_dpi = self.dpi_mult
+                            prev_scaling = globals.settings.interface_scaling
                     # Wait idle time
                         glfw.swap_buffers(self.window)
                     else:
