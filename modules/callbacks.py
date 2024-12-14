@@ -208,7 +208,14 @@ async def _launch_game_exe(game: Game, executable: str):
     try:
         await _launch_exe(executable)
         game.last_launched = time.time()
-        game.add_timeline_event(TimelineEventType.GameLaunched, os.path.basename(executable))
+        exe = pathlib.Path(executable)
+        if utils.is_uri(executable):
+            launched_name = executable.removeprefix("https://").removeprefix("http://")
+        elif globals.settings.default_exe_dir.get(globals.os) and not exe.is_absolute():
+            launched_name = executable
+        else:
+            launched_name = exe.name
+        game.add_timeline_event(TimelineEventType.GameLaunched, f'"{launched_name}"')
     except FileNotFoundError:
         def select_callback(selected):
             if selected:
