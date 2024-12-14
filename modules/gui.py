@@ -1421,6 +1421,14 @@ class MainGUI():
             imgui.text(label + " ")
 
     def draw_game_rating_widget(self, game: Game):
+        if not game:
+            imgui.text("Set:")
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.rating = 0
+            imgui.same_line()
         changed, value = ratingwidget.ratingwidget("", game.rating if game else 0)
         if changed:
             if game:
@@ -1706,9 +1714,6 @@ class MainGUI():
         self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
         self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
         imgui.separator()
-        if not game:
-            imgui.text("Set:")
-            imgui.same_line()
         self.draw_game_rating_widget(game)
         if imgui.begin_menu(f"{icons.label_multiple_outline} Labels"):
             self.draw_game_labels_select_widget(game)
