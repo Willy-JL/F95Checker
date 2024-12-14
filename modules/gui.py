@@ -629,7 +629,7 @@ class MainGUI():
             imgui.style.popup_rounding = \
             imgui.style.window_rounding = \
             imgui.style.scrollbar_rounding = \
-        globals.settings.style_corner_radius * globals.settings.interface_scaling
+        self.scaled(globals.settings.style_corner_radius)
         _ = \
             imgui.style.colors[imgui.COLOR_TEXT] = \
         globals.settings.style_text
@@ -1872,13 +1872,14 @@ class MainGUI():
         color = imgui.get_color_u32_rgba(*globals.settings.style_border)
 
         # Draw timeline primitives
+        rounding = self.scaled(globals.settings.style_corner_radius)
         for x1, y1, x2, y2 in icon_coordinates:
-            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=rounding, thickness=thickness)
             if prev_rect:
                 dl.add_line((prev_rect[0] + prev_rect[2]) / 2, prev_rect[3] + padding, (x1 + x2) / 2, y1 - padding, color, thickness=thickness)
             prev_rect = (x1, y1, x2, y2)
         for x1, y1, x2, y2 in text_coordinates:
-            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=rounding, thickness=thickness)
 
     def draw_game_downloads_header(self, game: Game):
         pad = 3 * imgui.style.item_spacing.x
@@ -1991,7 +1992,7 @@ class MainGUI():
                 height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
 
                 if game_i != len(sorted_ids) - 1:
                     imgui.text("\n")
@@ -2062,7 +2063,8 @@ class MainGUI():
                 imgui.dummy(width + 2.0, height)
                 imgui.set_scroll_x(1.0)
                 imgui.set_cursor_screen_pos(image_pos)
-                image.render(width, height, rounding=globals.settings.style_corner_radius)
+                rounding = self.scaled(globals.settings.style_corner_radius)
+                image.render(width, height, rounding=rounding)
                 if imgui.is_item_hovered():
                     # Image popup
                     if imgui.is_mouse_down():
@@ -2075,7 +2077,6 @@ class MainGUI():
                             height = width * aspect_ratio
                         x = (size.x - width) / 2
                         y = (size.y - height) / 2
-                        rounding = globals.settings.style_corner_radius
                         flags = imgui.DRAW_ROUND_CORNERS_ALL
                         pos2 = (x + width, y + height)
                         fg_draw_list = imgui.get_foreground_draw_list()
@@ -2097,7 +2098,7 @@ class MainGUI():
                         y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
                         imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
                         imgui.begin_tooltip()
-                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
+                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=rounding)
                         imgui.end_tooltip()
                 close_image = True
             if imgui.begin_popup_context_item("###image_context"):
@@ -2635,7 +2636,7 @@ class MainGUI():
             imgui.begin_group()
             imgui.dummy(_60, _230)
             imgui.same_line()
-            self.icon_texture.render(_230, _230, rounding=globals.settings.style_corner_radius)
+            self.icon_texture.render(_230, _230, rounding=self.scaled(globals.settings.style_corner_radius))
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(imgui.fonts.big)
@@ -3334,6 +3335,7 @@ class MainGUI():
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
+        rounding = self.scaled(globals.settings.style_corner_radius)
         imgui.begin_group()
         # Image
         if game.image.missing:
@@ -3359,7 +3361,7 @@ class MainGUI():
             imgui.dummy(cell_width, img_height)
         else:
             crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
-            showed_img = game.image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+            showed_img = game.image.render(cell_width, img_height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         # Alignments
         imgui.indent(side_indent)
         imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
@@ -3532,11 +3534,11 @@ class MainGUI():
                 imgui.push_alpha(0.5)
                 draw_list.add_rect_filled(
                     *rect_min, *rect_max, imgui.get_color_u32_rgba(*globals.settings.style_accent),
-                    rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL
+                    rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL
                 )
                 imgui.pop_alpha()
             else:
-                draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+                draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
         else:
             imgui.dummy(cell_width, cell_height)
         draw_list.channels_merge()
@@ -3815,7 +3817,7 @@ class MainGUI():
                 imgui.button("Invalid image!", width=width, height=height)
             else:
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
         else:
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):
