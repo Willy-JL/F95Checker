@@ -189,8 +189,8 @@ class Columns:
             sortable=True,
             resizable=False,
         )
-        self.last_played = self.Column(
-            self, f"{icons.play} Last Played",
+        self.last_launched = self.Column(
+            self, f"{icons.play} Last Launched",
             sortable=True,
             resizable=False,
         )
@@ -2191,14 +2191,15 @@ class MainGUI():
                 self.draw_status_widget(game.status)
 
                 imgui.table_next_column()
-                imgui.text_disabled("Last Played:")
+                imgui.text_disabled("Last Launched:")
                 imgui.same_line()
-                imgui.text(game.last_played.display or "Never")
+                imgui.text(game.last_launched.display or "Never")
                 if imgui.is_item_clicked():
-                    game.last_played = time.time()
+                    game.last_launched = time.time()
+                    game.add_timeline_event(TimelineEventType.GameLaunched, "date set manually")
                 if imgui.is_item_hovered():
                     imgui.begin_tooltip()
-                    imgui.text("Click to set as played right now!")
+                    imgui.text("Click to set as launched right now!")
                     imgui.end_tooltip()
 
                 imgui.table_next_row()
@@ -2979,8 +2980,8 @@ class MainGUI():
                             key = lambda id: globals.games[id].developer.lower()
                         case cols.last_updated.index:
                             key = lambda id: - globals.games[id].last_updated.value
-                        case cols.last_played.index:
-                            key = lambda id: - globals.games[id].last_played.value
+                        case cols.last_launched.index:
+                            key = lambda id: - globals.games[id].last_launched.value
                         case cols.added_on.index:
                             key = lambda id: - globals.games[id].added_on.value
                         case cols.finished.index:
@@ -3198,9 +3199,9 @@ class MainGUI():
                             imgui.push_font(imgui.fonts.mono)
                             imgui.text(game.last_updated.display or "Unknown")
                             imgui.pop_font()
-                        case cols.last_played.index:
+                        case cols.last_launched.index:
                             imgui.push_font(imgui.fonts.mono)
-                            imgui.text(game.last_played.display or "Never")
+                            imgui.text(game.last_launched.display or "Never")
                             imgui.pop_font()
                         case cols.added_on.index:
                             imgui.push_font(imgui.fonts.mono)
@@ -3476,8 +3477,8 @@ class MainGUI():
             _cluster_text(cols.score.name, f"{game.score:.1f} ({game.votes})")
         if cols.last_updated.enabled:
             _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
-        if cols.last_played.enabled:
-            _cluster_text(cols.last_played.name, game.last_played.display or "Never")
+        if cols.last_launched.enabled:
+            _cluster_text(cols.last_launched.name, game.last_launched.display or "Never")
         if cols.added_on.enabled:
             _cluster_text(cols.added_on.name, game.added_on.display)
         if cols.rating.enabled:

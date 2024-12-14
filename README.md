@@ -23,7 +23,7 @@ An update checker and library tool for (NSFW) games on the [F95zone](https://f95
   - Name, Version, Developer
   - Type (game engine / type of thread)
   - Status (completed / on hold / abandoned)
-  - Last update, last played and added on dates
+  - Last update, last launched and added on dates
   - Description / overview and changelog
   - Header images (including gifs)
   - Download links, F95zone Donor DDL and RPDL.net support

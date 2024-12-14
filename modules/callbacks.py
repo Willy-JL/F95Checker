@@ -207,7 +207,7 @@ async def _launch_exe(executable: str):
 async def _launch_game_exe(game: Game, executable: str):
     try:
         await _launch_exe(executable)
-        game.last_played = time.time()
+        game.last_launched = time.time()
         game.add_timeline_event(TimelineEventType.GameLaunched, os.path.basename(executable))
     except FileNotFoundError:
         def select_callback(selected):
