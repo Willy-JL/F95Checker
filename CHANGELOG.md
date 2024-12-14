@@ -10,6 +10,7 @@
 - Fix Windows start with system setting and quotes usage (#156 by @oneshoekid & @Willy-JL)
 - Redraw screen when DDL is extracting to show when complete (by @Willy-JL)
 - Improved Developer name sanitization for some characters like `()[]{}\` (by @Willy-JL)
+- Catch font texture exceptions, set texture faster (by @Willy-JL)
 
 ### Removed:
 - Nothing

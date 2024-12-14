@@ -717,15 +717,13 @@ class MainGUI():
         # MsgBox type icons/thumbnails
         fonts.msgbox  = add_font(mdi_path,    size_69,                           glyph_ranges=msgbox_range)
         try:
-            tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
-        except SystemError:
-            tex_height = 1
-            max_tex_size = 0
-        if tex_height > max_tex_size:
+            self.impl.refresh_font_texture()
+        except Exception:
+            if globals.settings.interface_scaling == 1.0:
+                raise
             globals.settings.interface_scaling = 1.0
             async_thread.run(db.update_settings("interface_scaling"))
             return self.refresh_fonts()
-        self.impl.refresh_font_texture()
         self.type_label_width = None
 
     def save_filters(self):
