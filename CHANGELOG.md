@@ -19,6 +19,7 @@
 - Improved Developer name sanitization for some characters like `()[]{}\` (by @Willy-JL)
 - Catch font texture exceptions, set texture faster (by @Willy-JL)
 - Respect scaling for rounded corners (by @Willy-JL)
+- Detect new 502 error code format (by @Willy-JL)
 
 ### Removed:
 - Nothing

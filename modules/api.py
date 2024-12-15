@@ -75,10 +75,22 @@ f95_attachments_hosts = (
 f95_no_ratelimit_urls = (
     f95_check_login_fast,
 )
-f95_ratelimit_messages = (
+f95_login_error_messages = (
+    b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
+    b"<title>Log in | F95zone</title>",
+    b'<form action="/login/login" method="post" class="block"',
+)
+f95_ratelimit_forum_errors = (
     b"<title>429 Too Many Requests</title>",
     b"<h1>429 Too Many Requests</h1>",
     b"<title>Error 429</title>",
+    b"<title>DDOS-GUARD</title>",
+)
+f95_temp_error_messages = (
+    b"<title>502 Bad Gateway</title>",
+    b"<title>Error 502</title>",
+    b"<!-- Too many connections -->",
+    b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>",
 )
 
 api_host = os.environ.get("F95INDEXER_URL") or "https://api.f95checker.dev"
@@ -256,7 +268,7 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
                     yield b"", req
                     break
                 res = await req.read()
-                if _can_ratelimit() and any(msg in res for msg in f95_ratelimit_messages):
+                if _can_ratelimit() and any(msg in res for msg in f95_ratelimit_forum_errors):
                     await _do_ratelimit()
                     continue
                 if req.headers.get("server") in ("ddos-guard", "", None) and re.search(rb"<title>DDOS-GUARD</title>", res, flags=re.IGNORECASE):
@@ -334,7 +346,7 @@ async def fetch(method: str, url: str, **kwargs):
 
 def raise_f95zone_error(res: bytes | dict, return_login=False):
     if isinstance(res, bytes):
-        if b"<title>Log in | F95zone</title>" in res:
+        if any(msg in res for msg in f95_login_error_messages):
             if return_login:
                 return False
             raise msgbox.Exc(
@@ -343,41 +355,19 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                 "press try again to login.",
                 MsgBox.warn
             )
-        if any(msg in res for msg in f95_ratelimit_messages):
+        if any(msg in res for msg in f95_ratelimit_forum_errors):
             raise msgbox.Exc(
                 "Rate limit",
                 "F95zone servers are ratelimiting you,\n"
                 "please try again later.",
                 MsgBox.warn
             )
-        if b"<title>502 Bad Gateway</title>" in res:
+        if any(msg in res for msg in f95_temp_error_messages):
             raise msgbox.Exc(
                 "Server downtime",
                 "F95zone servers are currently unreachable,\n"
                 "please retry in a few minutes.",
                 MsgBox.warn
-            )
-        if b"<!-- Too many connections -->" in res:
-            raise msgbox.Exc(
-                "Database overload",
-                "F95zone databases are currently overloaded,\n"
-                "please retry in a few minutes.",
-                MsgBox.warn
-            )
-        if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
-            raise msgbox.Exc(
-                "Daily backups",
-                "F95zone daily backups are currently running,\n"
-                "please retry in a few minutes.",
-                MsgBox.warn
-            )
-        if b"<title>DDOS-GUARD</title>" in res:
-            raise msgbox.Exc(
-                "DDoS-Guard bypass failure",
-                "F95zone requested a DDoS-Guard browser challenge and F95Checker\n"
-                "was unable to bypass it. Try waiting a few minutes, opening F95zone\n"
-                "in browser, rebooting your router, or connecting through a VPN.",
-                MsgBox.error
             )
         return True
     elif isinstance(res, dict):

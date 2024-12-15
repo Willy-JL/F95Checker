@@ -324,9 +324,6 @@ def push_popup(*args, bottom=False, **kwargs):
             if globals.gui.hidden and args[1] in (
                 "Rate limit",
                 "Server downtime",
-                "Database overload",
-                "Daily backups",
-                "DDoS-Guard bypass failure",
             ):
                 return
             globals.gui.tray.push_msg(

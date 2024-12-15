@@ -27,6 +27,7 @@ RATELIMIT_API_ERRORS = (
 )
 TEMP_ERROR_MESSAGES = (
     b"<title>502 Bad Gateway</title>",
+    b"<title>Error 502</title>",
     b"<!-- Too many connections -->",
     b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>",
 )
