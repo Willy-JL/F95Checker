@@ -238,8 +238,6 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
         cookies = globals.cookies
     elif cookies is False:
         cookies = {}
-    ddos_guard_cookies = {}
-    ddos_guard_first_challenge = False
     is_ratelimit_request = url.startswith(f95_host) and not url.startswith(f95_no_ratelimit_urls)
     ratelimit_retries = 10
     ratelimit_sleep = 0
@@ -257,7 +255,7 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
             async with maybe_ratelimit, session.request(
                 method,
                 url,
-                cookies=cookies | ddos_guard_cookies,
+                cookies=cookies,
                 **req_opts,
                 **kwargs
             ) as req:
@@ -270,64 +268,6 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
                 res = await req.read()
                 if _can_ratelimit() and any(msg in res for msg in f95_ratelimit_forum_errors):
                     await _do_ratelimit()
-                    continue
-                if req.headers.get("server") in ("ddos-guard", "", None) and re.search(rb"<title>DDOS-GUARD</title>", res, flags=re.IGNORECASE):
-                    # Attempt DDoS-Guard bypass (credits to https://git.gay/a/ddos-guard-bypass)
-                    ddos_guard_cookies.update(cookiedict(req.cookies))
-                    if not ddos_guard_first_challenge:
-                        # First challenge: repeat original request with new cookies
-                        ddos_guard_first_challenge = True
-                        continue
-                    # First challenge failed, attempt manual bypass and retry original request
-                    referer = f"{req.url.scheme}://{req.url.host}"
-                    headers = {
-                        "Accept": "*/*",
-                        "Accept-Language": "en-US,en;q=0.5",
-                        "Accept-Encoding": "gzip, deflate",
-                        "Referer": referer,
-                        "Sec-Fetch-Mode": "no-cors"
-                    }
-                    for script in re.finditer(rb'loadScript\(\s*"(.+?)"', await req.read()):
-                        script = str(script.group(1), encoding="utf-8")
-                        async with session.request(
-                            "GET",
-                            f"{referer if script.startswith('/') else ''}{script}",
-                            cookies=cookies | ddos_guard_cookies,
-                            headers=headers | {
-                                "Sec-Fetch-Dest": "script",
-                                "Sec-Fetch-Site": "same-site" if "ddos-guard.net/" in script else "cross-site"
-                            },
-                            **req_opts
-                        ) as script_req:
-                            ddos_guard_cookies.update(cookiedict(script_req.cookies))
-                            for image in re.finditer(rb"\.src\s*=\s*'(.+?)'", await script_req.read()):
-                                image = str(image.group(1), encoding="utf-8")
-                                async with session.request(
-                                    "GET",
-                                    f"{referer if image.startswith('/') else ''}{image}",
-                                    cookies=cookies | ddos_guard_cookies,
-                                    headers=headers | {
-                                        "Sec-Fetch-Dest": "image",
-                                        "Sec-Fetch-Site": "same-origin"
-                                    },
-                                    **req_opts
-                                ) as image_req:
-                                    ddos_guard_cookies.update(cookiedict(image_req.cookies))
-                    async with session.request(
-                        "POST",
-                        f"{referer}/.well-known/ddos-guard/mark/",
-                        json=ddos_guard_bypass_fake_mark,
-                        cookies=cookies | ddos_guard_cookies,
-                        headers=headers | {
-                            "Content-Type": "text/plain;charset=UTF-8",
-                            "DNT": "1",
-                            "Sec-Fetch-Dest": "empty",
-                            "Sec-Fetch-Mode": "cors",
-                            "Sec-Fetch-Site": "same-origin"
-                        },
-                        **req_opts
-                    ) as mark_req:
-                        ddos_guard_cookies.update(cookiedict(mark_req.cookies))
                     continue
                 yield res, req
             break
@@ -1605,153 +1545,3 @@ def open_ddl_popup(game: Game):
         footer="Thanks for supporting F95zone!"
     )
     async_thread.run(_ddl_load_files())
-
-
-ddos_guard_bypass_fake_mark = {
-    "_geo": True,
-    "_sensor": {
-        "gyroscope": False,
-        "accelerometer": False,
-        "magnetometer": False,
-        "absorient": False,
-        "relorient": False
-    },
-    "userAgent": "Linux_x86_64_Gecko_Mozilla_undefined",
-    "webdriver": False,
-    "language": "en-US",
-    "colorDepth": 32,
-    "deviceMemory": "not available",
-    "pixelRatio": 1,
-    "hardwareConcurrency": 12,
-    "screenResolution": [
-        1920,
-        1080
-    ],
-    "availableScreenResolution": [
-        1920,
-        1080
-    ],
-    "timezoneOffset": 240,
-    "timezone": "America/New_York",
-    "sessionStorage": True,
-    "localStorage": True,
-    "indexedDb": True,
-    "addBehavior": False,
-    "openDatabase": False,
-    "cpuClass": "not available",
-    "platform": "Linux x86_64",
-    "doNotTrack": "1",
-    "plugins": [
-        [
-            "PDF Viewer",
-            "Portable Document Format",
-            [
-                [
-                    "application/pdf",
-                    "pdf"
-                ],
-                [
-                    "text/pdf",
-                    "pdf"
-                ]
-            ]
-        ],
-        [
-            "Chrome PDF Viewer",
-            "Portable Document Format",
-            [
-                [
-                    "application/pdf",
-                    "pdf"
-                ],
-                [
-                    "text/pdf",
-                    "pdf"
-                ]
-            ]
-        ],
-        [
-            "Chromium PDF Viewer",
-            "Portable Document Format",
-            [
-                [
-                    "application/pdf",
-                    "pdf"
-                ],
-                [
-                    "text/pdf",
-                    "pdf"
-                ]
-            ]
-        ],
-        [
-            "Microsoft Edge PDF Viewer",
-            "Portable Document Format",
-            [
-                [
-                    "application/pdf",
-                    "pdf"
-                ],
-                [
-                    "text/pdf",
-                    "pdf"
-                ]
-            ]
-        ],
-        [
-            "WebKit built-in PDF",
-            "Portable Document Format",
-            [
-                [
-                    "application/pdf",
-                    "pdf"
-                ],
-                [
-                    "text/pdf",
-                    "pdf"
-                ]
-            ]
-        ]
-    ],
-    "canvas": [],
-    "webgl": False,
-    "adBlock": False,
-    "hasLiedLanguages": False,
-    "hasLiedResolution": False,
-    "hasLiedOs": False,
-    "hasLiedBrowser": False,
-    "touchSupport": [
-        0,
-        False,
-        False
-    ],
-    "fonts": [
-        "Andale Mono",
-        "Arial",
-        "Arial Black",
-        "Bitstream Vera Sans Mono",
-        "Calibri",
-        "Cambria",
-        "Cambria Math",
-        "Comic Sans MS",
-        "Consolas",
-        "Courier",
-        "Courier New",
-        "Georgia",
-        "Helvetica",
-        "Impact",
-        "Lucida Console",
-        "LUCIDA GRANDE",
-        "Lucida Sans Unicode",
-        "Palatino",
-        "Times",
-        "Times New Roman",
-        "Trebuchet MS",
-        "Verdana"
-    ],
-    "audio": "100.00000",
-    "enumerateDevices": [
-        "audioinput;"
-    ],
-    "context": "free_splash"
-}

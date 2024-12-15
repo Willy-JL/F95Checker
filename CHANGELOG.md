@@ -22,7 +22,7 @@
 - Detect new 502 error code format (by @Willy-JL)
 
 ### Removed:
-- Nothing
+- Removed obsolete DDOS-GUARD bypass, no longer needed and never really worked
 
 ### Known Issues:
 - Sorting can be sporadically break/change with some actions, seems to be memory corruption inside (py)imgui, re-launch to fix it or change sorting manually
