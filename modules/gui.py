@@ -738,7 +738,7 @@ class MainGUI():
             self.filters = []
 
     def load_styles_from_toml(self):
-        if not (path := pathlib.Path(globals.data_path / 'styles.toml')).exists():
+        if not (path := pathlib.Path(globals.data_path / 'styles.toml')).is_file():
             return
         try:
             with open(path, 'rb') as file:

@@ -110,7 +110,6 @@ def start():
                             globals.gui.hide()
                         case "/window/refresh_styles":
                             globals.gui.load_styles_from_toml()
-                            globals.gui.refresh_styles()
                         case "/games/add":
                             urls = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                             if matches := utils.extract_thread_matches("\n".join(urls)):
