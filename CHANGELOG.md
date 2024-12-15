@@ -2,6 +2,7 @@
 - Insecure SSL option (by @Willy-JL)
 - Archive/Unarchive button to more info popup (by @Willy-JL)
 - Allow removing personal rating for selected games in context menu (by @Willy-JL)
+- Show full note when hovering notes icon (#198 by @FaceCrap)
 
 ### Updated:
 - Rename "Last Played" to "Last Launched" and add timeline event when manually setting launched date (by @Willy-JL)
