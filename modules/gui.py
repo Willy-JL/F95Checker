@@ -336,6 +336,7 @@ class MainGUI():
         self.input_chars: list[int] = []
         self.switched_display_mode = False
         self.type_label_width: float = None
+        self.call_soon: list[callable] = []
         self.last_selected_game: Game = None
         self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
@@ -794,12 +795,16 @@ class MainGUI():
                     async_thread.run(api.import_url_shortcut(path))
 
     def hide(self, *_, **__):
+        if threading.current_thread() is not threading.main_thread():
+            self.call_soon.append(self.hide)
         self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
         self.hidden = True
         self.tray.update_status()
 
     def show(self, *_, **__):
+        if threading.current_thread() is not threading.main_thread():
+            self.call_soon.append(self.show)
         self.bg_mode_timer = None
         self.bg_mode_notifs_timer = None
         if not self.hidden:
@@ -856,6 +861,9 @@ class MainGUI():
                 self.input_chars, self.poll_chars = self.poll_chars, self.input_chars
                 self.impl.process_inputs()
                 imagehelper.apply_textures()
+                if self.call_soon:
+                    while self.call_soon and (call_soon := self.call_soon.pop(0)):
+                        call_soon()
                 # Window state handling
                 size = imgui.io.display_size
                 mouse_pos = imgui.io.mouse_pos

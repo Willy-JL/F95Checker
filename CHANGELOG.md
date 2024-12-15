@@ -1,3 +1,6 @@
+### Note:
+- This is a smaller release due to the bugfixes it contains, make sure to also read the changelog for [11.0](https://github.com/Willy-JL/F95Checker/releases/tag/11.0)
+
 ### Added:
 - Insecure SSL option (by @Willy-JL)
 - Archive/Unarchive button to more info popup (by @Willy-JL)
@@ -22,6 +25,7 @@
 - Detect new 502 error code format (by @Willy-JL)
 - Fix latest updates search issues with dots around spaces (by @Willy-JL)
 - Fix RPC private network CORS preflight (by @Willy-JL)
+- Make sure GLFW logic happens in main thread (by @Willy-JL)
 
 ### Removed:
 - Removed obsolete DDOS-GUARD bypass, no longer needed and never really worked
