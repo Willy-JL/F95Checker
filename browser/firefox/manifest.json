@@ -6,7 +6,6 @@
     "version": "11.0.0",
     "description": "Integration between the F95zone forum and the F95Checker app",
     "homepage_url": "https://github.com/Willy-JL/F95Checker",
-
     "browser_action": {
         "default_icon": {
             "16": "icons/16.png",
@@ -20,10 +19,14 @@
         "64": "icons/64.png",
         "128": "icons/128.png"
     },
-
     "background": {
-        "scripts": ["extension.js"]
+        "scripts": [
+            "extension.js"
+        ]
     },
+    "web_accessible_resources": [
+        "fonts/mdi-webfont.ttf"
+    ],
     "permissions": [
         "scripting",
         "activeTab",

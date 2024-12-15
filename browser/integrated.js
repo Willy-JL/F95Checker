@@ -12,7 +12,7 @@ var settings = {};
 var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 var rpcCall = async (method, path, body) => {
-    if(typeof method !== 'string' || typeof path !== 'string' || (typeof body !== 'string' && body !== null)) {
+    if (typeof method !== 'string' || typeof path !== 'string' || (typeof body !== 'string' && body !== null)) {
         return {};
     }
     try {
@@ -27,7 +27,7 @@ var rpcCall = async (method, path, body) => {
             throw res.status;
         }
         return res;
-    } catch {}
+    } catch { }
 };
 
 var getData = async () => {
@@ -222,9 +222,9 @@ var updateIcons = async () => {
     }
     const highlightTags = () => {
         const highlightColors = {
-            1: {text: 'white', background: '#006600', border: '1px solid #ffffff55'}, // Positive
-            2: {text: 'white', background: '#990000', border: '1px solid #ffffff55'}, // Negative
-            3: {text: 'white', background: '#000000', border: '1px solid #ffffff55'}, // Critical
+            1: { text: 'white', background: '#006600', border: '1px solid #ffffff55' }, // Positive
+            2: { text: 'white', background: '#990000', border: '1px solid #ffffff55' }, // Negative
+            3: { text: 'white', background: '#000000', border: '1px solid #ffffff55' }, // Critical
         };
         // Latest Updates
         const hoveredTiles = document.querySelectorAll('div.resource-tile-hover');
