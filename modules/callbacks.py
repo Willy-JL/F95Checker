@@ -93,12 +93,17 @@ def _fuzzy_match_subdir(where: pathlib.Path, match: str):
         where /= clean_dir
     else:
         try:
-            ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
             dirs = [node.name for node in where.iterdir() if node.is_dir()]
-            similarity = {d: ratio(d, match) for d in dirs}
-            best_match = max(similarity, key=similarity.get)
-            if similarity[best_match] > 0.85:
-                where /= best_match
+            clean_dir_lower = clean_dir.lower()
+            match_dirs = [d for d in dirs if clean_dir_lower in d.lower()]
+            if len(match_dirs) == 1:
+                where /= match_dirs[0]
+            else:
+                ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
+                similarity = {d: ratio(d, match) for d in dirs}
+                best_match = max(similarity.keys())
+                if similarity[best_match] > 0.85:
+                    where /= best_match
         except Exception:
             pass
     return where
