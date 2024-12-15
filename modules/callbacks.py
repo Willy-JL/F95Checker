@@ -46,7 +46,8 @@ def update_start_with_system(toggle: bool):
             if globals.os is Os.Windows:
                 import winreg
                 current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-                winreg.SetValue(current_user, globals.autostart, winreg.REG_SZ, globals.start_cmd)
+                key = winreg.OpenKeyEx(current_user, str(globals.autostart.parent), 0, winreg.KEY_WRITE)
+                winreg.SetValueEx(key, globals.autostart.name, 0, winreg.REG_SZ, globals.start_cmd)
             elif globals.os is Os.Linux:
                 config = configparser.RawConfigParser()
                 config.optionxform = lambda option: option
@@ -69,7 +70,8 @@ def update_start_with_system(toggle: bool):
             if globals.os is Os.Windows:
                 import winreg
                 current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-                winreg.SetValue(current_user, globals.autostart, winreg.REG_SZ, "")
+                key = winreg.OpenKeyEx(current_user, str(globals.autostart.parent), 0, winreg.KEY_WRITE)
+                winreg.DeleteValue(key, globals.autostart.name)
             elif globals.os is Os.Linux or globals.os is Os.MacOS:
                 globals.autostart.unlink()
         globals.start_with_system = toggle
@@ -81,6 +83,30 @@ def update_start_with_system(toggle: bool):
             MsgBox.error,
             more=error.traceback()
         )
+
+
+def _fuzzy_match_subdir(where: pathlib.Path, match: str):
+    clean_charset = string.ascii_letters + string.digits + " "
+    clean_dir = "".join(char for char in match.replace("&", "and") if char in clean_charset)
+    clean_dir = re.sub(r" +", r" ", clean_dir).strip()
+    if (where / clean_dir).is_dir():
+        where /= clean_dir
+    else:
+        try:
+            dirs = [node.name for node in where.iterdir() if node.is_dir()]
+            clean_dir_lower = clean_dir.lower()
+            match_dirs = [d for d in dirs if clean_dir_lower in d.lower()]
+            if len(match_dirs) == 1:
+                where /= match_dirs[0]
+            else:
+                ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
+                similarity = {d: ratio(d, match) for d in dirs}
+                best_match = max(similarity.keys())
+                if similarity[best_match] > 0.85:
+                    where /= best_match
+        except Exception:
+            pass
+    return where
 
 
 def add_game_exe(game: Game, callback: typing.Callable = None):
@@ -110,20 +136,8 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     start_dir = globals.settings.default_exe_dir.get(globals.os)
     if start_dir:
         start_dir = pathlib.Path(start_dir)
-        clean_dir = "".join(char for char in game.name.replace("&", "and") if char in (string.ascii_letters + string.digits + " "))
-        clean_dir = re.sub(r" +", r" ", clean_dir).strip()
-        if (start_dir / clean_dir).is_dir():
-            start_dir /= clean_dir
-        else:
-            try:
-                ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
-                dirs = [node for node in os.listdir(start_dir) if os.path.isdir(start_dir / node)]
-                similarity = {d: ratio(d, game.name) for d in dirs}
-                best_match = max(similarity, key=similarity.get)
-                if similarity[best_match] > 0.85:
-                    start_dir /= best_match
-            except Exception:
-                pass
+        for subdir in (game.type.name, game.developer, game.name.removesuffix(" Collection")):
+            start_dir = _fuzzy_match_subdir(start_dir, subdir)
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
         start_dir=start_dir,
@@ -205,8 +219,15 @@ async def _launch_exe(executable: str):
 async def _launch_game_exe(game: Game, executable: str):
     try:
         await _launch_exe(executable)
-        game.last_played = time.time()
-        game.add_timeline_event(TimelineEventType.GameLaunched, os.path.basename(executable))
+        game.last_launched = time.time()
+        exe = pathlib.Path(executable)
+        if utils.is_uri(executable):
+            launched_name = executable.removeprefix("https://").removeprefix("http://")
+        elif globals.settings.default_exe_dir.get(globals.os) and not exe.is_absolute():
+            launched_name = executable
+        else:
+            launched_name = exe.name
+        game.add_timeline_event(TimelineEventType.GameLaunched, f'"{launched_name}"')
     except FileNotFoundError:
         def select_callback(selected):
             if selected:

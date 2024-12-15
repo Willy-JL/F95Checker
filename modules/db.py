@@ -273,7 +273,7 @@ async def connect():
             "last_updated":                f'INTEGER DEFAULT 0',
             "last_full_check":             f'INTEGER DEFAULT 0',
             "last_check_version":          f'TEXT    DEFAULT ""',
-            "last_played":                 f'INTEGER DEFAULT 0',
+            "last_launched":               f'INTEGER DEFAULT 0',
             "score":                       f'REAL    DEFAULT 0',
             "votes":                       f'INTEGER DEFAULT 0',
             "rating":                      f'INTEGER DEFAULT 0',
@@ -295,10 +295,11 @@ async def connect():
             "downloads":                   f'TEXT    DEFAULT "[]"',
         },
         renames=[
-            ("executable", "executables"),
-            ("last_full_refresh", "last_full_check"),
+            ("executable",           "executables"),
+            ("last_full_refresh",    "last_full_check"),
             ("last_refresh_version", "last_check_version"),
-            ("played", "finished"),
+            ("played",               "finished"),
+            ("last_played",          "last_launched"),
         ]
     )
 
