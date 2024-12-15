@@ -20,6 +20,7 @@
 - Catch font texture exceptions, set texture faster (by @Willy-JL)
 - Respect scaling for rounded corners (by @Willy-JL)
 - Detect new 502 error code format (by @Willy-JL)
+- Fix latest updates search issues with dots around spaces (by @Willy-JL)
 
 ### Removed:
 - Removed obsolete DDOS-GUARD bypass, no longer needed and never really worked

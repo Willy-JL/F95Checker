@@ -79,7 +79,7 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     # If tracked by latest updates, try to search the thread there to get more precise details
     if version:
         query = ret.name.encode("ascii", errors="replace").decode()
-        query = re.sub(r"\.+ ", " ", query)
+        query = re.sub(r"\.+ | \.+", " ", query)
         for char in "?&/':;-":
             query = query.replace(char, " ")
         query = re.sub(r"\s+", " ", query).strip()[:28]

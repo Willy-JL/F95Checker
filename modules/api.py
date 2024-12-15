@@ -440,7 +440,7 @@ def cleanup_temp_files():
 
 async def thread_search(category: str, search: str, query: str, sort="likes", count=15, page=1):
     query = query.encode("ascii", errors="replace").decode()
-    query = re.sub(r"\.+ ", " ", query)
+    query = re.sub(r"\.+ | \.+", " ", query)
     for char in "?&/':;-.":
         query = query.replace(char, " ")
     query = re.sub(r"\s+", " ", query).strip()[:28]
