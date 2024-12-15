@@ -3175,7 +3175,7 @@ class MainGUI():
                             if game.notes:
                                 imgui.same_line()
                                 imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
-                                self.draw_hover_text(game.notes,text=None)
+                                self.draw_hover_text(game.notes, text=None)
                             if game.labels:
                                 imgui.same_line()
                                 self.draw_game_labels_widget(game, wrap=False, small=True, align=True)
