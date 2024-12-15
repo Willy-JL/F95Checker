@@ -69,6 +69,11 @@ jobs:
           rm ./main.py
           mv ./main.py.new ./main.py
 
+      - name: "Install dependencies (Linux)"
+        if: "runner.os == 'Linux'"
+        run: |
+          sudo apt install -y libxcb-cursor-dev
+
       - name: "Build (Windows, Linux)"
         if: "runner.os != 'macOS'"
         run: |

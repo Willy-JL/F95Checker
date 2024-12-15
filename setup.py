@@ -32,7 +32,7 @@ constants = []
 bin_includes = []
 bin_excludes = []
 platform_libs = {
-    "linux": ["ffi", "ssl", "crypto", "sqlite3"],
+    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor"],
     "darwin": ["intl"]
 }
 include_files = [
@@ -99,13 +99,16 @@ class BrowserExtension(setuptools.Command):
 
     def run(self):
         from external import ziparch
-        browser = pathlib.Path(__file__).parent / "browser"
+        browser = path / "browser"
+        mdi_webfont = next(path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")).read_bytes()
 
         chrome_src = browser / "chrome"
+        (chrome_src / "fonts/mdi-webfont.ttf").write_bytes(mdi_webfont)
         chrome_zip = browser / ("chrome" + ziparch.ZIP_ARCH_EXTENSION)
         ziparch.compress_tree_ziparch(str(chrome_src), str(chrome_zip), gz_level=0)
 
         firefox_src = browser / "firefox"
+        (firefox_src / "fonts/mdi-webfont.ttf").write_bytes(mdi_webfont)
         firefox_zip = browser / ("firefox" + ziparch.ZIP_ARCH_EXTENSION)
         ziparch.compress_tree_ziparch(str(firefox_src), str(firefox_zip), gz_level=0)
 

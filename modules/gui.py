@@ -189,8 +189,8 @@ class Columns:
             sortable=True,
             resizable=False,
         )
-        self.last_played = self.Column(
-            self, f"{icons.play} Last Played",
+        self.last_launched = self.Column(
+            self, f"{icons.play} Last Launched",
             sortable=True,
             resizable=False,
         )
@@ -629,7 +629,7 @@ class MainGUI():
             imgui.style.popup_rounding = \
             imgui.style.window_rounding = \
             imgui.style.scrollbar_rounding = \
-        globals.settings.style_corner_radius * globals.settings.interface_scaling
+        self.scaled(globals.settings.style_corner_radius)
         _ = \
             imgui.style.colors[imgui.COLOR_TEXT] = \
         globals.settings.style_text
@@ -717,15 +717,13 @@ class MainGUI():
         # MsgBox type icons/thumbnails
         fonts.msgbox  = add_font(mdi_path,    size_69,                           glyph_ranges=msgbox_range)
         try:
-            tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
-        except SystemError:
-            tex_height = 1
-            max_tex_size = 0
-        if tex_height > max_tex_size:
+            self.impl.refresh_font_texture()
+        except Exception:
+            if globals.settings.interface_scaling == 1.0:
+                raise
             globals.settings.interface_scaling = 1.0
             async_thread.run(db.update_settings("interface_scaling"))
             return self.refresh_fonts()
-        self.impl.refresh_font_texture()
         self.type_label_width = None
 
     def save_filters(self):
@@ -888,8 +886,8 @@ class MainGUI():
 
                     # Redraw only when needed
                     draw = (
-                        imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
-                        or (api.downloads and any(dl.state is dl.State.Verifying for dl in api.downloads.values()))
+                        (api.downloads and any(dl.state in (dl.State.Verifying, dl.State.Extracting) for dl in api.downloads.values()))
+                        or imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                         or prev_scaling != globals.settings.interface_scaling
                         or prev_minimized != self.minimized
@@ -1423,6 +1421,14 @@ class MainGUI():
             imgui.text(label + " ")
 
     def draw_game_rating_widget(self, game: Game):
+        if not game:
+            imgui.text("Set:")
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.rating = 0
+            imgui.same_line()
         changed, value = ratingwidget.ratingwidget("", game.rating if game else 0)
         if changed:
             if game:
@@ -1708,9 +1714,6 @@ class MainGUI():
         self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
         self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
         imgui.separator()
-        if not game:
-            imgui.text("Set:")
-            imgui.same_line()
         self.draw_game_rating_widget(game)
         if imgui.begin_menu(f"{icons.label_multiple_outline} Labels"):
             self.draw_game_labels_select_widget(game)
@@ -1874,13 +1877,14 @@ class MainGUI():
         color = imgui.get_color_u32_rgba(*globals.settings.style_border)
 
         # Draw timeline primitives
+        rounding = self.scaled(globals.settings.style_corner_radius)
         for x1, y1, x2, y2 in icon_coordinates:
-            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=rounding, thickness=thickness)
             if prev_rect:
                 dl.add_line((prev_rect[0] + prev_rect[2]) / 2, prev_rect[3] + padding, (x1 + x2) / 2, y1 - padding, color, thickness=thickness)
             prev_rect = (x1, y1, x2, y2)
         for x1, y1, x2, y2 in text_coordinates:
-            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=rounding, thickness=thickness)
 
     def draw_game_downloads_header(self, game: Game):
         pad = 3 * imgui.style.item_spacing.x
@@ -1993,7 +1997,7 @@ class MainGUI():
                 height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
 
                 if game_i != len(sorted_ids) - 1:
                     imgui.text("\n")
@@ -2064,7 +2068,8 @@ class MainGUI():
                 imgui.dummy(width + 2.0, height)
                 imgui.set_scroll_x(1.0)
                 imgui.set_cursor_screen_pos(image_pos)
-                image.render(width, height, rounding=globals.settings.style_corner_radius)
+                rounding = self.scaled(globals.settings.style_corner_radius)
+                image.render(width, height, rounding=rounding)
                 if imgui.is_item_hovered():
                     # Image popup
                     if imgui.is_mouse_down():
@@ -2077,7 +2082,6 @@ class MainGUI():
                             height = width * aspect_ratio
                         x = (size.x - width) / 2
                         y = (size.y - height) / 2
-                        rounding = globals.settings.style_corner_radius
                         flags = imgui.DRAW_ROUND_CORNERS_ALL
                         pos2 = (x + width, y + height)
                         fg_draw_list = imgui.get_foreground_draw_list()
@@ -2099,7 +2103,7 @@ class MainGUI():
                         y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
                         imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
                         imgui.begin_tooltip()
-                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
+                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=rounding)
                         imgui.end_tooltip()
                 close_image = True
             if imgui.begin_popup_context_item("###image_context"):
@@ -2140,6 +2144,8 @@ class MainGUI():
             self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
             imgui.same_line(spacing=_10)
             self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
+            imgui.same_line()
+            self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive")
             imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
@@ -2191,14 +2197,15 @@ class MainGUI():
                 self.draw_status_widget(game.status)
 
                 imgui.table_next_column()
-                imgui.text_disabled("Last Played:")
+                imgui.text_disabled("Last Launched:")
                 imgui.same_line()
-                imgui.text(game.last_played.display or "Never")
+                imgui.text(game.last_launched.display or "Never")
                 if imgui.is_item_clicked():
-                    game.last_played = time.time()
+                    game.last_launched = time.time()
+                    game.add_timeline_event(TimelineEventType.GameLaunched, "date set manually")
                 if imgui.is_item_hovered():
                     imgui.begin_tooltip()
-                    imgui.text("Click to set as played right now!")
+                    imgui.text("Click to set as launched right now!")
                     imgui.end_tooltip()
 
                 imgui.table_next_row()
@@ -2636,7 +2643,7 @@ class MainGUI():
             imgui.begin_group()
             imgui.dummy(_60, _230)
             imgui.same_line()
-            self.icon_texture.render(_230, _230, rounding=globals.settings.style_corner_radius)
+            self.icon_texture.render(_230, _230, rounding=self.scaled(globals.settings.style_corner_radius))
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(imgui.fonts.big)
@@ -2702,11 +2709,13 @@ class MainGUI():
             imgui.text("Supporters:")
             for name in [
                 "FaceCrap",
+                "WhiteVanDaycare",
                 "ascsd",
                 "Jarulf",
                 "rozzic",
+                "Belfaier",
                 "warez_gamez",
-                "DarkVermilion",
+                "DeadMoan",
                 "And 3 anons"
             ]:
                 if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
@@ -2979,8 +2988,8 @@ class MainGUI():
                             key = lambda id: globals.games[id].developer.lower()
                         case cols.last_updated.index:
                             key = lambda id: - globals.games[id].last_updated.value
-                        case cols.last_played.index:
-                            key = lambda id: - globals.games[id].last_played.value
+                        case cols.last_launched.index:
+                            key = lambda id: - globals.games[id].last_launched.value
                         case cols.added_on.index:
                             key = lambda id: - globals.games[id].added_on.value
                         case cols.finished.index:
@@ -3199,9 +3208,9 @@ class MainGUI():
                             imgui.push_font(imgui.fonts.mono)
                             imgui.text(game.last_updated.display or "Unknown")
                             imgui.pop_font()
-                        case cols.last_played.index:
+                        case cols.last_launched.index:
                             imgui.push_font(imgui.fonts.mono)
-                            imgui.text(game.last_played.display or "Never")
+                            imgui.text(game.last_launched.display or "Never")
                             imgui.pop_font()
                         case cols.added_on.index:
                             imgui.push_font(imgui.fonts.mono)
@@ -3334,6 +3343,7 @@ class MainGUI():
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
+        rounding = self.scaled(globals.settings.style_corner_radius)
         imgui.begin_group()
         # Image
         if game.image.missing:
@@ -3359,7 +3369,7 @@ class MainGUI():
             imgui.dummy(cell_width, img_height)
         else:
             crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
-            showed_img = game.image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+            showed_img = game.image.render(cell_width, img_height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         # Alignments
         imgui.indent(side_indent)
         imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
@@ -3478,8 +3488,8 @@ class MainGUI():
             _cluster_text(cols.score.name, f"{game.score:.1f} ({game.votes})")
         if cols.last_updated.enabled:
             _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
-        if cols.last_played.enabled:
-            _cluster_text(cols.last_played.name, game.last_played.display or "Never")
+        if cols.last_launched.enabled:
+            _cluster_text(cols.last_launched.name, game.last_launched.display or "Never")
         if cols.added_on.enabled:
             _cluster_text(cols.added_on.name, game.added_on.display)
         if cols.rating.enabled:
@@ -3533,11 +3543,11 @@ class MainGUI():
                 imgui.push_alpha(0.5)
                 draw_list.add_rect_filled(
                     *rect_min, *rect_max, imgui.get_color_u32_rgba(*globals.settings.style_accent),
-                    rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL
+                    rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL
                 )
                 imgui.pop_alpha()
             else:
-                draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+                draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
         else:
             imgui.dummy(cell_width, cell_height)
         draw_list.channels_merge()
@@ -3816,7 +3826,7 @@ class MainGUI():
                 imgui.button("Invalid image!", width=width, height=height)
             else:
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
         else:
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):

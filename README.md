@@ -23,7 +23,7 @@ An update checker and library tool for (NSFW) games on the [F95zone](https://f95
   - Name, Version, Developer
   - Type (game engine / type of thread)
   - Status (completed / on hold / abandoned)
-  - Last update, last played and added on dates
+  - Last update, last launched and added on dates
   - Description / overview and changelog
   - Header images (including gifs)
   - Download links, F95zone Donor DDL and RPDL.net support
@@ -229,8 +229,9 @@ Please note that this software is not ( yet ;) ) officially affiliated with the 
 
 Supporters:
 
-[FaceCrap](https://f95zone.to/members/2913051/) - [ascsd](https://f95zone.to/members/3977760/) - [Jarulf](https://f95zone.to/members/2709937/) -
-[rozzic](https://f95zone.to/members/449099/) - [warez_gamez](https://f95zone.to/members/81517/) - [DarkVermilion](https://f95zone.to/members/4392187/) - And 3 anons
+[FaceCrap](https://f95zone.to/members/2913051/) - [WhiteVanDaycare](https://f95zone.to/members/3509231/) - [ascsd](https://f95zone.to/members/3977760/) -
+[Jarulf](https://f95zone.to/members/2709937/) - [rozzic](https://f95zone.to/members/449099/) - [Belfaier](https://f95zone.to/members/7363156/) -
+[warez_gamez](https://f95zone.to/members/81517/) - [DeadMoan](https://f95zone.to/members/4392187/) - And 3 anons
 
 Contributors:
 
