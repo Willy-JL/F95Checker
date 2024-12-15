@@ -54,6 +54,7 @@ def start():
                 self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
                 self.send_header("Access-Control-Allow-Headers", "X-Requested-With")
                 self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.send_header("Access-Control-Allow-Private-Network", "true")
                 self.end_headers()
 
             def send_resp(self, code: int, content_type: str = "application/octet-stream", headers: dict[str, str] = {}):
