@@ -93,12 +93,17 @@ def _fuzzy_match_subdir(where: pathlib.Path, match: str):
         where /= clean_dir
     else:
         try:
-            ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
             dirs = [node.name for node in where.iterdir() if node.is_dir()]
-            similarity = {d: ratio(d, match) for d in dirs}
-            best_match = max(similarity, key=similarity.get)
-            if similarity[best_match] > 0.85:
-                where /= best_match
+            clean_dir_lower = clean_dir.lower()
+            match_dirs = [d for d in dirs if clean_dir_lower in d.lower()]
+            if len(match_dirs) == 1:
+                where /= match_dirs[0]
+            else:
+                ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
+                similarity = {d: ratio(d, match) for d in dirs}
+                best_match = max(similarity.keys())
+                if similarity[best_match] > 0.85:
+                    where /= best_match
         except Exception:
             pass
     return where
@@ -131,25 +136,8 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     start_dir = globals.settings.default_exe_dir.get(globals.os)
     if start_dir:
         start_dir = pathlib.Path(start_dir)
-        clean_dir = "".join(char for char in game.name.replace("&", "and") if char in (string.ascii_letters + string.digits + " "))
-        clean_dir = re.sub(r" +", r" ", clean_dir).strip()
-        if (start_dir / clean_dir).is_dir():
-            start_dir /= clean_dir
-        else:
-            try:
-                dirs = [node for node in os.listdir(start_dir) if os.path.isdir(start_dir / node)]
-                lower_dir = clean_dir.lower()
-                dirsmatch = [d for d in dirs if lower_dir in d.lower()]
-                if len(dirsmatch) == 1 :
-                    start_dir /= dirsmatch[0]
-                else :
-                    ratio = lambda a, b: difflib.SequenceMatcher(None, a.lower(), b.lower()).quick_ratio()
-                    similarity = {d: ratio(d, game.name) for d in dirs}
-                    best_match = max(similarity, key=similarity.get)
-                    if similarity[best_match] > 0.85:
-                        start_dir /= best_match
-            except Exception:
-                pass
+        for subdir in (game.type.name, game.developer, game.name.removesuffix(" Collection")):
+            start_dir = _fuzzy_match_subdir(start_dir, subdir)
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
         start_dir=start_dir,
