@@ -6,7 +6,7 @@ let settings = {};
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const rpcCall = async (method, path, body, tabId) => {
-    if(typeof method !== 'string' || typeof path !== 'string' || (typeof body !== 'string' && body !== null)) {
+    if (typeof method !== 'string' || typeof path !== 'string' || (typeof body !== 'string' && body !== null)) {
         return {};
     }
     try {
@@ -225,9 +225,9 @@ const updateIcons = async (tabId) => {
             }
             const highlightTags = () => {
                 const highlightColors = {
-                    1: {text: 'white', background: '#006600', border: '1px solid #ffffff55'}, // Positive
-                    2: {text: 'white', background: '#990000', border: '1px solid #ffffff55'}, // Negative
-                    3: {text: 'white', background: '#000000', border: '1px solid #ffffff55'}, // Critical
+                    1: { text: 'white', background: '#006600', border: '1px solid #ffffff55' }, // Positive
+                    2: { text: 'white', background: '#990000', border: '1px solid #ffffff55' }, // Negative
+                    3: { text: 'white', background: '#000000', border: '1px solid #ffffff55' }, // Critical
                 };
                 // Latest Updates
                 const hoveredTiles = document.querySelectorAll('div.resource-tile-hover');
