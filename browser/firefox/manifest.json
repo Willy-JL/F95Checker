@@ -24,6 +24,9 @@
     "background": {
         "scripts": ["extension.js"]
     },
+    "web_accessible_resources": [
+        "fonts/mdi-webfont.ttf"
+    ],
     "permissions": [
         "scripting",
         "activeTab",
