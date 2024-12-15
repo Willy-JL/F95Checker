@@ -12,6 +12,7 @@
 - Save URIs and relative exe path correctly in Launched timeline event (by @Willy-JL)
 - Add executable fuzzy matches subdirs in Default Exe Dir for game type, developer, name (by @Willy-JL)
 - Add executable checks best partial match to account for versions/mods/other things in dir names (#163 by @MayhemSixx)
+- Themed integrated browser right click menu (by @Willy-JL)
 
 ### Fixed:
 - More efficient grid/kanban cell cluster text (#200 by @Willy-JL)

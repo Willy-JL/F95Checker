@@ -654,6 +654,9 @@ class MainGUI():
             QMenu::item:selected:enabled {{
                 background-color: {colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2]};
             }}
+            QMenu::icon {{
+                padding-left: 7px;
+            }}
         """)
 
     def refresh_fonts(self):

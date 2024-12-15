@@ -108,9 +108,11 @@ def create_kwargs():
         icon=str(globals.gui.icon_path),
         icon_font=str(icons.font_path),
         extension=str(globals.self_path / "browser/integrated.js"),
-        col_bg=colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
-        col_accent=colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
-        col_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2],
+        style_bg=colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
+        style_accent=colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
+        style_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2],
+        style_text_dim=colors.rgba_0_1_to_hex(globals.settings.style_text_dim)[:-2],
+        style_corner_radius=f"{globals.settings.style_corner_radius}px",
         proxy_config=proxy_config,
     )
 
@@ -127,9 +129,11 @@ def create(
     icon: str,
     icon_font: str,
     extension: str,
-    col_bg: str,
-    col_accent: str,
-    col_text: str,
+    style_bg: str,
+    style_accent: str,
+    style_text: str,
+    style_text_dim: str,
+    style_corner_radius: str,
     proxy_config: dict | None,
 ):
     config_qt_flags(debug, software)
@@ -327,8 +331,8 @@ def create(
 
     app.window.setStyleSheet(f"""
         #controls * {{
-            background: {col_bg};
-            color: {col_text};
+            background: {style_bg};
+            color: {style_text};
             font-size: 14pt;
             border-radius: 0px;
             border: 0px;
@@ -336,7 +340,7 @@ def create(
             padding: 0px;
         }}
         #controls QProgressBar::chunk {{
-            background: {col_accent};
+            background: {style_accent};
         }}
         #controls QPushButton {{
             font-family: '{icon_font}';
@@ -344,15 +348,34 @@ def create(
             padding-bottom: 3px;
         }}
         #controls QPushButton:disabled {{
-            color: #99{col_text[1:]};
+            color: {style_text_dim};
         }}
         #controls QLineEdit {{
             font-size: 12px;
             padding: 5px;
             padding-bottom: 3px;
         }}
+        QMenu {{
+            padding: 5px;
+            background-color: {style_bg};
+        }}
+        QMenu::item {{
+            margin: 1px;
+            padding: 2px 7px 2px 7px;
+            border-radius: {style_corner_radius};
+            color: {style_text};
+        }}
+        QMenu::item:disabled {{
+            color: {style_text_dim};
+        }}
+        QMenu::item:selected:enabled {{
+            background-color: {style_accent};
+        }}
+        QMenu::icon {{
+            padding-left: 7px;
+        }}
     """)
-    app.window.webview.page.setBackgroundColor(QtGui.QColor(col_bg))
+    app.window.webview.page.setBackgroundColor(QtGui.QColor(style_bg))
 
     app.window.layout().addWidget(app.window.controls, stretch=0)
     app.window.layout().addWidget(app.window.webview, stretch=1)
