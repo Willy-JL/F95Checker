@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "windows-2019", python: "3.11.7", cx-freeze: "6.15.12", cx-logging: "v3.1.0" }
-          - { os: "ubuntu-20.04", python: "3.11.7", cx-freeze: "6.15.12", cx-logging: ""       }
-          - { os: "macos-11",     python: "3.11.7", cx-freeze: "6.15.12", cx-logging: ""       }
+          - { os: "windows-2022", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: "v3.2.0" }
+          - { os: "ubuntu-22.04", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""       }
+          - { os: "macos-13",     python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""       }
     name: "${{ matrix.config.os }}"
     runs-on: "${{ matrix.config.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
@@ -30,7 +30,7 @@ jobs:
           git config --global core.eol lf
 
       - name: "Setup Python"
-        uses: "actions/setup-python@v4"
+        uses: "actions/setup-python@v5"
         with:
           python-version: "${{ matrix.config.python }}"
 
@@ -47,15 +47,13 @@ jobs:
       # === BUILD ===
 
       - name: "Clone repo"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
         with:
           path: "."
 
       - name: "Install requirements"
         run: |
-          python -m pip install -U 'numpy'
           python -m pip install -U -r ./requirements.txt
-        # numpy is installed before to avoid the numpy formathandler warning on startup with pyopengl-accelerate
 
       - name: "Mark as release"
         if: "github.event_name == 'release'"
@@ -70,6 +68,11 @@ jobs:
           sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./main.py > ./main.py.new
           rm ./main.py
           mv ./main.py.new ./main.py
+
+      - name: "Install dependencies (Linux)"
+        if: "runner.os == 'Linux'"
+        run: |
+          sudo apt install -y libxcb-cursor-dev
 
       - name: "Build (Windows, Linux)"
         if: "runner.os != 'macOS'"
@@ -113,10 +116,11 @@ jobs:
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
-        uses: "actions/upload-artifact@v3"
+        uses: "actions/upload-artifact@v4"
         with:
-          name: "${{ runner.os }}"
+          name: "${{ github.event.repository.name }}-${{ runner.os }}-Artifact"
           path: "./${{ github.event.repository.name }}-${{ runner.os }}.zip"
+          compression-level: 0
 
       - name: "Upload release artifact"
         if: "github.event_name == 'release'"
@@ -142,7 +146,7 @@ jobs:
       # === PACKAGE ===
 
       - name: "Clone repo"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
         with:
           path: "."
 
@@ -164,7 +168,9 @@ jobs:
         run: |
           python ./setup.py || true
           mkdir ./dist/
-          cp -r ./extension/       ./dist/
+          cp -r ./browser/         ./dist/
+          cp -r ./common/          ./dist/
+          cp -r ./external/        ./dist/
           cp -r ./modules/         ./dist/
           cp -r ./resources/       ./dist/
           cp    ./LICENSE          ./dist/
@@ -181,10 +187,11 @@ jobs:
 
       - name: "Upload commit artifact"
         if: "github.event_name != 'release'"
-        uses: "actions/upload-artifact@v3"
+        uses: "actions/upload-artifact@v4"
         with:
-          name: "Source"
+          name: "${{ github.event.repository.name }}-Source-Artifact"
           path: "./${{ github.event.repository.name }}-Source.zip"
+          compression-level: 0
 
       - name: "Upload release artifact"
         if: "github.event_name == 'release'"
@@ -209,7 +216,7 @@ jobs:
           git config --global core.eol lf
 
       - name: "Clone repo"
-        uses: "actions/checkout@v3"
+        uses: "actions/checkout@v4"
         with:
           path: "."
 

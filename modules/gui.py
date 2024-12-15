@@ -1,71 +1,78 @@
-from imgui.integrations.glfw import GlfwRenderer
-from PyQt6 import QtCore, QtGui, QtWidgets
+import asyncio
+import builtins
 import concurrent.futures
-import OpenGL.GL as gl
-import datetime as dt
-from PIL import Image
 import configparser
 import dataclasses
+import datetime as dt
 import functools
-import threading
 import itertools
-import platform
-import builtins
-import asyncio
 import pathlib
-import tomllib
-import aiohttp
-import OpenGL
 import pickle
-import string
-import imgui
-import time
-import glfw
+import platform
+import shutil
 import sys
+import threading
+import time
+import tomllib
 
-from modules.structs import (
-    TimelineEventType,
-    TagHighlight,
+from imgui.integrations.glfw import GlfwRenderer
+from PIL import Image
+from PyQt6 import (
+    QtCore,
+    QtGui,
+    QtWidgets,
+)
+import aiohttp
+import glfw
+import imgui
+import OpenGL
+import OpenGL.GL as gl
+
+from common.structs import (
+    Browser,
+    Datestamp,
     DefaultStyle,
     DisplayMode,
-    FilterMode,
-    Datestamp,
-    Timestamp,
     ExeState,
-    SortSpec,
-    TrayMsg,
-    Browser,
     Filter,
-    MsgBox,
-    Status,
-    Label,
-    Type,
+    FilterMode,
     Game,
-    Tag,
-    Tab,
+    Label,
+    MsgBox,
     Os,
+    ProxyType,
+    SortSpec,
+    Status,
+    Tab,
+    Tag,
+    TagHighlight,
+    TimelineEventType,
+    Timestamp,
+    TrayMsg,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
+    filepicker,
+    imagehelper,
+    ratingwidget,
 )
 from modules import (
-    globals,
-    async_thread,
-    ratingwidget,
-    imagehelper,
-    rpc_thread,
-    filepicker,
-    callbacks,
-    webview,
-    parser,
-    msgbox,
-    colors,
-    icons,
-    utils,
-    error,
-    rpdl,
     api,
+    callbacks,
+    colors,
     db,
+    globals,
+    icons,
+    msgbox,
+    rpc_thread,
+    rpdl,
+    utils,
 )
 
-tool_page         = api.threads_page + "44173/"
+tool_page         = api.f95_threads_page + "44173/"
 github_page       = "https://github.com/Willy-JL/F95Checker"
 developer_page    = "https://linktr.ee/WillyJL"
 
@@ -166,7 +173,7 @@ class Columns:
             resizable=False,
         )
         self.name = self.Column(
-            self, f"{icons.information_variant} Name",
+            self, f"{icons.gamepad_variant} Name",
             imgui.TABLE_COLUMN_WIDTH_STRETCH | imgui.TABLE_COLUMN_DEFAULT_SORT,
             default=True,
             sortable=True,
@@ -182,8 +189,8 @@ class Columns:
             sortable=True,
             resizable=False,
         )
-        self.last_played = self.Column(
-            self, f"{icons.play} Last Played",
+        self.last_launched = self.Column(
+            self, f"{icons.play} Last Launched",
             sortable=True,
             resizable=False,
         )
@@ -336,7 +343,6 @@ class MainGUI():
         self.show_games_ids: dict[Tab, list[int]] = {}
 
         # Setup Qt objects
-        webview.config_qt_flags(globals.debug, globals.settings.software_webview)
         self.qt_app = QtWidgets.QApplication(sys.argv)
         self.tray = TrayIcon(self)
 
@@ -438,14 +444,15 @@ class MainGUI():
             if isinstance(exc, (aiohttp.ClientError, asyncio.TimeoutError)):
                 utils.push_popup(
                     msgbox.msgbox, "Connection error",
-                    "A connection request to F95Zone has failed:\n"
+                    "A connection request has failed:\n"
                     f"{err}\n"
                     "\n"
                     "Possible causes include:\n"
-                    " - You are refreshing with too many workers, try lowering them in settings\n"
+                    " - You're not connected to the internet, or your connection is unstable\n"
                     " - Your timeout value is too low, try increasing it in settings\n"
-                    " - F95Zone is experiencing difficulties, try waiting a bit and retrying\n"
-                    " - F95Zone is blocked in your country, network, antivirus or firewall, try a VPN\n"
+                    " - The server is experiencing difficulties, try waiting a bit and retrying\n"
+                    " - The web address is blocked in your country, network, antivirus, DNS or firewall, try a VPN\n"
+                    " - You are refreshing with too many connections, try lowering them in settings\n"
                     " - Your retries value is too low, try increasing it in settings (last resort!)",
                     MsgBox.warn,
                     more=tb
@@ -549,7 +556,7 @@ class MainGUI():
         def pop_no_interaction():
             imgui.internal.pop_item_flag()
         imgui.pop_no_interaction = pop_no_interaction
-        def push_alpha(amount: float = 0.5):
+        def push_alpha(amount: float):
             imgui.push_style_var(imgui.STYLE_ALPHA, imgui.style.alpha * amount)
         imgui.push_alpha = push_alpha
         def pop_alpha():
@@ -557,7 +564,7 @@ class MainGUI():
         imgui.pop_alpha = pop_alpha
         def push_disabled():
             imgui.push_no_interaction()
-            imgui.push_alpha()
+            imgui.push_alpha(0.5)
         imgui.push_disabled = push_disabled
         def pop_disabled():
             imgui.pop_alpha()
@@ -622,7 +629,7 @@ class MainGUI():
             imgui.style.popup_rounding = \
             imgui.style.window_rounding = \
             imgui.style.scrollbar_rounding = \
-        globals.settings.style_corner_radius * globals.settings.interface_scaling
+        self.scaled(globals.settings.style_corner_radius)
         _ = \
             imgui.style.colors[imgui.COLOR_TEXT] = \
         globals.settings.style_text
@@ -678,6 +685,7 @@ class MainGUI():
         msgbox_range = imgui.core.GlyphRanges(msgbox_range_values)
         size_14 = round(self.scaled(14 * font_scaling_factor))
         size_15 = round(self.scaled(15 * font_scaling_factor))
+        size_17 = round(self.scaled(17 * font_scaling_factor))
         size_18 = round(self.scaled(18 * font_scaling_factor))
         size_22 = round(self.scaled(22 * font_scaling_factor))
         size_28 = round(self.scaled(28 * font_scaling_factor))
@@ -702,20 +710,20 @@ class MainGUI():
         fonts.small   = add_font(karlar_path, size_14, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_14, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                mdi_path,    size_14, font_config=mdi_config,   glyph_ranges=mdi_range)
-        # Monospace font for more info dropdowns
-        fonts.mono    = add_font(meslo_path,  size_15, font_config=meslo_config, glyph_ranges=meslo_range)
+        # Monospace font for some dates
+        fonts.mono    = add_font(meslo_path,  size_17, font_config=meslo_config, glyph_ranges=meslo_range)
+        # Small monospace font for more info dropdowns
+        fonts.mono_sm = add_font(meslo_path,  size_15, font_config=meslo_config, glyph_ranges=meslo_range)
         # MsgBox type icons/thumbnails
         fonts.msgbox  = add_font(mdi_path,    size_69,                           glyph_ranges=msgbox_range)
         try:
-            tex_width, tex_height, pixels = imgui.io.fonts.get_tex_data_as_rgba32()
-        except SystemError:
-            tex_height = 1
-            max_tex_size = 0
-        if tex_height > max_tex_size:
+            self.impl.refresh_font_texture()
+        except Exception:
+            if globals.settings.interface_scaling == 1.0:
+                raise
             globals.settings.interface_scaling = 1.0
             async_thread.run(db.update_settings("interface_scaling"))
             return self.refresh_fonts()
-        self.impl.refresh_font_texture()
         self.type_label_width = None
 
     def save_filters(self):
@@ -847,6 +855,7 @@ class MainGUI():
                 glfw.poll_events()
                 self.input_chars, self.poll_chars = self.poll_chars, self.input_chars
                 self.impl.process_inputs()
+                imagehelper.apply_textures()
                 # Window state handling
                 size = imgui.io.display_size
                 mouse_pos = imgui.io.mouse_pos
@@ -876,19 +885,21 @@ class MainGUI():
                         imgui.io.mouse_wheel = scroll_now
 
                     # Redraw only when needed
-                    draw = False
-                    draw = draw or api.updating
-                    draw = draw or self.new_styles
-                    draw = draw or imagehelper.redraw
-                    draw = draw or self.recalculate_ids
-                    draw = draw or size != self.prev_size
-                    draw = draw or prev_hidden != self.hidden
-                    draw = draw or prev_focused != self.focused
-                    draw = draw or prev_minimized != self.minimized
-                    draw = draw or bool(api.session.connector._acquired)
-                    draw = draw or prev_scaling != globals.settings.interface_scaling
-                    draw = draw or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
-                    draw = draw or bool(imgui.io.mouse_wheel) or bool(self.input_chars) or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
+                    draw = (
+                        (api.downloads and any(dl.state in (dl.State.Verifying, dl.State.Extracting) for dl in api.downloads.values()))
+                        or imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
+                        or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
+                        or prev_scaling != globals.settings.interface_scaling
+                        or prev_minimized != self.minimized
+                        or api.session.connector._acquired
+                        or prev_focused != self.focused
+                        or prev_hidden != self.hidden
+                        or size != self.prev_size
+                        or self.recalculate_ids
+                        or imagehelper.redraw
+                        or self.new_styles
+                        or api.updating
+                    )
                     if draw:
                         draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
                     if draw_next > 0.0:
@@ -945,10 +956,14 @@ class MainGUI():
                         imgui.end_child()
 
                         # Prepare bottom status / watermark text (done before sidebar to get text offset from bottom of window)
-                        if (count := api.images.count) > 0:
+                        if (count := api.images_counter.count) > 0:
                             text = f"Downloading {count} image{'s' if count > 1 else ''}..."
-                        elif (count := api.full_checks.count) > 0:
-                            text = f"Running {count} full recheck{'s' if count > 1 else ''}..."
+                        elif (count := api.full_checks_counter.count) > 0:
+                            text = f"Fetching {count} full thread{'s' if count > 1 else ''}..."
+                        elif (count := api.fast_checks_counter) > 0:
+                            text = f"Validating {count} cached item{'s' if count > 1 else ''}..."
+                        elif api.f95_ratelimit._waiters or api.f95_ratelimit_sleeping.count:
+                            text = f"Waiting for F95zone ratelimit..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
                         else:
@@ -970,7 +985,7 @@ class MainGUI():
                         if imgui.invisible_button("", width=text_size.x + _6, height=text_size.y + _3):
                             utils.push_popup(self.draw_about_popup)
                         elif imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-                            callbacks.open_webpage(api.host)
+                            callbacks.open_webpage(api.f95_host)
                         imgui.set_cursor_screen_pos((text_x, text_y))
                         imgui.text(text)
 
@@ -1002,8 +1017,8 @@ class MainGUI():
                         time.sleep(1 / 15)
                 else:
                     # Tray bg mode and not paused
-                    if self.hidden and not self.bg_mode_paused:
-                        if not self.bg_mode_timer and not utils.is_refreshing():
+                    if self.hidden and not self.bg_mode_paused and not utils.is_refreshing():
+                        if not self.bg_mode_timer:
                             # Schedule next refresh
                             self.bg_mode_timer = time.time() + globals.settings.bg_refresh_interval * 60
                             self.tray.update_status()
@@ -1012,14 +1027,14 @@ class MainGUI():
                             self.bg_mode_timer = None
                             utils.start_refresh_task(api.refresh(notifs=False), reset_bg_timers=False)
                         elif globals.settings.check_notifs:
-                            if not self.bg_mode_notifs_timer and not utils.is_refreshing():
+                            if not self.bg_mode_notifs_timer:
                                 # Schedule next notif check
                                 self.bg_mode_notifs_timer = time.time() + globals.settings.bg_notifs_interval * 60
                                 self.tray.update_status()
                             elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
                                 # Run scheduled notif check
                                 self.bg_mode_notifs_timer = None
-                                utils.start_refresh_task(api.check_notifs(login=True), reset_bg_timers=False)
+                                utils.start_refresh_task(api.check_notifs(standalone=True), reset_bg_timers=False)
                     # Wait idle time
                     if self.tray.menu_open:
                         time.sleep(1 / 60)
@@ -1155,7 +1170,7 @@ class MainGUI():
         if (tab and tab.icon) and (tab and (tab.name or 'New Tab')):
             imgui.small_button(f"{tab.icon} {tab.name or 'New Tab'}")
         else:
-            imgui.small_button(f"{Tab.first_tab_label}")
+            imgui.small_button(f"{Tab.first_tab_label()}")
         imgui.pop_style_color()
         self.end_framed_text(interaction=False)
 
@@ -1406,6 +1421,14 @@ class MainGUI():
             imgui.text(label + " ")
 
     def draw_game_rating_widget(self, game: Game):
+        if not game:
+            imgui.text("Set:")
+            imgui.same_line()
+            if imgui.small_button(icons.close):
+                for game in globals.games.values():
+                    if game.selected:
+                        game.rating = 0
+            imgui.same_line()
         changed, value = ratingwidget.ratingwidget("", game.rating if game else 0)
         if changed:
             if game:
@@ -1512,6 +1535,7 @@ class MainGUI():
         if game and not game.executables:
             imgui.pop_disabled()
         if clicked:
+            imgui.close_current_popup()
             if game:
                 game.clear_executables()
             else:
@@ -1521,7 +1545,7 @@ class MainGUI():
 
     def draw_game_open_folder_button(self, game: Game, label="", selectable=False, executable: str = None):
         if game and not game.executables:
-            imgui.push_alpha()
+            imgui.push_alpha(0.5)
         if selectable:
             clicked = imgui.selectable(label, False)[0]
         else:
@@ -1586,6 +1610,14 @@ class MainGUI():
         if game and game.custom:
             imgui.pop_disabled()
 
+    def draw_game_tab_widget(self, game: Game):
+        self.draw_tab_widget(game.tab)
+        if imgui.begin_popup_context_item(f"###{game.id}_context_tab"):
+            imgui.text("Move To:")
+            imgui.separator()
+            self.draw_game_tab_select_widget(game)
+            imgui.end_popup()
+
     def draw_game_labels_select_widget(self, game: Game):
         if Label.instances:
             if game:
@@ -1619,7 +1651,7 @@ class MainGUI():
         new_tab = current_tab
         if current_tab is None:
             imgui.push_disabled()
-        if imgui.selectable(f"{Tab.first_tab_label}###move_tab_-1", False)[0]:
+        if imgui.selectable(f"{Tab.first_tab_label()}###move_tab_-1", False)[0]:
             new_tab = None
         if current_tab is None:
             imgui.pop_disabled()
@@ -1646,6 +1678,7 @@ class MainGUI():
             self.recalculate_ids = True
             imgui.close_current_popup()
         if new_tab is not current_tab:
+            imgui.close_current_popup()
             if game:
                 game.tab = new_tab
             else:
@@ -1681,9 +1714,6 @@ class MainGUI():
         self.draw_game_finished_checkbox(game, f"{icons.flag_checkered} Finished")
         self.draw_game_installed_checkbox(game, f"{icons.download} Installed")
         imgui.separator()
-        if not game:
-            imgui.text("Set:")
-            imgui.same_line()
         self.draw_game_rating_widget(game)
         if imgui.begin_menu(f"{icons.label_multiple_outline} Labels"):
             self.draw_game_labels_select_widget(game)
@@ -1787,7 +1817,6 @@ class MainGUI():
         imgui.dummy(0, 0 if globals.settings.compact_timeline else self.scaled(6))
 
         def draw_event(timestamp, type, args, spacing=True):
-            short_format = "%b %d, %Y"
             icon = getattr(icons, type.icon)
             date = dt.datetime.fromtimestamp(timestamp)
             message = type.template.format(*args, *["?" for _ in range(type.args_min - len(args))])
@@ -1795,12 +1824,9 @@ class MainGUI():
             if globals.settings.compact_timeline:
                 imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
                 imgui.push_font(imgui.fonts.mono)
-                imgui.text(date.strftime(short_format))
-                imgui.pop_style_color()
+                imgui.text(date.strftime(globals.settings.timestamp_format))
                 imgui.pop_font()
-                if imgui.is_item_hovered():
-                    with imgui.begin_tooltip():
-                        imgui.text(date.strftime(globals.settings.timestamp_format))
+                imgui.pop_style_color()
                 imgui.same_line()
                 imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
                 imgui.text(icon)
@@ -1821,7 +1847,7 @@ class MainGUI():
             imgui.same_line(spacing=self.scaled(15))
             timestamp_pos = imgui.get_cursor_screen_pos()
             imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
-            imgui.text(date.strftime(short_format))
+            imgui.text(date.strftime(globals.settings.datestamp_format))
             imgui.pop_style_color()
             timestamp_size = imgui.get_item_rect_size()
             if imgui.is_item_hovered():
@@ -1851,13 +1877,30 @@ class MainGUI():
         color = imgui.get_color_u32_rgba(*globals.settings.style_border)
 
         # Draw timeline primitives
+        rounding = self.scaled(globals.settings.style_corner_radius)
         for x1, y1, x2, y2 in icon_coordinates:
-            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=rounding, thickness=thickness)
             if prev_rect:
                 dl.add_line((prev_rect[0] + prev_rect[2]) / 2, prev_rect[3] + padding, (x1 + x2) / 2, y1 - padding, color, thickness=thickness)
             prev_rect = (x1, y1, x2, y2)
         for x1, y1, x2, y2 in text_coordinates:
-            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=globals.settings.style_corner_radius, thickness=thickness)
+            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=rounding, thickness=thickness)
+
+    def draw_game_downloads_header(self, game: Game):
+        pad = 3 * imgui.style.item_spacing.x
+        def _cluster_text(name, text):
+            imgui.text_disabled(name[0])
+            if imgui.is_item_hovered():
+                imgui.set_tooltip(name[2:])
+            imgui.same_line()
+            imgui.text(text)
+            imgui.same_line(spacing=pad)
+        _cluster_text(cols.name.name, game.name)
+        _cluster_text(cols.version.name, game.version)
+        _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
+        _cluster_text(cols.developer.name, game.developer)
+        imgui.spacing()
+        imgui.spacing()
 
     def draw_updates_popup(self, updated_games, sorted_ids, popup_uuid: str = ""):
         def popup_content():
@@ -1910,7 +1953,7 @@ class MainGUI():
                     imgui.spacing()
                     imgui.text_disabled("Tab: ")
                     imgui.same_line()
-                    self.draw_tab_widget(game.tab)
+                    self.draw_game_tab_widget(game)
 
                 for attr, offset in (("name", name_offset), ("version", version_offset)):
                     old_val =  getattr(old_game, attr) or "Unknown"
@@ -1954,7 +1997,7 @@ class MainGUI():
                 height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
 
                 if game_i != len(sorted_ids) - 1:
                     imgui.text("\n")
@@ -1967,6 +2010,17 @@ class MainGUI():
             closable=True,
             outside=False,
             popup_uuid=popup_uuid
+        )
+
+    def draw_game_image_missing_text(self, game: Game, text: str):
+        self.draw_hover_text(
+            text=text,
+            hover_text=(
+                "This image link blocks us! You can blame Imgur." if game.image_url == "blocked" else
+                "This thread does not seem to have an image!" if game.image_url == "missing" else
+                "This image link cannot be reached anymore!" if game.image_url == "dead" else
+                "Run a full refresh to try downloading it again!"
+            )
         )
 
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
@@ -1983,10 +2037,7 @@ class MainGUI():
                 text = "Image missing!"
                 width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
-                )
+                self.draw_game_image_missing_text(game, text)
             elif image.invalid:
                 text = "Invalid image!"
                 width = imgui.calc_text_size(text).x
@@ -2017,7 +2068,8 @@ class MainGUI():
                 imgui.dummy(width + 2.0, height)
                 imgui.set_scroll_x(1.0)
                 imgui.set_cursor_screen_pos(image_pos)
-                image.render(width, height, rounding=globals.settings.style_corner_radius)
+                rounding = self.scaled(globals.settings.style_corner_radius)
+                image.render(width, height, rounding=rounding)
                 if imgui.is_item_hovered():
                     # Image popup
                     if imgui.is_mouse_down():
@@ -2030,7 +2082,6 @@ class MainGUI():
                             height = width * aspect_ratio
                         x = (size.x - width) / 2
                         y = (size.y - height) / 2
-                        rounding = globals.settings.style_corner_radius
                         flags = imgui.DRAW_ROUND_CORNERS_ALL
                         pos2 = (x + width, y + height)
                         fg_draw_list = imgui.get_foreground_draw_list()
@@ -2052,7 +2103,7 @@ class MainGUI():
                         y = utils.map_range(mouse_pos.y, image_pos.y, image_pos.y + height, 0.0, 1.0)
                         imgui.set_next_window_position(*mouse_pos, pivot_x=0.5, pivot_y=0.5)
                         imgui.begin_tooltip()
-                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=globals.settings.style_corner_radius)
+                        image.render(out_size, out_size, (x - off_x, y - off_y), (x + off_x, y + off_y), rounding=rounding)
                         imgui.end_tooltip()
                 close_image = True
             if imgui.begin_popup_context_item("###image_context"):
@@ -2094,72 +2145,120 @@ class MainGUI():
             imgui.same_line(spacing=_10)
             self.draw_game_recheck_button(game, f"{icons.reload_alert} Recheck")
             imgui.same_line()
+            self.draw_game_archive_button(game, label_off=f"{icons.archive_outline} Archive", label_on=f"{icons.archive_off_outline} Unarchive")
+            imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
-            imgui.text_disabled("Version:")
-            imgui.same_line()
-            if game.updated:
-                self.draw_game_update_icon(game)
+            imgui.spacing()
+
+            if imgui.begin_table(f"###details", column=2):
+                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+                imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Version:")
                 imgui.same_line()
-            if game.unknown_tags_flag:
-                self.draw_game_unknown_tags_icon(game)
+                if game.updated:
+                    self.draw_game_update_icon(game)
+                    imgui.same_line()
+                if game.unknown_tags_flag:
+                    self.draw_game_unknown_tags_icon(game)
+                    imgui.same_line()
+                offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
+                utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
+
+                imgui.table_next_column()
+                imgui.text_disabled("Added On:")
                 imgui.same_line()
-            offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
-            utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
+                imgui.text(game.added_on.display)
 
-            imgui.text_disabled("Developer:")
-            imgui.same_line()
-            offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
-            utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
+                imgui.table_next_row()
 
-            imgui.text_disabled("Personal Rating:")
-            imgui.same_line()
-            self.draw_game_rating_widget(game)
-
-            imgui.text_disabled("Status:")
-            imgui.same_line()
-            imgui.text(game.status.name)
-            imgui.same_line()
-            self.draw_status_widget(game.status)
-
-            imgui.text_disabled("Forum Score:")
-            imgui.same_line()
-            imgui.text(f"{game.score:.1f}/5")
-            imgui.same_line()
-            imgui.text_disabled(f"({game.votes})")
-
-            imgui.text_disabled("Type:")
-            imgui.same_line()
-            self.draw_type_widget(game.type)
-
-            imgui.text_disabled("Last Updated:")
-            imgui.same_line()
-            imgui.text(game.last_updated.display or "Unknown")
-
-            imgui.text_disabled("Last Played:")
-            imgui.same_line()
-            imgui.text(game.last_played.display or "Never")
-            if imgui.is_item_clicked():
-                game.last_played = time.time()
-            if imgui.is_item_hovered():
-                imgui.begin_tooltip()
-                imgui.text("Click to set as played right now!")
-                imgui.end_tooltip()
-
-            imgui.text_disabled("Added On:")
-            imgui.same_line()
-            imgui.text(game.added_on.display)
-
-            if len(game.executables) <= 1:
-                imgui.text_disabled("Executable:")
+                imgui.table_next_column()
+                imgui.text_disabled("Developer:")
                 imgui.same_line()
-                if game.executables:
-                    offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
-                    utils.wrap_text(game.executables[0], width=offset + imgui.get_content_region_available_width(), offset=offset)
+                offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
+                utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
+
+                imgui.table_next_column()
+                imgui.text_disabled("Last Updated:")
+                imgui.same_line()
+                imgui.text(game.last_updated.display or "Unknown")
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Status:")
+                imgui.same_line()
+                imgui.text(game.status.name)
+                imgui.same_line()
+                self.draw_status_widget(game.status)
+
+                imgui.table_next_column()
+                imgui.text_disabled("Last Launched:")
+                imgui.same_line()
+                imgui.text(game.last_launched.display or "Never")
+                if imgui.is_item_clicked():
+                    game.last_launched = time.time()
+                    game.add_timeline_event(TimelineEventType.GameLaunched, "date set manually")
+                if imgui.is_item_hovered():
+                    imgui.begin_tooltip()
+                    imgui.text("Click to set as launched right now!")
+                    imgui.end_tooltip()
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Forum Score:")
+                imgui.same_line()
+                imgui.text(f"{game.score:.1f}/5")
+                imgui.same_line()
+                imgui.text_disabled(f"({game.votes})")
+
+                imgui.table_next_column()
+                imgui.text_disabled("Personal Rating:")
+                imgui.same_line()
+                self.draw_game_rating_widget(game)
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.text_disabled("Type:")
+                imgui.same_line()
+                self.draw_type_widget(game.type)
+
+                imgui.table_next_column()
+                imgui.text_disabled("Tab:")
+                imgui.same_line()
+                self.draw_game_tab_widget(game)
+
+                imgui.table_next_row()
+
+                imgui.table_next_column()
+                imgui.align_text_to_frame_padding()
+                if len(game.executables) <= 1:
+                    imgui.text_disabled("Executable:")
+                    imgui.same_line()
+                    if game.executables:
+                        offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
+                        utils.wrap_text(game.executables[0], width=offset + imgui.get_content_region_available_width(), offset=offset)
+                    else:
+                        imgui.text("Not set")
                 else:
-                    imgui.text("Not set")
-            else:
-                imgui.text_disabled("Executables:")
+                    imgui.text_disabled("Executables:")
+
+                imgui.table_next_column()
+                self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe")
+                imgui.same_line()
+                self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder")
+                imgui.same_line()
+                self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes")
+
+                imgui.end_table()
+
+            if len(game.executables) > 1:
                 for executable in game.executables:
                     self.draw_game_play_button(game, icons.play, executable=executable)
                     imgui.same_line()
@@ -2169,14 +2268,6 @@ class MainGUI():
                         game.remove_executable(executable)
                     imgui.same_line()
                     imgui.text(executable)
-
-            imgui.text_disabled("Manage Exes:")
-            imgui.same_line()
-            self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe")
-            imgui.same_line()
-            self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes")
-            imgui.same_line()
-            self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder")
 
             imgui.spacing()
 
@@ -2209,108 +2300,24 @@ class MainGUI():
                     imgui.text("RPDL Torrents:")
                     imgui.same_line()
                     if imgui.small_button(f"{icons.magnify}Search"):
-                        results = None
-                        query = "".join(char for char in game.name.replace("&", "And") if char in (string.ascii_letters + string.digits))
-                        def _rpdl_search_popup():
-                            nonlocal results
-                            nonlocal query
-                            imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
-                            activated, query = imgui.input_text_with_hint(
-                                "###search",
-                                "Search torrents...",
-                                query,
-                                flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
-                            )
-                            imgui.same_line()
-                            if imgui.button(f"{icons.magnify} Search") or activated:
-                                async_thread.run(_rpdl_run_search())
-                            if not results:
-                                imgui.text(f"Running RPDL search for query '{query}'.")
-                                imgui.text("Status:")
-                                imgui.same_line()
-                                if results is None:
-                                    imgui.text("Searching...")
-                                else:
-                                    imgui.text("No results!")
-                                return
-                            if imgui.begin_table(
-                                "###rpdl_results",
-                                column=7,
-                                flags=imgui.TABLE_NO_SAVED_SETTINGS
-                            ):
-                                imgui.table_setup_scroll_freeze(0, 1)
-                                imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
-                                imgui.table_next_column()
-                                imgui.table_header("Actions")
-                                self.draw_hover_text(
-                                    f"The {icons.open_in_new} view button will open the torrent webpage with your selected browser.\n"
-                                    f"The {icons.download_multiple} download button will save the torrent file to your user's downloads\n"
-                                    "folder and open it with the default torrenting application.\n",
-                                    text=None
-                                )
-                                imgui.table_next_column()
-                                imgui.table_header("Title")
-                                imgui.table_next_column()
-                                imgui.table_header("Seed")
-                                imgui.table_next_column()
-                                imgui.table_header("Leech")
-                                imgui.table_next_column()
-                                imgui.table_header("Size")
-                                imgui.table_next_column()
-                                imgui.table_header("Date")
-                                for result in results:
-                                    imgui.table_next_row()
-                                    imgui.table_next_column()
-                                    imgui.dummy(0, 0)
-                                    imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
-                                    if imgui.button(icons.open_in_new):
-                                        callbacks.open_webpage(rpdl.torrent_page.format(id=result.id))
-                                    imgui.same_line()
-                                    if imgui.button(icons.download_multiple):
-                                        async_thread.run(rpdl.open_torrent_file(result.id))
-                                    imgui.table_next_column()
-                                    imgui.text(result.title)
-                                    imgui.table_next_column()
-                                    imgui.text(result.seeders)
-                                    imgui.table_next_column()
-                                    imgui.text(result.leechers)
-                                    imgui.table_next_column()
-                                    imgui.text(result.size)
-                                    imgui.table_next_column()
-                                    imgui.text(result.date)
-                                    imgui.same_line()
-                                    imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
-                                    imgui.selectable(
-                                        "", False,
-                                        flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS,
-                                        height=imgui.get_frame_height()
-                                    )
-                                imgui.end_table()
-                        async def _rpdl_run_search():
-                            nonlocal results
-                            nonlocal query
-                            results = None
-                            results = await rpdl.torrent_search(query)
-                        utils.push_popup(
-                            utils.popup, "RPDL torrent search",
-                            _rpdl_search_popup,
-                            buttons=True,
-                            closable=True,
-                            outside=False,
-                            footer="Donate at rpdl.net if you like the torrents!"
-                        )
-                        async_thread.run(_rpdl_run_search())
+                        rpdl.open_search_popup(game)
+                    imgui.spacing()
+                    imgui.text("F95zone Donor DDL:")
+                    imgui.same_line()
+                    if imgui.small_button(f"{icons.cloud_check_variant_outline}Check"):
+                        api.open_ddl_popup(game)
                     imgui.spacing()
                     imgui.spacing()
                     imgui.spacing()
                     imgui.text("Regular Downloads:")
                     imgui.same_line()
                     self.draw_hover_text(
-                        "There are 3 types of links:\n"
-                        f"{icons.link}Direct: middle clicking copies the link\n"
-                        f"{icons.domino_mask}Masked: middle clicking shows the captcha then copies the link\n"
-                        f"{icons.open_in_app}Forum: middle clicking opens the F95Zone link in chosen browser\n"
-                        "Left clicking always opens the webpage in your chosen browser."
+                        "Left clicking opens the webpage in your chosen browser.\n"
+                        "Middle clicking copies the link to your clipboard.\n\n"
+                        "There's 3 types of links that work slightly different:\n"
+                        f"{icons.link}Direct: Plain download link, retrieved with automated integrated browser\n"
+                        f"{icons.domino_mask}Masked: CAPTCHA protected link, unmasked with automated integrated browser\n"
+                        f"{icons.open_in_app}Forum: Link internal to F95zone, no special processing\n"
                     )
                     imgui.spacing()
                     if game.downloads:
@@ -2324,20 +2331,33 @@ class MainGUI():
                                     imgui.same_line()
                                     if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.link + mirror).x + _20:
                                         imgui.dummy(0, 0)
-                                    if f"{api.domain}/masked/" in link:
-                                        clicked = imgui.small_button(icons.domino_mask + mirror)
+                                    if not link:
+                                        # Use thread url when link is missing
+                                        link = game.url
+                                    if link.startswith("//"):
+                                        # XPath expression
+                                        if imgui.small_button(icons.link + mirror):
+                                            callbacks.redirect_xpath_link(game.url, link)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
-                                            callbacks.copy_masked_link(link)
-                                    elif f"{api.domain}/" in link:
-                                        clicked = imgui.small_button(icons.open_in_app + mirror)
+                                            callbacks.redirect_xpath_link(game.url, link, copy=True)
+                                    elif link.startswith(f"{api.f95_host}/masked/"):
+                                        # Masked link
+                                        if imgui.small_button(icons.domino_mask + mirror):
+                                            callbacks.redirect_masked_link(link)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+                                            callbacks.redirect_masked_link(link, copy=True)
+                                    elif link.startswith(api.f95_host):
+                                        # F95zone link
+                                        if imgui.small_button(icons.open_in_app + mirror):
                                             callbacks.open_webpage(link)
-                                    else:
-                                        clicked = imgui.small_button(icons.link + mirror)
                                         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
                                             callbacks.clipboard_copy(link)
-                                    if clicked:
-                                        callbacks.open_webpage(link)
+                                    else:
+                                        # Should never happen, but here for backwards compatibility
+                                        if imgui.small_button(icons.link + mirror):
+                                            callbacks.open_webpage(link)
+                                        if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
+                                            callbacks.clipboard_copy(link)
                             else:
                                 if can_add_spacing:
                                     imgui.text("")
@@ -2406,10 +2426,10 @@ class MainGUI():
                     if game.custom:
                         imgui.text(
                             "This is a custom game. You can edit all its details below (except downloads). "
-                            "If you wish to convert it back to a F95Zone game, then make sure to fill the "
-                            "game url with a valid F95Zone thread url before pressing the button below."
+                            "If you wish to convert it back to a F95zone game, then make sure to fill the "
+                            "game url with a valid F95zone thread url before pressing the button below."
                         )
-                        if imgui.button(f"{icons.puzzle_remove} Convert to F95Zone game"):
+                        if imgui.button(f"{icons.puzzle_remove} Convert to F95zone game"):
                             callbacks.convert_custom_to_f95zone(game)
                         imgui.text("")
                         imgui.push_item_width(-imgui.FLOAT_MIN)
@@ -2562,9 +2582,9 @@ class MainGUI():
                         imgui.pop_item_width()
                     else:
                         imgui.text(
-                            "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95Zone. "
+                            "Here you have the option to convert this game to a custom game. Custom games are not checked for updates and become untied from F95zone. "
                             "This is useful for games that have been removed for breaking forum rules, or for adding games from other platforms to your library. Custom "
-                            "games allow you to edit all their details (except downloads) that would normally be fetched from F95Zone."
+                            "games allow you to edit all their details (except downloads) that would normally be fetched from F95zone."
                         )
                         if imgui.button(f"{icons.puzzle_check} Convert to custom game"):
                             callbacks.convert_f95zone_to_custom(game)
@@ -2623,7 +2643,7 @@ class MainGUI():
             imgui.begin_group()
             imgui.dummy(_60, _230)
             imgui.same_line()
-            self.icon_texture.render(_230, _230, rounding=globals.settings.style_corner_radius)
+            self.icon_texture.render(_230, _230, rounding=self.scaled(globals.settings.style_corner_radius))
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(imgui.fonts.big)
@@ -2650,7 +2670,7 @@ class MainGUI():
             imgui.spacing()
             width = imgui.get_content_region_available_width()
             btn_width = (width - 2 * imgui.style.item_spacing.x) / 3
-            if imgui.button(f"{icons.open_in_new} F95Zone Thread", width=btn_width):
+            if imgui.button(f"{icons.open_in_new} F95zone Thread", width=btn_width):
                 callbacks.open_webpage(tool_page)
             imgui.same_line()
             if imgui.button(f"{icons.github} GitHub Repo", width=btn_width):
@@ -2667,15 +2687,15 @@ class MainGUI():
             imgui.spacing()
             imgui.spacing()
             imgui.text("However, F95Checker is actively developed by one person only, WillyJL, and not with the aim of profit but out of personal "
-                       "interest and benefit for the whole F95Zone community. Donations are although greatly appreciated and aid the development "
+                       "interest and benefit for the whole F95zone community. Donations are although greatly appreciated and aid the development "
                        "of this software. You can find donation links above.")
             imgui.spacing()
             imgui.spacing()
             imgui.text("If you find bugs or have some feedback, don't be afraid to let me know either on GitHub (using issues or pull requests) "
-                       "or on F95Zone (in the thread comments or in direct messages).")
+                       "or on F95zone (in the thread comments or in direct messages).")
             imgui.spacing()
             imgui.spacing()
-            imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95Zone platform.")
+            imgui.text("Please note that this software is not ( yet ;) ) officially affiliated with the F95zone platform.")
             imgui.spacing()
             imgui.spacing()
             imgui.text("")
@@ -2689,12 +2709,14 @@ class MainGUI():
             imgui.text("Supporters:")
             for name in [
                 "FaceCrap",
+                "WhiteVanDaycare",
                 "ascsd",
                 "Jarulf",
                 "rozzic",
+                "Belfaier",
                 "warez_gamez",
-                "DarkVermilion",
-                "And 1 anon"
+                "DeadMoan",
+                "And 3 anons"
             ]:
                 if imgui.get_content_region_available_width() < imgui.calc_text_size(name).x + self.scaled(20):
                     imgui.dummy(0, 0)
@@ -2704,11 +2726,15 @@ class MainGUI():
             imgui.spacing()
             imgui.text("Contributors:")
             imgui.bullet()
-            imgui.text("r37r05p3C7: Tab idea and customization, many extension features")
+            imgui.text("r37r05p3C7: Tab idea and customization, timeline, many extension features")
             imgui.bullet()
             imgui.text("littleraisins: Fixes, features and misc ideas from the (defunct) 'X' fork")
             imgui.bullet()
-            imgui.text("Sam: Added the version API for fast refreshing")
+            imgui.text("FaceCrap: Multiple small fixes, improvements and finetuning")
+            imgui.bullet()
+            imgui.text("blackop: Proxy support, temporary ratelimit fix, linux login fix")
+            imgui.bullet()
+            imgui.text("Sam: Support from F95zone side to make much this possible")
             imgui.bullet()
             imgui.text("GR3ee3N: Optimized build workflows and other PRs")
             imgui.bullet()
@@ -2719,8 +2745,6 @@ class MainGUI():
             imgui.text("ploper26: Suggested HEAD checks (no longer used)")
             imgui.bullet()
             imgui.text("ascsd: Helped with brainstorming on some issues and gave some tips")
-            imgui.bullet()
-            imgui.text("blackop: Helped fix some login window issues on Linux")
             imgui.spacing()
             imgui.spacing()
             imgui.text("Community:")
@@ -2728,11 +2752,17 @@ class MainGUI():
                 "abada25",
                 "AtotehZ",
                 "bitogno",
+                "BrockLanders",
                 "d_pedestrian",
+                "Danv",
                 "DarK x Duke",
+                "Dukez",
                 "GrammerCop",
+                "harem.king",
                 "MillenniumEarl",
+                "simple_human",
                 "SmurfyBlue",
+                "WhiteVanDaycare",
                 "yohudood",
                 "And others that I might be forgetting"
             ]:
@@ -2768,7 +2798,7 @@ class MainGUI():
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 hide = globals.settings.hide_empty_tabs
                 count = len(self.show_games_ids.get(None, ()))
-                if (count or not hide) and imgui.begin_tab_item(f"{Tab.first_tab_label} ({count})###tab_-1")[0]:
+                if (count or not hide) and imgui.begin_tab_item(f"{Tab.first_tab_label()} ({count})###tab_-1")[0]:
                     new_tab = None
                     imgui.end_tab_item()
                 for tab in Tab.instances:
@@ -2823,7 +2853,7 @@ class MainGUI():
                             imgui.end_popup()
                         imgui.same_line()
                         if imgui.button("Reset icon", width=imgui.get_content_region_available_width()):
-                            tab.icon = Tab.base_icon
+                            tab.icon = Tab.base_icon()
                             async_thread.run(db.update_tab(tab, "icon"))
                         color = tab.color[:3] if tab.color else (0.0, 0.0, 0.0)
                         changed, value = imgui.color_edit3(f"###tab_color_{tab.id}", *color, flags=imgui.COLOR_EDIT_NO_INPUTS)
@@ -2844,7 +2874,7 @@ class MainGUI():
                                 utils.push_popup(
                                     msgbox.msgbox, f"Close tab {tab.icon} {tab.name or 'New Tab'}",
                                     "Are you sure you want to close this tab?\n"
-                                    f"The games will go back to {Tab.first_tab_label} tab.",
+                                    f"The games will go back to {Tab.first_tab_label()} tab.",
                                     MsgBox.warn,
                                     buttons
                                 )
@@ -2958,8 +2988,8 @@ class MainGUI():
                             key = lambda id: globals.games[id].developer.lower()
                         case cols.last_updated.index:
                             key = lambda id: - globals.games[id].last_updated.value
-                        case cols.last_played.index:
-                            key = lambda id: - globals.games[id].last_played.value
+                        case cols.last_launched.index:
+                            key = lambda id: - globals.games[id].last_launched.value
                         case cols.added_on.index:
                             key = lambda id: - globals.games[id].added_on.value
                         case cols.finished.index:
@@ -3145,6 +3175,7 @@ class MainGUI():
                             if game.notes:
                                 imgui.same_line()
                                 imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+                                self.draw_hover_text(game.notes, text=None)
                             if game.labels:
                                 imgui.same_line()
                                 self.draw_game_labels_widget(game, wrap=False, small=True, align=True)
@@ -3174,11 +3205,17 @@ class MainGUI():
                         case cols.developer.index:
                             imgui.text(game.developer or "Unknown")
                         case cols.last_updated.index:
+                            imgui.push_font(imgui.fonts.mono)
                             imgui.text(game.last_updated.display or "Unknown")
-                        case cols.last_played.index:
-                            imgui.text(game.last_played.display or "Never")
+                            imgui.pop_font()
+                        case cols.last_launched.index:
+                            imgui.push_font(imgui.fonts.mono)
+                            imgui.text(game.last_launched.display or "Never")
+                            imgui.pop_font()
                         case cols.added_on.index:
+                            imgui.push_font(imgui.fonts.mono)
                             imgui.text(game.added_on.display)
+                            imgui.pop_font()
                         case cols.finished.index:
                             self.draw_game_finished_checkbox(game)
                         case cols.installed.index:
@@ -3306,6 +3343,7 @@ class MainGUI():
         draw_list.channels_split(2)
         draw_list.channels_set_current(1)
         pos = imgui.get_cursor_pos()
+        rounding = self.scaled(globals.settings.style_corner_radius)
         imgui.begin_group()
         # Image
         if game.image.missing:
@@ -3314,10 +3352,7 @@ class MainGUI():
             showed_img = imgui.is_rect_visible(cell_width, img_height)
             if text_size.x < cell_width:
                 imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread does not seem to have an image!" if game.image_url == "missing" else "Run a full refresh to try downloading it again!"
-                )
+                self.draw_game_image_missing_text(game, text)
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         elif game.image.invalid:
@@ -3334,7 +3369,7 @@ class MainGUI():
             imgui.dummy(cell_width, img_height)
         else:
             crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
-            showed_img = game.image.render(cell_width, img_height, *crop, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_TOP)
+            showed_img = game.image.render(cell_width, img_height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         # Alignments
         imgui.indent(side_indent)
         imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
@@ -3426,6 +3461,7 @@ class MainGUI():
             cluster = True
         if game.notes:
             imgui.text_colored(icons.draw_pen, 0.85, 0.20, 0.85)
+            self.draw_hover_text(game.notes, text=None)
             imgui.same_line()
             cluster = True
         if (cols.status.enabled or cols.status_standalone.enabled) and game.status is not Status.Normal:
@@ -3452,8 +3488,8 @@ class MainGUI():
             _cluster_text(cols.score.name, f"{game.score:.1f} ({game.votes})")
         if cols.last_updated.enabled:
             _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
-        if cols.last_played.enabled:
-            _cluster_text(cols.last_played.name, game.last_played.display or "Never")
+        if cols.last_launched.enabled:
+            _cluster_text(cols.last_launched.name, game.last_launched.display or "Never")
         if cols.added_on.enabled:
             _cluster_text(cols.added_on.name, game.added_on.display)
         if cols.rating.enabled:
@@ -3501,17 +3537,17 @@ class MainGUI():
             # Skip if outside view
             imgui.invisible_button(f"###{game.id}_hitbox", cell_width, cell_height)
             self.handle_game_hitbox_events(game, drag_drop=drag_drop)
-            pos = imgui.get_item_rect_min()
-            pos2 = imgui.get_item_rect_max()
+            rect_min = imgui.get_item_rect_min()
+            rect_max = imgui.get_item_rect_max()
             if game.selected:
                 imgui.push_alpha(0.5)
                 draw_list.add_rect_filled(
-                    *pos, *pos2, imgui.get_color_u32_rgba(*globals.settings.style_accent),
-                    rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL
+                    *rect_min, *rect_max, imgui.get_color_u32_rgba(*globals.settings.style_accent),
+                    rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL
                 )
                 imgui.pop_alpha()
             else:
-                draw_list.add_rect_filled(*pos, *pos2, bg_col, rounding=globals.settings.style_corner_radius, flags=imgui.DRAW_ROUND_CORNERS_ALL)
+                draw_list.add_rect_filled(*rect_min, *rect_max, bg_col, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_ALL)
         else:
             imgui.dummy(cell_width, cell_height)
         draw_list.channels_merge()
@@ -3688,10 +3724,10 @@ class MainGUI():
                 utils.push_popup(
                     msgbox.msgbox, "About the bottom bar",
                     "This is the filter/add bar. By typing inside it you can search your game list.\n"
-                    "Pressing enter will search F95Zone for a matching thread and ask if you wish to\n"
+                    "Pressing enter will search F95zone for a matching thread and ask if you wish to\n"
                     "add it to your list.\n"
                     "\n"
-                    "When you instead paste a link to a F95Zone thread, the 'Add!' button will show\n"
+                    "When you instead paste a link to a F95zone thread, the 'Add!' button will show\n"
                     "up, allowing you to add that thread to your list. When a link is detected you\n"
                     "can also press enter on your keyboard to trigger the 'Add!' button.",
                     MsgBox.info
@@ -3705,43 +3741,7 @@ class MainGUI():
                 self.add_box_valid = False
                 self.recalculate_ids = True
         elif activated:
-            async def _search_and_add(query: str):
-                login = None
-                results = None
-                def popup_content():
-                    nonlocal login, results
-                    if not results:
-                        imgui.text(f"Running F95Zone search for query '{query}'.")
-                        imgui.text("Status:")
-                        imgui.same_line()
-                        if login is None:
-                            imgui.text("Logging in...")
-                        elif not login:
-                            return True
-                        elif results is None:
-                            imgui.text("Searching...")
-                        else:
-                            imgui.text("No results!")
-                        return
-                    imgui.text("Click one of the results to add it, click Ok when you're finished.\n\n")
-                    for result in results:
-                        if result.id in globals.games:
-                            imgui.push_disabled()
-                        clicked = imgui.selectable(result.title, False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
-                        if result.id in globals.games:
-                            imgui.pop_disabled()
-                        if clicked:
-                            async_thread.run(callbacks.add_games(result))
-                utils.push_popup(
-                    utils.popup, "Quick search",
-                    popup_content,
-                    buttons=True,
-                    closable=True,
-                    outside=False
-                )
-                if login := await api.assert_login():
-                    results = await api.quick_search(query)
-            async_thread.run(_search_and_add(self.add_box_text))
+            api.open_search_popup(self.add_box_text)
             self.add_box_text = ""
             self.add_box_valid = False
             self.recalculate_ids = True
@@ -3826,7 +3826,7 @@ class MainGUI():
                 imgui.button("Invalid image!", width=width, height=height)
             else:
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
-                game.image.render(width, height, *crop, rounding=globals.settings.style_corner_radius)
+                game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
         else:
             # Normal button
             if imgui.button("Refresh!", width=width, height=height):
@@ -3843,24 +3843,44 @@ class MainGUI():
             if imgui.begin_popup_context_item("###refresh_context"):
                 # Right click = more options context menu
                 if imgui.selectable(f"{icons.bell_badge_outline} Check notifs", False)[0]:
-                    utils.start_refresh_task(api.check_notifs(login=True))
+                    utils.start_refresh_task(api.check_notifs(standalone=True))
                 if imgui.selectable(f"{icons.reload_alert} Full Refresh", False)[0]:
                     utils.start_refresh_task(api.refresh(full=True))
+                if not globals.settings.refresh_completed_games or not globals.settings.refresh_archived_games:
+                    imgui.separator()
+                    if not globals.settings.refresh_archived_games:
+                        if imgui.selectable(f"{icons.reload_alert} Full Refresh (incl. archived)", False)[0]:
+                            utils.start_refresh_task(api.refresh(full=True, force_archived=True))
+                    if not globals.settings.refresh_completed_games:
+                        if imgui.selectable(f"{icons.reload_alert} Full Refresh (incl. completed)", False)[0]:
+                            utils.start_refresh_task(api.refresh(full=True, force_completed=True))
+                    if not globals.settings.refresh_completed_games and not globals.settings.refresh_archived_games:
+                        if imgui.selectable(f"{icons.reload_alert} Full Refresh (incl. everything)", False)[0]:
+                            utils.start_refresh_task(api.refresh(full=True, force_archived=True, force_completed=True))
                 imgui.separator()
                 if imgui.selectable(f"{icons.information_outline} More info", False)[0]:
                     utils.push_popup(
                         msgbox.msgbox, "About refreshing",
                         "Refreshing is the process by which F95Checker goes through your games and checks\n"
-                        "if they have received updates. To keep it fast and smooth this is done by checking\n"
-                        "version number changes in chunks with a dedicated API.\n"
+                        "if they have received updates, aswell as syncing other game info.\n"
+                        "To keep it fast and smooth while avoiding excessive stress on F95zone servers, this\n"
+                        "is done using a dedicated F95Checker Cache API.\n"
                         "\n"
-                        "This means that sometimes it might not be able to pick up some subtle changes and\n"
-                        "small updates. To fix this it also runs a full refresh every week or so (each game has\n"
-                        "its own timer).\n"
+                        "This Cache API gets data from F95zone, parses the relevant details, then saves them for\n"
+                        "up to 7 days. To make sure you don't fall behind, it also monitors the F95zone Latest\n"
+                        "Updates to invalidate cache when games are updated / some details change. However,\n"
+                        "not all details are tracked by Latest Updates, so games are still periodically checked.\n"
+                        "There's a bit more complexity to it, but that's the gist of it. Check the OP / README for\n"
+                        "a more detailed explanation and all the caveats and behaviors.\n"
                         "\n"
-                        "So a full recheck of a game will happen every time the version changes, or every 7 days.\n"
-                        "You can force full rechecks for single games or for the whole list with the right click\n"
-                        "menu on the game and on the refresh button.",
+                        "All this data can become quite large if you have lots of games (~2MiB for 100 games) so\n"
+                        "fetching everything at each refresh would be quite expensive. Instead F95Checker will\n"
+                        "ask the Cache API when each game last changed any of its details (which will also update\n"
+                        "the cache if needed) 10 games at a time, then fetch the full game details only for those\n"
+                        "that have changed since the last refresh.\n"
+                        "You can force full rechecks to fetch all cached game data again, either for single games\n"
+                        "or for the whole list, with the right click menu on the game and on the refresh button,\n"
+                        "but this usually should not be necessary.",
                         MsgBox.info
                     )
                 imgui.end_popup()
@@ -4123,7 +4143,7 @@ class MainGUI():
         if draw_settings_section("Extension"):
             draw_settings_label(
                 "RPC enabled:",
-                f"The RPC allows other programs on your pc to interact with F95Checker via the api on {globals.rpc_url}. "
+                f"The RPC allows other programs on your pc to interact with F95Checker via the API on {globals.rpc_url}. "
                 "Essentially this is what makes the web browser extension work. Disable this if you are having issues with the RPC, "
                 "but do note that doing so will prevent the extension from working at all."
             )
@@ -4134,18 +4154,29 @@ class MainGUI():
                     rpc_thread.stop()
 
             draw_settings_label("Install extension:")
-            if set.browser.integrated or not set.rpc_enabled:
+            cant_install_extension = set.browser.integrated or not set.rpc_enabled
+            def cant_install_extension_tooltip():
+                if imgui.is_item_hovered():
+                    imgui.begin_tooltip()
+                    imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
+                    if set.browser.integrated:
+                        imgui.text("You have selected the Integrated browser, this already includes the extension!")
+                    elif not set.rpc_enabled:
+                        imgui.text("RPC must be enabled for the browser extension to work!")
+                    imgui.pop_text_wrap_pos()
+                    imgui.end_tooltip()
+            if cant_install_extension:
                 imgui.push_disabled()
             if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
                 buttons={
-                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "extension")),
+                    f"{icons.check} Ok": lambda: async_thread.run(callbacks.default_open(globals.self_path / "browser")),
                     f"{icons.cancel} Cancel": None
                 }
                 utils.push_popup(
                     msgbox.msgbox, "Chrome extension",
                     "Unfortunately, the F95Checker extension is banned from the Chrome Webstore.\n"
                     "Therefore, you must install it manually via developer mode:\n"
-                    " - Open your chromium-based browser\n"
+                    " - Open your Chromium-based browser\n"
                     " - Navigate to 'chrome://extensions/'\n"
                     " - Enable the 'Developer mode' toggle\n"
                     " - Refresh the page\n"
@@ -4153,11 +4184,19 @@ class MainGUI():
                     MsgBox.info,
                     buttons
                 )
+            if cant_install_extension:
+                imgui.pop_disabled()
+                cant_install_extension_tooltip()
+                imgui.push_disabled()
             imgui.same_line()
             if imgui.button(icons.firefox, width=(right_width - imgui.style.item_spacing.x) / 2):
-                callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
-            if set.browser.integrated or not set.rpc_enabled:
+                if globals.release:
+                    callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-browser-addon/")
+                else:
+                    callbacks.open_webpage("https://addons.mozilla.org/firefox/addon/f95checker-beta-browser-addon/")
+            if cant_install_extension:
                 imgui.pop_disabled()
+                cant_install_extension_tooltip()
 
             draw_settings_label(
                 "Icon glow:",
@@ -4328,7 +4367,7 @@ class MainGUI():
 
             draw_settings_label(
                 "Date format:",
-                "The format expression to use for short datestamps. Uses the strftime specification. Default is '%d/%m/%Y'."
+                "The format expression to use for short datestamps. Uses the strftime specification. Default is '%b %d, %Y'."
             )
             changed, value = imgui.input_text("###datestamp_format", set.datestamp_format)
             def setter_extra(_=None):
@@ -4429,7 +4468,7 @@ class MainGUI():
                     def popup_content():
                         nonlocal thread_links
                         imgui.text(
-                            "Any kind of F95Zone thread link, preferably 1 per line. Will be parsed and cleaned,\n"
+                            "Any kind of F95zone thread link, preferably 1 per line. Will be parsed and cleaned,\n"
                             "so don't worry about tidiness and paste like it's anarchy!"
                         )
                         _, thread_links._ = imgui.input_text_multiline(
@@ -4453,9 +4492,9 @@ class MainGUI():
                         outside=False
                     )
                 if imgui.button("F95 bookmarks", width=-offset):
-                    utils.start_refresh_task(api.import_f95_bookmarks())
+                    utils.start_refresh_task(api.import_f95_bookmarks(), reset_bg_timers=False)
                 if imgui.button("F95 watched threads", width=-offset):
-                    utils.start_refresh_task(api.import_f95_watched_threads())
+                    utils.start_refresh_task(api.import_f95_watched_threads(), reset_bg_timers=False)
                 if imgui.button("Browser bookmarks", width=-offset):
                     def callback(selected):
                         if selected:
@@ -4588,7 +4627,9 @@ class MainGUI():
                 "Set exe dir:",
                 "This setting indicates what folder you keep all your games in (if you're organized). Executables inside this folder are "
                 "remembered relatively, this means you can select the executables with this setting on, then move your entire folder, update this "
-                f"setting, and all the executables are still valid.\n\nCurrent value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
+                "setting, and all the executables are still valid.\n"
+                "This setting is OS dependent, it has different values for different operating systems you use F95Checker on.\n\n"
+                f"Current value: {set.default_exe_dir.get(globals.os) or 'Unset'}"
             )
             if imgui.button("Choose", width=right_width):
                 def select_callback(selected):
@@ -4599,6 +4640,25 @@ class MainGUI():
                 utils.push_popup(filepicker.DirPicker(
                     title="Select or drop default exe dir",
                     start_dir=set.default_exe_dir.get(globals.os),
+                    callback=select_callback
+                ).tick)
+
+            draw_settings_label(
+                "Downloads dir:",
+                "Where downloads will be saved to. Currently, only F95zone Donor DDL downloads are supported in F95Checker, but this "
+                "setting is also used for saving RPDL torrent files.\n"
+                "This setting is OS dependent, it has different values for different operating systems you use F95Checker on.\n\n"
+                f"Current value: {set.downloads_dir.get(globals.os) or pathlib.Path.home() / 'Downloads'}\n\n"
+                "For other download types, you may want to consider a download manager like JDownloader2, and configure it to monitor the "
+                "clipboard: then you will be able to copy links and have them automatically download in your external download manager."
+            )
+            if imgui.button("Choose", width=right_width):
+                def select_callback(selected):
+                    set.downloads_dir[globals.os] = selected or ""
+                    async_thread.run(db.update_settings("downloads_dir"))
+                utils.push_popup(filepicker.DirPicker(
+                    title="Select or drop downloads dir",
+                    start_dir=set.downloads_dir.get(globals.os),
                     callback=select_callback
                 ).tick)
 
@@ -4618,9 +4678,9 @@ class MainGUI():
 
             draw_settings_label(
                 "Custom game:",
-                "Add a custom game that is untied from F95Zone. Useful for games removed for breaking forum rules, or for adding games "
+                "Add a custom game that is untied from F95zone. Useful for games removed for breaking forum rules, or for adding games "
                 "from other platforms. Custom games are not checked for updates and you have to add the core details (name, url, version...) "
-                "yourself. You can later convert a custom game to an F95Zone game from the info popup."
+                "yourself. You can later convert a custom game to an F95zone game from the info popup."
             )
             if imgui.button("Add", width=right_width):
                 game_id = async_thread.wait(db.create_game(custom=True))
@@ -4635,29 +4695,94 @@ class MainGUI():
             imgui.end_table()
             imgui.spacing()
 
+        if draw_settings_section("Proxy"):
+            draw_settings_label(
+                "Type:",
+                "All listed proxy types work with the main F95Checker functionality.\n\n"
+                "The integrated browser (also used for login) instead has some limitations due to Qt:\n"
+                "- SOCKS4 is not supported at all\n"
+                "- SOCKS5 with authentication won't work\n"
+                "- HTTP with authentication is not implemented"
+            )
+            changed, value = imgui.combo("###proxy_type", set.proxy_type._index_, ProxyType._member_names_)
+            if changed:
+                set.proxy_type = ProxyType[ProxyType._member_names_[value]]
+                async_thread.run(db.update_settings("proxy_type"))
+                api.make_session()
+
+            if set.proxy_type is ProxyType.Disabled:
+                imgui.push_disabled()
+
+            draw_settings_label(
+                "Host:",
+                "Domain or IP address of proxy server.\n"
+                "For example: 127.0.0.1, myproxy.example.com"
+            )
+            changed, value = imgui.input_text_with_hint("###proxy_host", "Domain/IP", set.proxy_host)
+            if changed:
+                set.proxy_host = value
+                async_thread.run(db.update_settings("proxy_host"))
+                api.make_session()
+
+            draw_settings_label("Port:")
+            changed, value = imgui.drag_int("###proxy_port", set.proxy_port, change_speed=0.5, min_value=1, max_value=65535)
+            set.proxy_port = min(max(value, 1), 65535)
+            if changed:
+                set.proxy_port = int(value)
+                async_thread.run(db.update_settings("proxy_port"))
+                api.make_session()
+
+            draw_settings_label("Username:", "Leave empty if proxy does not require authentication")
+            changed, value = imgui.input_text("###proxy_username", set.proxy_username)
+            if changed:
+                set.proxy_username = value
+                async_thread.run(db.update_settings("proxy_username"))
+                api.make_session()
+
+            draw_settings_label("Password:", "Leave empty if proxy does not require authentication")
+            changed, value = imgui.input_text(
+                "###proxy_password",
+                set.proxy_password,
+                flags=imgui.INPUT_TEXT_PASSWORD,
+            )
+            if changed:
+                set.proxy_password = value
+                async_thread.run(db.update_settings("proxy_password"))
+                api.make_session()
+
+            if set.proxy_type is ProxyType.Disabled:
+                imgui.pop_disabled()
+
+            imgui.end_table()
+            imgui.spacing()
+
         if draw_settings_section("Refresh"):
             draw_settings_label("Check alerts and inbox:")
             draw_settings_checkbox("check_notifs")
+
+            draw_settings_label("Refresh if archived:")
+            draw_settings_checkbox("refresh_archived_games")
 
             draw_settings_label("Refresh if completed:")
             draw_settings_checkbox("refresh_completed_games")
 
             draw_settings_label(
-                "Workers:",
-                "Each game that needs to be checked requires that a connection to F95Zone happens. Each worker can handle 1 "
-                "connection at a time. Having more workers means more connections happen simultaneously, but having too many "
-                "will freeze the program. In most cases 20 workers is a good compromise."
+                "Connections:",
+                "Games are checked 10 at a time for updates, and of those only those with new data are fetched for all game "
+                "info from the F95Checker Cache API. This setting determines how many of those can be fetched simultaneously. "
+                "In most cases 10 should be fine, but lower it if your internet struggles when doing a full refresh."
             )
-            changed, value = imgui.drag_int("###refresh_workers", set.refresh_workers, change_speed=0.5, min_value=1, max_value=100)
-            set.refresh_workers = min(max(value, 1), 100)
+            changed, value = imgui.drag_int("###max_connections", set.max_connections, change_speed=0.5, min_value=1, max_value=10)
+            set.max_connections = min(max(value, 1), 10)
             if changed:
-                async_thread.run(db.update_settings("refresh_workers"))
+                async_thread.run(db.update_settings("max_connections"))
 
             draw_settings_label(
                 "Timeout:",
-                "To check for updates for a game F95Checker sends a web request to F95Zone. However this can sometimes go "
-                "wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails. "
-                "A timeout 10-30 seconds is most typical."
+                "To check for updates, notifications and other functionality, F95Checker sends web requests (to its dedicated "
+                "Cache API, to F95zone itself, and to other third-parties like RPDL.net if you so choose). However this can sometimes "
+                "go  wrong. The timeout is the maximum amount of seconds that a request can try to connect for before it fails.\n"
+                "A timeout of 10-30 seconds is most typical."
             )
             changed, value = imgui.drag_int("###request_timeout", set.request_timeout, change_speed=0.6, min_value=1, max_value=120, format="%d sec")
             set.request_timeout = min(max(value, 1), 120)
@@ -4666,11 +4791,11 @@ class MainGUI():
 
             draw_settings_label(
                 "Retries:",
-                "While refreshing, a lot of connections are made to F95Zone very quickly, so some might fail. This setting "
-                "determines how many times a failed connection will be reattempted before failing completely. However these "
-                "connection errors are often caused by misconfigured workers and timeout values, so try to tinker with those "
-                "instead of the retries value. This setting should only be used if you know your connection is very unreliable. "
-                "Otherwise 2 max retries are usually fine for stable connections."
+                "While refreshing, a lot of web requests are made quite quickly, so some of them might fail. This setting "
+                "determines how many times a failed request will be reattempted before failing completely. However these "
+                "connection errors are often caused by misconfigured connections and timeout values, so try to tinker with those "
+                "instead of the retries value. This setting should only be used if you know your connection is very unreliable.\n"
+                "Usually 2 max retries are fine for stable connections."
             )
             changed, value = imgui.drag_int("###max_retries", set.max_retries, change_speed=0.05, min_value=0, max_value=10)
             set.max_retries = min(max(value, 0), 10)
@@ -4686,14 +4811,8 @@ class MainGUI():
             )
             draw_settings_checkbox("ignore_semaphore_timeouts")
 
-            draw_settings_label(
-                "Use parser processes:",
-                "Parsing the game threads is an intensive task so when a full recheck is running the interface can stutter a lot. When "
-                "this setting is enabled the thread parsing will be offloaded to dedicated processes that might be (very slightly) slower "
-                "and less stable but that allow the interface to remain fully responsive. It is recommended you keep this enabled unless it "
-                "is causing problems."
-            )
-            draw_settings_checkbox("use_parser_processes")
+            draw_settings_label(f"Insecure SSL:")
+            draw_settings_checkbox("insecure_ssl")
 
             draw_settings_label(f"Async tasks count: {sum((0 if task.done() else 1) for task in asyncio.all_tasks(loop=async_thread.loop))}")
             imgui.text("")
@@ -4839,6 +4958,103 @@ class MainGUI():
 
             imgui.end_table()
 
+        if api.downloads:
+            to_remove = []
+            for name, download in api.downloads.items():
+                if not download:
+                    continue
+                imgui.spacing()
+                imgui.spacing()
+                imgui.spacing()
+                imgui.text("DDL: " + name)
+                errored = download.error or download.progress != download.total
+
+                if download.state == download.State.Downloading:
+                    space_after = (
+                        1 * (
+                            2 * imgui.style.frame_padding.y +
+                            imgui.style.frame_border_size +
+                            imgui.style.item_spacing.x
+                        ) +
+                        imgui.calc_text_size(icons.stop).x +
+                        imgui.style.frame_border_size
+                    )
+                elif download.state == download.State.Stopped:
+                    if imgui.button(icons.folder_open_outline):
+                        extracted_dir = download.extracted if not errored else None
+                        async_thread.run(callbacks.default_open(extracted_dir or download.path.parent))
+                    imgui.same_line()
+                    if not errored:
+                        if imgui.button(icons.open_in_app):
+                            async_thread.run(callbacks.default_open(download.path))
+                        imgui.same_line()
+                    space_after = (
+                        2 * (
+                            2 * imgui.style.frame_padding.y +
+                            imgui.style.frame_border_size +
+                            imgui.style.item_spacing.x
+                        ) +
+                        imgui.calc_text_size(icons.cancel + icons.trash_can_outline).x +
+                        imgui.style.frame_border_size
+                    )
+                else:
+                    space_after = 0
+
+                ratio = download.progress / (download.total or 1)
+                width = imgui.get_content_region_available_width() - space_after
+                height = imgui.get_frame_height()
+                imgui.progress_bar(ratio, (width, height))
+                if download.state == download.State.Downloading:
+                    text = f"{ratio:.0%}"
+                elif download.state == download.State.Stopped:
+                    if not errored:
+                        text = "Done!"
+                    else:
+                        text = "Error!"
+                        self.draw_hover_text(
+                            download.error or f"Received less data than expected ({download.progress} != {download.total})",
+                            text=None,
+                        )
+                        if download.traceback and imgui.is_item_clicked():
+                            utils.push_popup(
+                                msgbox.msgbox, f"Error downloading {name}",
+                                download.error,
+                                MsgBox.error,
+                                more=download.traceback,
+                            )
+                else:
+                    text = f"{download.state.name}..."
+                imgui.same_line()
+                draw_list = imgui.get_window_draw_list()
+                col = imgui.get_color_u32_rgba(1, 1, 1, 1)
+                text_size = imgui.calc_text_size(text)
+                screen_pos = imgui.get_cursor_screen_pos()
+                text_x = screen_pos.x - (width + text_size.x) / 2 - imgui.style.item_spacing.x
+                text_y = screen_pos.y + (height - text_size.y) / 2
+                draw_list.add_text(text_x, text_y, col, text)
+
+                if download.state == download.State.Downloading:
+                    if was_canceling := download.cancel:
+                        imgui.push_disabled()
+                    if imgui.button(icons.stop):
+                        download.cancel = True
+                    if was_canceling:
+                        imgui.pop_disabled()
+                elif download.state == download.State.Stopped:
+                    if imgui.button(icons.cancel):
+                        to_remove.append(name)
+                    imgui.same_line()
+                    if imgui.button(icons.trash_can_outline):
+                        download.path.unlink(missing_ok=True)
+                        if download.extracted:
+                            shutil.rmtree(download.extracted, ignore_errors=True)
+                        to_remove.append(name)
+            for name in to_remove:
+                del api.downloads[name]
+
+        imgui.spacing()
+        imgui.spacing()
+        imgui.spacing()
         imgui.end_child()
 
 

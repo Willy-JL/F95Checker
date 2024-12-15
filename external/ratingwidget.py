@@ -1,9 +1,7 @@
 # https://gist.github.com/Willy-JL/e9e9dac70b7970b6ee12fcf52b9b8f11
 import imgui
 
-from modules import (  # added
-    icons,             # added
-)                      # added
+from modules import icons # added
 
 filled_icon = icons.star          # changed
 empty_icon  = icons.star_outline  # changed

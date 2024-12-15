@@ -1,9 +1,8 @@
 from ctypes.util import find_library
-import setuptools
 import pathlib
-import shutil
-import sys
 import re
+import setuptools
+import sys
 
 path = pathlib.Path(__file__).absolute().parent
 
@@ -17,8 +16,15 @@ debug_script = path / "main-debug.py"
 version = str(re.search(rb'version = "(\S+)"', script.read_bytes()).group(1), encoding="utf-8")
 debug_script.write_bytes(re.sub(rb"debug = .*", rb"debug = True", script.read_bytes()))  # Generate debug script
 
+# Friendly reminder
+try:
+    import cx_Freeze
+    import cx_Freeze.hooks
+except ModuleNotFoundError:
+    print("cx_Freeze is not installed! Run: pip install -r requirements-dev.txt")
+    sys.exit(1)
+
 # Build configuration
-optimize = 1
 includes = []
 excludes = ["tkinter"]
 packages = ["OpenGL"]
@@ -26,22 +32,30 @@ constants = []
 bin_includes = []
 bin_excludes = []
 platform_libs = {
-    "linux": ["ffi", "ssl", "crypto", "sqlite3"],
+    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor"],
     "darwin": ["intl"]
 }
 include_files = [
-    (path / "extension/chrome.zip",    "extension/chrome.zip"),
-    (path / "extension/firefox.zip",   "extension/firefox.zip"),
-    (path / "extension/integrated.js", "extension/integrated.js"),
-    (path / "resources/",              "resources/"),
-    (path / "LICENSE",                 "LICENSE")
+    (path / "browser/chrome.zip",    "browser/chrome.zip"),
+    (path / "browser/firefox.zip",   "browser/firefox.zip"),
+    (path / "browser/integrated.js", "browser/integrated.js"),
+    (path / "resources/",            "resources/"),
+    (path / "LICENSE",               "LICENSE")
 ]
+platform_qt_plugins = {
+    "linux": [
+        "wayland-decoration-client",
+        "wayland-graphics-integration-client",
+        "wayland-shell-integration"
+    ],
+}
 zip_include_files = []
 zip_include_packages = "*"
 zip_exclude_packages = [
-    "OpenGL_accelerate",
-    "glfw"
+    "glfw",
+    "bencode2",
 ] + (["PyQt6"] if sys.platform.startswith("win") else [])
+optimize = 2
 silent_level = 0
 include_msvcr = True
 
@@ -63,19 +77,18 @@ for platform, libs in platform_libs.items():
                 bin_includes.append(lib_path)
 
 
-# Friendly reminder
-try:
-    import cx_Freeze
-except ModuleNotFoundError:
-    print("cx_Freeze is not installed!")
-    sys.exit(1)
+# Bundle Qt plugins
+for platform, plugins in platform_qt_plugins.items():
+    if sys.platform.startswith(platform):
+        for plugin in plugins:
+            include_files += cx_Freeze.hooks.get_qt_plugins_paths("PyQt6", plugin)
 
 
-# Extension packager command
-class Extension(setuptools.Command):
-    """Build extension packages."""
+# Browser extension packager command
+class BrowserExtension(setuptools.Command):
+    """Build browser extension packages."""
 
-    command_name = "extension"
+    command_name = "browser"
     user_options = []
 
     def initialize_options(self):
@@ -85,13 +98,19 @@ class Extension(setuptools.Command):
         pass
 
     def run(self):
-        extension = pathlib.Path(__file__).parent / "extension"
+        from external import ziparch
+        browser = path / "browser"
+        mdi_webfont = next(path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")).read_bytes()
 
-        (extension / "chrome.zip").unlink(missing_ok=True)
-        shutil.make_archive(extension / "chrome", "zip", extension / "chrome")
+        chrome_src = browser / "chrome"
+        (chrome_src / "fonts/mdi-webfont.ttf").write_bytes(mdi_webfont)
+        chrome_zip = browser / ("chrome" + ziparch.ZIP_ARCH_EXTENSION)
+        ziparch.compress_tree_ziparch(str(chrome_src), str(chrome_zip), gz_level=0)
 
-        (extension / "firefox.zip").unlink(missing_ok=True)
-        shutil.make_archive(extension / "firefox", "zip", extension / "firefox")
+        firefox_src = browser / "firefox"
+        (firefox_src / "fonts/mdi-webfont.ttf").write_bytes(mdi_webfont)
+        firefox_zip = browser / ("firefox" + ziparch.ZIP_ARCH_EXTENSION)
+        ziparch.compress_tree_ziparch(str(firefox_src), str(firefox_zip), gz_level=0)
 
 
 # Actual build
@@ -101,20 +120,19 @@ cx_Freeze.setup(
     executables=[
         cx_Freeze.Executable(
             script=script,
-            base="Win32GUI" if sys.platform.startswith("win") else None,
+            base="gui",
             target_name=name,
             icon=icon,
         ),
         cx_Freeze.Executable(
             script=debug_script,
-            base=None,
+            base="console",
             target_name=name + "-Debug",
             icon=icon,
         ),
     ],
     options={
         "build_exe": {
-            "optimize": optimize,
             "includes": includes,
             "excludes": excludes,
             "packages": packages,
@@ -125,6 +143,7 @@ cx_Freeze.setup(
             "zip_includes": zip_include_files,
             "zip_include_packages": zip_include_packages,
             "zip_exclude_packages": zip_exclude_packages,
+            "optimize": optimize,
             "silent_level": silent_level,
             "include_msvcr": include_msvcr,
         },
@@ -143,6 +162,7 @@ cx_Freeze.setup(
     },
     py_modules=[],
     cmdclass={
-        "extension": Extension,
+        "browser": BrowserExtension,
+        "extension": BrowserExtension,
     },
 )

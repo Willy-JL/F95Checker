@@ -1,12 +1,62 @@
-from PyQt6 import QtCore, QtGui, QtWidgets, QtNetwork, QtWebChannel, QtWebEngineCore, QtWebEngineWidgets
-import pathlib
+import asyncio
 import base64
 import json
-import sys
 import os
+import pathlib
+import re
+import shlex
+import sys
+
+from PyQt6 import (
+    QtCore,
+    QtGui,
+    QtNetwork,
+    QtWebChannel,
+    QtWebEngineCore,
+    QtWebEngineWidgets,
+    QtWidgets,
+)
+from PyQt6.QtNetwork import QNetworkProxy
 
 # Qt WebEngine doesn't like running alongside other OpenGL
 # applications so we need to run a dedicated multiprocess
+
+
+async def start(action: str, *args, centered=True, use_f95_cookies=True, pipe=False, **kwargs):
+    import subprocess
+    import imgui
+    from common.structs import (
+        DaemonPipe,
+        DaemonProcess,
+    )
+    from modules import (
+        api,
+        globals,
+    )
+
+    if use_f95_cookies:
+        kwargs["cookies"] = globals.cookies
+        kwargs["cookies_domain"] = api.f95_domain
+
+    if centered and (size := kwargs.get("size")):
+        kwargs["pos"] = (
+            int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
+            int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2),
+        )
+
+    proc = await asyncio.create_subprocess_exec(
+        *shlex.split(globals.start_cmd),
+        "webview", action,
+        json.dumps(args),
+        json.dumps(create_kwargs() | kwargs),
+        stdout=(subprocess.PIPE if pipe else None),
+    )
+
+    if pipe:
+        return DaemonPipe(proc)
+    else:
+        DaemonProcess(proc)
+        return proc
 
 
 def config_qt_flags(debug: bool, software: bool):
@@ -23,25 +73,45 @@ def config_qt_flags(debug: bool, software: bool):
         )),
     ))
     if software: os.environ["QMLSCENE_DEVICE"] = "softwarecontext"
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True)
 
 
-def kwargs():
+def create_kwargs():
+    from common.structs import ProxyType
     from modules import (
-        globals,
         colors,
+        globals,
         icons,
     )
+
+    if globals.settings.proxy_type is ProxyType.Disabled:
+        proxy_config = None
+    else:
+        proxy_type = QNetworkProxy.ProxyType.NoProxy
+        match globals.settings.proxy_type:
+            case ProxyType.SOCKS4:
+                print("SOCKS4 proxy is not supported by Qt", file=sys.stderr)
+                proxy_type = QNetworkProxy.ProxyType.NoProxy
+            case ProxyType.SOCKS5: proxy_type = QNetworkProxy.ProxyType.Socks5Proxy
+            case ProxyType.HTTP: proxy_type = QNetworkProxy.ProxyType.HttpProxy
+        proxy_config = {
+            "type": proxy_type.name,
+            "host": globals.settings.proxy_host,
+            "port": globals.settings.proxy_port,
+            "username": globals.settings.proxy_username,
+            "password": globals.settings.proxy_password,
+        }
+
     return dict(
         debug=globals.debug,
         software=globals.settings.software_webview,
         private=globals.settings.browser_private,
         icon=str(globals.gui.icon_path),
         icon_font=str(icons.font_path),
-        extension=str(globals.self_path / "extension/integrated.js"),
+        extension=str(globals.self_path / "browser/integrated.js"),
         col_bg=colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
         col_accent=colors.rgba_0_1_to_hex(globals.settings.style_accent)[:-2],
-        col_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2]
+        col_text=colors.rgba_0_1_to_hex(globals.settings.style_text)[:-2],
+        proxy_config=proxy_config,
     )
 
 
@@ -59,9 +129,22 @@ def create(
     extension: str,
     col_bg: str,
     col_accent: str,
-    col_text: str
+    col_text: str,
+    proxy_config: dict | None,
 ):
     config_qt_flags(debug, software)
+
+    if proxy_config and proxy_config["type"] != QNetworkProxy.ProxyType.NoProxy:
+        proxy = QNetworkProxy()
+        proxy.setType(QNetworkProxy.ProxyType[proxy_config["type"]])
+        proxy.setHostName(proxy_config["host"])
+        proxy.setPort(proxy_config["port"])
+        if proxy_config["username"]:
+            proxy.setUser(proxy_config["username"])
+        if proxy_config["password"]:
+            proxy.setPassword(proxy_config["password"])
+        QNetworkProxy.setApplicationProxy(proxy)
+
     app = QtWidgets.QApplication(sys.argv)
     icon_font = QtGui.QFontDatabase.applicationFontFamilies(QtGui.QFontDatabase.addApplicationFont(icon_font))[0]
     app.window = QtWidgets.QWidget()
@@ -104,6 +187,11 @@ def create(
 
     app.window.webview = QtWebEngineWidgets.QWebEngineView(QtWebEngineCore.QWebEngineProfile(None if private else "F95Checker", app.window), app.window)
     app.window.webview.page = app.window.webview.page()
+    if proxy_config and proxy_config["username"]:
+        def proxy_authenticator(_: QtCore.QUrl, authenticator: QtNetwork.QAuthenticator, __: str):
+            authenticator.setUser(proxy_config["username"])
+            authenticator.setPassword(proxy_config["password"])
+        app.window.webview.page.proxyAuthenticationRequired.connect(proxy_authenticator)
     app.window.webview.history = app.window.webview.page.history()
     app.window.webview.profile = app.window.webview.page.profile()
     app.window.webview.settings = app.window.webview.page.settings()
@@ -132,14 +220,14 @@ def create(
         qwebchanneljs = qwebchanneljsfile.readAll().data().decode('utf-8')
         qwebchanneljsfile.close()
         extension = qwebchanneljs + pathlib.Path(extension).read_text()
-        from modules import async_thread
+        from external import async_thread
         import aiohttp
         async_thread.setup()
         class RPCProxy(QtCore.QObject):
             __slots__ = ("session",)
             def __init__(self):
                 super().__init__()
-                self.session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
+                self.session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop))
             @QtCore.pyqtSlot(QtCore.QVariant, QtCore.QVariant, QtCore.QVariant, result=QtCore.QVariant)
             def handle(self, method, path, body):
                 if body is not None:
@@ -283,7 +371,13 @@ def open(url: str, *, cookies: dict[str, str] = {}, cookies_domain: str = None, 
     app.exec()
 
 
-def cookies(url: str, **kwargs):
+def cookies(url: str, *, minimal=True, **kwargs):
+    if minimal:
+        kwargs |= dict(
+            buttons=False,
+            extension=False,
+            private=True,
+        )
     app = create(**kwargs | dict(buttons=False, extension=False, private=True))
     url = QtCore.QUrl(url)
     def on_cookie_add(cookie: QtNetwork.QNetworkCookie):
@@ -297,23 +391,77 @@ def cookies(url: str, **kwargs):
     app.exec()
 
 
-def redirect(url: str, click_selector: str = None, *, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
-    app = create(**kwargs | dict(buttons=False, extension=False, private=True))
+def css_redirect(url: str, css_selector: str = None, *, minimal=True, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
+    if minimal:
+        kwargs |= dict(
+            buttons=False,
+            extension=False,
+            private=True,
+        )
+    app = create(**kwargs)
     url = QtCore.QUrl(url)
     if cookies and cookies_domain:
         cookies_domain = QtCore.QUrl("https://" + cookies_domain)
         for key, value in cookies.items():
             app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     def url_changed(new: QtCore.QUrl):
-        if new != url and not new.url().startswith(url.url()):
+        if new.host() != url.host():
             print(json.dumps(new.url()), flush=True)
+            nonlocal css_selector
+            if css_selector:
+                css_selector = None
+                app.window.webview.loadProgress.disconnect(load_progress)
     app.window.webview.urlChanged.connect(url_changed)
-    if click_selector:
+    if css_selector:
         def load_progress(_):
             app.window.webview.page.runJavaScript(f"""
-                redirectClickElement = document.querySelector({click_selector!r});
+                redirectClickElement = document.querySelector({css_selector!r});
                 if (redirectClickElement) {{
                     redirectClickElement.click();
+                }}
+            """)
+        app.window.webview.loadProgress.connect(load_progress)
+    app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
+    app.window.webview.setUrl(url)
+    app.window.show()
+    app.exec()
+
+
+def xpath_redirect(url: str, xpath_expression: str = None, *, minimal=True, cookies: dict[str, str] = {}, cookies_domain: str = None, **kwargs):
+    if minimal:
+        kwargs |= dict(
+            buttons=False,
+            extension=False,
+            private=True,
+        )
+    app = create(**kwargs)
+    url = QtCore.QUrl(url)
+    if cookies and cookies_domain:
+        cookies_domain = QtCore.QUrl("https://" + cookies_domain)
+        for key, value in cookies.items():
+            app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
+    def url_changed(new: QtCore.QUrl):
+        if new.host() != url.host():
+            print(json.dumps(new.url()), flush=True)
+            nonlocal xpath_expression
+            if xpath_expression:
+                xpath_expression = None
+                app.window.webview.loadProgress.disconnect(load_progress)
+    app.window.webview.urlChanged.connect(url_changed)
+    if xpath_expression:
+        if index_match := re.search(r"\[(\d+)\]$", xpath_expression):
+            xpath_index = int(index_match.group(1)) - 1
+            xpath_expression = xpath_expression[:index_match.start()]
+        else:
+            xpath_index = 0
+        def load_progress(_):
+            app.window.webview.page.runJavaScript(f"""
+                redirectClickElements = document.evaluate({xpath_expression!r}, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                if (redirectClickElements) {{
+                    redirectClickElement = redirectClickElements.snapshotItem({xpath_index})
+                    if (redirectClickElement) {{
+                        redirectClickElement.click();
+                    }}
                 }}
             """)
         app.window.webview.loadProgress.connect(load_progress)

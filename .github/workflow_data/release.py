@@ -4,6 +4,8 @@ import os
 
 
 if __name__ == "__main__":
+    with open("CHANGELOG.md") as f:
+        changelog = f.read()
     with open(os.environ["GITHUB_EVENT_PATH"]) as f:
         event = json.load(f)
     print(f"event = {json.dumps(event, indent=4)}")
@@ -27,7 +29,7 @@ if __name__ == "__main__":
         "F95Checker is **Free and Open Source Software**, provided to you **free of cost**. However it is actively **developed by " +
         "one single person only, WillyJL**. Please consider [**donating**](https://linktr.ee/WillyJL) or **sharing this software**!\n\n" +
         "## 🚀 Changelog\n" +
-        release["body"]
+        changelog
     )
     print(f"Full body:\n\n{body}")
     req = requests.patch(

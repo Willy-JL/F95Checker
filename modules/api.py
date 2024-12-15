@@ -1,98 +1,207 @@
-from PyQt6.QtWidgets import QSystemTrayIcon
-import multiprocessing
-import datetime as dt
-import async_timeout
-import http.cookies
-import configparser
-import subprocess
-import contextlib
-import tempfile
-import aiofiles
-import aiohttp
-import pathlib
 import asyncio
-import zipfile
+import configparser
+import contextlib
+import hashlib
+import http.cookies
+import io
+import json
+import os
+import pathlib
+import re
+import shlex
 import shutil
 import socket
-import shlex
-import imgui
-import time
-import json
+import ssl
 import sys
-import os
-import io
-import re
+import tempfile
+import time
+import zipfile
 
-from modules.structs import (
-    TimelineEventType,
-    MultiProcessPipe,
-    AsyncProcessPipe,
+from PyQt6.QtWidgets import QSystemTrayIcon
+import aiofiles
+import aiohttp
+import aiohttp_socks
+import aiolimiter
+import imgui
+import python_socks
+
+from common.structs import (
     CounterContext,
-    SearchResult,
-    OldGame,
-    MsgBox,
-    Status,
+    DdlFile,
+    FileDownload,
     Game,
+    MsgBox,
+    OldGame,
     Os,
+    ProxyType,
+    SearchResult,
+    Status,
+    Tag,
+    TimelineEventType,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
 )
 from modules import (
-    globals,
-    async_thread,
     callbacks,
-    webview,
-    msgbox,
-    parser,
-    utils,
-    icons,
-    error,
     db,
+    globals,
+    icons,
+    msgbox,
+    utils,
+    webview,
 )
 
-domain = "f95zone.to"
-host = "https://" + domain
-check_login_page    = host + "/account/"
-login_page          = host + "/login/"
-fast_check_endpoint = host + "/sam/checker.php?threads={threads}"
-notif_endpoint      = host + "/conversations/popup?_xfToken={xf_token}&_xfResponseType=json"
-alerts_page         = host + "/account/alerts/"
-inbox_page          = host + "/conversations/"
-threads_page        = host + "/threads/"
-bookmarks_page      = host + "/account/bookmarks?difference=0&page={page}"
-watched_page        = host + "/watched/threads?unread=0&page={page}"
-qsearch_endpoint    = host + "/quicksearch"
-update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+f95_domain = "f95zone.to"
+f95_host = "https://" + f95_domain
+f95_check_login_fast    = f95_host + "/sam/latest_alpha/"
+f95_login_page          = f95_host + "/login/"
+f95_notif_endpoint      = f95_host + "/conversations/popup?_xfResponseType=json"
+f95_alerts_page         = f95_host + "/account/alerts/"
+f95_inbox_page          = f95_host + "/conversations/"
+f95_threads_page        = f95_host + "/threads/"
+f95_bookmarks_page      = f95_host + "/account/bookmarks?difference=0&page={page}"
+f95_watched_page        = f95_host + "/watched/threads?unread=0&page={page}"
+f95_latest_endpoint     = f95_host + "/sam/latest_alpha/latest_data.php?cmd={cmd}&cat={cat}&page={page}&{search}={query}&sort={sort}&rows={rows}&_={ts}"
+f95_ddl_endpoint        = f95_host + "/sam/dddl.php"
+f95_attachments_hosts = (
+    f"https://attachments.{f95_domain}/",
+    "https://attachments.f95zone.com/",
+    f95_attachments_rocks := "https://attachments.f95zone.rocks/",
+)
+f95_no_ratelimit_urls = (
+    f95_check_login_fast,
+)
+f95_ratelimit_messages = (
+    b"<title>429 Too Many Requests</title>",
+    b"<h1>429 Too Many Requests</h1>",
+    b"<title>Error 429</title>",
+)
+
+api_host = os.environ.get("F95INDEXER_URL") or "https://api.f95checker.dev"
+api_fast_check_url = api_host + "/fast?ids={ids}"
+api_full_check_url = api_host + "/full/{id}?ts={ts}"
+api_fast_check_max_ids = 10
+
+app_update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+
+insecure_ssl_allowed_hosts = (
+    f95_attachments_rocks,  # Invalid SSL cert but still works and is ran by F95zone
+)
 
 updating = False
 session: aiohttp.ClientSession = None
-full_interval = dt.timedelta(days=7)
-part_interval = dt.timedelta(days=2)
-webpage_prefix = "F95Checker-Temp-"
+ssl_context: ssl.SSLContext = None
+temp_prefix = "F95Checker-Temp-"
+f95_ratelimit = aiolimiter.AsyncLimiter(max_rate=1, time_period=2)
+f95_ratelimit_sleeping = CounterContext()
 fast_checks_sem: asyncio.Semaphore = None
 full_checks_sem: asyncio.Semaphore = None
-full_checks = CounterContext()
-images = CounterContext()
-xf_token = ""
+fast_checks_counter = 0
+full_checks_counter = CounterContext()
+images_counter = CounterContext()
+downloads: dict[str, FileDownload] = {}
+
+
+def make_session():
+    global session
+    old_session = session
+
+    # Setup new HTTP session and proxy
+    if globals.settings.proxy_type is ProxyType.Disabled:
+        connector = None
+    else:
+        proxy_type = python_socks.ProxyType.HTTP
+        match globals.settings.proxy_type:
+            case ProxyType.SOCKS4: proxy_type = python_socks.ProxyType.SOCKS4
+            case ProxyType.SOCKS5: proxy_type = python_socks.ProxyType.SOCKS5
+            case ProxyType.HTTP: proxy_type = python_socks.ProxyType.HTTP
+        connector = aiohttp_socks.ProxyConnector(
+            proxy_type=proxy_type,
+            host=globals.settings.proxy_host,
+            port=globals.settings.proxy_port,
+            username=globals.settings.proxy_username,
+            password=globals.settings.proxy_password,
+            loop=async_thread.loop,
+        )
+    session = aiohttp.ClientSession(
+        loop=async_thread.loop,
+        connector=connector,
+        cookie_jar=aiohttp.DummyCookieJar(loop=async_thread.loop),
+        headers={
+            "User-Agent": (
+                f"F95Checker/{globals.version} "
+                f"Python/{sys.version.split(' ')[0]} "
+                f"aiohttp/{aiohttp.__version__}"
+            ),
+        },
+    )
+
+    if old_session:
+        async_thread.wait(old_session.close())
 
 
 @contextlib.contextmanager
 def setup():
-    global session
-    session = aiohttp.ClientSession(loop=async_thread.loop, cookie_jar=aiohttp.DummyCookieJar())
-    session.headers["User-Agent"] = f"F95Checker/{globals.version} Python/{sys.version.split(' ')[0]} aiohttp/{aiohttp.__version__}"
-    # Setup multiprocessing for parsing threads
-    method = "spawn"  # Using fork defeats the purpose, with spawn the main ui does not hang
-    if globals.os is not Os.Windows and globals.frozen:
-        method = "fork"  # But unix doesn't support spawn in frozen contexts
-    multiprocessing.set_start_method(method)
+    global ssl_context
+
+    # Setup SSL context
+    if globals.os is Os.Windows:
+        # Python SSL module seems to import Windows CA certs fine by itself
+        ca_paths = None
+    elif globals.os is Os.Linux:
+        ca_paths = (
+            "/etc/ssl/certs/ca-certificates.crt",  # Ubuntu / Common
+            "/etc/pki/tls/certs/ca-bundle.crt",  # Fedora
+            "/etc/ssl/cert.pem",  # Alias
+        )
+    elif globals.os is Os.MacOS:
+        ca_paths = (
+            "/opt/homebrew/etc/ca-certificates/cert.pem",  # Homebrew
+            "/usr/local/etc/openssl/cert.pem",  # Homebrew?
+            "/opt/local/etc/openssl/cert.pem",  # MacPorts
+            "/opt/local/share/curl/curl-ca-bundle.crt",  # MacPorts
+            "/etc/ssl/cert.pem",  # Standard, maybe outdated?
+        )
+    if ca_paths:
+        # Prefer system-provided CA certs
+        for ca_path in ca_paths:
+            if pathlib.Path(ca_path).is_file():
+                break
+        else:  # Did not break, so no system CA exists, fallback to certifi
+            import certifi
+            ca_path = certifi.where()
+        ssl_context = ssl.create_default_context(cafile=ca_path)
+    else:
+        ssl_context = ssl.create_default_context()
+
+    make_session()
+
     try:
         yield
     finally:
+
         async_thread.wait(session.close())
-        cleanup_webpages()
+        cleanup_temp_files()
+
+
+async def check_host(domain: str):
+    try:
+        await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
+        return True
+    except Exception:
+        return False
+
+
+def get_url_domain(url: str):
+    return re.search(r"^https?://([^/]+)", url).group(1)
 
 
 def is_f95zone_url(url: str):
-    return bool(re.search(r"^https?://[^/]*\.?" + re.escape(domain) + r"/", url))
+    return bool(re.search(r"^https?://[^/]*\.?" + re.escape(f95_domain) + r"/", url))
 
 
 def cookiedict(cookies: http.cookies.SimpleCookie):
@@ -100,7 +209,7 @@ def cookiedict(cookies: http.cookies.SimpleCookie):
 
 
 @contextlib.asynccontextmanager
-async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
+async def request(method: str, url: str, read=True, cookies: dict = True, **kwargs):
     timeout = kwargs.pop("timeout", None)
     if not timeout:
         timeout = globals.settings.request_timeout
@@ -109,27 +218,47 @@ async def request(method: str, url: str, read=True, no_cookies=False, **kwargs):
         timeout=timeout,
         allow_redirects=True,
         max_redirects=None,
-        ssl=False,
+        ssl=ssl_context
     )
-    if no_cookies:
-        cookies = {}
-    else:
+    if url.startswith(insecure_ssl_allowed_hosts) or globals.settings.insecure_ssl:
+        req_opts["ssl"] = False
+    if cookies is True or cookies is None:
         cookies = globals.cookies
+    elif cookies is False:
+        cookies = {}
     ddos_guard_cookies = {}
     ddos_guard_first_challenge = False
-    while retries:
+    is_ratelimit_request = url.startswith(f95_host) and not url.startswith(f95_no_ratelimit_urls)
+    ratelimit_retries = 10
+    ratelimit_sleep = 0
+    _can_ratelimit = lambda: is_ratelimit_request and ratelimit_retries > 1
+    async def _do_ratelimit():
+        nonlocal ratelimit_retries, ratelimit_sleep
+        ratelimit_retries -= 1
+        with f95_ratelimit_sleeping:
+            ratelimit_sleep += 5
+            await asyncio.sleep(ratelimit_sleep)
+    while retries and ratelimit_retries:
         try:
-            async with session.request(
+            # Only ratelimit when connecting to F95zone
+            maybe_ratelimit = f95_ratelimit if is_ratelimit_request else contextlib.nullcontext()
+            async with maybe_ratelimit, session.request(
                 method,
                 url,
                 cookies=cookies | ddos_guard_cookies,
                 **req_opts,
                 **kwargs
             ) as req:
+                if _can_ratelimit() and req.status == 429:
+                    await _do_ratelimit()
+                    continue
                 if not read:
                     yield b"", req
                     break
                 res = await req.read()
+                if _can_ratelimit() and any(msg in res for msg in f95_ratelimit_messages):
+                    await _do_ratelimit()
+                    continue
                 if req.headers.get("server") in ("ddos-guard", "", None) and re.search(rb"<title>DDOS-GUARD</title>", res, flags=re.IGNORECASE):
                     # Attempt DDoS-Guard bypass (credits to https://git.gay/a/ddos-guard-bypass)
                     ddos_guard_cookies.update(cookiedict(req.cookies))
@@ -210,36 +339,43 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                 return False
             raise msgbox.Exc(
                 "Login expired",
-                "Your F95Zone login session has expired,\n"
-                "press refresh to login again.",
+                "Your F95zone login session has expired,\n"
+                "press try again to login.",
+                MsgBox.warn
+            )
+        if any(msg in res for msg in f95_ratelimit_messages):
+            raise msgbox.Exc(
+                "Rate limit",
+                "F95zone servers are ratelimiting you,\n"
+                "please try again later.",
                 MsgBox.warn
             )
         if b"<title>502 Bad Gateway</title>" in res:
             raise msgbox.Exc(
                 "Server downtime",
-                "F95Zone servers are currently unreachable,\n"
+                "F95zone servers are currently unreachable,\n"
                 "please retry in a few minutes.",
                 MsgBox.warn
             )
         if b"<!-- Too many connections -->" in res:
             raise msgbox.Exc(
                 "Database overload",
-                "F95Zone databases are currently overloaded,\n"
+                "F95zone databases are currently overloaded,\n"
                 "please retry in a few minutes.",
                 MsgBox.warn
             )
         if b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>" in res:
             raise msgbox.Exc(
                 "Daily backups",
-                "F95Zone daily backups are currently running,\n"
+                "F95zone daily backups are currently running,\n"
                 "please retry in a few minutes.",
                 MsgBox.warn
             )
         if b"<title>DDOS-GUARD</title>" in res:
             raise msgbox.Exc(
                 "DDoS-Guard bypass failure",
-                "F95Zone requested a DDoS-Guard browser challenge and F95Checker\n"
-                "was unable to bypass it. Try waiting a few minutes, opening F95Zone\n"
+                "F95zone requested a DDoS-Guard browser challenge and F95Checker\n"
+                "was unable to bypass it. Try waiting a few minutes, opening F95zone\n"
                 "in browser, rebooting your router, or connecting through a VPN.",
                 MsgBox.error
             )
@@ -250,7 +386,7 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
             if msg := res.get("msg"):
                 raise msgbox.Exc(
                     "API error",
-                    "The F95Zone API returned an 'error' status with the following message:\n"
+                    "The F95zone API returned an 'error' status with the following message:\n"
                     f"{msg}",
                     MsgBox.error,
                     more=more
@@ -261,20 +397,46 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
                         return False
                     raise msgbox.Exc(
                         "Login expired",
-                        "Your F95Zone login session has expired,\n"
-                        "press refresh to login again.",
+                        "Your F95zone login session has expired,\n"
+                        "press try again to login.",
                         MsgBox.warn
                     )
                 raise msgbox.Exc(
                     "API error",
-                    "The F95Zone API returned an 'error' status with the following messages:\n"
+                    "The F95zone API returned an 'error' status with the following messages:\n"
                     " - " + "\n - ".join(errors),
                     MsgBox.error,
                     more=more
                 )
             raise msgbox.Exc(
                 "API error",
-                "The F95Zone API returned an 'error' status.",
+                "The F95zone API returned an 'error' status.",
+                MsgBox.error,
+                more=more
+            )
+        return True
+
+
+def raise_api_error(res: bytes | dict):
+    if isinstance(res, bytes):
+        if any(msg in res for msg in (
+            b"<title>api.f95checker.dev | 502: Bad gateway</title>",
+            b"<title>api.f95checker.dev | 521: Web server is down</title>",
+        )):
+            raise msgbox.Exc(
+                "Server downtime",
+                "F95Checker Cache API is currently unreachable,\n"
+                "please retry in a few minutes.",
+                MsgBox.warn
+            )
+        return True
+    elif isinstance(res, dict):
+        if index_error := res.get("INDEX_ERROR"):
+            # TODO: make graceful, collect to a list and show at refresh end
+            more = json.dumps(res, indent=4)
+            raise msgbox.Exc(
+                "API error",
+                f"The F95Checker Cache API returned error '{index_error}'.",
                 MsgBox.error,
                 more=more
             )
@@ -282,45 +444,21 @@ def raise_f95zone_error(res: bytes | dict, return_login=False):
 
 
 async def is_logged_in():
-    global xf_token
-    async with request("GET", check_login_page) as (res, req):
-        if not 200 <= req.status < 300:
-            res += await req.content.read()
-            if not raise_f95zone_error(res, return_login=True):
-                return False
-            # Check login page was not in 200 range, but error is not a login issue
-            async with aiofiles.open(globals.self_path / "login_broken.bin", "wb") as f:
-                await f.write(res)
-            raise msgbox.Exc(
-                "Login assertion failure",
-                "Something went wrong checking the validity of your login session.\n"
-                "\n"
-                f"F95Zone replied with a status code of {req.status} at this URL:\n"
-                f"{str(req.real_url)}\n"
-                "\n"
-                "The response body has been saved to:\n"
-                f"{globals.self_path / 'login_broken.bin'}\n"
-                "Please submit a bug report on F95Zone or GitHub including this file.",
-                MsgBox.error
-            )
-        xf_token = str(re.search(rb'<\s*input.*?name\s*=\s*"_xfToken"\s*value\s*=\s*"(.+)"', res).group(1), encoding="utf-8")
-        return True
+    res = await fetch("GET", f95_check_login_fast)
+    raise_f95zone_error(res)
+    return b'<pre>Sorry, you have to be <a href="/login">logged in</a> to access this page</a></pre>' not in res
 
 
 async def login():
     try:
         new_cookies = {}
-        with (pipe := AsyncProcessPipe())(await asyncio.create_subprocess_exec(
-            *shlex.split(globals.start_cmd), "webview", "cookies", json.dumps((login_page,)), json.dumps(webview.kwargs() | dict(
-                title="F95Checker: Login to F95Zone",
-                size=(size := (500, 720)),
-                pos=(
-                    int(globals.gui.screen_pos[0] + (imgui.io.display_size.x / 2) - size[0] / 2),
-                    int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2)
-                )
-            )),
-            stdout=subprocess.PIPE
-        )):
+        with await webview.start(
+            "cookies", f95_login_page,
+            title="F95Checker: Login to F95zone",
+            size=(500, 720),
+            use_f95_cookies=False,
+            pipe=True,
+        ) as pipe:
             while True:
                 (key, value) = await pipe.get_async()
                 new_cookies[key] = value
@@ -334,7 +472,7 @@ async def login():
             f"{error.text()}\n"
             "\n"
             "The console output contain more information.\n"
-            "Please submit a bug report on F95Zone or GitHub including this file.",
+            "Please submit a bug report on F95zone or GitHub including this file.",
             MsgBox.error,
             more=error.traceback()
         )
@@ -356,42 +494,133 @@ async def download_webpage(url: str):
     for elem in html.find_all():
         for key, value in elem.attrs.items():
             if isinstance(value, str) and value.startswith("/"):
-                elem.attrs[key] = host + value
-    with tempfile.NamedTemporaryFile("wb", prefix=webpage_prefix, suffix=".html", delete=False) as f:
+                elem.attrs[key] = f95_host + value
+    with tempfile.NamedTemporaryFile("wb", prefix=temp_prefix, suffix=".html", delete=False) as f:
         f.write(html.prettify(encoding="utf-8"))
     return pathlib.Path(f.name).as_uri()
 
 
-def cleanup_webpages():
-    for item in pathlib.Path(tempfile.gettempdir()).glob(f"{webpage_prefix}*"):
+def cleanup_temp_files():
+    for item in pathlib.Path(tempfile.gettempdir()).glob(f"{temp_prefix}*"):
         try:
             item.unlink()
         except Exception:
             pass
 
 
-async def quick_search(query: str, login=False):
-    if login:
-        if not await assert_login():
-            return
-    res = await fetch("POST", qsearch_endpoint, data={"title": query, "_xfToken": xf_token})
-    html = parser.html(res)
+async def thread_search(category: str, search: str, query: str, sort="likes", count=15, page=1):
+    query = query.encode("ascii", errors="replace").decode()
+    query = re.sub(r"\.+ ", " ", query)
+    for char in "?&/':;-.":
+        query = query.replace(char, " ")
+    query = re.sub(r"\s+", " ", query).strip()[:28]
+    res = await fetch("GET", f95_latest_endpoint.format(
+        cmd="list",
+        cat=category,
+        page=page,
+        search=search,
+        query=query,
+        sort=sort,
+        rows=count,
+        ts=int(time.time()),
+    ))
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    raise_f95zone_error(res)
     results = []
-    for row in html.find(parser.is_class("quicksearch-wrapper-wide")).find_all(parser.is_class("dataList-row")):
-        title = list(row.find_all(parser.is_class("dataList-cell")))[1]
-        url = title.find("a")
-        if not url:
-            continue
-        url = url.get("href")
-        id = utils.extract_thread_matches(url)
-        if not id:
-            continue
-        id = id[0].id
-        title = re.sub(r"\s+", r" ", title.text).strip()
-        if not title:
-            continue
-        results.append(SearchResult(title=title, url=url, id=id))
+    for result in res["msg"]["data"]:
+        results.append(SearchResult(
+            title=result["title"],
+            creator=result["creator"],
+            url=f95_threads_page + str(result["thread_id"]),
+            id=int(result["thread_id"]),
+        ))
     return results
+
+
+def open_search_popup(query: str):
+    results = None
+    ran_query = query
+    categories = [
+        "Games",
+        "Comics",
+        "Animations",
+        "Assets",
+        # Doesn't seem to work
+        # "Mods",
+    ]
+    ran_category = category = 0
+    searches = [
+        "Title",
+        "Creator",
+    ]
+    ran_search = search = 0
+    def _f95zone_search_popup():
+        nonlocal query, category, search
+
+        imgui.set_next_item_width(globals.gui.scaled(115))
+        changed, category = imgui.combo("###category", category, categories)
+        if changed:
+            async_thread.run(_f95zone_run_search())
+        imgui.same_line()
+        imgui.set_next_item_width(globals.gui.scaled(85))
+        changed, search = imgui.combo("###search", search, searches)
+        if changed:
+            async_thread.run(_f95zone_run_search())
+        imgui.same_line()
+        imgui.set_next_item_width(-(imgui.calc_text_size(f"{icons.magnify} Search").x + 2 * imgui.style.frame_padding.x) - imgui.style.item_spacing.x)
+        activated, query = imgui.input_text_with_hint(
+            "###query",
+            "Search threads...",
+            query,
+            flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE
+        )
+        imgui.same_line()
+        if imgui.button(f"{icons.magnify} Search") or activated:
+            async_thread.run(_f95zone_run_search())
+
+        if not results:
+            imgui.text(f"Running F95zone search for {searches[ran_search].lower()} '{ran_query}' in {categories[ran_category].lower()} category...")
+            imgui.text("Status:")
+            imgui.same_line()
+            if results is None:
+                imgui.text("Searching...")
+            else:
+                imgui.text("No results!")
+            return
+
+        imgui.text("Click on any of the results to add it, click Ok when you're finished.\n\n")
+        for result in results:
+            # TODO: make this pretty and show more info from latest updates
+            if result.id in globals.games:
+                imgui.push_disabled()
+            text = result.title
+            if result.creator:
+                text += f" [{result.creator}]"
+            clicked = imgui.selectable(text, False, flags=imgui.SELECTABLE_DONT_CLOSE_POPUPS)[0]
+            if result.id in globals.games:
+                imgui.pop_disabled()
+            if clicked:
+                async_thread.run(callbacks.add_games(result))
+    async def _f95zone_run_search():
+        nonlocal results, ran_query, ran_category, ran_search
+        results = None
+        ran_query = query
+        ran_category = category
+        real_category = categories[ran_category].lower()
+        ran_search = search
+        real_search = searches[ran_search].lower()
+        if real_search == "title":
+            real_search = "search"
+        results = await thread_search(real_category, real_search, ran_query)
+    utils.push_popup(
+        utils.popup, "F95zone thread search",
+        _f95zone_search_popup,
+        buttons=True,
+        closable=True,
+        outside=False
+    )
+    async_thread.run(_f95zone_run_search())
 
 
 async def import_url_shortcut(file: str | pathlib.Path):
@@ -438,7 +667,7 @@ async def import_f95_bookmarks():
     threads = []
     while True:
         globals.refresh_total += 1
-        res = await fetch("GET", bookmarks_page.format(page=page))
+        res = await fetch("GET", f95_bookmarks_page.format(page=page))
         raise_f95zone_error(res)
         html = parser.html(res)
         bookmarks = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("listPlain"))
@@ -453,7 +682,7 @@ async def import_f95_bookmarks():
     else:
         utils.push_popup(
             msgbox.msgbox, "No threads",
-            "Your F95Zone bookmarks contains no valid threads to import!",
+            "Your F95zone bookmarks contain no valid threads to import!",
             MsgBox.warn
         )
 
@@ -467,7 +696,7 @@ async def import_f95_watched_threads():
     threads = []
     while True:
         globals.refresh_total += 1
-        res = await fetch("GET", watched_page.format(page=page))
+        res = await fetch("GET", f95_watched_page.format(page=page))
         raise_f95zone_error(res)
         html = parser.html(res)
         watched = html.find(parser.is_class("p-body-pageContent")).find(parser.is_class("structItemContainer"))
@@ -482,7 +711,7 @@ async def import_f95_watched_threads():
     else:
         utils.push_popup(
             msgbox.msgbox, "No threads",
-            "Your F95Zone watched threads contains no valid threads to import!",
+            "Your F95zone watched threads contain no valid threads to import!",
             MsgBox.warn
         )
 
@@ -503,75 +732,73 @@ def last_check_before(before_version: str, checked_version: str):
     return is_before
 
 
-async def fast_check(games: list[Game], full_queue: list[tuple[Game, str]]=None, full=False):
+async def fast_check(games: list[Game], full=False):
     games = list(filter(lambda game: not game.custom, games))
 
-    async with (fast_checks_sem or asyncio.Semaphore(1)):
+    global fast_checks_counter
+    fast_checks_counter += len(games)
+    try:
+        async with fast_checks_sem:
+            res = None
+            try:
+                res = await fetch("GET", api_fast_check_url.format(ids=",".join(str(game.id) for game in games)), timeout=120, cookies=False)
+                raise_api_error(res)
+                last_changes = json.loads(res)
+                raise_api_error(last_changes)
+            except Exception as exc:
+                if isinstance(exc, msgbox.Exc):
+                    raise exc
+                if res:
+                    async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
+                        await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+                raise msgbox.Exc(
+                    "Fast check error",
+                    "Something went wrong checking some of your games:\n"
+                    f"{error.text()}\n" + (
+                        "\n"
+                        "The response body has been saved to:\n"
+                        f"{globals.self_path / 'check_broken.bin'}\n"
+                        "Please submit a bug report on F95zone or GitHub including this file."
+                        if res else ""
+                    ),
+                    MsgBox.error,
+                    more=error.traceback()
+                )
+    finally:
+        fast_checks_counter -= len(games)
 
-        try:
-            res = await fetch("GET", fast_check_endpoint.format(threads=",".join(str(game.id) for game in games)), no_cookies=True)
-            raise_f95zone_error(res)
-            res = json.loads(res)
-            if res["msg"] in ("Missing threads data", "Thread not found"):
-                res["status"] = "ok"
-                res["msg"] = {}
-            raise_f95zone_error(res)
-            versions = res["msg"]
-        except Exception as exc:
-            if isinstance(exc, msgbox.Exc):
-                raise exc
-            async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
-                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
-            raise msgbox.Exc(
-                "Fast check error",
-                "Something went wrong checking some of your games:\n"
-                f"{error.text()}\n"
-                "\n"
-                "The response body has been saved to:\n"
-                f"{globals.self_path / 'check_broken.bin'}\n"
-                "Please submit a bug report on F95Zone or GitHub including this file.",
-                MsgBox.error,
-                more=error.traceback()
-            )
+    full_queue: list[tuple[Game, int]] = []
+    for game in games:
+        last_changed = last_changes.get(str(game.id), 0)
+        assert last_changed > 0, "Invalid last_changed from fast check API"
 
-        for game in games:
+        this_full = full or (
+            game.status is Status.Unchecked or
+            last_changed > game.last_full_check or
+            (game.image.missing and game.image_url.startswith("http")) or
+            last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
+        )
+        if not this_full:
+            globals.refresh_progress += 1
+            continue
 
-            version = versions.get(str(game.id))
-            if not version or version == "Unknown":
-                version = None
-                # Full check games with no version data more often
-                interval = part_interval
-            else:
-                interval = full_interval
+        full_queue.append((game, last_changed))
 
-            delta = dt.datetime.fromtimestamp(time.time()) - dt.datetime.fromtimestamp(game.last_full_check)
-
-            interval_expired = (delta.total_seconds() > interval.total_seconds())
-
-            game_is_unchecked = game.status is Status.Unchecked
-
-            if interval_expired and not full and not game_is_unchecked:
-                game.add_timeline_event(TimelineEventType.RecheckExpired, delta.days)
-
-            this_full = full or (
-                interval_expired or
-                game_is_unchecked or
-                (version and version != game.version) or
-                (game.image.missing and game.image_url != "missing") or
-                last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
-            )
-            if not this_full:
-                globals.refresh_progress += 1
-                continue
-
-            full_queue.append((game, version))
+    tasks: list[asyncio.Task] = []
+    try:
+        tasks = [asyncio.create_task(full_check(game, ts)) for game, ts in full_queue]
+        await asyncio.gather(*tasks)
+    except Exception:
+        for task in tasks:
+            task.cancel()
+        raise
 
 
-async def full_check(game: Game, version: str):
-    async with full_checks, (full_checks_sem or asyncio.Semaphore(1)):
+async def full_check(game: Game, last_changed: int):
+    async with full_checks_counter, full_checks_sem:
 
-        async with request("GET", game.url, timeout=globals.settings.request_timeout * 2) as (res, req):
-            raise_f95zone_error(res)
+        async with request("GET", api_full_check_url.format(id=game.id, ts=last_changed), timeout=globals.settings.request_timeout * 2, cookies=False) as (res, req):
+            raise_api_error(res)
             if req.status in (403, 404):
                 if not game.archived:
                     buttons = {
@@ -581,74 +808,70 @@ async def full_check(game: Game, version: str):
                     }
                     utils.push_popup(
                         msgbox.msgbox, "Thread not found",
-                        "The F95Zone thread for this game could not be found:\n"
+                        "The F95zone thread for this game could not be found:\n"
                         f"{game.name}\n"
                         "It might have been privated, moved or deleted, maybe for breaking forum rules.\n"
                         "\n"
                         "You can remove this game from your library, or convert it to a custom game.\n"
-                        "Custom games are untied from F95Zone and are not checked for updates, so\n"
-                        "you won't get this error anymore. You can later convert it back to an F95Zone\n"
+                        "Custom games are untied from F95zone and are not checked for updates, so\n"
+                        "you won't get this error anymore. You can later convert it back to an F95zone\n"
                         "game from its info popup. You can also find more details there.",
                         MsgBox.error,
                         buttons=buttons
                     )
                 globals.refresh_progress += 1
                 return
-            url = utils.clean_thread_url(str(req.real_url))
+            thread = json.loads(res)
+            raise_api_error(thread)
+            url = f95_threads_page + str(game.id)
+
+        # Redis only allows string values, so API only gives str for simplicity
+        thread["type"] = Type(int(thread["type"]))
+        thread["status"] = Status(int(thread["status"]))
+        thread["last_updated"] = int(thread["last_updated"])
+        thread["score"] = float(thread["score"])
+        thread["votes"] = int(thread["votes"])
+        thread["tags"] = tuple(Tag(tag) for tag in json.loads(thread["tags"]))
+        thread["unknown_tags"] = json.loads(thread["unknown_tags"])
+        thread["downloads"] = json.loads(thread["downloads"])
+        for label, links in thread["downloads"]:
+            for link_i, link_pair in enumerate(links):
+                links[link_i] = tuple(link_pair)
+        thread["previews_urls"] = json.loads(thread.get("previews_urls", "[]"))
+        thread["downloads"] = tuple(thread["downloads"])
 
         old_name = game.name
         old_version = game.version
         old_status = game.status
 
-        parse = parser.thread
-        args = (game.id, res)
-        if globals.settings.use_parser_processes:
-            # Using multiprocessing can help with interface stutters
-            with (pipe := MultiProcessPipe())(multiprocessing.Process(target=parse, args=(*args, pipe))):
-                try:
-                    async with async_timeout.timeout(globals.settings.request_timeout):
-                        ret = await pipe.get_async()
-                except TimeoutError:
-                    raise msgbox.Exc(
-                        "Parser process timeout",
-                        "The thread parser process did not respond in time.",
-                        MsgBox.error
-                    )
-        else:
-            ret = parse(*args)
-        if isinstance(ret, parser.ParserException):
-            raise msgbox.Exc(*ret.args, **ret.kwargs)
-        (name, thread_version, developer, type, status, last_updated, score, votes, description, changelog, tags, unknown_tags, image_url, downloads) = ret
+        version = thread["version"]
         if not version:
-            if thread_version:
-                version = thread_version
-            else:
-                version = "N/A"
+            version = "N/A"
 
         if old_status is not Status.Unchecked:
-            if game.developer != developer:
-                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, developer)
+            if game.developer != thread["developer"]:
+                game.add_timeline_event(TimelineEventType.ChangedDeveloper, game.developer, thread["developer"])
 
-            if game.type != type:
-                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, type.name)
+            if game.type != thread["type"]:
+                game.add_timeline_event(TimelineEventType.ChangedType, game.type.name, thread["type"].name)
 
-            if game.tags != tags:
-                if difference := [tag.text for tag in tags if tag not in game.tags]:
+            if game.tags != thread["tags"]:
+                if difference := [tag.text for tag in thread["tags"] if tag not in game.tags]:
                     game.add_timeline_event(TimelineEventType.TagsAdded, ", ".join(difference))
-                if difference := [tag.text for tag in game.tags if tag not in tags]:
+                if difference := [tag.text for tag in game.tags if tag not in thread["tags"]]:
                     game.add_timeline_event(TimelineEventType.TagsRemoved, ", ".join(difference))
 
-            if game.score != score:
-                if game.score < score:
-                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, score, votes)
+            if game.score != thread["score"]:
+                if game.score < thread["score"]:
+                    game.add_timeline_event(TimelineEventType.ScoreIncreased, game.score, game.votes, thread["score"], thread["votes"])
                 else:
-                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, score, votes)
+                    game.add_timeline_event(TimelineEventType.ScoreDecreased, game.score, game.votes, thread["score"], thread["votes"])
 
-        breaking_name_parsing    = last_check_before("9.6.4", game.last_check_version)  # Skip name change in update popup
-        breaking_version_parsing = last_check_before("10.1.1",  game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
-        breaking_keep_old_image  = last_check_before("9.0",   game.last_check_version)  # Keep existing image files
+        breaking_name_parsing    = last_check_before("9.6.4",  game.last_check_version)  # Skip name change in update popup
+        breaking_version_parsing = last_check_before("10.1.1", game.last_check_version)  # Skip update popup and keep installed/finished checkboxes
+        breaking_keep_old_image  = last_check_before("9.0",    game.last_check_version)  # Keep existing image files
 
-        last_full_check = int(time.time())
+        last_full_check = last_changed
         last_check_version = globals.version
 
         # Skip update popup and don't reset finished/installed checkboxes if refreshing with braking changes
@@ -668,41 +891,43 @@ async def full_check(game: Game, version: str):
 
         # Don't include name change in popup for simple parsing adjustments
         if breaking_name_parsing:
-            old_name = name
+            old_name = thread["name"]
 
         fetch_image = game.image.missing
-        if not game.image_url == "custom" and not breaking_keep_old_image:
-            fetch_image = fetch_image or (image_url != game.image_url)
+        if game.image_url != "custom" and not breaking_keep_old_image:
+            fetch_image = fetch_image or (thread["image_url"] != game.image_url)
 
         unknown_tags_flag = game.unknown_tags_flag
-        if len(unknown_tags) > 0 and game.unknown_tags != unknown_tags:
+        if len(thread["unknown_tags"]) > 0 and game.unknown_tags != thread["unknown_tags"]:
             unknown_tags_flag = True
 
         async def update_game():
-            game.name = name
+            game.name = thread["name"]
             game.version = version
-            game.developer = developer
-            game.type = type
-            game.status = status
+            game.developer = thread["developer"]
+            game.type = thread["type"]
+            game.status = thread["status"]
             game.url = url
-            game.last_updated = last_updated
+            game.last_updated = thread["last_updated"]
             game.last_full_check = last_full_check
             game.last_check_version = last_check_version
-            game.score = score
-            game.votes = votes
+            game.score = thread["score"]
+            game.votes = thread["votes"]
             game.finished = finished
             game.installed = installed
             game.updated = updated
-            game.description = description
-            game.changelog = changelog
-            game.tags = tags
-            game.unknown_tags = unknown_tags
+            game.description = thread["description"]
+            game.changelog = thread["changelog"]
+            game.tags = thread["tags"]
+            game.unknown_tags = thread["unknown_tags"]
             game.unknown_tags_flag = unknown_tags_flag
-            game.image_url = image_url
-            game.downloads = downloads
+            if fetch_image:
+                game.image_url = thread["image_url"]
+            game.previews_urls = thread["previews_urls"]
+            game.downloads = thread["downloads"]
 
-            changed_name = name != old_name
-            changed_status = status != old_status
+            changed_name = thread["name"] != old_name
+            changed_status = thread["status"] != old_status
             changed_version = version != old_version
 
             if old_status is not Status.Unchecked:
@@ -724,30 +949,41 @@ async def full_check(game: Game, version: str):
                 )
                 globals.updated_games[game.id] = old_game
 
-        if fetch_image and image_url and image_url != "missing":
-            with images:
-                try:
-                    res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4)
-                except aiohttp.ClientConnectorError as exc:
-                    if not isinstance(exc.os_error, socket.gaierror):
-                        raise  # Not a dead link
-                    if is_f95zone_url(image_url):
-                        raise  # Not a foreign host, raise normal connection error message
-                    f95zone_ok = True
-                    foreign_ok = True
+        if fetch_image and thread["image_url"] and thread["image_url"].startswith("http"):
+            with images_counter:
+                image_url = thread["image_url"]
+                while True:
                     try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, domain)
-                    except Exception:
-                        f95zone_ok = False
-                    try:
-                        await async_thread.loop.run_in_executor(None, socket.gethostbyname, re.search(r"^https?://([^/]+)", image_url).group(1))
-                    except Exception:
-                        foreign_ok = False
-                    if f95zone_ok and not foreign_ok:
-                        image_url = "missing"
+                        res = await fetch("GET", image_url, timeout=globals.settings.request_timeout * 4, raise_for_status=True)
+                    except aiohttp.ClientResponseError as exc:
+                        if exc.status < 400:
+                            raise  # Not error status
+                        if image_url.startswith("https://i.imgur.com"):
+                            thread["image_url"] = "blocked"
+                        else:
+                            thread["image_url"] = "dead"
                         res = b""
-                    else:
-                        raise  # Foreign host might not actually be dead
+                    except aiohttp.ClientConnectorError as exc:
+                        # Try alternative F95zone hosts (-1 because we're checking to then use the next link)
+                        changed_host = False
+                        for host_i in range(len(f95_attachments_hosts) - 1):
+                            if image_url.startswith(f95_attachments_hosts[host_i]):
+                                image_url = f95_attachments_hosts[host_i + 1] + image_url.removeprefix(f95_attachments_hosts[host_i])
+                                changed_host = True
+                                break
+                        if changed_host:
+                            continue
+                        if not isinstance(exc.os_error, socket.gaierror):
+                            raise  # Not a dead link
+                        if is_f95zone_url(image_url):
+                            raise  # Not a foreign host, raise normal connection error message
+                        if check_host(f95_domain) and not check_host(get_url_domain(image_url)):
+                            # Link is actually dead
+                            thread["image_url"] = "dead"
+                            res = b""
+                        else:
+                            raise  # Foreign host might not actually be dead
+                    break  # Loop is only to retry with `continue`
                 async def set_image_and_update_game():
                     await game.set_image_async(res)
                     await update_game()
@@ -757,37 +993,52 @@ async def full_check(game: Game, version: str):
         globals.refresh_progress += 1
 
 
-async def check_notifs(login=False):
-    if login:
-        globals.refresh_total = 2
-        if not await assert_login():
-            return
-        globals.refresh_progress = 1
+async def check_notifs(standalone=True, retry=False):
+    if standalone:
+        globals.refresh_total = 1
+        globals.refresh_progress = 0
 
+    res = None
     try:
-        res = await fetch("GET", notif_endpoint.format(xf_token=xf_token))
+        res = await fetch("GET", f95_notif_endpoint)
         raise_f95zone_error(res)
         res = json.loads(res)
-        raise_f95zone_error(res)
+        if "visitor" not in res:
+            if retry:
+                raise msgbox.Exc(
+                    "Notifs check error",
+                    "The F95zone notification endpoint returned an unknown response",
+                    MsgBox.error,
+                    more=json.dumps(res, indent=4)
+                )
+            if not await assert_login():
+                return
+            return await check_notifs(retry=True)
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
         inbox  = int(res["visitor"]["conversations_unread"].replace(",", "").replace(".", ""))
     except Exception as exc:
         if isinstance(exc, msgbox.Exc):
             raise exc
-        async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
-            await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+        if res:
+            async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
+                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Notifs check error",
             "Something went wrong checking your unread notifications:\n"
-            f"{error.text()}\n"
-            "\n"
-            "The response body has been saved to:\n"
-            f"{globals.self_path / 'notifs_broken.bin'}\n"
-            "Please submit a bug report on F95Zone or GitHub including this file.",
+            f"{error.text()}\n" + (
+                "\n"
+                "The response body has been saved to:\n"
+                f"{globals.self_path / 'notifs_broken.bin'}\n"
+                "Please submit a bug report on F95zone or GitHub including this file."
+                if res else ""
+            ),
             MsgBox.error,
             more=error.traceback()
         )
     globals.refresh_progress += 1
+    for popup in globals.popup_stack:
+        if popup.func is msgbox.msgbox and popup.args[0] == "Notifications":
+            globals.popup_stack.remove(popup)
     if alerts != 0 and inbox != 0:
         msg = (
             f"You have {alerts + inbox} unread notifications.\n"
@@ -801,16 +1052,13 @@ async def check_notifs(login=False):
         return
     def open_callback():
         if alerts > 0:
-            callbacks.open_webpage(alerts_page)
+            callbacks.open_webpage(f95_alerts_page)
         if inbox > 0:
-            callbacks.open_webpage(inbox_page)
+            callbacks.open_webpage(f95_inbox_page)
     buttons = {
         f"{icons.check} Yes": open_callback,
         f"{icons.cancel} No": None
     }
-    for popup in globals.popup_stack:
-        if popup.func is msgbox.msgbox and popup.args[0] == "Notifications":
-            globals.popup_stack.remove(popup)
     utils.push_popup(
         msgbox.msgbox, "Notifications",
         msg +
@@ -829,8 +1077,9 @@ async def check_notifs(login=False):
 async def check_updates():
     if (globals.self_path / ".git").is_dir():
         return  # Running from git repo, skip update
+    res = None
     try:
-        res = await fetch("GET", update_endpoint, headers={"Accept": "application/vnd.github+json"})
+        res = await fetch("GET", app_update_endpoint, headers={"Accept": "application/vnd.github+json"})
         res = json.loads(res)
         globals.last_update_check = time.time()
         if "tag_name" not in res:
@@ -872,16 +1121,19 @@ async def check_updates():
         if not update_available or not asset_url or not asset_name or not asset_size:
             return
     except Exception:
-        async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
-            await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+        if res:
+            async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
+                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Update check error",
             "Something went wrong checking for F95Checker updates:\n"
-            f"{error.text()}\n"
-            "\n"
-            "The response body has been saved to:\n"
-            f"{globals.self_path / 'update_broken.bin'}\n"
-            "Please submit a bug report on F95Zone or GitHub including this file.",
+            f"{error.text()}\n" + (
+                "\n"
+                "The response body has been saved to:\n"
+                f"{globals.self_path / 'update_broken.bin'}\n"
+                "Please submit a bug report on F95zone or GitHub including this file."
+                if res else ""
+            ),
             MsgBox.error,
             more=error.traceback()
         )
@@ -958,23 +1210,27 @@ async def check_updates():
         if macos_app := (globals.frozen and globals.os is Os.MacOS):
             src = next(asset_path.glob("*.app")).absolute()  # F95Checker-123/F95Checker.app
             dst = globals.self_path.parent.parent.absolute()  # F95Checker.app/Contents/MacOS
-        ppid = os.getppid()  # main.py launches a subprocess for the main script, so we need the parent pid
+        pid = os.getpid()
         if globals.os is Os.Windows:
             script = "\n".join((
                 "try {"
                 'Write-Host "Waiting for F95Checker to quit..."',
-                f"Wait-Process -Id {ppid}",
+                f"Wait-Process -Id {pid}",
                 'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
                 'Write-Host "Deleting old version files..."',
                 " | ".join((
-                    f"Get-ChildItem -Force -Recurse -Path {shlex.quote(str(dst))}",
+                    f'Get-ChildItem -Force -Recurse -Path "{dst}"',
                     "Select-Object -ExpandProperty FullName",
                     "Sort-Object -Property Length -Descending",
                     "Remove-Item -Force -Recurse",
                 )),
                 'Write-Host "Moving new version files..."',
-                f"Get-ChildItem -Force -Path {shlex.quote(str(src))} | Select-Object -ExpandProperty FullName | Move-Item -Force -Destination {shlex.quote(str(dst))}",
+                " | ".join((
+                    f'Get-ChildItem -Force -Path "{src}"',
+                    "Select-Object -ExpandProperty FullName",
+                    f'Move-Item -Force -Destination "{dst}"',
+                )),
                 'Write-Host "Sleeping 3 seconds..."',
                 "Start-Sleep -Seconds 3",
                 'Write-Host "Starting F95Checker..."',
@@ -1000,7 +1256,7 @@ async def check_updates():
                     pass
             script = "\n".join([
                 shlex.join(["echo", "Waiting for F95Checker to quit..."]),
-                shlex.join(["tail", "--pid", str(ppid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(ppid), "+r", "1"]),
+                shlex.join(["tail", "--pid", str(pid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(pid), "+r", "1"]),
                 shlex.join(["echo", "Sleeping 3 seconds..."]),
                 shlex.join(["sleep", "3"]),
                 shlex.join(["echo", "Starting F95Checker..."]),
@@ -1056,18 +1312,16 @@ async def check_updates():
         )
 
 
-async def refresh(*games: list[Game], full=False, notifs=True):
-    if not await assert_login():
-        return
-
+async def refresh(*games: list[Game], full=False, notifs=True, force_archived=False, force_completed=False):
     fast_queue: list[list[Game]] = [[]]
-    full_queue: list[tuple[Game, str]] = []
     for game in (games or globals.games.values()):
         if game.custom:
             continue
-        if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games:
+        if not games and game.archived and not globals.settings.refresh_archived_games and not force_archived:
             continue
-        if len(fast_queue[-1]) == 100:
+        if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games and not force_completed:
+            continue
+        if len(fast_queue[-1]) == api_fast_check_max_ids:
             fast_queue.append([])
         fast_queue[-1].append(game)
 
@@ -1075,30 +1329,292 @@ async def refresh(*games: list[Game], full=False, notifs=True):
     globals.refresh_progress += 1
     globals.refresh_total += sum(len(chunk) for chunk in fast_queue) + bool(notifs)
 
-    global fast_checks_sem, full_checks_sem
-    fast_checks_sem = asyncio.Semaphore(globals.settings.refresh_workers)
-    full_checks_sem = asyncio.Semaphore(int(max(1, globals.settings.refresh_workers / 10)))
+    global fast_checks_sem, full_checks_sem, fast_checks_counter
+    fast_checks_sem = asyncio.Semaphore(1)
+    full_checks_sem = asyncio.Semaphore(globals.settings.max_connections)
+    fast_checks_counter = 0
     tasks: list[asyncio.Task] = []
     try:
-        tasks = [asyncio.create_task(fast_check(chunk, full_queue, full=full)) for chunk in fast_queue]
-        await asyncio.gather(*tasks)
-        tasks = [asyncio.create_task(full_check(game, version)) for game, version in full_queue]
+        tasks = [asyncio.create_task(fast_check(chunk, full=full)) for chunk in fast_queue]
         await asyncio.gather(*tasks)
     except Exception:
         for task in tasks:
             task.cancel()
         fast_checks_sem = None
         full_checks_sem = None
+        fast_checks_counter = 0
         raise
     fast_checks_sem = None
     full_checks_sem = None
+    fast_checks_counter = 0
 
     if notifs:
-        await check_notifs()
+        await check_notifs(standalone=False)
 
     if not games:
         globals.settings.last_successful_refresh.update(time.time())
         await db.update_settings("last_successful_refresh")
+
+
+async def download_file(name: str, download: FileDownload):
+    try:
+        downloads[name] = download
+
+        if download.path is None:
+            downloads_dir = globals.settings.downloads_dir.get(globals.os)
+            if downloads_dir:
+                downloads_dir = pathlib.Path(downloads_dir)
+            else:
+                downloads_dir = pathlib.Path.home() / "Downloads"
+            download.path = downloads_dir / name
+        download.path.parent.mkdir(parents=True, exist_ok=True)
+        async with aiofiles.open(download.path, "wb") as file:
+            download.state = download.State.Downloading
+
+            can_resume = None
+            while True:
+                if can_resume and download.total:
+                    headers = {"Range": f"bytes={download.progress}-{download.total}"}
+                else:
+                    headers = None
+
+                async with request(
+                    "GET", download.url,
+                    cookies=download.cookies,
+                    headers=headers,
+                    timeout=3600 * 24,
+                    read=False,
+                ) as (_, req):
+                    if can_resume is None:
+                        can_resume = req.headers.get("Accept-Ranges") == "bytes"
+                    if download.total is None:
+                        download.total = req.content_length
+
+                    try:
+                        async for (chunk, _) in req.content.iter_chunks():
+                            if download.cancel:
+                                download.error = "Interrupted by user"
+                                return
+                            if chunk:
+                                download.progress += await file.write(chunk)
+                    except aiohttp.ClientPayloadError as exc:
+                        if "ContentLengthError" in str(exc):
+                            continue
+                        raise
+                break  # Loop is only to resume with `continue`
+
+        if download.checksum:
+            download.state = download.State.Verifying
+            def _file_checksum_sync():
+                with open(download.path, "rb") as file:
+                    return hashlib.file_digest(file, download.checksum[0]).hexdigest()
+            checksum = await asyncio.get_event_loop().run_in_executor(None, _file_checksum_sync)
+            if checksum.lower() != download.checksum[1].lower():
+                download.error = f"{download.checksum[0].upper()} checksum mismatch"
+                return
+
+        if archive_format := shutil._find_unpack_format(str(download.path)):
+            download.state = download.State.Extracting
+            download.extracted = download.path.with_suffix("")
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                shutil.unpack_archive,
+                download.path,
+                download.extracted,
+                archive_format,
+            )
+
+    except Exception:
+        download.error = error.text()
+        download.traceback = error.traceback()
+    finally:
+        download.state = download.State.Stopped
+
+
+async def ddl_file_list(thread_id: int):
+    res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
+        "thread_id": thread_id,
+    })
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    if res["status"] == "error" and res["msg"] == "Not a donor":
+        return False
+    raise_f95zone_error(res)
+    results = res["msg"]
+    sections = results["files"]
+    results["files"] = {}
+
+    for section, files in sections.items():
+        parsed = []
+        for title, file in files.items():
+            if not isinstance(file, dict):
+                parsed.append(DdlFile(
+                    thread_id=thread_id,
+                    id="",
+                    title=title,
+                    filename=file,
+                    size=0,
+                    date="",
+                    sha1="",
+                ))
+                continue
+            parsed.append(DdlFile(
+                thread_id=thread_id,
+                id=file["file_id"],
+                title=title,
+                filename=file["filename"],
+                size=int(file["size"]),
+                date=file["date"],
+                sha1=file["hash"],
+            ))
+        if match := re.match(r"\[SPOILER=(.+)\]", section):
+            section = match.group(1)
+        results["files"][section] = parsed
+    return results
+
+
+async def ddl_file_link(session_id: str, file: DdlFile):
+    res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
+        "thread_id": file.thread_id,
+        "file": file.id,
+        "session": session_id,
+    })
+    raise_f95zone_error(res)
+    res = json.loads(res)
+    raise_f95zone_error(res)
+    link = res["msg"]["url"]
+    cookies = res["msg"]["cookie"]
+    return link, cookies
+
+
+def open_ddl_popup(game: Game):
+    login = None
+    results = None
+    def _f95_ddl_popup():
+        nonlocal login, results
+
+        globals.gui.draw_game_downloads_header(game)
+
+        if not results:
+            imgui.text(f"Loading DDL file list for '{game.name}'...")
+            imgui.text("Status:")
+            imgui.same_line()
+            if login is None:
+                imgui.text("Logging in...")
+            elif not login:
+                return True
+            elif results is None:
+                imgui.text("Loading...")
+            elif results is False:
+                imgui.text("You don't have access to F95zone Donor DDL Service!")
+            else:
+                imgui.text("No DDL available for this item!")
+            return
+
+        if imgui.begin_table(
+            "###ddl_results",
+            column=4,
+            flags=imgui.TABLE_NO_SAVED_SETTINGS | imgui.TABLE_NO_CLIP,
+        ):
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_FIXED | imgui.TABLE_COLUMN_NO_CLIP)
+            imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
+            for i, (ddl_section, ddl_files) in enumerate(results["files"].items()):
+                imgui.table_next_row()
+                imgui.table_next_column()
+                imgui.spacing()
+                imgui.push_font(imgui.fonts.bold)
+                pos = imgui.get_cursor_screen_pos()
+                imgui.selectable(f"###ddl_results_{i}", False, imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS)
+                imgui.get_window_draw_list().add_text(*pos, imgui.get_color_u32_rgba(1, 1, 1, 1), ddl_section)
+                imgui.pop_font()
+                for ddl_file in ddl_files:
+                    imgui.table_next_row()
+                    imgui.table_next_column()
+                    imgui.dummy(0, 0)
+                    imgui.same_line(spacing=imgui.style.item_spacing.x / 2)
+                    if not ddl_file.id:
+                        imgui.push_disabled()
+                        imgui.button(icons.open_in_new)
+                        imgui.same_line()
+                        imgui.button(icons.content_copy)
+                        imgui.same_line()
+                        imgui.button(icons.download_multiple)
+                        imgui.table_next_column()
+                        imgui.text(f"{ddl_file.title}: {ddl_file.filename}")
+                        imgui.table_next_column()
+                        imgui.text("N/A")
+                        imgui.table_next_column()
+                        imgui.text("N/A")
+                        imgui.pop_disabled()
+                        continue
+                    if imgui.button(icons.open_in_new):
+                        async def _open_ddl_link(session_id: str, file: DdlFile):
+                            link, _ = await ddl_file_link(session_id, file)
+                            callbacks.open_webpage(link)
+                        async_thread.run(_open_ddl_link(results["session"], ddl_file))
+                    globals.gui.draw_hover_text(f"Open download link in browser", text=None)
+                    imgui.same_line()
+                    if imgui.button(icons.content_copy):
+                        async def _copy_ddl_link(session_id: str, file: DdlFile):
+                            link, _ = await ddl_file_link(session_id, file)
+                            callbacks.clipboard_copy(link)
+                        async_thread.run(_copy_ddl_link(results["session"], ddl_file))
+                    globals.gui.draw_hover_text(f"Copy download link to clipboard", text=None)
+                    imgui.same_line()
+                    if already_downloading := ddl_file.filename in downloads:
+                        imgui.push_disabled()
+                    if imgui.button(icons.download_multiple):
+                        async def _download_ddl_link(session_id: str, file: DdlFile):
+                            try:
+                                downloads[file.filename] = download = FileDownload(total=file.size, checksum=("sha1", file.sha1))
+                                download.url, download.cookies = await ddl_file_link(session_id, file)
+                            except Exception:
+                                del downloads[file.filename]
+                                raise
+                            asyncio.create_task(download_file(file.filename, download))
+                        async_thread.run(_download_ddl_link(results["session"], ddl_file))
+                    if already_downloading:
+                        imgui.pop_disabled()
+                        globals.gui.draw_hover_text(
+                            "This file is already downloading in F95Checker.\n"
+                            "You can find it in the sidebar, below the settings.",
+                            text=None,
+                        )
+                    else:
+                        globals.gui.draw_hover_text(f"Start downloading in F95Checker", text=None)
+                    imgui.table_next_column()
+                    imgui.text(ddl_file.title)
+                    imgui.same_line()
+                    globals.gui.draw_hover_text(ddl_file.filename)
+                    imgui.table_next_column()
+                    imgui.text(ddl_file.size_display)
+                    imgui.table_next_column()
+                    imgui.push_font(imgui.fonts.mono)
+                    imgui.text(ddl_file.date)
+                    imgui.pop_font()
+                    imgui.same_line()
+                    imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
+                    imgui.selectable(
+                        "", False,
+                        flags=imgui.SELECTABLE_SPAN_ALL_COLUMNS | imgui.SELECTABLE_DONT_CLOSE_POPUPS,
+                        height=imgui.get_frame_height()
+                    )
+                imgui.spacing()
+                imgui.spacing()
+            imgui.end_table()
+    async def _ddl_load_files():
+        nonlocal login, results
+        if login := await assert_login():
+            results = await ddl_file_list(game.id)
+    utils.push_popup(
+        utils.popup, "F95zone Donor DDL",
+        _f95_ddl_popup,
+        buttons=True,
+        closable=True,
+        outside=False,
+        footer="Thanks for supporting F95zone!"
+    )
+    async_thread.run(_ddl_load_files())
 
 
 ddos_guard_bypass_fake_mark = {

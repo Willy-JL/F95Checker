@@ -1,43 +1,47 @@
+import asyncio
 import configparser
 import contextlib
-import aiosqlite
-import sqlite3
-import asyncio
-import pathlib
-import typing
-import shutil
-import types
 import enum
 import json
-import time
+import pathlib
 import re
+import shutil
+import sqlite3
+import time
+import types
+import typing
 
-from modules.structs import (
-    TimelineEventType,
-    TimelineEvent,
-    SearchResult,
-    DefaultStyle,
-    ThreadMatch,
-    DisplayMode,
-    Timestamp,
-    Settings,
+import aiosqlite
+
+from common.structs import (
     Browser,
-    MsgBox,
-    Status,
-    Label,
-    Type,
+    DefaultStyle,
+    DisplayMode,
     Game,
+    Label,
+    MsgBox,
+    ProxyType,
+    SearchResult,
+    Settings,
+    Status,
     Tab,
+    ThreadMatch,
+    TimelineEvent,
+    TimelineEventType,
+    Timestamp,
+    Type,
+)
+from common import parser
+from external import (
+    async_thread,
+    error,
 )
 from modules import (
-    globals,
-    async_thread,
-    colors,
-    msgbox,
-    parser,
-    utils,
-    error,
     api,
+    colors,
+    globals,
+    msgbox,
+    utils,
 )
 
 connection: aiosqlite.Connection = None
@@ -94,6 +98,18 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
     if added:
         has_column_names, has_column_defs = await get_table_info(table_name)
 
+    # Remove columns
+    removed = False
+    for has_column_name in has_column_names:
+        if has_column_name not in columns:
+            await connection.execute(f"""
+                ALTER TABLE {table_name}
+                DROP COLUMN {has_column_name}
+            """)
+            removed = True
+    if removed:
+        has_column_names, has_column_defs = await get_table_info(table_name)
+
     # Update column defs
     recreated = False
     for column_name, column_def in columns.items():
@@ -114,7 +130,7 @@ async def create_table(table_name: str, columns: dict[str, str], renames: list[t
                 ({temp_column_list})
                 SELECT
                 {temp_column_list}
-                FROM {temp_table_name};
+                FROM {temp_table_name}
             """)
             await connection.execute(f"""
                 DROP TABLE {temp_table_name}
@@ -160,15 +176,16 @@ async def connect():
             "browser_private":             f'INTEGER DEFAULT {int(False)}',
             "browser":                     f'INTEGER DEFAULT {Browser.get(0).hash}',
             "cell_image_ratio":            f'REAL    DEFAULT 3.0',
-            "check_notifs":                f'INTEGER DEFAULT {int(True)}',
+            "check_notifs":                f'INTEGER DEFAULT {int(False)}',
             "compact_timeline":            f'INTEGER DEFAULT {int(False)}',
             "confirm_on_remove":           f'INTEGER DEFAULT {int(True)}',
             "copy_urls_as_bbcode":         f'INTEGER DEFAULT {int(False)}',
-            "datestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y"',
+            "datestamp_format":            f'TEXT    DEFAULT "%b %d, %Y"',
             "default_exe_dir":             f'TEXT    DEFAULT "{{}}"',
             "default_tab_is_new":          f'INTEGER DEFAULT {int(False)}',
             "display_mode":                f'INTEGER DEFAULT {DisplayMode.list}',
             "display_tab":                 f'INTEGER DEFAULT NULL',
+            "downloads_dir":               f'TEXT    DEFAULT "{{}}"',
             "ext_background_add":          f'INTEGER DEFAULT {int(False)}',
             "ext_highlight_tags":          f'INTEGER DEFAULT {int(True)}',
             "ext_icon_glow":               f'INTEGER DEFAULT {int(True)}',
@@ -180,14 +197,21 @@ async def connect():
             "highlight_tags":              f'INTEGER DEFAULT {int(True)}',
             "ignore_semaphore_timeouts":   f'INTEGER DEFAULT {int(False)}',
             "independent_tab_views":       f'INTEGER DEFAULT {int(False)}',
+            "insecure_ssl":                f'INTEGER DEFAULT {int(False)}',
             "interface_scaling":           f'REAL    DEFAULT 1.0',
             "last_successful_refresh":     f'INTEGER DEFAULT 0',
             "manual_sort_list":            f'TEXT    DEFAULT "[]"',
             "mark_installed_after_add":    f'INTEGER DEFAULT {int(False)}',
+            "max_connections":             f'INTEGER DEFAULT 10',
             "max_retries":                 f'INTEGER DEFAULT 2',
+            "proxy_type":                  f'INTEGER DEFAULT {ProxyType.Disabled}',
+            "proxy_host":                  f'TEXT    DEFAULT ""',
+            "proxy_port":                  f'INTEGER DEFAULT 8080',
+            "proxy_username":              f'TEXT    DEFAULT ""',
+            "proxy_password":              f'TEXT    DEFAULT ""',
             "quick_filters":               f'INTEGER DEFAULT {int(True)}',
+            "refresh_archived_games":      f'INTEGER DEFAULT {int(True)}',
             "refresh_completed_games":     f'INTEGER DEFAULT {int(True)}',
-            "refresh_workers":             f'INTEGER DEFAULT 20',
             "render_when_unfocused":       f'INTEGER DEFAULT {int(True)}',
             "request_timeout":             f'INTEGER DEFAULT 30',
             "rpc_enabled":                 f'INTEGER DEFAULT {int(True)}',
@@ -211,7 +235,6 @@ async def connect():
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
-            "use_parser_processes":        f'INTEGER DEFAULT {int(True)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "weighted_score":              f'INTEGER DEFAULT {int(False)}',
             "zoom_area":                   f'INTEGER DEFAULT 50',
@@ -224,6 +247,7 @@ async def connect():
             ("start_in_tray",         "start_in_background"),
             ("tray_notifs_interval",  "bg_notifs_interval"),
             ("tray_refresh_interval", "bg_refresh_interval"),
+            ("refresh_workers",       "max_connections"),
         ]
     )
     await connection.execute("""
@@ -249,7 +273,7 @@ async def connect():
             "last_updated":                f'INTEGER DEFAULT 0',
             "last_full_check":             f'INTEGER DEFAULT 0',
             "last_check_version":          f'TEXT    DEFAULT ""',
-            "last_played":                 f'INTEGER DEFAULT 0',
+            "last_launched":               f'INTEGER DEFAULT 0',
             "score":                       f'REAL    DEFAULT 0',
             "votes":                       f'INTEGER DEFAULT 0',
             "rating":                      f'INTEGER DEFAULT 0',
@@ -267,13 +291,15 @@ async def connect():
             "tab":                         f'INTEGER DEFAULT NULL',
             "notes":                       f'TEXT    DEFAULT ""',
             "image_url":                   f'TEXT    DEFAULT ""',
+            "previews_urls":               f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
         },
         renames=[
-            ("executable", "executables"),
-            ("last_full_refresh", "last_full_check"),
+            ("executable",           "executables"),
+            ("last_full_refresh",    "last_full_check"),
             ("last_refresh_version", "last_check_version"),
-            ("played", "finished"),
+            ("played",               "finished"),
+            ("last_played",          "last_launched"),
         ]
     )
 
@@ -297,7 +323,7 @@ async def connect():
         columns={
             "id":                          f'INTEGER PRIMARY KEY AUTOINCREMENT',
             "name":                        f'TEXT    DEFAULT ""',
-            "icon":                        f'TEXT    DEFAULT "{Tab.base_icon}"',
+            "icon":                        f'TEXT    DEFAULT "{Tab.base_icon()}"',
             "color":                       f'TEXT    DEFAULT NULL',
         }
     )
@@ -406,14 +432,6 @@ async def load():
     for tab in await cursor.fetchall():
         Tab.add(row_to_cls(tab, Tab))
 
-    cursor = await connection.execute("""
-        SELECT *
-        FROM timeline_events
-        ORDER BY timestamp DESC
-    """)
-    for event in await cursor.fetchall():
-        TimelineEvent.add(row_to_cls(event, TimelineEvent))
-
     # Settings need Tabs to be loaded
     cursor = await connection.execute("""
         SELECT *
@@ -425,9 +443,21 @@ async def load():
     globals.games = {}
     await load_games()
 
-    # "join" games and timeline events
-    for event in TimelineEvent.instances:
+    # TimelineEvents need Games to be loaded
+    cursor = await connection.execute("""
+        SELECT *
+        FROM timeline_events
+        ORDER BY timestamp DESC
+    """)
+    unknown_game_ids = set()
+    for event in await cursor.fetchall():
+        event = row_to_cls(event, TimelineEvent)
+        if event.game_id not in globals.games:
+            unknown_game_ids.add(event.game_id)
+            continue
         globals.games[event.game_id].timeline_events.append(event)
+    for unknown_game_id in unknown_game_ids:
+        await delete_timeline_events(unknown_game_id)
 
     cursor = await connection.execute("""
         SELECT *
@@ -547,7 +577,7 @@ async def create_game(thread: ThreadMatch | SearchResult = None, custom=False):
             (id, custom, name, url, added_on)
             VALUES
             (?,  ?,      ?,    ?,   ?       )
-        """, (thread.id, False, thread.title or f"Unknown ({thread.id})", f"{api.threads_page}{thread.id}", int(time.time())))
+        """, (thread.id, False, thread.title or f"Unknown ({thread.id})", f"{api.f95_threads_page}{thread.id}", int(time.time())))
         return thread.id
 
 
@@ -648,7 +678,7 @@ async def create_timeline_event(game_id: int, timestamp: Timestamp, arguments: l
         VALUES
         (?, ?, ?, ?)
     """, [py_to_sql(value) for value in (game_id, timestamp, arguments, type)])
-    event = TimelineEvent.add(game_id, timestamp, arguments, type)
+    event = TimelineEvent(game_id, timestamp, arguments, type)
     globals.games[game_id].timeline_events.insert(0, event)
 
 
@@ -685,7 +715,7 @@ def legacy_json_to_dict(path: pathlib.Path):  # Pre v9.0
             if not link:
                 continue
             if link.startswith("/"):
-                link = api.host + link
+                link = api.f95_host + link
             match = utils.extract_thread_matches(link)
             if not match:
                 continue
@@ -718,7 +748,7 @@ def legacy_ini_to_dict(path: pathlib.Path):  # Pre v7.0
         if not link:
             continue
         if link.startswith("/"):
-            link = api.host + link
+            link = api.f95_host + link
         match = utils.extract_thread_matches(link)
         if not match:
             continue

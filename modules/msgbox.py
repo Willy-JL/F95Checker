@@ -1,9 +1,8 @@
 import typing
+
 import imgui
 
-from modules.structs import (
-    MsgBox,
-)
+from common.structs import MsgBox
 from modules import (
     globals,
     icons,
@@ -40,7 +39,7 @@ def msgbox(title: str, msg: str, level: MsgBox = None, buttons: dict[str, typing
             imgui.text("")
             if imgui.tree_node("More info", flags=imgui.TREE_NODE_SPAN_AVAILABLE_WIDTH):
                 size = imgui.io.display_size
-                imgui.push_font(imgui.fonts.mono)
+                imgui.push_font(imgui.fonts.mono_sm)
                 more_size = imgui.calc_text_size(more)
                 _36 = globals.gui.scaled(26) + imgui.style.scrollbar_size
                 width = min(more_size.x + _36, size.x * 0.8 - icon_size.x)

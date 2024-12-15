@@ -3,10 +3,9 @@
     "name": "F95Checker Browser Addon",
     "short_name": "F95Checker",
     "author": "WillyJL",
-    "version": "11.0.0",
-    "description": "Integration between the F95Zone forum and the F95Checker app",
+    "version": "11.0.1",
+    "description": "Integration between the F95zone forum and the F95Checker app",
     "homepage_url": "https://github.com/Willy-JL/F95Checker",
-
     "action": {
         "default_icon": {
             "16": "icons/16.png",
@@ -20,7 +19,6 @@
         "64": "icons/64.png",
         "128": "icons/128.png"
     },
-
     "background": {
         "service_worker": "extension.js"
     },
@@ -30,5 +28,18 @@
         "contextMenus",
         "webNavigation"
     ],
-    "host_permissions": ["*://*.f95zone.to/*"]
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "fonts/mdi-webfont.ttf"
+            ],
+            "matches": [
+                "https://f95zone.to/*"
+            ],
+            "use_dynamic_url": true
+        }
+    ],
+    "host_permissions": [
+        "*://*.f95zone.to/*"
+    ]
 }

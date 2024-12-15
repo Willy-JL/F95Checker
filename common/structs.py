@@ -1,19 +1,17 @@
-import multiprocessing.queues
-import multiprocessing
-import datetime as dt
-import dataclasses
-import functools
-import aiofiles
 import asyncio
-import weakref
-import pathlib
-import hashlib
-import typing
-import queue
+import dataclasses
+import datetime as dt
 import enum
+import functools
+import hashlib
 import json
-import time
 import os
+import pathlib
+import time
+import typing
+import weakref
+
+from modules import colors
 
 
 class CounterContext:
@@ -65,15 +63,18 @@ class DaemonProcess:
 
     @staticmethod
     def kill(proc):
-        # Multiprocessing
-        if getattr(proc, "exitcode", False) is None:
-            proc.kill()
-        # Asyncio subprocess
-        elif getattr(proc, "returncode", False) is None:
-            proc.kill()
-        # Standard subprocess
-        elif getattr(proc, "poll", lambda: False)() is None:
-            proc.kill()
+        try:
+            # Multiprocessing
+            if getattr(proc, "exitcode", False) is None:
+                proc.kill()
+            # Asyncio subprocess
+            elif getattr(proc, "returncode", False) is None:
+                proc.kill()
+            # Standard subprocess
+            elif getattr(proc, "poll", lambda: False)() is None:
+                proc.kill()
+        except Exception:
+            pass
 
     def __enter__(self):
         return self
@@ -82,54 +83,24 @@ class DaemonProcess:
         self.finalize()
 
 
-class MultiProcessPipe(multiprocessing.queues.Queue):
+class DaemonPipe:
     __slots__ = ("proc", "daemon",)
 
-    def __init__(self):
-        super().__init__(0, ctx=multiprocessing.get_context())
-
-    def __call__(self, proc: multiprocessing.Process):
-        self.proc = proc
-        self.daemon = DaemonProcess(proc)
-        return self
-
-    async def get_async(self, poll_rate=0.1):
-        while self.proc.is_alive():
-            try:
-                return self.get_nowait()
-            except queue.Empty:
-                await asyncio.sleep(poll_rate)
-        return self.get_nowait()
-
-    def __enter__(self):
-        self.proc.start()
-        self.daemon.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.daemon.__exit__()
-        if exc_type is queue.Empty:
-            return True
-
-
-class AsyncProcessPipe:
-    __slots__ = ("proc", "daemon",)
-
-    class process_exit(Exception):
+    class DaemonPipeExit(Exception):
         __slots__ = ()
 
-    def __call__(self, proc: asyncio.subprocess.Process):
+    def __init__(self, proc: asyncio.subprocess.Process):
         self.proc = proc
         self.daemon = DaemonProcess(proc)
-        return self
 
-    async def get_async(self, poll_rate=0.1):
-        while self.proc.returncode is None:
+    async def get_async(self):
+        while self.proc.returncode is None and not self.proc.stdout.at_eof():
             try:
                 return json.loads(await self.proc.stdout.readline())
             except json.JSONDecodeError:
                 pass
-        raise self.process_exit()
+            await asyncio.sleep(0)
+        raise self.DaemonPipeExit()
 
     def __enter__(self):
         self.daemon.__enter__()
@@ -137,18 +108,18 @@ class AsyncProcessPipe:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.daemon.__exit__()
-        if exc_type is self.process_exit:
+        if exc_type is self.DaemonPipeExit:
             return True
 
 
 class Timestamp:
-    instances = []
+    instances = weakref.WeakSet()
 
-    __slots__ = ("value", "_display")
+    __slots__ = ("value", "_display", "__weakref__",)
 
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
-        type(self).instances.append(self)
+        type(self).instances.add(self)
 
     def update(self, unix_time: int | float = None):
         if unix_time is not None:
@@ -174,13 +145,13 @@ class Timestamp:
 
 
 class Datestamp(Timestamp):
-    instances = []
+    instances = weakref.WeakSet()
 
     __slots__ = ()
 
     def __init__(self, unix_time: int | float):
         self.update(unix_time)
-        type(self).instances.append(self)
+        type(self).instances.add(self)
 
     @property
     def format(self):
@@ -207,6 +178,7 @@ class ThreadMatch:
 @dataclasses.dataclass(slots=True)
 class SearchResult:
     title: str
+    creator: str
     url: str
     id: int
 
@@ -221,15 +193,59 @@ class TorrentResult:
     date: int | str
 
     def __post_init__(self):
-        from modules import globals
-        for unit in ["B", "KB", "MB", "GB", "TB"]:
-            if self.size < 1024:
-                break
-            self.size /= 1024
-        self.size = f"{self.size:.1f}{unit}"
+        from modules import (
+            globals,
+            utils,
+        )
+        self.size = utils.sizeof_fmt(self.size)
         self.seeders = str(self.seeders)
         self.leechers = str(self.leechers)
         self.date = dt.datetime.fromtimestamp(self.date).strftime(globals.settings.datestamp_format)
+
+
+@dataclasses.dataclass(slots=True)
+class DdlFile:
+    thread_id: int
+    id: str
+    title: str
+    filename: str
+    size: int
+    date: str
+    sha1: str
+    size_display: str = None
+
+    def __post_init__(self):
+        if not self.id:
+            return
+        from modules import (
+            globals,
+            utils,
+        )
+        self.size_display = utils.sizeof_fmt(int(self.size))
+        self.date = dt.datetime.strptime(self.date, r"%Y-%m-%d").strftime(globals.settings.datestamp_format)
+
+
+@dataclasses.dataclass(slots=True)
+class FileDownload:
+    url: str = ""
+    cookies: dict = True
+    checksum: tuple[str, str] = None
+    path: pathlib.Path = None
+    progress: int = 0
+    total: int = None
+
+    class State(enum.IntEnum):
+        Preparing = enum.auto()
+        Downloading = enum.auto()
+        Verifying = enum.auto()
+        Extracting = enum.auto()
+        Stopped = enum.auto()
+
+    cancel: bool = False
+    state: State = State.Preparing
+    extracted: pathlib.Path = None
+    error: str = None
+    traceback: str = None
 
 
 @dataclasses.dataclass(slots=True)
@@ -314,11 +330,14 @@ Tag = IntEnumHack("Tag", [
     ("asset-bundle",           (14,  {"text": "asset-bundle"})),
     ("asset-character",        (15,  {"text": "asset-character"})),
     ("asset-clothing",         (16,  {"text": "asset-clothing"})),
+    ("asset-daz-gen1",         (151, {"text": "asset-daz-gen1"})),
     ("asset-daz-gen2",         (141, {"text": "asset-daz-gen2"})),
     ("asset-daz-gen3",         (142, {"text": "asset-daz-gen3"})),
     ("asset-daz-gen8",         (143, {"text": "asset-daz-gen8"})),
     ("asset-daz-gen81",        (144, {"text": "asset-daz-gen81"})),
     ("asset-daz-gen9",         (145, {"text": "asset-daz-gen9"})),
+    ("asset-daz-m4",           (152, {"text": "asset-daz-m4"})),
+    ("asset-daz-v4",           (153, {"text": "asset-daz-v4"})),
     ("asset-environment",      (17,  {"text": "asset-environment"})),
     ("asset-expression",       (18,  {"text": "asset-expression"})),
     ("asset-female",           (146, {"text": "asset-female"})),
@@ -331,6 +350,7 @@ Tag = IntEnumHack("Tag", [
     ("asset-male",             (147, {"text": "asset-male"})),
     ("asset-morph",            (25,  {"text": "asset-morph"})),
     ("asset-nonbinary",        (148, {"text": "asset-nonbinary"})),
+    ("asset-playhome",         (150, {"text": "asset-playhome"})),
     ("asset-plugin",           (26,  {"text": "asset-plugin"})),
     ("asset-pose",             (27,  {"text": "asset-pose"})),
     ("asset-prop",             (28,  {"text": "asset-prop"})),
@@ -494,6 +514,14 @@ Category = IntEnumHack("Category", [
 ])
 
 
+ProxyType = IntEnumHack("ProxyType", [
+    ("Disabled", 1),
+    ("SOCKS4",   2),
+    ("SOCKS5",   3),
+    ("HTTP",     4),
+])
+
+
 @dataclasses.dataclass(slots=True)
 class Filter:
     mode: FilterMode
@@ -507,7 +535,7 @@ class Filter:
 
 TimelineEventType = IntEnumHack("TimelineEventType", [
     ("GameAdded",        (1,  {"display": "Added",             "icon": "alert_decagram", "args_min": 0, "template": "Added to the library"})),
-    ("GameLaunched",     (2,  {"display": "Launched",          "icon": "play",           "args_min": 1, "template": "Launched \"{}\""})),
+    ("GameLaunched",     (2,  {"display": "Launched",          "icon": "play",           "args_min": 1, "template": "Launched {}"})),
     ("GameFinished",     (3,  {"display": "Finished",          "icon": "flag_checkered", "args_min": 1, "template": "Finished {}"})),
     ("GameInstalled",    (4,  {"display": "Installed",         "icon": "download",       "args_min": 1, "template": "Installed {}"})),
     ("ChangedName",      (5,  {"display": "Changed name",      "icon": "spellcheck",     "args_min": 2, "template": "Name changed from \"{}\" to \"{}\""})),
@@ -519,28 +547,17 @@ TimelineEventType = IntEnumHack("TimelineEventType", [
     ("TagsRemoved",      (11, {"display": "Tags removed",      "icon": "tag_minus",      "args_min": 1, "template": "Tags were removed: {}"})),
     ("ScoreIncreased",   (12, {"display": "Score increased",   "icon": "thumb_up",       "args_min": 4, "template": "Forum score increased from {} ({}) to {} ({})"})),
     ("ScoreDecreased",   (13, {"display": "Score decreased",   "icon": "thumb_down",     "args_min": 4, "template": "Forum score decreased from {} ({}) to {} ({})"})),
-    ("RecheckExpired",   (14, {"display": "Recheck expired",   "icon": "timer_sync",     "args_min": 1, "template": "Forcefully performed a full recheck because game has remained idle for {} day(s)"})),
+    ("RecheckExpired",   (14, {"display": "Recheck expired",   "icon": "timer_sync",     "args_min": 1, "template": "Forcefully performed a full recheck because game has remained idle for {} day(s)"})),  # Unused
     ("RecheckUserReq",   (15, {"display": "Recheck requested", "icon": "reload_alert",   "args_min": 0, "template": "Forcefully performed a full recheck requested by user"})),
 ])
 
 
 @dataclasses.dataclass(slots=True)
 class TimelineEvent:
-    instances = []
-
     game_id: int
     timestamp: Timestamp
     arguments: list[str]
     type: TimelineEventType
-
-    @classmethod
-    def add(cls, *args, **kwargs):
-        if args and isinstance(obj := args[0], cls):
-            self = obj
-        else:
-            self = cls(*args, **kwargs)
-        cls.instances.append(self)
-        return self
 
 
 @dataclasses.dataclass(slots=True)
@@ -606,13 +623,11 @@ class Tab:
             cls.instances.remove(self)
 
     @classmethod
-    @property
     def base_icon(cls):
         from modules import icons
         return icons.heart_box
 
     @classmethod
-    @property
     def first_tab_label(cls):
         from modules import globals, icons
         if globals.settings.default_tab_is_new:
@@ -704,6 +719,7 @@ class Settings:
     default_tab_is_new          : bool
     display_mode                : DisplayMode
     display_tab                 : Tab.get
+    downloads_dir               : dict[Os, str]
     ext_background_add          : bool
     ext_highlight_tags          : bool
     ext_icon_glow               : bool
@@ -715,14 +731,21 @@ class Settings:
     highlight_tags              : bool
     ignore_semaphore_timeouts   : bool
     independent_tab_views       : bool
+    insecure_ssl                : bool
     interface_scaling           : float
     last_successful_refresh     : Timestamp
     manual_sort_list            : list[int]
     mark_installed_after_add    : bool
+    max_connections             : int
     max_retries                 : int
+    proxy_type                  : ProxyType
+    proxy_host                  : str
+    proxy_port                  : int
+    proxy_username              : str
+    proxy_password              : str
     quick_filters               : bool
+    refresh_archived_games      : bool
     refresh_completed_games     : bool
-    refresh_workers             : int
     render_when_unfocused       : bool
     request_timeout             : int
     rpc_enabled                 : bool
@@ -746,7 +769,6 @@ class Settings:
     style_text_dim              : tuple[float]
     tags_highlights             : dict[Tag, TagHighlight]
     timestamp_format            : str
-    use_parser_processes        : bool
     vsync_ratio                 : int
     weighted_score              : bool
     zoom_area                   : int
@@ -759,11 +781,6 @@ class Settings:
             self.default_exe_dir[globals.os] = self.default_exe_dir[""]
             del self.default_exe_dir[""]
 
-
-from modules import (
-    imagehelper,
-    colors,
-)
 
 Type = IntEnumHack("Type", [
     ("ADRIFT",     (2,  {"color": colors.hex_to_rgba_0_1("#2196F3"), "category": Category.Games})),
@@ -813,7 +830,7 @@ class Game:
     last_updated       : Datestamp
     last_full_check    : int
     last_check_version : str
-    last_played        : Datestamp
+    last_launched      : Datestamp
     score              : float
     votes              : int
     rating             : int
@@ -831,9 +848,10 @@ class Game:
     tab                : Tab.get
     notes              : str
     image_url          : str
+    previews_urls      : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
     selected           : bool = False
-    image              : imagehelper.ImageHelper = None
+    image              : "imagehelper.ImageHelper" = None
     executables_valids : list[bool] = None
     executables_valid  : bool = None
     timeline_events    : list[TimelineEvent] = dataclasses.field(default_factory=list)
@@ -853,6 +871,7 @@ class Game:
             self.finished = (self.installed or self.version)
         elif self.finished == "False" and self.installed != "False" and self.version != "False":
             self.finished = ""
+        from external import imagehelper
         from modules import globals
         self.image = imagehelper.ImageHelper(globals.images_path, glob=f"{self.id}.*")
         self.validate_executables()
@@ -872,6 +891,7 @@ class Game:
 
     async def set_image_async(self, data: bytes):
         from modules import globals, utils
+        import aiofiles
         self.delete_images()
         if data:
             async with aiofiles.open(globals.images_path / f"{self.id}.{utils.image_ext(data)}", "wb") as f:
@@ -905,7 +925,8 @@ class Game:
                     executables_valids.append((base / exe).is_file())
             self.executables_valids = executables_valids
             if changed:
-                from modules import async_thread, db
+                from external import async_thread
+                from modules import db
                 async_thread.run(db.update_game(self, "executables"))
         else:
             self.executables_valids = [utils.is_uri(executable) or os.path.isfile(executable) for executable in self.executables]
@@ -925,19 +946,26 @@ class Game:
         if executable in self.executables:
             return
         self.executables.append(executable)
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
+        if self.installed != self.version:
+            self.add_timeline_event(TimelineEventType.GameInstalled, self.version)
+            self.installed = self.version
+            self.updated = False
 
     def remove_executable(self, executable: str):
         self.executables.remove(executable)
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
 
     def clear_executables(self):
         self.executables.clear()
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.update_game(self, "executables"))
         self.validate_executables()
 
@@ -945,7 +973,8 @@ class Game:
         if label not in self.labels:
             self.labels.append(label)
         self.labels.sort(key=lambda label: Label.instances.index(label))
-        from modules import globals, async_thread, db
+        from external import async_thread
+        from modules import db, globals
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
             globals.gui.recalculate_ids = True
@@ -953,13 +982,15 @@ class Game:
     def remove_label(self, label: Label):
         while label in self.labels:
             self.labels.remove(label)
-        from modules import globals, async_thread, db
+        from external import async_thread
+        from modules import db, globals
         async_thread.run(db.update_game(self, "labels"))
         if globals.gui:
             globals.gui.recalculate_ids = True
 
     def add_timeline_event(self, type: TimelineEventType, *args):
-        from modules import async_thread, db
+        from external import async_thread
+        from modules import db
         async_thread.run(db.create_timeline_event(self.id, Timestamp(time.time()), list(args), type))
 
 
@@ -976,7 +1007,7 @@ class Game:
             "last_updated",
             "last_full_check",
             "last_check_version",
-            "last_played",
+            "last_launched",
             "score",
             "votes",
             "rating",
@@ -994,13 +1025,15 @@ class Game:
             "tab",
             "notes",
             "image_url",
+            "previews_urls",
             "downloads"
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
                 attr.update(value)
             else:
                 super(Game, self).__setattr__(name, value)
-            from modules import globals, async_thread, db
+            from external import async_thread
+            from modules import db, globals
             async_thread.run(db.update_game(self, name))
             if globals.gui:
                 globals.gui.recalculate_ids = True

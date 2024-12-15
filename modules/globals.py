@@ -2,11 +2,20 @@ from concurrent.futures import Future
 from functools import partial
 import os as _os
 import pathlib
-import shutil
-import shlex
-import sys
 import re
+import shlex
+import shutil
+import sys
 
+from common.structs import (
+    Browser,
+    Game,
+    OldGame,
+    Os,
+    Settings,
+)
+
+# Load version info, main globals, and some workarounds
 version = None
 release = None
 build_number = None
@@ -23,11 +32,13 @@ def _():
     # Fix frozen load paths
     if frozen:
         if sys.platform.startswith("linux"):
-            library = self_path / f"lib/glfw/{_os.environ.get('XDG_SESSION_TYPE')}/libglfw.so"
-            if library.is_file():
-                _os.environ["PYGLFW_LIBRARY"] = str(library)
+            session_type = _os.environ.get('XDG_SESSION_TYPE')
+            if session_type in ("x11", "wayland"):
+                library = self_path / f"lib/glfw/{session_type}/libglfw.so"
+                if library.is_file():
+                    _os.environ["PYGLFW_LIBRARY"] = str(library)
         elif sys.platform.startswith("darwin"):
-            process = self_path / "lib/PyQt6/Qt6/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
+            process = self_path.parent / "Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
             if process.is_file():
                 _os.environ["QTWEBENGINEPROCESS_PATH"] = str(process)
 
@@ -37,17 +48,24 @@ def _():
     PngImagePlugin.MAX_TEXT_CHUNK *= 10
 
     # Optimize OpenGL
+    import glfw
     import OpenGL
+    glfw.ERROR_REPORTING = debug
     for option in ("ERROR_LOGGING", "ERROR_CHECKING", "CONTEXT_CHECKING"):
         setattr(OpenGL, option, debug)
     if debug:
         import logging
+        glfw.ERROR_REPORTING = {
+            65548: "warn",  # Wayland: The platform does not support window position/icon
+            None: "raise",
+        }
         logging.basicConfig()
 _()
 
-from modules.structs import Browser, Game, OldGame, Os, Settings
+# Done here to avoid circular import
 from modules.gui import MainGUI
 
+# Configure data paths
 os = None
 data_path = None
 images_path = None
@@ -76,6 +94,7 @@ def _():
     images_path.mkdir(parents=True, exist_ok=True)
 _()
 
+# Discover available browsers
 def _():
     if os is Os.Windows:
         import winreg
@@ -100,24 +119,30 @@ def _():
                 pass  # Key doesn't exist
     elif os is Os.Linux:
         import configparser
-        app_dir = pathlib.Path("/usr/share/applications")
-        raw = (app_dir / "mimeinfo.cache").read_bytes()
-        apps = []
-        for match in re.finditer(rb"x-scheme-handler/https?=(.+)", raw):
-            for app in match.group(1)[:-1].split(b";"):
-                app = str(app, encoding="utf-8")
-                if app not in apps:
-                    apps.append(app)
-        for app in apps:
-            app_file = app_dir / app
-            if not app_file.is_file():
+        for xdg_dir in _os.environ.get("XDG_DATA_DIRS", "/usr/share/").split(":"):
+            if not xdg_dir:
                 continue
-            parser = configparser.RawConfigParser()
-            parser.read(app_file)
-            name = parser.get("Desktop Entry", "Name")
-            args = [arg for arg in shlex.split(parser.get("Desktop Entry", "Exec")) if not (len(arg) == 2 and arg.startswith("%"))]
-            if args and pathlib.Path(shutil.which(args[0])).exists():
-                Browser.add(name, args=args)
+            app_dir = pathlib.Path(xdg_dir) / "applications"
+            apps_file = app_dir / "mimeinfo.cache"
+            if not apps_file.is_file():
+                continue
+            raw = apps_file.read_bytes()
+            apps = []
+            for match in re.finditer(rb"x-scheme-handler/https?=(.+)", raw):
+                for app in match.group(1).split(b";"):
+                    app = str(app, encoding="utf-8")
+                    if app and app not in apps:
+                        apps.append(app)
+            for app in apps:
+                app_file = app_dir / app
+                if not app_file.is_file():
+                    continue
+                parser = configparser.RawConfigParser()
+                parser.read(app_file)
+                name = parser.get("Desktop Entry", "Name")
+                args = [arg for arg in shlex.split(parser.get("Desktop Entry", "Exec")) if not (len(arg) == 2 and arg.startswith("%"))]
+                if args and pathlib.Path(shutil.which(args[0])).exists():
+                    Browser.add(name, args=args)
     elif os is Os.MacOS:
         import plistlib
         app_dir = pathlib.Path("/Applications")
@@ -142,28 +167,32 @@ def _():
                     break
 _()
 
+# Check self launch command and startup settings
 start_cmd = None
 autostart = None
 start_with_system = None
 def _():
     global start_cmd, autostart, start_with_system
     if frozen:
-        start_cmd = shlex.join([sys.executable])
+        start_cmd = [sys.executable]
     else:
         from main import __file__ as main_path
-        start_cmd = shlex.join([sys.executable, main_path])
+        start_cmd = [sys.executable, main_path]
 
     if os is Os.Windows:
         import winreg
-        autostart = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\F95Checker"
+        start_cmd = " ".join(f'"{split}"' for split in start_cmd)
+        autostart = pathlib.Path("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\\F95Checker")
         try:
             current_user = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-            value = winreg.QueryValue(current_user, autostart)
+            key = winreg.OpenKeyEx(current_user, str(autostart.parent))
+            value = winreg.QueryValueEx(key, autostart.name)[0]
             start_with_system = value == start_cmd
         except Exception:
             start_with_system = False
     elif os is Os.Linux:
         import configparser
+        start_cmd = shlex.join(start_cmd)
         autostart_dir = pathlib.Path.home() / ".config/autostart"
         autostart_dir.mkdir(parents=True, exist_ok=True)
         autostart = autostart_dir / "F95Checker.desktop"
@@ -177,6 +206,7 @@ def _():
             start_with_system = False
     elif os is Os.MacOS:
         import plistlib
+        start_cmd = shlex.join(start_cmd)
         autostart_dir = pathlib.Path.home() / "Library/LaunchAgents"
         autostart_dir.mkdir(parents=True, exist_ok=True)
         autostart = autostart_dir / "io.github.willy-jl.f95checker.plist"
