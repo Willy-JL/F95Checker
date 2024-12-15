@@ -61,7 +61,7 @@ const updateIcons = async (tabId) => {
                 const cssContent = String.raw`
                     @font-face{
                         font-family: "MDI Custom";
-                        src: url('${rpcURL}/assets/mdi-webfont.ttf') format('truetype');
+                        src: url('${chrome.runtime.getURL("fonts/mdi-webfont.ttf")}') format('truetype');
                         font-weight: normal;
                         font-style: normal;
                     }

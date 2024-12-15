@@ -1,10 +1,10 @@
 {
     "manifest_version": 3,
-    "name": "F95Checker Browser Addon",
-    "short_name": "F95Checker",
+    "name": "F95Checker-Test Browser Addon",
+    "short_name": "F95Checker-Test",
     "author": "WillyJL",
-    "version": "11.0.0",
-    "description": "Integration between the F95zone forum and the F95Checker app",
+    "version": "11.0.0.1187",
+    "description": "Integration between the F95Zone forum and the F95Checker app",
     "homepage_url": "https://github.com/Willy-JL/F95Checker",
 
     "action": {
@@ -30,5 +30,11 @@
         "contextMenus",
         "webNavigation"
     ],
+    "web_accessible_resources": [
+        {
+            "resources": [ "fonts/mdi-webfont.ttf" ],
+            "matches": [ "https://f95zone.to/*" ],
+            "use_dynamic_url": true
+        }],
     "host_permissions": ["*://*.f95zone.to/*"]
 }
