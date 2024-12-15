@@ -11,6 +11,7 @@
 - Add executable checks best partial match to account for versions/mods/other things in dir names (#163 by @MayhemSixx)
 
 ### Fixed:
+- More efficient grid/kanban cell cluster text (#200 by @Willy-JL)
 - Fix Windows start with system setting and quotes usage (#156 by @oneshoekid & @Willy-JL)
 - Fix Extension mdi-webfont not loading from RPC (#205 by @FaceCrap)
 - Fix Extension context menu missing after browser restart (#206 by @TheOnlyRealKat)
