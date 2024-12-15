@@ -41,9 +41,9 @@ def msgbox(title: str, msg: str, level: MsgBox = None, buttons: dict[str, typing
                 size = imgui.io.display_size
                 imgui.push_font(imgui.fonts.mono_sm)
                 more_size = imgui.calc_text_size(more)
-                _36 = globals.gui.scaled(26) + imgui.style.scrollbar_size
-                width = min(more_size.x + _36, size.x * 0.8 - icon_size.x)
-                height = min(more_size.y + _36, size.y * 0.7 - msg_size_y)
+                _26 = globals.gui.scaled(26) + imgui.style.scrollbar_size
+                width = min(more_size.x + _26, size.x * 0.8 - icon_size.x)
+                height = min(more_size.y + _26, size.y * 0.7 - msg_size_y)
                 imgui.input_text_multiline(f"###more_info", more,  width=width, height=height, flags=imgui.INPUT_TEXT_READ_ONLY)
                 if imgui.begin_popup_context_item(f"###more_info_context"):
                     utils.text_context(type("_", (), dict(_=more))(), "_", editable=False)
