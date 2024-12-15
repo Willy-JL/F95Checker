@@ -294,19 +294,17 @@ chrome.browserAction.onClicked.addListener((tab) => {
 });
 
 // Context menus
-chrome.runtime.onInstalled.addListener(async () => {
-    chrome.contextMenus.create({
-        id: `add-page-to-f95checker`,
-        title: `Add this page to F95Checker`,
-        contexts: ['page'],
-        documentUrlPatterns: ['*://*.f95zone.to/threads/*'],
-    });
-    chrome.contextMenus.create({
-        id: `add-link-to-f95checker`,
-        title: `Add this link to F95Checker`,
-        contexts: ['link'],
-        targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
-    });
+chrome.contextMenus.create({
+    id: `add-page-to-f95checker`,
+    title: `Add this page to F95Checker`,
+    contexts: ['page'],
+    documentUrlPatterns: ['*://*.f95zone.to/threads/*'],
+});
+chrome.contextMenus.create({
+    id: `add-link-to-f95checker`,
+    title: `Add this link to F95Checker`,
+    contexts: ['link'],
+    targetUrlPatterns: ['*://*.f95zone.to/threads/*'],
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
