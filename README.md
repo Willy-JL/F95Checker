@@ -176,6 +176,7 @@ dedicated API, not directly from F95zone. This data is cached for up to 7 days, 
 - threads not tracked by F95zone Latest Updates at all are checked at least every 2 days
 - other thread types and other changes not in F95zone Latest Updates are checked at least every 7 days
 - if a requested thread does not exist, it will not be checked again for 14 days
+
 The tool will ask this API when the last time was that a thread changed any of its data, 10 threads at a time; the API will check if any of these are due to be
 checked again, do it if so, then return the timestamps; the tool will only fetch the full data for threads that changed since the last refresh (unless you force a
 full refresh, in which case the full data for all threads is fetched).
