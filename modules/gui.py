@@ -328,7 +328,6 @@ class MainGUI():
         self.selected_games_count = 0
         self.game_hitbox_click = False
         self.hovered_game: Game = None
-        self.sorts: list[SortSpec] = []
         self.filters: list[Filter] = []
         self.poll_chars: list[int] = []
         self.refresh_ratio_smooth = 0.0
@@ -341,6 +340,7 @@ class MainGUI():
         self.prev_filters: list[Filter] = []
         self.ghost_columns_enabled_count = 0
         self.bg_mode_notifs_timer: float = None
+        self.sorts: dict[str, list[SortSpec]] = {}
         self.show_games_ids: dict[Tab, list[int]] = {}
 
         # Setup Qt objects
@@ -2901,7 +2901,7 @@ class MainGUI():
             globals.settings.display_tab = new_tab
             async_thread.run(db.update_settings("display_tab"))
 
-    def calculate_ids(self, sorts: imgui.core._ImGuiTableSortSpecs):
+    def calculate_ids(self, table_id: str, sorts: imgui.core._ImGuiTableSortSpecs):
         manual_sort = cols.manual_sort.enabled
         if manual_sort != self.prev_manual_sort:
             self.prev_manual_sort = manual_sort
@@ -2909,11 +2909,14 @@ class MainGUI():
         if self.prev_filters != self.filters:
             self.prev_filters = self.filters.copy()
             self.recalculate_ids = True
-        if sorts.specs_count > 0:
-            self.sorts = []
+        if sorts.specs_dirty:
+            new_sorts = []
             for sort_spec in sorts.specs:
-                self.sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
-        if sorts.specs_dirty or self.recalculate_ids:
+                new_sorts.insert(0, SortSpec(index=sort_spec.column_index, reverse=bool(sort_spec.sort_direction - 1)))
+            self.sorts[table_id] = new_sorts
+            sorts.specs_dirty = False
+            self.recalculate_ids = True
+        if self.recalculate_ids:
             self.recalculate_ids = False
             # Pick base ID list
             if manual_sort:
@@ -2991,7 +2994,7 @@ class MainGUI():
             base_ids = list(base_ids)
             # Sort globally by sortspecs
             if not manual_sort:
-                for sort_spec in self.sorts:
+                for sort_spec in self.sorts[table_id]:
                     match sort_spec.index:
                         case cols.type.index:
                             key = lambda id: globals.games[id].type.name
@@ -3036,7 +3039,6 @@ class MainGUI():
             for game in globals.games.values():
                 if game.selected and game.id not in tab_games_ids:
                     game.selected = False
-            sorts.specs_dirty = False
         else:
             tab_games_ids = self.show_games_ids[self.current_tab]
 
@@ -3106,7 +3108,6 @@ class MainGUI():
             else:
                 self.scroll_percent = imgui.get_scroll_y() / scroll_max_y
 
-    @property
     def games_table_id(self):
         tab_id = self.current_tab.id if self.current_tab else -1
         return f"###game_list{tab_id if globals.settings.independent_tab_views else ''}"
@@ -3117,8 +3118,9 @@ class MainGUI():
         ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
+        table_id = self.games_table_id()
         if imgui.begin_table(
-            self.games_table_id,
+            table_id,
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=-imgui.get_frame_height_with_spacing()  # Bottombar
@@ -3137,7 +3139,7 @@ class MainGUI():
                 if column is cols.manual_sort:
                     can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
             imgui.table_setup_scroll_freeze(0, 1)  # Sticky column headers
-            self.calculate_ids(imgui.table_get_sort_specs())
+            self.calculate_ids(table_id, imgui.table_get_sort_specs())
 
             # Column headers
             imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
@@ -3274,8 +3276,9 @@ class MainGUI():
     def tick_list_columns(self):
         # Hack: get sort and column specs for list mode in grid and kanban mode
         pos = imgui.get_cursor_pos_y()
+        table_id = self.games_table_id()
         if imgui.begin_table(
-            self.games_table_id,
+            table_id,
             column=cols.count,
             flags=self.game_list_table_flags,
             outer_size_height=1
@@ -3288,7 +3291,7 @@ class MainGUI():
                 # Set sorting condition
                 if column is cols.manual_sort:
                     can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
-            self.calculate_ids(imgui.table_get_sort_specs())
+            self.calculate_ids(table_id, imgui.table_get_sort_specs())
             imgui.end_table()
         imgui.set_cursor_pos_y(pos)
 
