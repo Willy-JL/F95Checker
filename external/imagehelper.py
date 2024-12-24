@@ -2,12 +2,19 @@
 import functools
 import gc
 import pathlib
+import struct
+import subprocess
+import tempfile
 
 from PIL import (
     Image,
     ImageSequence,
     UnidentifiedImageError
 )
+from OpenGL.GL.EXT import texture_compression_s3tc as s3tc
+from OpenGL.GL.KHR import texture_compression_astc_ldr as astc
+from wand import image as magick
+from wand.exceptions import BaseError as MagickError
 import OpenGL.GL as gl
 import imgui
 
@@ -139,23 +146,120 @@ class ImageHelper:
             self.loading = False
             return
 
-        try:
-            image = Image.open(self.resolved_path)
-        except UnidentifiedImageError:
-            self.invalid = True
-            self.loaded = True
-            self.loading = False
-            return
+        from modules import globals
+        from modules.api import temp_prefix
+        compress_mode = globals.settings.wip_image_compress_mode
 
-        self.width, self.height = image.size
-        for frame in ImageSequence.Iterator(image):
-            self.frames.append(get_rgba_pixels(frame))
-            if (duration := frame.info.get("duration", 0)) < 1:
-                duration = 100
-            self.durations.append(duration / 1000)
-        self.animated = len(self.durations) > 1
+        if compress_mode.startswith("astc-"):
+            astcenc = globals.self_path / "astcenc-avx2.exe"
+            block_size = compress_mode.split("-")[1]
+            quality = 80
+            temp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".astc"))
+            try:
+                subprocess.check_call([astcenc, "-cl", self.resolved_path, temp_path, block_size, str(quality), "-perceptual", "-silent"])
+                astc = temp_path.read_bytes()
+            except subprocess.CalledProcessError:
+                self.invalid = True
+                self.loaded = True
+                self.loading = False
+                return
+            finally:
+                temp_path.unlink(missing_ok=True)
+            head = astc[0:16]
+            magic = head[0:4]
+            assert magic == b"\x13\xAB\xA1\x5C"
+            block_x = head[4]
+            block_y = head[5]
+            assert f"{block_x}x{block_y}" == compress_mode.split("-")[1]
+            block_z = head[6]
+            assert block_z == 1, block_z
+            dim_x = struct.unpack("I", head[7:10] + b"\0")[0]
+            dim_y = struct.unpack("I", head[10:13] + b"\0")[0]
+            dim_z = struct.unpack("I", head[13:16] + b"\0")[0]
+            assert dim_z == 1, dim_z
+            data = astc[16:]
+            self.width = dim_x
+            self.height = dim_y
+            self.animated = False
+            self.frames.append((compress_mode, data))
+            self.durations.append(0)
 
-        image.close()
+        elif compress_mode.endswith("-wand"):
+            try:
+                with magick.Image(filename=self.resolved_path) as wand:
+                    wand.coalesce()
+                    self.width, self.height = wand.size
+                    self.animated = wand.animation
+                    wand.compression = compress_mode.split("-")[0]
+
+                    wand.iterator_reset()
+                    while wand.iterator_length():
+                        blob = wand.make_blob("DDS")
+                        duration = wand.delay / wand.ticks_per_second
+                        if duration < 0.001:
+                            duration = 0.1
+                        wand.image_remove()
+
+                        # https://github.com/jcteng/python-opengl-tutorial/blob/master/utils/textureLoader.py
+                        head = blob[4:128]
+                        height = struct.unpack("I", head[8:12])[0]
+                        width = struct.unpack("I", head[12:16])[0]
+                        # if height != self.height or width != self.width:
+                        #     continue
+                        assert height == self.height, f"{height} != {self.height}"
+                        assert width == self.width, f"{width} != {self.width}"
+                        linear_size = struct.unpack("I", head[16:20])[0]
+
+                        mip_map_count = struct.unpack("I", head[24:28])[0]
+                        # if mip_map_count != 1:
+                        #     continue
+                        assert mip_map_count == 1, mip_map_count
+
+                        dxt = head[80:84]
+                        # if dxt not in (b"DXT1", b"DXT3", b"DXT5"):
+                        #     continue
+                        assert dxt in (b"DXT1", b"DXT3", b"DXT5"), dxt
+
+                        if dxt == b"DXT1":
+                            block_size = 8
+                        else:
+                            block_size = 16
+                        size = ((width+3)//4)*((height+3)//4)*block_size
+                        dxtn = blob[128:128 + linear_size]
+                        # if not (size == linear_size == len(dxt1)):
+                        #     continue
+                        assert size == linear_size == len(dxtn), f"{size} != {linear_size} != {len(dxtn)}"
+
+                        self.frames.append((compress_mode, dxtn))
+                        self.durations.append(duration)
+
+                        if not self.animated:
+                            break
+            except MagickError:
+                self.invalid = True
+                self.loaded = True
+                self.loading = False
+                return
+
+        else:
+            try:
+                image = Image.open(self.resolved_path)
+            except UnidentifiedImageError:
+                self.invalid = True
+                self.loaded = True
+                self.loading = False
+                return
+
+            self.width, self.height = image.size
+            for frame in ImageSequence.Iterator(image):
+                self.frames.append((compress_mode, get_rgba_pixels(frame)))
+                if (duration := frame.info.get("duration", 0)) < 1:
+                    duration = 100
+                self.durations.append(duration / 1000)
+            self.animated = len(self.durations) > 1
+
+            image.close()
+
         self.loaded = True
         self.loading = False
         _apply_texture_queue.append(self.apply)
@@ -166,13 +270,36 @@ class ImageHelper:
             self.texture_ids.clear()
         texture_gen = gl.glGenTextures(len(self.frames))
         self.texture_ids.extend([texture_gen] if len(self.frames) == 1 else texture_gen)
-        for frame, texture_id in zip(self.frames, self.texture_ids):
+        for i, (compress_mode, frame), texture_id in zip(range(len(self.frames)), self.frames, self.texture_ids):
             gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
-            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
+            if compress_mode.startswith("astc-"):
+                from modules import utils
+                print("\tRGBA", utils.sizeof_fmt(self.width*self.height*4), "\tDXT1", utils.sizeof_fmt(((self.width+3)//4)*((self.height+3)//4)*8), "\tASTC", utils.sizeof_fmt(len(frame)), "\tFILE", utils.sizeof_fmt(self.resolved_path.stat().st_size), "\t", self.resolved_path.name)
+                tc_format = getattr(astc, f"GL_COMPRESSED_RGBA_ASTC_{compress_mode.split('-')[1]}_KHR")
+                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, frame)
+            elif compress_mode == "no":
+                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
+            elif compress_mode.endswith("-wand"):
+                tc_format = getattr(s3tc, f"GL_COMPRESSED_RGB{'' if compress_mode.startswith('dxt1') else 'A'}_S3TC_{compress_mode.split('-')[0].upper()}_EXT")
+                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, frame)
+            elif compress_mode.endswith("-gl"):
+                tc_format = getattr(s3tc, f"GL_COMPRESSED_RGB{'' if compress_mode.startswith('dxt1') else 'A'}_S3TC_{compress_mode.split('-')[0].upper()}_EXT")
+                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
+                length = gl.glGetTexLevelParameteriv(gl.GL_TEXTURE_2D, 0, gl.GL_TEXTURE_COMPRESSED_IMAGE_SIZE)
+                frame = gl.ArrayDatatype.zeros((length,), gl.GL_UNSIGNED_BYTE)
+                gl.glGetCompressedTexImage(gl.GL_TEXTURE_2D, 0, frame)
+                gl.glDeleteTextures([texture_id])
+                self.texture_ids[i] = texture_id = gl.glGenTextures(1)
+                gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
+                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
+                gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
+                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, frame)
         self.frames.clear()
         self.applied = True
         gc.collect()
