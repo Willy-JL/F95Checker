@@ -152,8 +152,7 @@ class ImageHelper:
             self.frames.append(get_rgba_pixels(frame))
             if (duration := frame.info.get("duration", 0)) < 1:
                 duration = 100
-            self.durations.append(duration / 1250)
-            # Technically this should be / 1000 (millis to seconds) but I found that 1250 works better...
+            self.durations.append(duration / 1000)
         self.animated = len(self.durations) > 1
 
         image.close()
