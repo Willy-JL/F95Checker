@@ -3,6 +3,8 @@ import functools
 import gc
 import pathlib
 import struct
+import subprocess
+import tempfile
 
 from PIL import (
     Image,
@@ -10,6 +12,7 @@ from PIL import (
     UnidentifiedImageError
 )
 from OpenGL.GL.EXT import texture_compression_s3tc as s3tc
+from OpenGL.GL.KHR import texture_compression_astc_ldr as astc
 from wand import image as magick
 from wand.exceptions import BaseError as MagickError
 import OpenGL.GL as gl
@@ -144,9 +147,44 @@ class ImageHelper:
             return
 
         from modules import globals
+        from modules.api import temp_prefix
         compress_mode = globals.settings.wip_image_compress_mode
 
-        if compress_mode.endswith("-wand"):
+        if compress_mode.startswith("astc-"):
+            astcenc = globals.self_path / "astcenc-avx2.exe"
+            block_size = compress_mode.split("-")[1]
+            quality = 80
+            temp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".astc"))
+            try:
+                subprocess.check_call([astcenc, "-cl", self.resolved_path, temp_path, block_size, str(quality), "-perceptual", "-silent"])
+                astc = temp_path.read_bytes()
+            except subprocess.CalledProcessError:
+                self.invalid = True
+                self.loaded = True
+                self.loading = False
+                return
+            finally:
+                temp_path.unlink(missing_ok=True)
+            head = astc[0:16]
+            magic = head[0:4]
+            assert magic == b"\x13\xAB\xA1\x5C"
+            block_x = head[4]
+            block_y = head[5]
+            assert f"{block_x}x{block_y}" == compress_mode.split("-")[1]
+            block_z = head[6]
+            assert block_z == 1, block_z
+            dim_x = struct.unpack("I", head[7:10] + b"\0")[0]
+            dim_y = struct.unpack("I", head[10:13] + b"\0")[0]
+            dim_z = struct.unpack("I", head[13:16] + b"\0")[0]
+            assert dim_z == 1, dim_z
+            data = astc[16:]
+            self.width = dim_x
+            self.height = dim_y
+            self.animated = False
+            self.frames.append((compress_mode, data))
+            self.durations.append(0)
+
+        elif compress_mode.endswith("-wand"):
             try:
                 with magick.Image(filename=self.resolved_path) as wand:
                     wand.coalesce()
@@ -238,7 +276,12 @@ class ImageHelper:
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
-            if compress_mode == "no":
+            if compress_mode.startswith("astc-"):
+                from modules import utils
+                print("\tRGBA", utils.sizeof_fmt(self.width*self.height*4), "\tDXT1", utils.sizeof_fmt(((self.width+3)//4)*((self.height+3)//4)*8), "\tASTC", utils.sizeof_fmt(len(frame)), "\tFILE", utils.sizeof_fmt(self.resolved_path.stat().st_size), "\t", self.resolved_path.name)
+                tc_format = getattr(astc, f"GL_COMPRESSED_RGBA_ASTC_{compress_mode.split('-')[1]}_KHR")
+                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, frame)
+            elif compress_mode == "no":
                 gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
             elif compress_mode.endswith("-wand"):
                 tc_format = getattr(s3tc, f"GL_COMPRESSED_RGB{'' if compress_mode.startswith('dxt1') else 'A'}_S3TC_{compress_mode.split('-')[0].upper()}_EXT")

@@ -4984,6 +4984,10 @@ class MainGUI():
             ("DXT1 Wand", "dxt1-wand"),
             # ("DXT3 Wand", "dxt3-wand"),
             # ("DXT5 Wand", "dxt5-wand"),
+            ("ASTC 4x4", "astc-4x4"),
+            ("ASTC 6x6", "astc-6x6"),
+            ("ASTC 8x8", "astc-8x8"),
+            ("ASTC 12x12", "astc-12x12"),
         ):
             if imgui.radio_button(name, set.wip_image_compress_mode == mode):
                 new_compress_mode = mode
