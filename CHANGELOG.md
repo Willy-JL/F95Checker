@@ -8,11 +8,12 @@
 - Nothing
 
 ### Fixed:
-- Nothing
+- Fixed sorting corruption bug (#211 by @Willy-JL & @FaceCrap)
+- Fixed incorrect tab for first frame that caused images from default tab to load (by @Willy-JL)
+- Fixed GIF animation speed (by @Willy-JL)
 
 ### Removed:
 - Nothing
 
 ### Known Issues:
-- Sorting can be sporadically break/change with some actions, seems to be memory corruption inside (py)imgui, re-launch to fix it or change sorting manually
 - MacOS webview in frozen binaries remains blank, run from source instead
