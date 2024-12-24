@@ -827,11 +827,11 @@ class MainGUI():
             utils.start_refresh_task(api.refresh())
         # Loop variables
         prev_scaling = globals.settings.interface_scaling
+        self.scroll_energy = 0.0
         prev_any_hovered = None
         prev_win_hovered = None
         prev_mouse_pos = None
         prev_minimized = None
-        scroll_energy = 0.0
         prev_focused = None
         any_hovered = False
         win_hovered = None
@@ -882,18 +882,21 @@ class MainGUI():
                     imgui.io.mouse_wheel *= globals.settings.scroll_amount
                     if globals.settings.scroll_smooth:
 
-                        if scroll_energy * imgui.io.mouse_wheel < 0: # fast check if signs are opposite
+                        if self.scroll_energy * imgui.io.mouse_wheel < 0: # fast check if signs are opposite
                             # we want to immediately reverse rather than slowly decelerating.
-                            scroll_energy = 0.0
+                            self.scroll_energy = 0.0
 
-                        scroll_energy += imgui.io.mouse_wheel
-                        if abs(scroll_energy) > 0.1:
-                            scroll_now = scroll_energy * imgui.io.delta_time * globals.settings.scroll_smooth_speed
-                            scroll_energy -= scroll_now
+                        self.scroll_energy += imgui.io.mouse_wheel
+                        if abs(self.scroll_energy) > 0.1:
+                            scroll_now = self.scroll_energy * imgui.io.delta_time * globals.settings.scroll_smooth_speed
+                            self.scroll_energy -= scroll_now
                         else:
                             scroll_now = 0.0
-                            scroll_energy = 0.0
+                            self.scroll_energy = 0.0
                         imgui.io.mouse_wheel = scroll_now
+
+                    else:
+                        self.scroll_energy = imgui.io.mouse_wheel * 50
 
                     # Redraw only when needed
                     draw = (
@@ -2099,12 +2102,12 @@ class MainGUI():
                         fg_draw_list.add_image_rounded(image.texture_id, (x, y), pos2, rounding=rounding, flags=flags)
                     # Zoom
                     elif globals.settings.zoom_enabled:
-                        if diff := int(imgui.get_scroll_x() - 1.0):
-                            diff *= imgui.io.delta_time * 30
+                        if int(imgui.get_scroll_x() - 1.0):
+                            diff = imgui.io.delta_time * self.scroll_energy * 30
                             if imgui.is_key_down(glfw.KEY_LEFT_ALT):
                                 globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 500)
                             else:
-                                globals.settings.zoom_times = min(max(globals.settings.zoom_times * (-diff / 50.0 + 1.0), 1), 20)
+                                globals.settings.zoom_times = min(max(globals.settings.zoom_times * (diff / 50.0 + 1.0), 1), 20)
                         zoom_popup = True
                         out_size = min(*imgui.io.display_size) * globals.settings.zoom_area / 100
                         in_size = out_size / globals.settings.zoom_times
