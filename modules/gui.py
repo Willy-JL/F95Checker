@@ -1059,6 +1059,7 @@ class MainGUI():
         finally:
             # Main loop over, cleanup and close
             self.save_filters()
+            async_thread.wait(db.update_settings("zoom_area", "zoom_times"))
             imgui.save_ini_settings_to_disk(imgui.io.ini_file_name)
             ini = imgui.save_ini_settings_to_memory()
             try:
