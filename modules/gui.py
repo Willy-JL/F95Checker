@@ -2100,6 +2100,7 @@ class MainGUI():
                     # Zoom
                     elif globals.settings.zoom_enabled:
                         if diff := int(imgui.get_scroll_x() - 1.0):
+                            diff *= imgui.io.delta_time * 30
                             if imgui.is_key_down(glfw.KEY_LEFT_ALT):
                                 globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 500)
                             else:

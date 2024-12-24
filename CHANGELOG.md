@@ -11,6 +11,7 @@
 - Fixed sorting corruption bug (#211 by @Willy-JL & @FaceCrap)
 - Fixed incorrect tab for first frame that caused images from default tab to load (by @Willy-JL)
 - Fixed GIF animation speed (by @Willy-JL)
+- Shift+Scroll and Shift+Alt+Scroll when zooming banner images scales correctly at varying FPS (by @Willy-JL)
 
 ### Removed:
 - Nothing
