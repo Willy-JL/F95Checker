@@ -895,9 +895,6 @@ class MainGUI():
                             self.scroll_energy = 0.0
                         imgui.io.mouse_wheel = scroll_now
 
-                    else:
-                        self.scroll_energy = imgui.io.mouse_wheel * 50
-
                     # Redraw only when needed
                     draw = (
                         (api.downloads and any(dl.state in (dl.State.Verifying, dl.State.Extracting) for dl in api.downloads.values()))
@@ -2104,7 +2101,10 @@ class MainGUI():
                     # Zoom
                     elif globals.settings.zoom_enabled:
                         if int(imgui.get_scroll_x() - 1.0):
-                            diff = imgui.io.delta_time * self.scroll_energy * 30
+                            if globals.settings.scroll_smooth:
+                                diff = imgui.io.delta_time * self.scroll_energy * 30
+                            else:
+                                diff = imgui.io.mouse_wheel * 3
                             if imgui.is_key_down(glfw.KEY_LEFT_ALT):
                                 globals.settings.zoom_area = min(max(globals.settings.zoom_area + diff, 1), 500)
                             else:
