@@ -237,6 +237,7 @@ async def connect():
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "weighted_score":              f'INTEGER DEFAULT {int(False)}',
+            "wip_image_compress_mode":     f'TEXT    DEFAULT "no"',
             "zoom_area":                   f'INTEGER DEFAULT 50',
             "zoom_enabled":                f'INTEGER DEFAULT {int(True)}',
             "zoom_times":                  f'REAL    DEFAULT 4.0',

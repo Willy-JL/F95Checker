@@ -771,6 +771,7 @@ class Settings:
     timestamp_format            : str
     vsync_ratio                 : int
     weighted_score              : bool
+    wip_image_compress_mode     : str
     zoom_area                   : int
     zoom_enabled                : bool
     zoom_times                  : float

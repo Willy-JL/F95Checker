@@ -4972,6 +4972,63 @@ class MainGUI():
 
             imgui.end_table()
 
+        # Temporary until a final format is chosen
+        imgui.text("WIP Image Compression")
+        new_compress_mode = None
+        imgui.push_font(imgui.fonts.mono)
+        if imgui.radio_button("No Compression", set.wip_image_compress_mode == "no"):
+            new_compress_mode = "no"
+        if imgui.radio_button("DXT1 OpenGL", set.wip_image_compress_mode == "dxt1-gl"):
+            new_compress_mode = "dxt1-gl"
+        if imgui.radio_button("DXT1 Wand", set.wip_image_compress_mode == "dxt1-wand"):
+            new_compress_mode = "dxt1-wand"
+        imgui.pop_font()
+        global flush_vram
+        _, flush_vram = imgui.checkbox("###flush_vram", flush_vram)
+        imgui.same_line()
+        imgui.text("Flush VRAM")
+        imgui.same_line()
+        self.draw_hover_text(
+            "GPU does not release VRAM until something else needs it, it's just marked as unused. This means that enabling compression will "
+            "still show to you the higher VRAM usage, even if it is not being used as compressed images are smaller. When this is enabled, "
+            "changing compression mode will restart  F95Checker to release VRAM, so you can see how much GPU memory each mode utilizes. To "
+            "compare grapical artifacts, disable this option, so images are reloaded right away and you can compare a lot easier."
+        )
+        if new_compress_mode:
+            set.wip_image_compress_mode = new_compress_mode
+            async_thread.wait(db.update_settings("wip_image_compress_mode"))
+            if not flush_vram:
+                for game in globals.games.values():
+                    game.image.loaded = False
+            else:
+                import os, shlex
+                pid = os.getpid()
+                if globals.os is Os.Windows:
+                    script = "\n".join((
+                        "try {"
+                        'Write-Host "Waiting for F95Checker to quit..."',
+                        f"Wait-Process -Id {pid}",
+                        'Write-Host "Starting F95Checker..."',
+                        f"& {globals.start_cmd}",
+                        "} catch {",
+                        'Write-Host "An error occurred:`n" $_.InvocationInfo.PositionMessage "`n" $_',
+                        "}",
+                    ))
+                    shell = [shutil.which("powershell")]
+                else:
+                    script = "\n".join([
+                        shlex.join(["echo", "Waiting for F95Checker to quit..."]),
+                        shlex.join(["tail", "--pid", str(pid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(pid), "+r", "1"]),
+                        shlex.join(["echo", "Starting F95Checker..."]),
+                        globals.start_cmd,
+                    ])
+                    shell = [shutil.which("bash") or shutil.which("zsh") or shutil.which("sh"), "-c"]
+                async_thread.wait(asyncio.create_subprocess_exec(
+                    *shell, script,
+                    cwd=globals.self_path
+                ))
+                globals.gui.close()
+
         if api.downloads:
             to_remove = []
             for name, download in api.downloads.items():
@@ -5071,6 +5128,7 @@ class MainGUI():
         imgui.spacing()
         imgui.end_child()
 
+flush_vram = True
 
 class TrayIcon(QtWidgets.QSystemTrayIcon):
     def __init__(self, main_gui: MainGUI):
