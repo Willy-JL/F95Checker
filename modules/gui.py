@@ -4976,12 +4976,17 @@ class MainGUI():
         imgui.text("WIP Image Compression")
         new_compress_mode = None
         imgui.push_font(imgui.fonts.mono)
-        if imgui.radio_button("No Compression", set.wip_image_compress_mode == "no"):
-            new_compress_mode = "no"
-        if imgui.radio_button("DXT1 OpenGL", set.wip_image_compress_mode == "dxt1-gl"):
-            new_compress_mode = "dxt1-gl"
-        if imgui.radio_button("DXT1 Wand", set.wip_image_compress_mode == "dxt1-wand"):
-            new_compress_mode = "dxt1-wand"
+        for name, mode in (
+            ("No Compression", "no"),
+            ("DXT1 OpenGL", "dxt1-gl"),
+            ("DXT3 OpenGL", "dxt3-gl"),
+            ("DXT5 OpenGL", "dxt5-gl"),
+            ("DXT1 Wand", "dxt1-wand"),
+            # ("DXT3 Wand", "dxt3-wand"),
+            # ("DXT5 Wand", "dxt5-wand"),
+        ):
+            if imgui.radio_button(name, set.wip_image_compress_mode == mode):
+                new_compress_mode = mode
         imgui.pop_font()
         global flush_vram
         _, flush_vram = imgui.checkbox("###flush_vram", flush_vram)

@@ -146,13 +146,13 @@ class ImageHelper:
         from modules import globals
         compress_mode = globals.settings.wip_image_compress_mode
 
-        if compress_mode == "dxt1-wand":
+        if compress_mode.endswith("-wand"):
             try:
                 with magick.Image(filename=self.resolved_path) as wand:
                     wand.coalesce()
                     self.width, self.height = wand.size
                     self.animated = wand.animation
-                    wand.compression = "dxt1"
+                    wand.compression = compress_mode.split("-")[0]
 
                     wand.iterator_reset()
                     while wand.iterator_length():
@@ -178,18 +178,21 @@ class ImageHelper:
                         assert mip_map_count == 1, mip_map_count
 
                         dxt = head[80:84]
-                        # if dxt != b"DXT1":
+                        # if dxt not in (b"DXT1", b"DXT3", b"DXT5"):
                         #     continue
-                        assert dxt == b"DXT1", dxt
+                        assert dxt in (b"DXT1", b"DXT3", b"DXT5"), dxt
 
-                        block_size  = 8
+                        if dxt == b"DXT1":
+                            block_size = 8
+                        else:
+                            block_size = 16
                         size = ((width+3)//4)*((height+3)//4)*block_size
-                        dxt1 = blob[128:128 + linear_size]
+                        dxtn = blob[128:128 + linear_size]
                         # if not (size == linear_size == len(dxt1)):
                         #     continue
-                        assert size == linear_size == len(dxt1), f"{size} != {linear_size} != {len(dxt1)}"
+                        assert size == linear_size == len(dxtn), f"{size} != {linear_size} != {len(dxtn)}"
 
-                        self.frames.append((compress_mode, dxt1))
+                        self.frames.append((compress_mode, dxtn))
                         self.durations.append(duration)
 
                         if not self.animated:
@@ -237,10 +240,12 @@ class ImageHelper:
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
             if compress_mode == "no":
                 gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
-            elif compress_mode == "dxt1-wand":
-                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, s3tc.GL_COMPRESSED_RGB_S3TC_DXT1_EXT, self.width, self.height, 0, frame)
-            elif compress_mode == "dxt1-gl":
-                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, s3tc.GL_COMPRESSED_RGB_S3TC_DXT1_EXT, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
+            elif compress_mode.endswith("-wand"):
+                tc_format = getattr(s3tc, f"GL_COMPRESSED_RGB{'' if compress_mode.startswith('dxt1') else 'A'}_S3TC_{compress_mode.split('-')[0].upper()}_EXT")
+                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, frame)
+            elif compress_mode.endswith("-gl"):
+                tc_format = getattr(s3tc, f"GL_COMPRESSED_RGB{'' if compress_mode.startswith('dxt1') else 'A'}_S3TC_{compress_mode.split('-')[0].upper()}_EXT")
+                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
                 length = gl.glGetTexLevelParameteriv(gl.GL_TEXTURE_2D, 0, gl.GL_TEXTURE_COMPRESSED_IMAGE_SIZE)
                 frame = gl.ArrayDatatype.zeros((length,), gl.GL_UNSIGNED_BYTE)
                 gl.glGetCompressedTexImage(gl.GL_TEXTURE_2D, 0, frame)
@@ -251,7 +256,7 @@ class ImageHelper:
                 gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
                 gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
                 gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
-                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, s3tc.GL_COMPRESSED_RGB_S3TC_DXT1_EXT, self.width, self.height, 0, frame)
+                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, tc_format, self.width, self.height, 0, frame)
         self.frames.clear()
         self.applied = True
         gc.collect()
