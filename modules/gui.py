@@ -2803,7 +2803,14 @@ class MainGUI():
 
     def draw_tabbar(self):
         display_tab = globals.settings.display_tab
-        select_tab = self.current_tab is not display_tab
+        if not self.sorts:
+            # Fixes incorrect tab for first frame, causing un-shown images to load
+            # Sorting would happen later otherwise and tabs would be hidden due to that
+            self.current_tab = display_tab
+            self.tick_list_columns()
+            select_tab = True
+        else:
+            select_tab = self.current_tab is not display_tab
         new_tab = None
         if Tab.instances and not (globals.settings.filter_all_tabs and self.filtering):
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
@@ -2893,7 +2900,7 @@ class MainGUI():
                                 close_callback()
                         imgui.end_popup()
                 imgui.end_tab_bar()
-        if new_tab is not self.current_tab:
+        if new_tab is not self.current_tab and not select_tab:
             for game in globals.games.values():
                 game.selected = False
             self.current_tab = new_tab
