@@ -4307,7 +4307,9 @@ class MainGUI():
                 "measurements. This is because the GPU does not release VRAM until something else needs it, it's just marked "
                 "as unused, which would give the same VRAM usage number between compressed and not."
             )
-            draw_settings_checkbox("astc_compression")
+            if draw_settings_checkbox("astc_compression"):
+                for image in imagehelper.ImageHelper.instances:
+                    image.loaded = False
 
             draw_settings_label(
                 "Unload off-screen:",
