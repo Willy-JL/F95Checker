@@ -1285,15 +1285,14 @@ class MainGUI():
                 flt = Filter(FilterMode.Archived)
                 self.filters.append(flt)
             imgui.end_group()
-        if imgui.is_item_hovered():
-            self.draw_hover_text(
-                "This game is archived!\n"
-                "In this state you won't receive update notifications for\n"
-                "this game and it will stay at the bottom of the list.\n"
-                "Middle click to remove it from the archive, alternatively\n"
-                "use the right click menu to do the same.",
-                text=None,
-            )
+        self.draw_hover_text(
+            "This game is archived!\n"
+            "In this state you won't receive update notifications for\n"
+            "this game and it will stay at the bottom of the list.\n"
+            "Middle click to remove it from the archive, alternatively\n"
+            "use the right click menu to do the same.",
+            text=None,
+        )
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             game.archived = False
 
@@ -1599,12 +1598,11 @@ class MainGUI():
             clicked = imgui.button(label)
         if clicked:
             callbacks.clipboard_copy(str(game.id))
-        if imgui.is_item_hovered():
-            self.draw_hover_text(
-                f"Thread ID: {game.id}\n"
-                "Click to copy!",
-                text=None,
-            )
+        self.draw_hover_text(
+            f"Thread ID: {game.id}\n"
+            "Click to copy!",
+            text=None,
+        )
         if game.custom:
             imgui.pop_disabled()
 
@@ -1863,8 +1861,7 @@ class MainGUI():
             imgui.text(date.strftime(globals.settings.datestamp_format))
             imgui.pop_style_color()
             timestamp_size = imgui.get_item_rect_size()
-            if imgui.is_item_hovered():
-                self.draw_hover_text(date.strftime(globals.settings.timestamp_format), text=None)
+            self.draw_hover_text(date.strftime(globals.settings.timestamp_format), text=None)
             # Draw message
             message_pos = (timestamp_pos.x, timestamp_pos.y + timestamp_size.y - self.scaled(2))
             imgui.set_cursor_screen_pos(message_pos)
@@ -2218,8 +2215,7 @@ class MainGUI():
                 if imgui.is_item_clicked():
                     game.last_launched = time.time()
                     game.add_timeline_event(TimelineEventType.GameLaunched, "date set manually")
-                if imgui.is_item_hovered():
-                    self.draw_hover_text("Click to set as launched right now!", text=None)
+                self.draw_hover_text("Click to set as launched right now!", text=None)
 
                 imgui.table_next_row()
 
@@ -3260,8 +3256,7 @@ class MainGUI():
                                 imgui.text(f"{game.score:.1f}")
                                 imgui.same_line()
                                 imgui.text_disabled(f"({game.votes})")
-                            if imgui.is_item_hovered():
-                                self.draw_hover_text(f"Weighted: {utils.bayesian_average(game.score, game.votes):.2f}", text=None)
+                            self.draw_hover_text(f"Weighted: {utils.bayesian_average(game.score, game.votes):.2f}", text=None)
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -3507,8 +3502,7 @@ class MainGUI():
             cluster = True
         if cols.score.enabled:
             _cluster_text(cols.score.name, f"{game.score:.1f} ({game.votes})")
-            if imgui.is_item_hovered():
-                self.draw_hover_text(f"Weighted: {utils.bayesian_average(game.score, game.votes):.2f}", text=None)
+            self.draw_hover_text(f"Weighted: {utils.bayesian_average(game.score, game.votes):.2f}", text=None)
         if cols.last_updated.enabled:
             _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
         if cols.last_launched.enabled:
@@ -4179,15 +4173,14 @@ class MainGUI():
             draw_settings_label("Install extension:")
             cant_install_extension = set.browser.integrated or not set.rpc_enabled
             def cant_install_extension_tooltip():
-                if imgui.is_item_hovered():
-                    self.draw_hover_text(
-                        "You have selected the Integrated browser, this already includes the extension!"
-                        if set.browser.integrated else
-                        "RPC must be enabled for the browser extension to work!"
-                        if not set.rpc_enabled else
-                        "Huh?",
-                        text=None,
-                    )
+                self.draw_hover_text(
+                    "You have selected the Integrated browser, this already includes the extension!"
+                    if set.browser.integrated else
+                    "RPC must be enabled for the browser extension to work!"
+                    if not set.rpc_enabled else
+                    "Huh?",
+                    text=None,
+                )
             if cant_install_extension:
                 imgui.push_disabled()
             if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):
