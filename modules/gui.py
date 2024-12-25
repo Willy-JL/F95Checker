@@ -863,7 +863,6 @@ class MainGUI():
                 glfw.poll_events()
                 self.input_chars, self.poll_chars = self.poll_chars, self.input_chars
                 self.impl.process_inputs()
-                imagehelper.apply_textures()
                 if self.call_soon:
                     while self.call_soon and (call_soon := self.call_soon.pop(0)):
                         call_soon()
@@ -1022,6 +1021,7 @@ class MainGUI():
                             self.refresh_fonts()
                             self.refresh_styles()
                             async_thread.run(db.update_settings("interface_scaling"))
+                        imagehelper.post_draw()
                     # Wait idle time
                         glfw.swap_buffers(self.window)
                     else:

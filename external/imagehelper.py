@@ -24,7 +24,7 @@ _apply_texture_queue = []
 _dummy_texture_id = None
 
 
-def apply_textures():
+def post_draw():
     for apply_texture in reversed(_apply_texture_queue):
         apply_texture()
         _apply_texture_queue.remove(apply_texture)
