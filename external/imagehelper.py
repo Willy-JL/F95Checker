@@ -250,7 +250,7 @@ class ImageHelper:
                                 aastc += astc[4:16]  # Header
                             aastc += b"".join((
                                 struct.pack("<Q", len(astc) - 16),  # Texture length
-                                struct.pack("<I", frame.info.get("duration", 0)),  # Frame duration
+                                struct.pack("<I", int(frame.info.get("duration", 0))),  # Frame duration
                                 astc[16:],  # Texture data
                             ))
                     except Exception:
