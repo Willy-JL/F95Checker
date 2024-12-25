@@ -178,34 +178,6 @@ def close_weak_popup():
     return False
 
 
-def wrap_text(text: str, width: float, offset=0, func: typing.Callable = imgui.text):
-    for line in text.split("\n"):
-        while line := line.strip():
-            if offset is not None:
-                avail = width - offset
-            if avail < 0:
-                imgui.dummy(0, 0)
-                if offset is not None:
-                    offset = None
-                    avail = width
-                continue
-            if avail > 0:
-                cut = 1
-                line_len = len(line)
-                step = math.ceil(line_len / 50)
-                while cut <= line_len and imgui.calc_text_size(line[:cut]).x < avail:
-                    cut += step
-                while cut > 1 and (cut > line_len or imgui.calc_text_size(line[:cut]).x >= avail):
-                    cut -= 1
-            else:
-                cut = len(line)
-            func(line[:cut])
-            line = line[cut:]
-            if offset is not None:
-                offset = None
-                avail = width
-
-
 def text_context(obj: object, attr: str, setter_extra: typing.Callable = lambda _: None, editable=True, no_icons=False):
     getter = lambda: getattr(obj, attr)
     setter = lambda val: [setattr(obj, attr, val), setter_extra(val)]

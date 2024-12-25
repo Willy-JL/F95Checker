@@ -1247,15 +1247,20 @@ class MainGUI():
         if imgui.is_item_hovered():
             imgui.begin_tooltip()
             imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-            imgui.text("This game has new tags that F95Checker failed to recognize:")
-            for tag in game.unknown_tags:
-                imgui.text(f" - {tag}")
-            imgui.text("To copy them:")
-            imgui.text(f"{icons.menu_right} Shift + Left click")
-            imgui.text(f"{icons.menu_right} Use Copy button in Tags section")
-            imgui.text("To remove this marker:")
-            imgui.text(f"{icons.menu_right} Middle click")
-            imgui.text(f"{icons.menu_right} Alt + Left click")
+            imgui.text(
+                "This game has new tags that F95Checker failed to recognize:\n"
+                + "\n".join(f" - {tag}" for tag in game.unknown_tags)
+            )
+            imgui.text(
+                "To copy them:\n"
+                f"{icons.menu_right} Shift + Left click\n"
+                f"{icons.menu_right} Use Copy button in Tags section\n"
+            )
+            imgui.text(
+                "To remove this marker:\n"
+                f"{icons.menu_right} Middle click\n"
+                f"{icons.menu_right} Alt + Left click\n"
+            )
             imgui.pop_text_wrap_pos()
             imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
@@ -1282,17 +1287,14 @@ class MainGUI():
                 self.filters.append(flt)
             imgui.end_group()
         if imgui.is_item_hovered():
-            imgui.begin_tooltip()
-            imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-            imgui.text(
+            self.draw_hover_text(
                 "This game is archived!\n"
                 "In this state you won't receive update notifications for\n"
                 "this game and it will stay at the bottom of the list.\n"
                 "Middle click to remove it from the archive, alternatively\n"
-                "use the right click menu to do the same."
+                "use the right click menu to do the same.",
+                text=None,
             )
-            imgui.pop_text_wrap_pos()
-            imgui.end_tooltip()
         if imgui.is_item_clicked(imgui.MOUSE_BUTTON_MIDDLE):
             game.archived = False
 
@@ -1599,12 +1601,11 @@ class MainGUI():
         if clicked:
             callbacks.clipboard_copy(str(game.id))
         if imgui.is_item_hovered():
-            imgui.begin_tooltip()
-            imgui.text(
+            self.draw_hover_text(
                 f"Thread ID: {game.id}\n"
-                "Click to copy!"
+                "Click to copy!",
+                text=None,
             )
-            imgui.end_tooltip()
         if game.custom:
             imgui.pop_disabled()
 
@@ -1864,8 +1865,7 @@ class MainGUI():
             imgui.pop_style_color()
             timestamp_size = imgui.get_item_rect_size()
             if imgui.is_item_hovered():
-                with imgui.begin_tooltip():
-                    imgui.text(date.strftime(globals.settings.timestamp_format))
+                self.draw_hover_text(date.strftime(globals.settings.timestamp_format), text=None)
             # Draw message
             message_pos = (timestamp_pos.x, timestamp_pos.y + timestamp_size.y - self.scaled(2))
             imgui.set_cursor_screen_pos(message_pos)
@@ -1920,10 +1920,6 @@ class MainGUI():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
             full_width = 3 * indent
-            wrap_width = 2 * indent - imgui.style.item_spacing.x
-            name_offset = imgui.calc_text_size("Name: ").x + 2 * imgui.style.item_spacing.x
-            version_offset = imgui.calc_text_size("Version: ").x + 2 * imgui.style.item_spacing.x
-            arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
             img_pos_x = imgui.get_cursor_pos_x()
             category = None
             category_open = False
@@ -1968,20 +1964,24 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_game_tab_widget(game)
 
-                for attr, offset in (("name", name_offset), ("version", version_offset)):
-                    old_val =  getattr(old_game, attr) or "Unknown"
-                    new_val =  getattr(game, attr) or "Unknown"
+                for attr in ("name", "version"):
+                    old_val = getattr(old_game, attr) or "Unknown"
+                    new_val = getattr(game, attr) or "Unknown"
                     if new_val != old_val:
                         imgui.spacing()
                         imgui.text_disabled(f"{attr.title()}: ")
                         imgui.same_line()
-                        utils.wrap_text(old_val, width=wrap_width, offset=offset)
-                        imgui.same_line()
-                        if full_width - imgui.get_cursor_pos_x() < arrow_width:
-                            imgui.dummy(0, 0)
-                        imgui.text_disabled(" -> ")
-                        imgui.same_line()
-                        utils.wrap_text(new_val, width=wrap_width, offset=imgui.get_cursor_pos_x() - indent)
+                        # Workaround to get fast line wrapping in ImGui but draw arrow in other color:
+                        # Save position, draw full text with arrow in dimmed color, restore position,
+                        # and draw full text in normal color like an overlay, with an Em Space instead
+                        # of the arrow. This seems to be the only character that is whitespace but
+                        # counts as "solid" for wrapping. This way, if arrow itself wraps to nextline,
+                        # when drawing without arrow the Em Space will make ImGui leave space for it.
+                        val_start = imgui.get_cursor_pos()
+                        imgui.text_disabled(f"{old_val}  ->  {new_val}")
+                        imgui.set_cursor_pos(val_start)
+                        em_space = " "
+                        imgui.text(f"{old_val}  {em_space}  {new_val}")
 
                 if game.status is not old_game.status:
                     imgui.spacing()
@@ -1991,6 +1991,7 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_status_widget(old_game.status)
                     imgui.same_line()
+                    arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
                     if full_width - imgui.get_cursor_pos_x() < arrow_width:
                         imgui.dummy(0, 0)
                     imgui.text_disabled(" -> ")
@@ -2183,8 +2184,7 @@ class MainGUI():
                 if game.unknown_tags_flag:
                     self.draw_game_unknown_tags_icon(game)
                     imgui.same_line()
-                offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
-                utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
+                imgui.text(game.version)
 
                 imgui.table_next_column()
                 imgui.text_disabled("Added On:")
@@ -2196,8 +2196,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text_disabled("Developer:")
                 imgui.same_line()
-                offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
-                utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
+                imgui.text(game.developer)
 
                 imgui.table_next_column()
                 imgui.text_disabled("Last Updated:")
@@ -2221,9 +2220,7 @@ class MainGUI():
                     game.last_launched = time.time()
                     game.add_timeline_event(TimelineEventType.GameLaunched, "date set manually")
                 if imgui.is_item_hovered():
-                    imgui.begin_tooltip()
-                    imgui.text("Click to set as launched right now!")
-                    imgui.end_tooltip()
+                    self.draw_hover_text("Click to set as launched right now!", text=None)
 
                 imgui.table_next_row()
 
@@ -2259,8 +2256,7 @@ class MainGUI():
                     imgui.text_disabled("Executable:")
                     imgui.same_line()
                     if game.executables:
-                        offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
-                        utils.wrap_text(game.executables[0], width=offset + imgui.get_content_region_available_width(), offset=offset)
+                        imgui.text(game.executables[0])
                     else:
                         imgui.text("Not set")
                 else:
@@ -2670,7 +2666,7 @@ class MainGUI():
             imgui.text("Made with <3 by WillyJL")
             imgui.text("")
             imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
-            imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
+            imgui.text(f"OpenGL {gl.glGetInteger(gl.GL_MAJOR_VERSION)}.{gl.glGetInteger(gl.GL_MINOR_VERSION)},  Py {OpenGL.__version__}")
             imgui.text(f"GLFW {'.'.join(str(num) for num in glfw.get_version())},  Py {glfw.__version__}")
             imgui.text(f"ImGui {imgui.get_version()},  Py {imgui.__version__}")
             imgui.text(f"Qt {QtCore.QT_VERSION_STR},  Py {QtCore.PYQT_VERSION_STR}")
@@ -3266,8 +3262,7 @@ class MainGUI():
                                 imgui.same_line()
                                 imgui.text_disabled(f"({game.votes})")
                             if imgui.is_item_hovered():
-                                with imgui.begin_tooltip():
-                                    imgui.text(f"{utils.bayesian_average(game.score, game.votes):.2f}")
+                                self.draw_hover_text(f"Weighted: {utils.bayesian_average(game.score, game.votes):.2f}", text=None)
                 # Row hitbox
                 imgui.same_line()
                 imgui.set_cursor_pos_y(imgui.get_cursor_pos_y() - imgui.style.frame_padding.y)
@@ -3513,6 +3508,8 @@ class MainGUI():
             cluster = True
         if cols.score.enabled:
             _cluster_text(cols.score.name, f"{game.score:.1f} ({game.votes})")
+            if imgui.is_item_hovered():
+                self.draw_hover_text(f"Weighted: {utils.bayesian_average(game.score, game.votes):.2f}", text=None)
         if cols.last_updated.enabled:
             _cluster_text(cols.last_updated.name, game.last_updated.display or "Unknown")
         if cols.last_launched.enabled:
@@ -4184,14 +4181,14 @@ class MainGUI():
             cant_install_extension = set.browser.integrated or not set.rpc_enabled
             def cant_install_extension_tooltip():
                 if imgui.is_item_hovered():
-                    imgui.begin_tooltip()
-                    imgui.push_text_wrap_pos(min(imgui.get_font_size() * 35, imgui.io.display_size.x))
-                    if set.browser.integrated:
-                        imgui.text("You have selected the Integrated browser, this already includes the extension!")
-                    elif not set.rpc_enabled:
-                        imgui.text("RPC must be enabled for the browser extension to work!")
-                    imgui.pop_text_wrap_pos()
-                    imgui.end_tooltip()
+                    self.draw_hover_text(
+                        "You have selected the Integrated browser, this already includes the extension!"
+                        if set.browser.integrated else
+                        "RPC must be enabled for the browser extension to work!"
+                        if not set.rpc_enabled else
+                        "Huh?",
+                        text=None,
+                    )
             if cant_install_extension:
                 imgui.push_disabled()
             if imgui.button(icons.google_chrome, width=(right_width - imgui.style.item_spacing.x) / 2):

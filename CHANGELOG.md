@@ -13,6 +13,8 @@
 - Fixed GIF animation speed (by @Willy-JL)
 - Shift+Scroll and Shift+Alt+Scroll when zooming banner images scales correctly with FPS and uses smooth scrolling (by @Willy-JL)
 - Save new zoom area and times settings after Shift+Scroll and Shift+Alt+Scroll on banner images (by @Willy-JL)
+- Optimize some text drawing by using ImGui wrapping instead of slow `wrap_text()` which is now fully gone (by @Willy-JL)
+- Slightly improve some hover tooltips, fixed weighted score missing on hover in grid/kanban view (by @Willy-JL)
 
 ### Removed:
 - Nothing
