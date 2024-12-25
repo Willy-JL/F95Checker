@@ -1919,10 +1919,6 @@ class MainGUI():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
             full_width = 3 * indent
-            wrap_width = 2 * indent - imgui.style.item_spacing.x
-            name_offset = imgui.calc_text_size("Name: ").x + 2 * imgui.style.item_spacing.x
-            version_offset = imgui.calc_text_size("Version: ").x + 2 * imgui.style.item_spacing.x
-            arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
             img_pos_x = imgui.get_cursor_pos_x()
             category = None
             category_open = False
@@ -1967,20 +1963,24 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_game_tab_widget(game)
 
-                for attr, offset in (("name", name_offset), ("version", version_offset)):
+                for attr in ("name", "version"):
                     old_val =  getattr(old_game, attr) or "Unknown"
                     new_val =  getattr(game, attr) or "Unknown"
                     if new_val != old_val:
                         imgui.spacing()
                         imgui.text_disabled(f"{attr.title()}: ")
                         imgui.same_line()
-                        utils.wrap_text(old_val, width=wrap_width, offset=offset)
-                        imgui.same_line()
-                        if full_width - imgui.get_cursor_pos_x() < arrow_width:
-                            imgui.dummy(0, 0)
-                        imgui.text_disabled(" -> ")
-                        imgui.same_line()
-                        utils.wrap_text(new_val, width=wrap_width, offset=imgui.get_cursor_pos_x() - indent)
+                        # Workaround to get fast line wrapping in ImGui but draw arrow in other color:
+                        # Save position, draw full text with arrow in dimmed color, restore position,
+                        # and draw full text in normal color like an overlay, with an Em Space instead
+                        # of the arrow. This seems to be the only character that is whitespace but
+                        # counts as "solid" for wrapping. This way, if arrow itself wraps to nextline,
+                        # when drawing without arrow the Em Space will make ImGui leave space for it.
+                        val_start = imgui.get_cursor_pos()
+                        imgui.text_disabled(f"{old_val}  ->  {new_val}")
+                        imgui.set_cursor_pos(val_start)
+                        em_space = " "
+                        imgui.text(f"{old_val}  {em_space}  {new_val}")
 
                 if game.status is not old_game.status:
                     imgui.spacing()
@@ -1990,6 +1990,7 @@ class MainGUI():
                     imgui.same_line()
                     self.draw_status_widget(old_game.status)
                     imgui.same_line()
+                    arrow_width = imgui.calc_text_size(" -> ").x + imgui.style.item_spacing.x
                     if full_width - imgui.get_cursor_pos_x() < arrow_width:
                         imgui.dummy(0, 0)
                     imgui.text_disabled(" -> ")
@@ -2182,8 +2183,7 @@ class MainGUI():
                 if game.unknown_tags_flag:
                     self.draw_game_unknown_tags_icon(game)
                     imgui.same_line()
-                offset = imgui.calc_text_size("Version:").x + imgui.style.item_spacing.x
-                utils.wrap_text(game.version, width=offset + imgui.get_content_region_available_width(), offset=offset)
+                imgui.text(game.version)
 
                 imgui.table_next_column()
                 imgui.text_disabled("Added On:")
@@ -2195,8 +2195,7 @@ class MainGUI():
                 imgui.table_next_column()
                 imgui.text_disabled("Developer:")
                 imgui.same_line()
-                offset = imgui.calc_text_size("Developer:").x + imgui.style.item_spacing.x
-                utils.wrap_text(game.developer or "Unknown", width=offset + imgui.get_content_region_available_width(), offset=offset)
+                imgui.text(game.developer)
 
                 imgui.table_next_column()
                 imgui.text_disabled("Last Updated:")
@@ -2258,8 +2257,7 @@ class MainGUI():
                     imgui.text_disabled("Executable:")
                     imgui.same_line()
                     if game.executables:
-                        offset = imgui.calc_text_size("Executable:").x + imgui.style.item_spacing.x
-                        utils.wrap_text(game.executables[0], width=offset + imgui.get_content_region_available_width(), offset=offset)
+                        imgui.text(game.executables[0])
                     else:
                         imgui.text("Not set")
                 else:
