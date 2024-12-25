@@ -5,7 +5,7 @@
 - Nothing
 
 ### Updated:
-- Nothing
+- Extension > Add in Background now enabled by default for new users (by @Willy-JL)
 
 ### Fixed:
 - Fixed sorting corruption bug (#211 by @Willy-JL & @FaceCrap)
