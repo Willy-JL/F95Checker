@@ -2669,7 +2669,7 @@ class MainGUI():
             imgui.text("Made with <3 by WillyJL")
             imgui.text("")
             imgui.text(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
-            imgui.text(f"OpenGL {'.'.join(str(gl.glGetInteger(num)) for num in (gl.GL_MAJOR_VERSION, gl.GL_MINOR_VERSION))},  Py {OpenGL.__version__}")
+            imgui.text(f"OpenGL {gl.glGetInteger(gl.GL_MAJOR_VERSION)}.{gl.glGetInteger(gl.GL_MINOR_VERSION)},  Py {OpenGL.__version__}")
             imgui.text(f"GLFW {'.'.join(str(num) for num in glfw.get_version())},  Py {glfw.__version__}")
             imgui.text(f"ImGui {imgui.get_version()},  Py {imgui.__version__}")
             imgui.text(f"Qt {QtCore.QT_VERSION_STR},  Py {QtCore.PYQT_VERSION_STR}")
