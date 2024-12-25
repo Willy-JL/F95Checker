@@ -5094,7 +5094,6 @@ class MainGUI():
         imgui.spacing()
         imgui.end_child()
 
-flush_vram = True
 
 class TrayIcon(QtWidgets.QSystemTrayIcon):
     def __init__(self, main_gui: MainGUI):
