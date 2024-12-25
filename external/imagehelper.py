@@ -21,23 +21,22 @@ from modules.api import temp_prefix
 from modules import globals
 
 redraw = False
-_apply_texture_queue = []
+apply_texture_queue = []
 _dummy_texture_id = None
 
 
 def post_draw():
-    # Max 1 apply per fram, mitigates stutters
-    if _apply_texture_queue:
-        _apply_texture_queue.pop(0)()
     # Unload images if not visible
     if globals.settings.unload_offscreen_images:
         hidden = globals.gui.minimized or globals.gui.hidden
         for image in ImageHelper.instances:
             if hidden or not image.shown:
-                if image.applied:
-                    image.unload()
+                image.unload()
             else:
                 image.shown = False
+    # Max 1 apply per frame, mitigates stutters
+    if apply_texture_queue:
+        apply_texture_queue.pop(0).apply()
 
 
 def dummy_texture_id():
@@ -282,7 +281,7 @@ class ImageHelper:
 
             self.loaded = True
             self.loading = False
-            _apply_texture_queue.append(self.apply)
+            apply_texture_queue.append(self)
             return
 
         # Fallback to RGBA loading
@@ -311,7 +310,7 @@ class ImageHelper:
         image.close()
         self.loaded = True
         self.loading = False
-        _apply_texture_queue.append(self.apply)
+        apply_texture_queue.append(self)
 
     def apply(self):
         if self.texture_ids:
@@ -334,9 +333,14 @@ class ImageHelper:
         gc.collect()
 
     def unload(self):
-        if self.applied and self.texture_ids:
-            gl.glDeleteTextures([self.texture_ids])
-            self.texture_ids.clear()
+        if self.loaded:
+            if self.texture_ids:
+                gl.glDeleteTextures([self.texture_ids])
+                self.texture_ids.clear()
+            if self.textures:
+                apply_texture_queue.remove(self)
+                self.textures.clear()
+                gc.collect()
             self.loaded = False
 
     @property

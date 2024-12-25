@@ -901,7 +901,7 @@ class MainGUI():
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                         or prev_scaling != globals.settings.interface_scaling
                         or prev_minimized != self.minimized
-                        or imagehelper._apply_texture_queue
+                        or imagehelper.apply_texture_queue
                         or api.session.connector._acquired
                         or prev_focused != self.focused
                         or prev_hidden != self.hidden
