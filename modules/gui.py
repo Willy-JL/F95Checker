@@ -2037,6 +2037,12 @@ class MainGUI():
             )
         )
 
+    def draw_game_image_error_text(self, game: Game, text: str):
+        self.draw_hover_text(
+            text=text,
+            hover_text=game.image.error or "Unknown error"
+        )
+
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         popup_pos = None
         popup_size = None
@@ -2053,13 +2059,10 @@ class MainGUI():
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
                 self.draw_game_image_missing_text(game, text)
             elif image.invalid:
-                text = "Invalid image!"
+                text = "Image error!"
                 width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
-                )
+                self.draw_game_image_error_text(game, text)
             else:
                 aspect_ratio = image.height / image.width
                 out_height = (min(avail.y, self.scaled(690)) * self.scaled(0.4)) or 1
@@ -3379,15 +3382,12 @@ class MainGUI():
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         elif game.image.invalid:
-            text = "Invalid image!"
+            text = "Image error!"
             text_size = imgui.calc_text_size(text)
             showed_img = imgui.is_rect_visible(cell_width, img_height)
             if text_size.x < cell_width:
                 imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
-                )
+                self.draw_game_image_error_text(game, text)
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         else:
