@@ -4301,11 +4301,20 @@ class MainGUI():
                 "Compress images using ASTC 6x6/80. Results in dramatically faster image loading and smaller filesize on disk, "
                 "with no perceptible loss in visual quality. Depending on GPU model it might also decrease VRAM usage, or in "
                 "other cases it might not work at all (need more research and feedback on this).\n"
+                "Images are compressed when first shown, and it takes some time, especially so for GIFs. After compressing, the "
+                "result is saved to file, and next loads will be instantaneous.\n"
                 "If you're looking to compare VRAM usage, make sure to restart the tool (fully quit and reopen) between "
                 "measurements. This is because the GPU does not release VRAM until something else needs it, it's just marked "
                 "as unused, which would give the same VRAM usage number between compressed and not."
             )
             draw_settings_checkbox("astc_compression")
+
+            draw_settings_label(
+                "Unload off-screen:",
+                "Unloads images from VRAM when they are not visible. Will be loaded again when next visible. Only recommended "
+                "to use this together with ASTC compression, otherwise loading images is very slow."
+            )
+            draw_settings_checkbox("unload_offscreen_images")
 
             imgui.end_table()
             imgui.spacing()

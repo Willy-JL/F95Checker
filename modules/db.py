@@ -236,6 +236,7 @@ async def connect():
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
+            "unload_offscreen_images":     f'INTEGER DEFAULT {int(False)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "weighted_score":              f'INTEGER DEFAULT {int(False)}',
             "zoom_area":                   f'INTEGER DEFAULT 50',

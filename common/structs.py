@@ -770,6 +770,7 @@ class Settings:
     style_text_dim              : tuple[float]
     tags_highlights             : dict[Tag, TagHighlight]
     timestamp_format            : str
+    unload_offscreen_images     : bool
     vsync_ratio                 : int
     weighted_score              : bool
     zoom_area                   : int

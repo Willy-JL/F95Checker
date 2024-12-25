@@ -5,6 +5,7 @@ import pathlib
 import struct
 import subprocess
 import tempfile
+import weakref
 
 from PIL import (
     Image,
@@ -28,6 +29,13 @@ def post_draw():
     for apply_texture in reversed(_apply_texture_queue):
         apply_texture()
         _apply_texture_queue.remove(apply_texture)
+    if globals.settings.unload_offscreen_images:
+        for image in ImageHelper.instances:
+            if not image.shown:
+                if image.applied:
+                    image.unload()
+            else:
+                image.shown = False
 
 
 def dummy_texture_id():
@@ -64,6 +72,8 @@ def _crop_to_ratio(width, height, ratio: int | float, fit=False):
 
 
 class ImageHelper:
+    instances = weakref.WeakSet()
+
     __slots__ = (
         "width",
         "height",
@@ -82,6 +92,8 @@ class ImageHelper:
         "texture_ids",
         "resolved_path",
         "path",
+        "shown",
+        "__weakref__",
     )
 
     def __init__(self, path: str | pathlib.Path, glob=""):
@@ -102,7 +114,8 @@ class ImageHelper:
         self.texture_ids: list[int] = []
         self.resolved_path: pathlib.Path = None
         self.path: pathlib.Path = pathlib.Path(path)
-        self.resolve()
+        self.shown = False
+        type(self).instances.add(self)
 
     def resolve(self):
         self.resolved_path = self.path
@@ -308,8 +321,16 @@ class ImageHelper:
         self.applied = True
         gc.collect()
 
+    def unload(self):
+        if self.applied and self.texture_ids:
+            gl.glDeleteTextures([self.texture_ids])
+            self.texture_ids.clear()
+            self.loaded = False
+
     @property
     def texture_id(self):
+        self.shown = True
+
         if not self.loaded:
             if not self.loading:
                 self.loading = True
