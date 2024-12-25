@@ -4232,12 +4232,12 @@ class MainGUI():
 
             draw_settings_label(
                 "Highlight tags:",
-                "To change tag preferences go to 'Interface' > 'Tags to highlight'"
+                "To change tag preferences go to 'Interface' > 'Tags to highlight'."
             )
             draw_settings_checkbox("ext_highlight_tags")
 
             draw_settings_label(
-                "Add in the background:",
+                "Add in background:",
                 "Don't open F95Checker window after adding a game."
             )
             draw_settings_checkbox("ext_background_add")
