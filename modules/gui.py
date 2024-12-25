@@ -4305,11 +4305,27 @@ class MainGUI():
                 "result is saved to file, and next loads will be instantaneous.\n"
                 "If you're looking to compare VRAM usage, make sure to restart the tool (fully quit and reopen) between "
                 "measurements. This is because the GPU does not release VRAM until something else needs it, it's just marked "
-                "as unused, which would give the same VRAM usage number between compressed and not."
+                "as unused, which would give the same VRAM usage number between compressed and not.\n"
+                "If only an ASTC image is found it will be used even if this open is disabled (for example, if you enabled "
+                "ASTC replace, the images that have been replaced will continue use the ASTC file even if this setting is off)."
             )
             if draw_settings_checkbox("astc_compression"):
                 for image in imagehelper.ImageHelper.instances:
                     image.loaded = False
+
+            if not set.astc_compression:
+                imgui.push_disabled()
+            draw_settings_label(
+                "ASTC replace:",
+                "Remove original images after ASTC compression. Enabling this is retro-active: it will delete source images for "
+                "ones already compressed as ASTC. Not enabling this option means roughly double disk space usage due to "
+                "duplicate images files."
+            )
+            if draw_settings_checkbox("astc_replace"):
+                for image in imagehelper.ImageHelper.instances:
+                    image.loaded = False
+            if not set.astc_compression:
+                imgui.pop_disabled()
 
             draw_settings_label(
                 "Unload off-screen:",

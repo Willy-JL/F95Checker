@@ -168,6 +168,7 @@ async def connect():
         columns={
             "_":                           f'INTEGER PRIMARY KEY CHECK (_=0)',
             "astc_compression":            f'INTEGER DEFAULT {int(False)}',
+            "astc_replace":                f'INTEGER DEFAULT {int(False)}',
             "background_on_close":         f'INTEGER DEFAULT {int(False)}',
             "bg_notifs_interval":          f'INTEGER DEFAULT 15',
             "bg_refresh_interval":         f'INTEGER DEFAULT 30',

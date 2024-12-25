@@ -702,6 +702,7 @@ Browser.add("Custom", -1)
 @dataclasses.dataclass(slots=True)
 class Settings:
     astc_compression            : bool
+    astc_replace                : bool
     background_on_close         : bool
     bg_notifs_interval          : int
     bg_refresh_interval         : int

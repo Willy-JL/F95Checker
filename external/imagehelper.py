@@ -268,6 +268,16 @@ class ImageHelper:
                 self.durations.append(duration / 1000)
             self.animated = len(self.textures) > 1
 
+            if self.glob and globals.settings.astc_compression and globals.settings.astc_replace:
+                paths = list(self.path.glob(self.glob))
+                if len(paths) > 1:
+                    try:
+                        for path in paths:
+                            if path != self.resolved_path:
+                                path.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+
             self.loaded = True
             self.loading = False
             _apply_texture_queue.append(self.apply)
