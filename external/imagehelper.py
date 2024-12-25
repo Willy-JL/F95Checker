@@ -26,9 +26,10 @@ _dummy_texture_id = None
 
 
 def post_draw():
-    for apply_texture in reversed(_apply_texture_queue):
-        apply_texture()
-        _apply_texture_queue.remove(apply_texture)
+    # Max 1 apply per fram, mitigates stutters
+    if _apply_texture_queue:
+        _apply_texture_queue.pop(0)()
+    # Unload images if not visible
     if globals.settings.unload_offscreen_images:
         for image in ImageHelper.instances:
             if not image.shown:
