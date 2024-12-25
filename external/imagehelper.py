@@ -16,6 +16,7 @@ from OpenGL.GL.KHR import texture_compression_astc_ldr as gl_astc
 import OpenGL.GL as gl
 import imgui
 
+from common.structs import Os
 from external import (
     error,
     sync_thread,
@@ -198,7 +199,18 @@ class ImageHelper:
             astc_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".astc"))
             def astc_compress_one(src_path: pathlib.Path):
                 try:
-                    subprocess.check_output([astcenc, "-cl", src_path, astc_path, aastc_block, aastc_quality, "-perceptual", "-silent"], stderr=subprocess.STDOUT)
+                    if globals.os is Os.Windows:
+                        kwargs = dict(
+                            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
+                            startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW),
+                        )
+                    else:
+                        kwargs = dict()
+                    subprocess.check_output(
+                        [astcenc, "-cl", src_path, astc_path, aastc_block, aastc_quality, "-perceptual", "-silent"],
+                        stderr=subprocess.STDOUT,
+                        **kwargs,
+                    )
                     astc = astc_path.read_bytes()
                     return astc, b""
                 except subprocess.CalledProcessError as exc:
