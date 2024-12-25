@@ -701,6 +701,7 @@ Browser.add("Custom", -1)
 
 @dataclasses.dataclass(slots=True)
 class Settings:
+    astc_compression            : bool
     background_on_close         : bool
     bg_notifs_interval          : int
     bg_refresh_interval         : int
@@ -771,7 +772,6 @@ class Settings:
     timestamp_format            : str
     vsync_ratio                 : int
     weighted_score              : bool
-    wip_image_compress_mode     : str
     zoom_area                   : int
     zoom_enabled                : bool
     zoom_times                  : float

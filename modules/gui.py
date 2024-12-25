@@ -4296,6 +4296,17 @@ class MainGUI():
             if not set.zoom_enabled:
                 imgui.pop_disabled()
 
+            draw_settings_label(
+                "ASTC compression:",
+                "Compress images using ASTC 6x6/80. Results in dramatically faster image loading and smaller filesize on disk, "
+                "with no perceptible loss in visual quality. Depending on GPU model it might also decrease VRAM usage, or in "
+                "other cases it might not work at all (need more research and feedback on this).\n"
+                "If you're looking to compare VRAM usage, make sure to restart the tool (fully quit and reopen) between "
+                "measurements. This is because the GPU does not release VRAM until something else needs it, it's just marked "
+                "as unused, which would give the same VRAM usage number between compressed and not."
+            )
+            draw_settings_checkbox("astc_compression")
+
             imgui.end_table()
             imgui.spacing()
 
@@ -4983,72 +4994,6 @@ class MainGUI():
                 self.hide()
 
             imgui.end_table()
-
-        # Temporary until a final format is chosen
-        imgui.text("WIP Image Compression")
-        new_compress_mode = None
-        imgui.push_font(imgui.fonts.mono)
-        for name, mode in (
-            ("No Compression", "no"),
-            ("DXT1 OpenGL", "dxt1-gl"),
-            ("DXT3 OpenGL", "dxt3-gl"),
-            ("DXT5 OpenGL", "dxt5-gl"),
-            ("DXT1 Wand", "dxt1-wand"),
-            # ("DXT3 Wand", "dxt3-wand"),
-            # ("DXT5 Wand", "dxt5-wand"),
-            ("ASTC 4x4", "astc-4x4"),
-            ("ASTC 6x6", "astc-6x6"),
-            ("ASTC 8x8", "astc-8x8"),
-            ("ASTC 12x12", "astc-12x12"),
-        ):
-            if imgui.radio_button(name, set.wip_image_compress_mode == mode):
-                new_compress_mode = mode
-        imgui.pop_font()
-        global flush_vram
-        _, flush_vram = imgui.checkbox("###flush_vram", flush_vram)
-        imgui.same_line()
-        imgui.text("Flush VRAM")
-        imgui.same_line()
-        self.draw_hover_text(
-            "GPU does not release VRAM until something else needs it, it's just marked as unused. This means that enabling compression will "
-            "still show to you the higher VRAM usage, even if it is not being used as compressed images are smaller. When this is enabled, "
-            "changing compression mode will restart  F95Checker to release VRAM, so you can see how much GPU memory each mode utilizes. To "
-            "compare grapical artifacts, disable this option, so images are reloaded right away and you can compare a lot easier."
-        )
-        if new_compress_mode:
-            set.wip_image_compress_mode = new_compress_mode
-            async_thread.wait(db.update_settings("wip_image_compress_mode"))
-            if not flush_vram:
-                for game in globals.games.values():
-                    game.image.loaded = False
-            else:
-                import os, shlex
-                pid = os.getpid()
-                if globals.os is Os.Windows:
-                    script = "\n".join((
-                        "try {"
-                        'Write-Host "Waiting for F95Checker to quit..."',
-                        f"Wait-Process -Id {pid}",
-                        'Write-Host "Starting F95Checker..."',
-                        f"& {globals.start_cmd}",
-                        "} catch {",
-                        'Write-Host "An error occurred:`n" $_.InvocationInfo.PositionMessage "`n" $_',
-                        "}",
-                    ))
-                    shell = [shutil.which("powershell")]
-                else:
-                    script = "\n".join([
-                        shlex.join(["echo", "Waiting for F95Checker to quit..."]),
-                        shlex.join(["tail", "--pid", str(pid), "-f", os.devnull] if globals.os is Os.Linux else ["lsof", "-p", str(pid), "+r", "1"]),
-                        shlex.join(["echo", "Starting F95Checker..."]),
-                        globals.start_cmd,
-                    ])
-                    shell = [shutil.which("bash") or shutil.which("zsh") or shutil.which("sh"), "-c"]
-                async_thread.wait(asyncio.create_subprocess_exec(
-                    *shell, script,
-                    cwd=globals.self_path
-                ))
-                globals.gui.close()
 
         if api.downloads:
             to_remove = []
