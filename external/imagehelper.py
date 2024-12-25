@@ -31,8 +31,9 @@ def post_draw():
         _apply_texture_queue.pop(0)()
     # Unload images if not visible
     if globals.settings.unload_offscreen_images:
+        hidden = globals.gui.minimized or globals.gui.hidden
         for image in ImageHelper.instances:
-            if not image.shown:
+            if hidden or not image.shown:
                 if image.applied:
                     image.unload()
             else:
