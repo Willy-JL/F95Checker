@@ -131,7 +131,7 @@ jobs:
       - name: "Bundle astcenc (macOS)"
         if: "runner.os == 'macOS'"
         run: |
-          curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-macos-universal.zip
+          curl -L -o astcenc-universal.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-macos-universal.zip
           7z x astcenc-universal.zip
           mkdir ./dist/*.app/Contents/MacOS/lib/astcenc/
           mv ./bin/astcenc ./dist/*.app/Contents/MacOS/lib/astcenc/
