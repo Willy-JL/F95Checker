@@ -7,7 +7,6 @@ import shutil
 import struct
 import subprocess
 import tempfile
-import weakref
 
 from PIL import (
     Image,
@@ -22,6 +21,7 @@ from common.structs import Os
 from external import (
     error,
     sync_thread,
+    weakerset,
 )
 from modules.api import temp_prefix
 from modules import globals
@@ -85,7 +85,7 @@ def _crop_to_ratio(width, height, ratio: int | float, fit=False):
 
 
 class ImageHelper:
-    instances = weakref.WeakSet()
+    instances = weakerset.WeakerSet()
 
     __slots__ = (
         "width",

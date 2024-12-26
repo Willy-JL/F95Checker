@@ -11,6 +11,7 @@ import time
 import typing
 import weakref
 
+from external import weakerset
 from modules import colors
 
 
@@ -113,7 +114,7 @@ class DaemonPipe:
 
 
 class Timestamp:
-    instances = weakref.WeakSet()
+    instances = weakerset.WeakerSet()
 
     __slots__ = ("value", "_display", "__weakref__",)
 
@@ -145,7 +146,7 @@ class Timestamp:
 
 
 class Datestamp(Timestamp):
-    instances = weakref.WeakSet()
+    instances = weakerset.WeakerSet()
 
     __slots__ = ()
 
