@@ -2,6 +2,8 @@
 import functools
 import gc
 import pathlib
+import platform
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -28,6 +30,7 @@ redraw = False
 apply_texture_queue = []
 _dummy_texture_id = None
 
+astcenc = None
 aastc_magic = b"\xA3\xAB\xA1\x5C"
 aastc_block = "6x6"
 aastc_format = gl_astc.GL_COMPRESSED_RGBA_ASTC_6x6_KHR
@@ -194,7 +197,45 @@ class ImageHelper:
 
         if globals.settings.astc_compression and self.resolved_path.suffix != ".aastc":
             # Compress to ASTC
-            astcenc = globals.self_path / "astcenc-avx2.exe"
+            global astcenc
+            if astcenc is None:
+                # Windows: F95Checker/lib/astcenc/astcenc-(avx2|sse2|neon).exe
+                # Linux: F95Checker/lib/astcenc/astcenc-(avx2|sse2)
+                # MacOS: F95Checker/lib/astcenc/astcenc
+                _astcenc = globals.self_path / "lib/astcenc"
+                if globals.os is Os.MacOS:
+                    _astcenc /= "astcenc"
+                elif globals.os is Os.Windows and platform.machine().startswith("ARM"):
+                    _astcenc /= "astcenc-neon.exe"
+                else:
+                    from external import cpuinfo
+                    flags = cpuinfo.get_cpu_info().get("flags", ())
+                    if all(flag in flags for flag in ("avx2", "sse4_2", "popcnt", "f16c")):
+                        _astcenc /= "astcenc-avx2"
+                    else:
+                        _astcenc /= "astcenc-sse2"
+                    if globals.os is Os.Windows:
+                        _astcenc = _astcenc.with_suffix(".exe")
+                if not _astcenc.is_file():
+                    # Not bundled, look in PATH for astcenc-(avx2|sse2)[.exe] and astcenc[.exe]
+                    _astcenc = shutil.which(_astcenc.name) or shutil.which(_astcenc.with_stem("astcenc").name)
+                    if _astcenc:
+                        _astcenc = pathlib.Path(_astcenc)
+                    else:
+                        _astcenc = False
+                if _astcenc:
+                    _astcenc = _astcenc.absolute()
+                astcenc = _astcenc
+            if not astcenc:
+                set_invalid(
+                    f"ASTC-Encoder not found!\n" + (
+                        "Was it deleted?"
+                        if globals.frozen and (globals.release or globals.build_number) else
+                        "Download it and place it in PATH:\n"
+                        "https://github.com/ARM-software/astc-encoder/releases/tag/5.1.0"
+                    )
+                )
+                return
             aastc = None
             astc_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".astc"))
             def astc_compress_one(src_path: pathlib.Path):
