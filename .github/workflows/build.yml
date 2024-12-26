@@ -134,7 +134,7 @@ jobs:
           mkdir ./dist/lib/astcenc/
           curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-macos-universal.zip
           7z x astcenc-universal.zip
-          mv ./bin/astcenc ./dist/lib/astcenc/
+          mv ./bin/astcenc ./dist/*.app/Contents/MacOS/lib/astcenc/
 
       # === ARTIFACT ===
 
