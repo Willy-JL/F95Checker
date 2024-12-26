@@ -110,11 +110,11 @@ jobs:
       - name: "Bundle astcenc (Windows)"
         if: "runner.os == 'Windows'"
         run: |
-          mkdir ./dist/lib/astcenc/
           curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-windows-x64.zip
           curl -L -o astcenc-arm64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-windows-arm64.zip
           7z x astcenc-x64.zip
           7z x astcenc-arm64.zip
+          mkdir ./dist/lib/astcenc/
           mv ./bin/astcenc-avx2.exe ./dist/lib/astcenc
           mv ./bin/astcenc-sse2.exe ./dist/lib/astcenc
           mv ./bin/astcenc-neon.exe ./dist/lib/astcenc
@@ -122,18 +122,18 @@ jobs:
       - name: "Bundle astcenc (Linux)"
         if: "runner.os == 'Linux'"
         run: |
-          mkdir ./dist/lib/astcenc/
           curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-linux-x64.zip
           7z x astcenc-x64.zip
+          mkdir ./dist/lib/astcenc/
           mv ./bin/astcenc-avx2 ./dist/lib/astcenc/
           mv ./bin/astcenc-sse2 ./dist/lib/astcenc/
 
       - name: "Bundle astcenc (macOS)"
         if: "runner.os == 'macOS'"
         run: |
-          mkdir ./dist/lib/astcenc/
           curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-macos-universal.zip
           7z x astcenc-universal.zip
+          mkdir ./dist/*.app/Contents/MacOS/lib/astcenc/
           mv ./bin/astcenc ./dist/*.app/Contents/MacOS/lib/astcenc/
 
       # === ARTIFACT ===
