@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "windows-2022", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: "v3.2.0" }
-          - { os: "ubuntu-22.04", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""       }
-          - { os: "macos-13",     python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""       }
+          - { os: "windows-2022", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: "v3.2.0", astcenc: "5.1.0" }
+          - { os: "ubuntu-22.04", python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""      , astcenc: "5.1.0" }
+          - { os: "macos-13",     python: "3.12.4", cx-freeze: "7.0.0", cx-logging: ""      , astcenc: "5.1.0" }
     name: "${{ matrix.config.os }}"
     runs-on: "${{ matrix.config.os }}"
     if: "github.event_name != 'push' || contains(github.event.head_commit.message, '+ BUILD')"
@@ -106,6 +106,35 @@ jobs:
       #     cd ./dist/
       #     find ./ -type f -empty -delete
       #     codesign -s "${{ secrets.CODESIGN_P12_NAME }}" --deep ./*.app
+
+      - name: "Bundle astcenc (Windows)"
+        if: "runner.os == 'Windows'"
+        run: |
+          mkdir ./dist/lib/astcenc/
+          curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-windows-x64.zip
+          curl -L -o astcenc-arm64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-windows-arm64.zip
+          7z x astcenc-x64.zip
+          7z x astcenc-arm64.zip
+          mv ./bin/astcenc-avx2.exe ./dist/lib/astcenc
+          mv ./bin/astcenc-sse2.exe ./dist/lib/astcenc
+          mv ./bin/astcenc-neon.exe ./dist/lib/astcenc
+
+      - name: "Bundle astcenc (Linux)"
+        if: "runner.os == 'Linux'"
+        run: |
+          mkdir ./dist/lib/astcenc/
+          curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-linux-x64.zip
+          7z x astcenc-x64.zip
+          mv ./bin/astcenc-avx2 ./dist/lib/astcenc/
+          mv ./bin/astcenc-sse2 ./dist/lib/astcenc/
+
+      - name: "Bundle astcenc (macOS)"
+        if: "runner.os == 'macOS'"
+        run: |
+          mkdir ./dist/lib/astcenc/
+          curl -L -o astcenc-x64.zip https://github.com/ARM-software/astc-encoder/releases/download/${{ matrix.config.astcenc }}/astcenc-${{ matrix.config.astcenc }}-macos-universal.zip
+          7z x astcenc-universal.zip
+          mv ./bin/astcenc ./dist/lib/astcenc/
 
       # === ARTIFACT ===
 
