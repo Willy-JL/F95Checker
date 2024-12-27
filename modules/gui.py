@@ -2034,15 +2034,12 @@ class MainGUI():
         )
 
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
-        popup_pos = None
-        popup_size = None
-        zoom_popup = False
         def popup_content():
-            nonlocal popup_pos, popup_size, zoom_popup
             # Image
             image = game.image
             avail = imgui.get_content_region_available()
             close_image = False
+            zoom_popup = False
             if image.missing:
                 text = "Image missing!"
                 width = imgui.calc_text_size(text).x
@@ -2600,49 +2597,48 @@ class MainGUI():
 
                 imgui.end_tab_bar()
             imgui.pop_text_wrap_pos()
-            popup_pos = imgui.get_window_position()
-            popup_size = imgui.get_window_size()
+            change_id = None
+            if carousel_ids and len(carousel_ids) > 1 and game.id in carousel_ids and imgui.is_topmost() and not imgui.is_any_item_active():
+                # Has and is in carousel ids, is not the only one in them, is topmost popup and no item is active
+                pos = imgui.get_window_position()
+                size = imgui.get_window_size()
+                if size and pos:
+                    imgui.push_font(imgui.fonts.big)
+                    text_size = imgui.calc_text_size(icons.arrow_left_drop_circle)
+                    offset = self.scaled(10)
+                    mouse_pos = imgui.get_mouse_pos()
+                    mouse_clicked = imgui.is_mouse_clicked()
+                    y = pos.y + (size.y + text_size.y) / 2
+                    x1 = pos.x - offset - text_size.x
+                    x2 = pos.x + size.x + offset
+                    if not zoom_popup:
+                        draw_list = imgui.get_foreground_draw_list()
+                        col = imgui.get_color_u32_rgba(*globals.settings.style_text_dim)
+                        draw_list.add_text(x1, y, col, icons.arrow_left_drop_circle)
+                        draw_list.add_text(x2, y, col, icons.arrow_right_drop_circle)
+                    y_ok = y <= mouse_pos.y <= y + text_size.y
+                    clicked_left = mouse_clicked and x1 <= mouse_pos.x <= x1 + text_size.x and y_ok
+                    clicked_right = mouse_clicked and x2 <= mouse_pos.x <= x2 + text_size.x and y_ok
+                    imgui.pop_font()
+                    idx = carousel_ids.index(game.id)
+                    if imgui.is_key_pressed(glfw.KEY_LEFT, repeat=True) or clicked_left:
+                        idx -= 1
+                        if idx == -1:
+                            idx = len(carousel_ids) - 1
+                        change_id = carousel_ids[idx]
+                    if imgui.is_key_pressed(glfw.KEY_RIGHT, repeat=True) or clicked_right:
+                        idx += 1
+                        if idx == len(carousel_ids):
+                            idx = 0
+                        change_id = carousel_ids[idx]
+            if change_id is not None:
+                utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids).uuid = popup_uuid
+                return True
+            elif utils.close_weak_popup():
+                    return True
         if game.id not in globals.games:
             return 0, True
-        return_args = utils.popup(game.name, popup_content, closable=True, outside=True, popup_uuid=popup_uuid)
-        # Has and is in carousel ids, is not the only one in them, is topmost popup and no item is active
-        if carousel_ids and len(carousel_ids) > 1 and game.id in carousel_ids and imgui.is_topmost() and not imgui.is_any_item_active():
-            pos = popup_pos
-            size = popup_size
-            if size and pos:
-                imgui.push_font(imgui.fonts.big)
-                text_size = imgui.calc_text_size(icons.arrow_left_drop_circle)
-                offset = self.scaled(10)
-                mouse_pos = imgui.get_mouse_pos()
-                mouse_clicked = imgui.is_mouse_clicked()
-                y = pos.y + (size.y + text_size.y) / 2
-                x1 = pos.x - offset - text_size.x
-                x2 = pos.x + size.x + offset
-                if not zoom_popup:
-                    draw_list = imgui.get_foreground_draw_list()
-                    col = imgui.get_color_u32_rgba(*globals.settings.style_text_dim)
-                    draw_list.add_text(x1, y, col, icons.arrow_left_drop_circle)
-                    draw_list.add_text(x2, y, col, icons.arrow_right_drop_circle)
-                y_ok = y <= mouse_pos.y <= y + text_size.y
-                clicked_left = mouse_clicked and x1 <= mouse_pos.x <= x1 + text_size.x and y_ok
-                clicked_right = mouse_clicked and x2 <= mouse_pos.x <= x2 + text_size.x and y_ok
-                imgui.pop_font()
-                change_id = None
-                idx = carousel_ids.index(game.id)
-                if imgui.is_key_pressed(glfw.KEY_LEFT, repeat=True) or clicked_left:
-                    idx -= 1
-                    if idx == -1:
-                        idx = len(carousel_ids) - 1
-                    change_id = carousel_ids[idx]
-                if imgui.is_key_pressed(glfw.KEY_RIGHT, repeat=True) or clicked_right:
-                    idx += 1
-                    if idx == len(carousel_ids):
-                        idx = 0
-                    change_id = carousel_ids[idx]
-                if change_id is not None:
-                    utils.push_popup(self.draw_game_info_popup, globals.games[change_id], carousel_ids).uuid = popup_uuid
-                    return 1, True
-        return return_args
+        return utils.popup(game.name, popup_content, closable=True, outside=False, popup_uuid=popup_uuid)
 
     def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
