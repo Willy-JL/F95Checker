@@ -143,7 +143,7 @@ class ImageHelper:
 
     @property
     def error(self):
-        return self.loaded and self._error or None
+        return self.invalid and self._error or None
 
     def resolve(self):
         self.resolved_path = self.path
