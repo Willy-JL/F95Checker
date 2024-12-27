@@ -233,11 +233,10 @@ popup_flags: int = (
     imgui.WINDOW_NO_MOVE |
     imgui.WINDOW_NO_RESIZE |
     imgui.WINDOW_NO_COLLAPSE |
-    imgui.WINDOW_NO_SAVED_SETTINGS |
-    imgui.WINDOW_ALWAYS_AUTO_RESIZE
+    imgui.WINDOW_NO_SAVED_SETTINGS
 )
 
-def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, footer="", extra_flags: int = 0, popup_uuid: str = ""):
+def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.Callable] = None, closable=True, outside=True, footer="", resize=True, popup_uuid: str = ""):
     if buttons is True:
         buttons = {
             f"{icons.check} Ok": None
@@ -249,7 +248,7 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
     opened = 1
     constrain_next_window()
     center_next_window()
-    if imgui.begin_popup_modal(label, closable or None, flags=popup_flags | extra_flags)[0]:
+    if imgui.begin_popup_modal(label, closable or None, flags=popup_flags | (resize and imgui.WINDOW_ALWAYS_AUTO_RESIZE))[0]:
         imgui.begin_group()
         closed = (popup_content() is True) or closed  # Close if content returns True
         imgui.end_group()

@@ -2038,6 +2038,9 @@ class MainGUI():
             # Image
             image = game.image
             avail = imgui.get_content_region_available()
+            if imgui.get_scroll_max_y() > 0.0:
+                # Avoid shifing content with/without scroll bar
+                avail = avail._replace(x=avail.x + imgui.style.scrollbar_size)
             close_image = False
             zoom_popup = False
             if image.missing:
@@ -2160,9 +2163,10 @@ class MainGUI():
             imgui.same_line()
             self.draw_game_remove_button(game, f"{icons.trash_can_outline} Remove")
 
-            imgui.spacing()
+            # Minimum width to avoid content shifting around and clipping (like Archive/Unarchive)
+            imgui.dummy(self.scaled(790), 0)
 
-            if imgui.begin_table(f"###details", column=2):
+            if imgui.begin_table(f"###details", column=2, outer_size_width=avail.x):
                 imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
                 imgui.table_setup_column("", imgui.TABLE_COLUMN_WIDTH_STRETCH)
 
@@ -2638,7 +2642,7 @@ class MainGUI():
                     return True
         if game.id not in globals.games:
             return 0, True
-        return utils.popup(game.name, popup_content, closable=True, outside=False, extra_flags=imgui.WINDOW_ALWAYS_VERTICAL_SCROLLBAR, popup_uuid=popup_uuid)
+        return utils.popup(game.name, popup_content, closable=True, outside=False, resize=False, popup_uuid=popup_uuid)
 
     def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
