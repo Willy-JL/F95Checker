@@ -973,10 +973,12 @@ class MainGUI():
                             text = f"Fetching {count} full thread{'s' if count > 1 else ''}..."
                         elif (count := api.fast_checks_counter) > 0:
                             text = f"Validating {count} cached item{'s' if count > 1 else ''}..."
-                        elif api.f95_ratelimit._waiters or api.f95_ratelimit_sleeping.count:
-                            text = f"Waiting for F95zone ratelimit..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
+                        elif (count := imagehelper.astcenc_counter) > 0:
+                            text = "Compressing images..." if count == 1 else f"Compressing {count} frames..."
+                        elif api.f95_ratelimit._waiters or api.f95_ratelimit_sleeping.count:
+                            text = f"Waiting for F95zone ratelimit..."
                         else:
                             text = self.watermark_text
                         _3 = self.scaled(3)

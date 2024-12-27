@@ -31,6 +31,7 @@ apply_texture_queue = []
 _dummy_texture_id = None
 
 astcenc = None
+astcenc_counter = 0
 aastc_magic = b"\xA3\xAB\xA1\x5C"
 aastc_block = "6x6"
 aastc_format = gl_astc.GL_COMPRESSED_RGBA_ASTC_6x6_KHR
@@ -267,7 +268,10 @@ class ImageHelper:
                 set_invalid(f"Pillow does not recognize this image format!")
                 return
 
-            with image:
+            global astcenc_counter
+            frame_remaining = getattr(image, "n_frames", 1)
+            astcenc_counter += frame_remaining
+            try:
 
                 if image.format in ("PNG", "JPEG", "BMP") and not getattr(image, "is_animated", False):
                     # Image may be compressable by astcenc, try it
@@ -306,11 +310,16 @@ class ImageHelper:
                                 struct.pack("<I", int(frame.info.get("duration", 0))),  # Frame duration
                                 astc[16:],  # Texture data
                             ))
+                            frame_remaining -= 1
+                            astcenc_counter -= 1
                     except Exception:
                         set_invalid(f"Failed ASTC-Encoder intermediary step:\n{error.text()}")
                         return
                     finally:
                         png_path.unlink(missing_ok=True)
+            finally:
+                astcenc_counter -= frame_remaining
+                image.close()
 
             if aastc:
                 aastc_path = self.resolved_path.with_suffix(".aastc")
