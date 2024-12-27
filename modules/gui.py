@@ -2638,7 +2638,7 @@ class MainGUI():
                     return True
         if game.id not in globals.games:
             return 0, True
-        return utils.popup(game.name, popup_content, closable=True, outside=False, popup_uuid=popup_uuid)
+        return utils.popup(game.name, popup_content, closable=True, outside=False, extra_flags=imgui.WINDOW_ALWAYS_VERTICAL_SCROLLBAR, popup_uuid=popup_uuid)
 
     def draw_about_popup(self, popup_uuid: str = ""):
         def popup_content():
