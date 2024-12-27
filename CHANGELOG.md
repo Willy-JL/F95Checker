@@ -15,6 +15,8 @@
 - Save new zoom area and times settings after Shift+Scroll and Shift+Alt+Scroll on banner images (by @Willy-JL)
 - Optimize some text drawing by using ImGui wrapping instead of slow `wrap_text()` which is now fully gone (by @Willy-JL)
 - Slightly improve some hover tooltips, fixed weighted score missing on hover in grid/kanban view (by @Willy-JL)
+- Fix flicker when clicking arrows in more info popup (by @Willy-JL)
+- Fix more info popup width shifting without scrollbar (by @Willy-JL)
 
 ### Removed:
 - Nothing
