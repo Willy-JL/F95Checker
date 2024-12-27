@@ -156,8 +156,8 @@ class ImageHelper:
                 # Prefer .aastc files, then .gif, then anything else
                 sorting = lambda path: 1 if path.suffix == ".aastc" else 2 if path.suffix == ".gif" else 3
             else:
-                # Prefer .gif files, then anything else
-                sorting = lambda path: path.suffix != ".gif"
+                # Prefer .gif files, avoid .aastc files unless nothing else available
+                sorting = lambda path: 1 if path.suffix == ".gif" else 2 if path.suffix != ".aastc" else 3
             paths.sort(key=sorting)
             self.resolved_path = paths[0]
 
