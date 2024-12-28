@@ -2052,16 +2052,16 @@ class MainGUI():
                 avail = avail._replace(x=avail.x + imgui.style.scrollbar_size)
             close_image = False
             zoom_popup = False
-            if image.missing:
-                text = "Image missing!"
+            if image.error:
+                if image.error == "Image file missing":
+                    text = "Image missing!"
+                    draw_error = self.draw_game_image_missing_text
+                else:
+                    text = "Image error!"
+                    draw_error = self.draw_game_image_error_text
                 width = imgui.calc_text_size(text).x
                 imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_game_image_missing_text(game, text)
-            elif image.invalid:
-                text = "Image error!"
-                width = imgui.calc_text_size(text).x
-                imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_game_image_error_text(game, text)
+                draw_error(game, text)
             else:
                 aspect_ratio = image.height / image.width
                 out_height = (min(avail.y, self.scaled(690)) * self.scaled(0.4)) or 1
@@ -3369,22 +3369,18 @@ class MainGUI():
         rounding = self.scaled(globals.settings.style_corner_radius)
         imgui.begin_group()
         # Image
-        if game.image.missing:
-            text = "Image missing!"
+        if game.image.error:
+            if game.image.error == "Image file missing":
+                text = "Image missing!"
+                draw_error = self.draw_game_image_missing_text
+            else:
+                text = "Image error!"
+                draw_error = self.draw_game_image_error_text
             text_size = imgui.calc_text_size(text)
             showed_img = imgui.is_rect_visible(cell_width, img_height)
             if text_size.x < cell_width:
                 imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_game_image_missing_text(game, text)
-                imgui.set_cursor_pos(pos)
-            imgui.dummy(cell_width, img_height)
-        elif game.image.invalid:
-            text = "Image error!"
-            text_size = imgui.calc_text_size(text)
-            showed_img = imgui.is_rect_visible(cell_width, img_height)
-            if text_size.x < cell_width:
-                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_game_image_error_text(game, text)
+                draw_error(game, text)
                 imgui.set_cursor_pos(pos)
             imgui.dummy(cell_width, img_height)
         else:
@@ -3840,10 +3836,12 @@ class MainGUI():
         elif self.hovered_game:
             # Hover = show image
             game = self.hovered_game
-            if game.image.missing:
-                imgui.button("Image missing!", width=width, height=height)
-            elif game.image.invalid:
-                imgui.button("Invalid image!", width=width, height=height)
+            if game.image.error:
+                if game.image.error == "Image file missing":
+                    text = "Image missing!"
+                else:
+                    text = "Invalid image!"
+                imgui.button(text, width=width, height=height)
             else:
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))

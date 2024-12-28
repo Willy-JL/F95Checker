@@ -98,7 +98,6 @@ class ImageHelper:
         "loading",
         "applied",
         "_missing",
-        "_invalid",
         "prev_time",
         "animated",
         "_error",
@@ -120,8 +119,7 @@ class ImageHelper:
         self.loaded = False
         self.loading = False
         self.applied = False
-        self._missing = False
-        self._invalid = False
+        self._missing = None
         self.prev_time = 0.0
         self.animated = False
         self._error: str = None
@@ -135,15 +133,13 @@ class ImageHelper:
 
     @property
     def missing(self):
-        return self.loaded and self._missing
-
-    @property
-    def invalid(self):
-        return self.loaded and self._invalid
+        if self._missing is None:
+            self.resolve()
+        return self._missing
 
     @property
     def error(self):
-        return self.invalid and self._error or None
+        return self.loaded and self._error or None
 
     def resolve(self):
         self.resolved_path = self.path
@@ -179,22 +175,19 @@ class ImageHelper:
         self.frame = -1
         self.elapsed = 0.0
         self.textures.clear()
-        self._invalid = False
         self._error = None
         self.animated = False
         self.durations.clear()
         self.width, self.height = (1, 1)
 
-        if self._missing:
-            self.loaded = True
-            self.loading = False
-            return
-
         def set_invalid(err):
             self._error = err
-            self._invalid = True
             self.loaded = True
             self.loading = False
+
+        if self._missing:
+            set_invalid("Image file missing")
+            return
 
         if globals.settings.astc_compression and self.resolved_path.suffix != ".aastc":
             # Compress to ASTC
@@ -432,7 +425,7 @@ class ImageHelper:
         gc.collect()
 
     def unload(self):
-        if self.loaded and not self._missing and not self._invalid:
+        if self.loaded and not self._missing and not self._error:
             if self.texture_ids:
                 gl.glDeleteTextures([self.texture_ids])
                 self.texture_ids.clear()
@@ -458,7 +451,7 @@ class ImageHelper:
                 sync_thread.queue(self.reload)  # changed
             return dummy_texture_id()
 
-        if self._missing or self._invalid:
+        if self._missing or self._error:
             return dummy_texture_id()
 
         if not self.applied:
