@@ -11,6 +11,7 @@ import time
 import typing
 import weakref
 
+from external import weakerset
 from modules import colors
 
 
@@ -113,7 +114,7 @@ class DaemonPipe:
 
 
 class Timestamp:
-    instances = weakref.WeakSet()
+    instances = weakerset.WeakerSet()
 
     __slots__ = ("value", "_display", "__weakref__",)
 
@@ -145,7 +146,7 @@ class Timestamp:
 
 
 class Datestamp(Timestamp):
-    instances = weakref.WeakSet()
+    instances = weakerset.WeakerSet()
 
     __slots__ = ()
 
@@ -701,6 +702,8 @@ Browser.add("Custom", -1)
 
 @dataclasses.dataclass(slots=True)
 class Settings:
+    astc_compression            : bool
+    astc_replace                : bool
     background_on_close         : bool
     bg_notifs_interval          : int
     bg_refresh_interval         : int
@@ -769,6 +772,7 @@ class Settings:
     style_text_dim              : tuple[float]
     tags_highlights             : dict[Tag, TagHighlight]
     timestamp_format            : str
+    unload_offscreen_images     : bool
     vsync_ratio                 : int
     weighted_score              : bool
     zoom_area                   : int

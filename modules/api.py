@@ -705,7 +705,7 @@ async def fast_check(games: list[Game], full=False):
         this_full = full or (
             game.status is Status.Unchecked or
             last_changed > game.last_full_check or
-            (game.image.missing and game.image_url.startswith("http")) or
+            (game.image.missing and (game.image_url.startswith("http") or not game.image_url)) or
             last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
         )
         if not this_full:
