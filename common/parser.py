@@ -182,10 +182,17 @@ def thread(res: bytes) -> ParsedThread | ParserError:
         head = html.find(is_class("p-body-header"))
         post = html.find(is_class("message-threadStarterPost"))
         if head is None or post is None:
-            e = ParserError(
-                message="Thread structure missing",
-                dump=res,
-            )
+            logo = html.select_one(".p-header-logo img")
+            if logo and logo.attrs.get("alt") == "F95zone":
+                e = ParserError(
+                    message="Thread structure missing",
+                    dump=res,
+                )
+            else:
+                e = ParserError(
+                    message="Not an F95zone payload",
+                    dump=res,
+                )
             return e
         for spoiler in post.find_all(is_class("bbCodeSpoiler-button")):
             try:

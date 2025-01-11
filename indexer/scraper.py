@@ -36,12 +36,13 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     if index_error := f95zone.check_error(res, logger):
         return index_error
 
-    if req.status in (403, 404):
-        return f95zone.ERROR_THREAD_MISSING
-
     loop = asyncio.get_event_loop()
     ret = await loop.run_in_executor(None, parser.thread, res)
     if isinstance(ret, parser.ParserError):
+
+        if ret.message == "Thread structure missing" and req.status in (403, 404):
+            return f95zone.ERROR_THREAD_MISSING
+
         logger.error(f"Thread {id} parsing failed: {ret.message}\n{ret.dump}")
         return f95zone.ERROR_PARSING_FAILED
 
