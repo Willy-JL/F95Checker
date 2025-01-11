@@ -2025,22 +2025,33 @@ class MainGUI():
             popup_uuid=popup_uuid
         )
 
-    def draw_game_image_missing_text(self, game: Game, text: str):
-        self.draw_hover_text(
-            text=text,
-            hover_text=(
-                "This image link blocks us! You can blame Imgur." if game.image_url == "blocked" else
-                "This thread does not seem to have an image!" if game.image_url == "missing" else
-                "This image link cannot be reached anymore!" if game.image_url == "dead" else
-                "Run a full refresh to try downloading it again!"
-            )
-        )
+    def draw_game_image_error(self, game: Game, width: float, height: float):
+        if game.image.error == "Image file missing":
+            text = "Image missing!"
+            if game.custom:
+                hover_text = "Right click in More Info popup to add an image."
+            else:
+                hover_text = (
+                    "This image link blocks us! You can blame Imgur." if game.image_url == "blocked" else
+                    "This thread does not seem to have an image!" if game.image_url == "missing" else
+                    "This image link cannot be reached anymore!" if game.image_url == "dead" else
+                    "Run a refresh/recheck to try downloading it again!"
+                )
+        else:
+            text = "Image error!"
+            hover_text = game.image.error or "Unknown error"
 
-    def draw_game_image_error_text(self, game: Game, text: str):
-        self.draw_hover_text(
-            text=text,
-            hover_text=game.image.error or "Unknown error"
-        )
+        text_size = imgui.calc_text_size(text)
+        if text_size.x >= width:
+            hover_text = f"{text}\n{hover_text}"
+            text = "( ! )"
+            text_size = imgui.calc_text_size(text)
+
+        pos = imgui.get_cursor_pos()
+        imgui.set_cursor_pos((pos.x + (width - text_size.x) / 2, pos.y + (height - text_size.y) / 2))
+        self.draw_hover_text(text=text, hover_text=hover_text)
+        imgui.set_cursor_pos(pos)
+        imgui.dummy(width, height)
 
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         def popup_content():
@@ -2052,20 +2063,12 @@ class MainGUI():
                 avail = avail._replace(x=avail.x + imgui.style.scrollbar_size)
             close_image = False
             zoom_popup = False
+            out_height = (min(avail.y, self.scaled(690)) * self.scaled(0.4)) or 1
+            out_width = avail.x or 1
             if image.error:
-                if image.error == "Image file missing":
-                    text = "Image missing!"
-                    draw_error = self.draw_game_image_missing_text
-                else:
-                    text = "Image error!"
-                    draw_error = self.draw_game_image_error_text
-                width = imgui.calc_text_size(text).x
-                imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                draw_error(game, text)
+                self.draw_game_image_error(game, out_width, out_height)
             else:
                 aspect_ratio = image.height / image.width
-                out_height = (min(avail.y, self.scaled(690)) * self.scaled(0.4)) or 1
-                out_width = avail.x or 1
                 if aspect_ratio > (out_height / out_width):
                     height = out_height
                     width = height * (1 / aspect_ratio)
@@ -3371,19 +3374,8 @@ class MainGUI():
         imgui.begin_group()
         # Image
         if game.image.error:
-            if game.image.error == "Image file missing":
-                text = "Image missing!"
-                draw_error = self.draw_game_image_missing_text
-            else:
-                text = "Image error!"
-                draw_error = self.draw_game_image_error_text
-            text_size = imgui.calc_text_size(text)
             showed_img = imgui.is_rect_visible(cell_width, img_height)
-            if text_size.x < cell_width:
-                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                draw_error(game, text)
-                imgui.set_cursor_pos(pos)
-            imgui.dummy(cell_width, img_height)
+            self.draw_game_image_error(game, cell_width, img_height)
         else:
             crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
             showed_img = game.image.render(cell_width, img_height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
