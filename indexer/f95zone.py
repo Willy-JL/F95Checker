@@ -21,6 +21,7 @@ RATELIMIT_FORUM_ERRORS = (
     b"<h1>429 Too Many Requests</h1>",
     b"<title>Error 429</title>",
     b"<title>DDOS-GUARD</title>",
+    b"<title>DDoS-Guard</title>",
 )
 RATELIMIT_API_ERRORS = (
     "You have been temporarily blocked because of a large amount of requests, please try again later",
@@ -28,6 +29,7 @@ RATELIMIT_API_ERRORS = (
 TEMP_ERROR_MESSAGES = (
     b"<title>502 Bad Gateway</title>",
     b"<title>Error 502</title>",
+    b"An unexpected error occurred. Please try again later.",
     b"<!-- Too many connections -->",
     b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>",
 )
