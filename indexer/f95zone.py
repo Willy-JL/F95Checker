@@ -20,6 +20,7 @@ RATELIMIT_FORUM_ERRORS = (
     b"<title>429 Too Many Requests</title>",
     b"<h1>429 Too Many Requests</h1>",
     b"<title>Error 429</title>",
+    b"<title>DDoS-Guard</title>",
     b"<title>DDOS-GUARD</title>",
 )
 RATELIMIT_API_ERRORS = (
@@ -28,6 +29,9 @@ RATELIMIT_API_ERRORS = (
 TEMP_ERROR_MESSAGES = (
     b"<title>502 Bad Gateway</title>",
     b"<title>Error 502</title>",
+    b"An unexpected error occurred. Please try again later.",
+    b"An unexpected database error occurred. Please try again later.\n<!--",
+    b"<!-- Connection refused -->",
     b"<!-- Too many connections -->",
     b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>",
 )
@@ -106,7 +110,9 @@ async def lifespan(version: str):
         session = None
 
 
-def check_error(res: bytes | dict | Exception, logger: logging.Logger) -> IndexerError | None:
+def check_error(
+    res: bytes | dict | Exception, logger: logging.Logger
+) -> IndexerError | None:
     if isinstance(res, bytes):
         if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
             logger.error("Logged out of F95zone")
@@ -132,6 +138,6 @@ def check_error(res: bytes | dict | Exception, logger: logging.Logger) -> Indexe
             return ERROR_UNKNOWN_RESPONSE
 
     elif isinstance(res, Exception):
-        if isinstance(res, asyncio.TimeoutError):
+        if isinstance(res, (asyncio.TimeoutError, aiohttp.ClientConnectionError)):
             logger.warning("F95zone temporarily unreachable")
             return ERROR_F95ZONE_UNAVAILABLE

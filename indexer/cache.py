@@ -131,7 +131,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
     try:
         result = await scraper.thread(id)
     except Exception:
-        logger.error(f"Exception caching {name}:\n{error.traceback()}")
+        logger.error(f"Exception caching {name}: {error.text()}\n{error.traceback()}")
         result = f95zone.ERROR_INTERNAL_ERROR
     old_fields = await redis.hgetall(name)
     now = time.time()
