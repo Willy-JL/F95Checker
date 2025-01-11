@@ -84,11 +84,15 @@ f95_ratelimit_forum_errors = (
     b"<title>429 Too Many Requests</title>",
     b"<h1>429 Too Many Requests</h1>",
     b"<title>Error 429</title>",
+    b"<title>DDoS-Guard</title>",
     b"<title>DDOS-GUARD</title>",
 )
 f95_temp_error_messages = (
     b"<title>502 Bad Gateway</title>",
     b"<title>Error 502</title>",
+    b"An unexpected error occurred. Please try again later.",
+    b"An unexpected database error occurred. Please try again later.\n<!--",
+    b"<!-- Connection refused -->",
     b"<!-- Too many connections -->",
     b"<p>Automated backups are currently executing. During this time, the site will be unavailable</p>",
 )
