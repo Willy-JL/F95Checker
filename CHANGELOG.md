@@ -23,6 +23,8 @@
 - Optimize some text drawing by using ImGui wrapping instead of slow `wrap_text()` which is now fully gone (by @Willy-JL)
 - Slightly improve some hover tooltips, fixed weighted score missing on hover in grid/kanban view (by @Willy-JL)
 - Fix flicker when clicking arrows in more info popup (by @Willy-JL)
+- Mitigate ratelimits on DDL file list check (by @Willy-JL)
+- Fixed thread not found errors, better handling of F95zone database and DDoS-Guard errors (by @Willy-JL)
 - Apply images more efficiently, reduce stutters while scrolling (#212 by @Willy-JL)
 - Improve images error handling and display (#212 by @Willy-JL)
 
