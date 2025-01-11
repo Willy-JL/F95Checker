@@ -149,7 +149,7 @@ async def watch_updates():
             ):
                 index_error = exc.args[0]
             else:
-                index_error = None
+                index_error = f95zone.check_error(exc)
 
             if index_error:
                 await asyncio.sleep(
@@ -244,7 +244,7 @@ async def watch_versions():
             ):
                 index_error = exc.args[0]
             else:
-                index_error = None
+                index_error = f95zone.check_error(exc)
 
             if index_error:
                 await asyncio.sleep(

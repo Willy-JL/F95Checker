@@ -106,7 +106,9 @@ async def lifespan(version: str):
         session = None
 
 
-def check_error(res: bytes | dict | Exception, logger: logging.Logger) -> IndexerError | None:
+def check_error(
+    res: bytes | dict | Exception, logger: logging.Logger
+) -> IndexerError | None:
     if isinstance(res, bytes):
         if any((msg in res) for msg in LOGIN_ERROR_MESSAGES):
             logger.error("Logged out of F95zone")
@@ -132,6 +134,6 @@ def check_error(res: bytes | dict | Exception, logger: logging.Logger) -> Indexe
             return ERROR_UNKNOWN_RESPONSE
 
     elif isinstance(res, Exception):
-        if isinstance(res, asyncio.TimeoutError):
+        if isinstance(res, (asyncio.TimeoutError, aiohttp.ClientConnectionError)):
             logger.warning("F95zone temporarily unreachable")
             return ERROR_F95ZONE_UNAVAILABLE
