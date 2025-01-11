@@ -252,6 +252,9 @@ async def request(method: str, url: str, read=True, cookies: dict = True, **kwar
         try:
             # Only ratelimit when connecting to F95zone
             maybe_ratelimit = f95_ratelimit if is_ratelimit_request else contextlib.nullcontext()
+            if not is_ratelimit_request and url.startswith(f95_host):
+                # Don't ratelimit before request, but allow detecting and retrying if ratelimit happens
+                is_ratelimit_request = True
             async with maybe_ratelimit, session.request(
                 method,
                 url,
@@ -1361,14 +1364,19 @@ async def download_file(name: str, download: FileDownload):
         download.state = download.State.Stopped
 
 
-async def ddl_file_list(thread_id: int):
+async def ddl_file_list(thread_id: int, retry=False):
     res = await fetch("POST", f95_ddl_endpoint, params={"raw": 1}, data={
         "thread_id": thread_id,
     })
     raise_f95zone_error(res)
     res = json.loads(res)
-    if res["status"] == "error" and res["msg"] == "Not a donor":
-        return False
+    if res["status"] == "error":
+        if res["msg"] == "Not logged in" and not retry:
+            if not await assert_login():
+                return False
+            return await ddl_file_list(thread_id, retry=True)
+        if res["msg"] == "Not a donor":
+            return "You don't have access to F95zone Donor DDL Service!"
     raise_f95zone_error(res)
     results = res["msg"]
     sections = results["files"]
@@ -1418,27 +1426,25 @@ async def ddl_file_link(session_id: str, file: DdlFile):
 
 
 def open_ddl_popup(game: Game):
-    login = None
     results = None
     def _f95_ddl_popup():
-        nonlocal login, results
+        nonlocal results
 
         globals.gui.draw_game_downloads_header(game)
 
-        if not results:
+        if not isinstance(results, dict):
             imgui.text(f"Loading DDL file list for '{game.name}'...")
             imgui.text("Status:")
             imgui.same_line()
-            if login is None:
-                imgui.text("Logging in...")
-            elif not login:
-                return True
-            elif results is None:
+            if results is None:
                 imgui.text("Loading...")
             elif results is False:
-                imgui.text("You don't have access to F95zone Donor DDL Service!")
+                return True
             else:
-                imgui.text("No DDL available for this item!")
+                imgui.text(results)
+            return
+        if not results["files"]:
+            imgui.text("No DDL available for this item!")
             return
 
         if imgui.begin_table(
@@ -1533,9 +1539,8 @@ def open_ddl_popup(game: Game):
                 imgui.spacing()
             imgui.end_table()
     async def _ddl_load_files():
-        nonlocal login, results
-        if login := await assert_login():
-            results = await ddl_file_list(game.id)
+        nonlocal results
+        results = await ddl_file_list(game.id)
     utils.push_popup(
         utils.popup, "F95zone Donor DDL",
         _f95_ddl_popup,
