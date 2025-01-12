@@ -3381,7 +3381,8 @@ class MainGUI():
             showed_img = game.image.render(cell_width, img_height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
         # Alignments
         imgui.indent(side_indent)
-        imgui.push_text_wrap_pos(pos.x + cell_width - side_indent)
+        wrap_pos = pos.x + cell_width - side_indent
+        imgui.push_text_wrap_pos(wrap_pos)
         imgui.spacing()
         imgui.spacing()
         # Image overlays
@@ -3483,7 +3484,7 @@ class MainGUI():
             cluster = True
         def _cluster_text(name, text):
             nonlocal cluster
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(name[0] + text).x + cluster_pad:
+            if imgui.get_cursor_pos_x() + imgui.style.item_spacing.x + imgui.calc_text_size(name[0] + text).x > wrap_pos:
                 imgui.dummy(0, 0)
             imgui.text_disabled(name[0])
             if imgui.is_item_hovered():
@@ -3502,7 +3503,7 @@ class MainGUI():
         if cols.added_on.enabled:
             _cluster_text(cols.added_on.name, game.added_on.display)
         if cols.rating.enabled:
-            if imgui.get_content_region_available_width() < imgui.calc_text_size(icons.star * 5).x + cluster_pad:
+            if imgui.get_cursor_pos_x() + imgui.calc_text_size(icons.star * 5).x > wrap_pos:
                 imgui.dummy(0, 0)
             self.draw_game_rating_widget(game)
             imgui.same_line(spacing=cluster_pad)

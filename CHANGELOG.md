@@ -25,6 +25,7 @@
 - Fix flicker when clicking arrows in more info popup (by @Willy-JL)
 - Mitigate ratelimits on DDL file list check (by @Willy-JL)
 - Fixed thread not found errors, better handling of F95zone database and DDoS-Guard errors (by @Willy-JL)
+- Fix weird wrapping at edge of grid/kanban cells in some edge cases (by @Willy-JL)
 - Apply images more efficiently, reduce stutters while scrolling (#212 by @Willy-JL)
 - Improve images error handling and display (#212 by @Willy-JL)
 
