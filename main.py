@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 
-version = "11.0.2"
+version = "11.1"
 release = False
 build_number = 0
 version_name = f"{version}{'' if release else ' beta'}{'' if release or not build_number else ' ' + str(build_number)}"
