@@ -2,7 +2,7 @@
 - Nothing
 
 ### Updated:
-- Nothing
+- DDL can extract 7zip and RAR archives too (by @Willy-JL)
 
 ### Fixed:
 - Nothing

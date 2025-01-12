@@ -15,7 +15,10 @@ from common.structs import (
     Settings,
 )
 
-# Load version info, main globals, and some workarounds
+import py7zr
+import rarfile
+
+# Load version info, main globals, some workarounds and libraries
 version = None
 release = None
 build_number = None
@@ -60,6 +63,19 @@ def _():
             None: "raise",
         }
         logging.basicConfig()
+
+    # Archive formats
+    shutil.register_unpack_format("7zip", [".7z"], py7zr.unpack_7zarchive)
+    def unpack_rarfile(archive, path):
+        if not rarfile.is_rarfile(archive):
+            raise shutil.ReadError(f"{archive} is not a RAR file.")
+        with rarfile.RarFile(archive) as arc:
+            arc.extractall(path)
+    try:
+        if rarfile.tool_setup():
+            shutil.register_unpack_format("rar", [".rar"], unpack_rarfile)
+    except rarfile.RarCannotExec:
+        pass
 _()
 
 # Done here to avoid circular import
