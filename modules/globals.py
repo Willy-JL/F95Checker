@@ -56,7 +56,7 @@ def _():
     if debug:
         import logging
         glfw.ERROR_REPORTING = {
-            65548: "warn",  # Wayland: The platform does not support window position/icon
+            65548: "ignore",  # Wayland: The platform does not support window position/icon
             None: "raise",
         }
         logging.basicConfig()
