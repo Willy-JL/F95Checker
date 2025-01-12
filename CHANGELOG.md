@@ -8,7 +8,7 @@
   - Only recommended together with ASTC Image Compression, otherwise it is very slow
 
 ### Updated:
-- Nothing
+- DDL can extract 7zip and RAR archives too (by @Willy-JL)
 
 ### Fixed:
 - Apply images more efficiently, reduce stutters while scrolling (#212 by @Willy-JL)
