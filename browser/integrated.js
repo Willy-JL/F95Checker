@@ -129,6 +129,11 @@ var updateIcons = async () => {
         // Ignore links in the OP pointing to the posts in the same thread
         if (elem.closest('.message-threadStarterPost') && elemId === pageId) return false;
 
+        // Ignore non-links
+        if (elem.classList.contains('button')) return false;
+        if (elem.classList.contains('tabs-tab')) return false;
+        if (elem.classList.contains('u-concealed')) return false;
+
         return true;
     }
     const addHrefIcons = () => {
@@ -167,17 +172,22 @@ var updateIcons = async () => {
                 }
             }
 
-            const whitespaces = elem.querySelectorAll('span.label-append');
-            if (!isImage && elem.children.length > 0 && whitespaces.length > 0) {
+            if (!isImage && elem.children.length > 0) {
                 // Search page
-                try {
-                    container.style.fontSize = '1.2em';
-                    container.style.verticalAlign = '-2px';
+                container.style.fontSize = '1.2em';
+                container.style.verticalAlign = '-2px';
+                const whitespaces = elem.querySelectorAll('span.label-append');
+                if(whitespaces.length > 0) {
                     const lastWhitespace = whitespaces[whitespaces.length - 1];
                     lastWhitespace.insertAdjacentElement('afterend', createNbsp());
                     lastWhitespace.insertAdjacentElement('afterend', container);
-                } catch (e) {
-                    console.log(e);
+                } else if (elem.classList.contains('link--internal')) {
+                    if (elem.querySelector('img[data-src]')) {
+                        continue;
+                    }
+                    elem.insertAdjacentElement('beforebegin', container);
+                    elem.insertAdjacentElement('beforebegin', createNbsp());
+                } else {
                     continue;
                 }
             } else if (elem.classList.contains('resource-tile_link')) {
