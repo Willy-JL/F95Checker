@@ -167,16 +167,17 @@ var updateIcons = async () => {
                 }
             }
 
-            if (!isImage && elem.children.length > 0) {
+            const whitespaces = elem.querySelectorAll('span.label-append');
+            if (!isImage && elem.children.length > 0 && whitespaces.length > 0) {
                 // Search page
                 try {
                     container.style.fontSize = '1.2em';
                     container.style.verticalAlign = '-2px';
-                    const whitespaces = elem.querySelectorAll('span.label-append');
                     const lastWhitespace = whitespaces[whitespaces.length - 1];
                     lastWhitespace.insertAdjacentElement('afterend', createNbsp());
                     lastWhitespace.insertAdjacentElement('afterend', container);
                 } catch (e) {
+                    console.log(e);
                     continue;
                 }
             } else if (elem.classList.contains('resource-tile_link')) {
