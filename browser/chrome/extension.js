@@ -171,7 +171,7 @@ const updateIcons = async (tabId) => {
                     }
 
                     const whitespaces = elem.querySelectorAll('span.label-append');
-                    if (!isImage && elem.children.length > 0 && whitespaces.length == 0) {
+                    if (!isImage && elem.children.length > 0 && whitespaces.length > 0) {
                         // Search page
                         try {
                             container.style.fontSize = '1.2em';
