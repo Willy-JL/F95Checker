@@ -17,11 +17,11 @@ import tempfile
 import time
 import zipfile
 
-from PyQt6.QtWidgets import QSystemTrayIcon
 import aiofiles
 import aiohttp
 import aiohttp_socks
 import aiolimiter
+import desktop_notifier
 import imgui
 import python_socks
 
@@ -978,16 +978,18 @@ async def check_notifs(standalone=True, retry=False):
             globals.popup_stack.remove(popup)
     if alerts != 0 and inbox != 0:
         msg = (
-            f"You have {alerts + inbox} unread notifications.\n"
-            f"({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})\n"
+            f"You have {alerts + inbox} unread notifications!\n"
+            f"({alerts} alert{'s' if alerts > 1 else ''} and {inbox} conversation{'s' if inbox > 1 else ''})"
         )
     elif alerts != 0 and inbox == 0:
-        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}.\n"
+        msg = f"You have {alerts} unread alert{'s' if alerts > 1 else ''}!"
     elif alerts == 0 and inbox != 0:
-        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}.\n"
+        msg = f"You have {inbox} unread conversation{'s' if inbox > 1 else ''}!"
     else:
         return
+    popup = None
     def open_callback():
+        popup.open = False
         if alerts > 0:
             callbacks.open_webpage(f95_alerts_page)
         if inbox > 0:
@@ -996,19 +998,24 @@ async def check_notifs(standalone=True, retry=False):
         f"{icons.check} Yes": open_callback,
         f"{icons.cancel} No": None
     }
-    utils.push_popup(
+    popup = utils.push_popup(
         msgbox.msgbox, "Notifications",
         msg +
-        "\n"
+        "\n\n"
         f"Do you want to view {'them' if (alerts + inbox) > 1 else 'it'}?",
         MsgBox.info, buttons
     )
     if globals.gui.hidden or not globals.gui.focused:
-        globals.gui.tray.push_msg(
+        globals.gui.tray.notify(
             title="Notifications",
-            msg=msg +
-                "Click here to view them.",
-            icon=QSystemTrayIcon.MessageIcon.Information)
+            msg=msg,
+            buttons=[
+                desktop_notifier.Button(
+                    title="Open in Browser",
+                    on_pressed=open_callback,
+                ),
+            ]
+        )
 
 
 async def check_updates():
@@ -1241,11 +1248,9 @@ async def check_updates():
         bottom=True
     )
     if globals.gui.hidden or not globals.gui.focused:
-        globals.gui.tray.push_msg(
+        globals.gui.tray.notify(
             title="F95Checker update",
-            msg="F95Checker has received an update.\n"
-                "Click here to view it.",
-            icon=QSystemTrayIcon.MessageIcon.Information
+            msg="F95Checker has received an update!",
         )
 
 

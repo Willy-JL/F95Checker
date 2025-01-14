@@ -254,21 +254,6 @@ class SortSpec:
     reverse: bool
 
 
-@dataclasses.dataclass(slots=True)
-class TrayMsg:
-    title: str
-    msg: str
-    icon: "PyQt6.QtWidgets.QSystemTrayIcon.MessageIcon"
-
-    def __post_init__(self):
-        # KDE Plasma for some reason doesn't dispatch clicks if the icon is not critical
-        if os.environ.get("DESKTOP_SESSION") == "plasma" or \
-        os.environ.get("XDG_SESSION_DESKTOP") == "KDE" or \
-        os.environ.get("XDG_CURRENT_DESKTOP") == "KDE":
-            from PyQt6.QtWidgets import QSystemTrayIcon
-            self.icon = QSystemTrayIcon.MessageIcon.Critical
-
-
 class IntEnumHack(enum.IntEnum):
     def __new__(cls, value, attrs: dict = None):
         self = int.__new__(cls, value)

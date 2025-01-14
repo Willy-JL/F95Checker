@@ -2,14 +2,13 @@ import asyncio
 import concurrent
 import functools
 import io
-import math
 import random
 import re
 import time
 import typing
 
 from PIL import Image
-from PyQt6.QtWidgets import QSystemTrayIcon
+import desktop_notifier
 import glfw
 import imgui
 
@@ -102,11 +101,9 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
         globals.gui.tray.update_status()
         globals.gui.recalculate_ids = True
         if (globals.gui.hidden or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
-            globals.gui.tray.push_msg(
+            globals.gui.tray.notify(
                 title="Updates",
-                msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates, "
-                    f"click here to view {'it' if count == 1 else 'them'}.",
-                icon=QSystemTrayIcon.MessageIcon.Information
+                msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates!",
             )
         # Continues after this only if the task was not cancelled
         try:
@@ -297,10 +294,9 @@ def push_popup(*args, bottom=False, **kwargs):
                 "Server downtime",
             ):
                 return
-            globals.gui.tray.push_msg(
+            globals.gui.tray.notify(
                 title="Oops",
-                msg="Something went wrong, click here to view the error.",
-                icon=QSystemTrayIcon.MessageIcon.Critical
+                msg="Something went wrong! Click to view the error.",
             )
     if bottom:
         globals.popup_stack.insert(0, popup)

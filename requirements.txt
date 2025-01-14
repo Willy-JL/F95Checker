@@ -4,6 +4,7 @@ glfw==2.8.0
 
 # Interface stuff
 imgui==2.0.0
+desktop-notifier==6.0.0
 PyQt6-WebEngine==6.7.0 ; sys_platform != "darwin"
 PyQt6==6.7.1 ; sys_platform != "darwin"
 PyQt6-WebEngine==6.4.0 ; sys_platform == "darwin"

@@ -23,6 +23,7 @@ from PyQt6 import (
     QtWidgets,
 )
 import aiohttp
+import desktop_notifier
 import glfw
 import imgui
 import OpenGL
@@ -48,7 +49,6 @@ from common.structs import (
     TagHighlight,
     TimelineEventType,
     Timestamp,
-    TrayMsg,
     Type,
 )
 from common import parser
@@ -852,7 +852,6 @@ class MainGUI():
                 prev_hidden = self.hidden
                 self.prev_size = size
                 prev_cursor = cursor
-                self.tray.tick_msgs()
                 self.qt_app.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
                 glfw.make_context_current(self.window)
                 if self.repeat_chars:
@@ -5086,7 +5085,10 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.main_gui = main_gui
         self.idle_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/icon.png'))
         self.paused_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/paused.png'))
-        self.msg_queue: list[TrayMsg] = []
+        self._notify = desktop_notifier.DesktopNotifier(
+            app_name="F95Checker",
+            app_icon=desktop_notifier.Icon(globals.self_path / "resources/icons/icon.png"),
+        )
         super().__init__(self.idle_icon)
 
         self.watermark = QtGui.QAction(f"F95Checker {globals.version_name}")
@@ -5127,7 +5129,6 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.menu.aboutToShow.connect(self.update_menu)
 
         self.activated.connect(self.activated_filter)
-        self.messageClicked.connect(self.main_gui.show)
 
         self.show()
 
@@ -5194,10 +5195,28 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         if reason in self.show_gui_events:
             self.main_gui.show()
 
-    def push_msg(self, title: str, msg: str, icon: QtWidgets.QSystemTrayIcon.MessageIcon):
-        self.msg_queue.append(TrayMsg(title=title, msg=msg, icon=icon))
-
-    def tick_msgs(self):
-        while self.msg_queue:
-            msg = self.msg_queue.pop(0)
-            self.showMessage(msg.title, msg.msg, msg.icon, 5000)
+    def notify(
+        self,
+        title: str,
+        msg: str,
+        urgency=desktop_notifier.Urgency.Normal,
+        icon: desktop_notifier.Icon = None,
+        buttons: list[desktop_notifier.Button] = [],
+        attachment: desktop_notifier.Attachment = None,
+        timeout=5,
+    ):
+        async_thread.run(self._notify.send(
+            title=title,
+            message=msg,
+            urgency=urgency,
+            icon=icon,
+            buttons=buttons + [
+                desktop_notifier.Button(
+                    title="View",
+                    on_pressed=self.main_gui.show,
+                ),
+            ],
+            on_clicked=self.main_gui.show,
+            attachment=attachment,
+            timeout=timeout,
+        ))
