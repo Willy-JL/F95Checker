@@ -683,23 +683,17 @@ async def fast_check(games: list[Game], full=False):
                 last_changes = json.loads(res)
                 raise_api_error(last_changes)
             except Exception as exc:
-                if isinstance(exc, msgbox.Exc):
+                if isinstance(exc, msgbox.Exc) or not res:
                     raise exc
-                if res:
-                    async with aiofiles.open(globals.self_path / "check_broken.bin", "wb") as f:
-                        await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
                 raise msgbox.Exc(
                     "Fast check error",
                     "Something went wrong checking some of your games:\n"
-                    f"{error.text()}\n" + (
-                        "\n"
-                        "The response body has been saved to:\n"
-                        f"{globals.self_path / 'check_broken.bin'}\n"
-                        "Please submit a bug report on F95zone or GitHub including this file."
-                        if res else ""
-                    ),
+                    f"{error.text()}\n"
+                    "\n"
+                    "Click below to see the response body and traceback.\n"
+                    "Please submit a bug report on F95zone or GitHub including these.",
                     MsgBox.error,
-                    more=error.traceback()
+                    more=f"Response body:\n{str(res)[:10000]}\n\n{error.traceback()}",
                 )
     finally:
         fast_checks_counter -= len(games)
@@ -954,23 +948,17 @@ async def check_notifs(standalone=True, retry=False):
         alerts = int(res["visitor"]["alerts_unread"].replace(",", "").replace(".", ""))
         inbox  = int(res["visitor"]["conversations_unread"].replace(",", "").replace(".", ""))
     except Exception as exc:
-        if isinstance(exc, msgbox.Exc):
+        if isinstance(exc, msgbox.Exc) or not res:
             raise exc
-        if res:
-            async with aiofiles.open(globals.self_path / "notifs_broken.bin", "wb") as f:
-                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
         raise msgbox.Exc(
             "Notifs check error",
             "Something went wrong checking your unread notifications:\n"
-            f"{error.text()}\n" + (
-                "\n"
-                "The response body has been saved to:\n"
-                f"{globals.self_path / 'notifs_broken.bin'}\n"
-                "Please submit a bug report on F95zone or GitHub including this file."
-                if res else ""
-            ),
+            f"{error.text()}\n"
+            "\n"
+            "Click below to see the response body and traceback.\n"
+            "Please submit a bug report on F95zone or GitHub including these.",
             MsgBox.error,
-            more=error.traceback()
+            more=f"Response body:\n{str(res)[:10000]}\n\n{error.traceback()}",
         )
     globals.refresh_progress += 1
     for popup in globals.popup_stack:
@@ -1057,22 +1045,18 @@ async def check_updates():
             changelog = changelog[changelog.find(match) + len(match):].strip()
         if not update_available or not asset_url or not asset_name or not asset_size:
             return
-    except Exception:
-        if res:
-            async with aiofiles.open(globals.self_path / "update_broken.bin", "wb") as f:
-                await f.write(json.dumps(res).encode() if isinstance(res, (dict, list)) else res)
+    except Exception as exc:
+        if isinstance(exc, msgbox.Exc) or not res:
+            raise exc
         raise msgbox.Exc(
             "Update check error",
             "Something went wrong checking for F95Checker updates:\n"
-            f"{error.text()}\n" + (
-                "\n"
-                "The response body has been saved to:\n"
-                f"{globals.self_path / 'update_broken.bin'}\n"
-                "Please submit a bug report on F95zone or GitHub including this file."
-                if res else ""
-            ),
+            f"{error.text()}\n"
+            "\n"
+            "Click below to see the response body and traceback.\n"
+            "Please submit a bug report on F95zone or GitHub including these.",
             MsgBox.error,
-            more=error.traceback()
+            more=f"Response body:\n{str(res)[:10000]}\n\n{error.traceback()}",
         )
     async def update_callback():
         progress = 0.0

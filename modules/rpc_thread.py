@@ -137,9 +137,9 @@ def start():
                 "\n"
                 "This means that the web browser extension will not work, while F95Checker\n"
                 "itself should be unaffected. Some common causes are:\n"
-                " - Hyper-V\n"
+                " - Antivirus or firewall"
                 " - Docker\n"
-                " - Antivirus or firewall",
+                " - Hyper-V\n",
                 MsgBox.warn,
                 more=error.traceback()
             )
