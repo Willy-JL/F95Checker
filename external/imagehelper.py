@@ -249,7 +249,7 @@ class ImageHelper:
                     astc = astc_path.read_bytes()
                     return astc, b""
                 except subprocess.CalledProcessError as exc:
-                    err = exc.stdout or "Unknown error"
+                    err = exc.stdout or b"Unknown error"
                     return b"", err
                 finally:
                     astc_path.unlink(missing_ok=True)
