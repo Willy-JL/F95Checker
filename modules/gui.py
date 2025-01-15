@@ -427,7 +427,7 @@ class MainGUI():
                 tb = error.traceback(args.exc_value)
                 utils.push_popup(
                     msgbox.msgbox, "Oops!",
-                    "Something went wrong in a parallel task of a separate thread:\n"
+                    "Something went wrong in a parallel task:\n"
                     f"{err}",
                     MsgBox.error,
                     more=tb
@@ -461,7 +461,7 @@ class MainGUI():
                 return
             utils.push_popup(
                 msgbox.msgbox, "Oops!",
-                "Something went wrong in an asynchronous task of a separate thread:\n"
+                "Something went wrong in an asynchronous task:\n"
                 f"{err}",
                 MsgBox.error,
                 more=tb

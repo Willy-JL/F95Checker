@@ -11,6 +11,8 @@
 - DDL can extract 7zip and RAR archives too (by @Willy-JL)
 
 ### Fixed:
+- Simplify some error handling, correctly handles connection issues in some edge cases (by @Willy-JL)
+- Fix some link icons not being recognized by the extension and missing the library icon (by @Willy-JL)
 - Apply images more efficiently, reduce stutters while scrolling (#212 by @Willy-JL)
 - Improve images error handling and display (#212 by @Willy-JL)
 
