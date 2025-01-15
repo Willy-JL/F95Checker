@@ -5,7 +5,8 @@
 - DDL can extract 7zip and RAR archives too (by @Willy-JL)
 
 ### Fixed:
-- Nothing
+- Simplify some error handling, correctly handles connection issues in some edge cases (by @Willy-JL)
+- Fix some link icons not being recognized by the extension and missing the library icon (by @Willy-JL)
 
 ### Removed:
 - Nothing
