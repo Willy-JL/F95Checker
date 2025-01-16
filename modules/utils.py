@@ -312,6 +312,7 @@ def push_popup(*args, bottom=False, **kwargs):
             globals.gui.tray.notify(
                 title="Oops",
                 msg="Something went wrong! Click to view the error.",
+                icon=desktop_notifier.Icon(globals.self_path / "resources/icons/error.png")
             )
     if bottom:
         globals.popup_stack.insert(0, popup)
