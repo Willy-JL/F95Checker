@@ -878,7 +878,7 @@ async def full_check(game: Game, last_changed: int):
                     version=old_version,
                     status=old_status,
                 )
-                globals.updated_games[game.id] = old_game
+                globals.new_updated_games[game.id] = old_game
 
         if fetch_image and thread["image_url"] and thread["image_url"].startswith("http"):
             with images_counter:

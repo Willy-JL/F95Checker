@@ -924,13 +924,6 @@ class MainGUI():
                                 shape = glfw.HAND_CURSOR
                             glfw.set_cursor(self.window, glfw.create_standard_cursor(shape))
 
-                        # Updated games popup
-                        if not utils.is_refreshing() and globals.updated_games:
-                            updated_games = globals.updated_games.copy()
-                            globals.updated_games.clear()
-                            sorted_ids = sorted(updated_games, key=lambda id: globals.games[id].type.category.value)
-                            utils.push_popup(self.draw_updates_popup, updated_games, sorted_ids)
-
                         # Start drawing
                         prev_scaling = globals.settings.interface_scaling
                         imgui.new_frame()
@@ -1002,9 +995,15 @@ class MainGUI():
                         # Popups
                         open_popup_count = 0
                         for popup in globals.popup_stack:
-                            opened, closed =  popup()
+                            opened, closed = popup()
                             if closed:
                                 globals.popup_stack.remove(popup)
+                            open_popup_count += opened
+                        if globals.updated_games_sorted_ids:
+                            opened, closed = self.draw_updates_popup()
+                            if closed:
+                                globals.updated_games_sorted_ids.clear()
+                                globals.updated_games.clear()
                             open_popup_count += opened
                         # Popups are closed all at the end to allow stacking
                         for _ in range(open_popup_count):
@@ -1044,7 +1043,7 @@ class MainGUI():
                             elif self.bg_mode_notifs_timer and time.time() > self.bg_mode_notifs_timer:
                                 # Run scheduled notif check
                                 self.bg_mode_notifs_timer = None
-                                utils.start_refresh_task(api.check_notifs(standalone=True), reset_bg_timers=False)
+                                utils.start_refresh_task(api.check_notifs(standalone=True), reset_bg_timers=False, notify_new_games=False)
                     # Wait idle time
                     if self.tray.menu_open:
                         time.sleep(1 / 60)
@@ -1910,7 +1909,7 @@ class MainGUI():
         imgui.spacing()
         imgui.spacing()
 
-    def draw_updates_popup(self, updated_games, sorted_ids, popup_uuid: str = ""):
+    def draw_updates_popup(self):
         def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
@@ -1920,11 +1919,11 @@ class MainGUI():
             category_open = False
             imgui.push_text_wrap_pos(full_width)
             imgui.indent(indent)
-            for game_i, id in enumerate(sorted_ids):
+            for game_i, id in enumerate(globals.updated_games_sorted_ids):
                 if id not in globals.games:
-                    sorted_ids.remove(id)
+                    globals.updated_games_sorted_ids.remove(id)
                     continue
-                old_game = updated_games[id]
+                old_game = globals.updated_games[id]
                 game = globals.games[id]
                 if category is not game.type.category:
                     category = game.type.category
@@ -2000,7 +1999,7 @@ class MainGUI():
                 imgui.same_line()
                 self.draw_game_copy_link_button(game, f"{icons.content_copy} Link")
                 imgui.same_line()
-                self.draw_game_more_info_button(game, f"{icons.information_outline} Info", carousel_ids=sorted_ids)
+                self.draw_game_more_info_button(game, f"{icons.information_outline} Info", carousel_ids=globals.updated_games_sorted_ids)
 
                 imgui.end_group()
                 height = imgui.get_item_rect_size().y + imgui.style.item_spacing.y
@@ -2008,17 +2007,17 @@ class MainGUI():
                 imgui.set_cursor_pos((img_pos_x, img_pos_y))
                 game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
 
-                if game_i != len(sorted_ids) - 1:
+                if game_i != len(globals.updated_games_sorted_ids) - 1:
                     imgui.text("\n")
             imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
         return utils.popup(
-            f"{len(sorted_ids)} update{'' if len(sorted_ids) == 1 else 's'}",
+            f"{len(globals.updated_games_sorted_ids)} update{'' if len(globals.updated_games_sorted_ids) == 1 else 's'}",
             popup_content,
             buttons=True,
             closable=True,
             outside=False,
-            popup_uuid=popup_uuid
+            popup_uuid="updates"
         )
 
     def draw_game_image_missing_text(self, game: Game, text: str):
@@ -4509,9 +4508,9 @@ class MainGUI():
                         outside=False
                     )
                 if imgui.button("F95 bookmarks", width=-offset):
-                    utils.start_refresh_task(api.import_f95_bookmarks(), reset_bg_timers=False)
+                    utils.start_refresh_task(api.import_f95_bookmarks(), reset_bg_timers=False, notify_new_games=False)
                 if imgui.button("F95 watched threads", width=-offset):
-                    utils.start_refresh_task(api.import_f95_watched_threads(), reset_bg_timers=False)
+                    utils.start_refresh_task(api.import_f95_watched_threads(), reset_bg_timers=False, notify_new_games=False)
                 if imgui.button("Browser bookmarks", width=-offset):
                     def callback(selected):
                         if selected:

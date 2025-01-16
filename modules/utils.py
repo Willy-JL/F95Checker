@@ -82,7 +82,7 @@ def is_refreshing():
     return False
 
 
-def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
+def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True, notify_new_games=True):
     if is_refreshing():
         return
     if reset_bg_timers:
@@ -100,11 +100,26 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
         globals.refresh_task = None
         globals.gui.tray.update_status()
         globals.gui.recalculate_ids = True
-        if (globals.gui.hidden or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
-            globals.gui.tray.notify(
-                title="Updates",
-                msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates!",
-            )
+        if notify_new_games and (globals.new_updated_games or globals.updated_games):
+            if globals.new_updated_games:
+                globals.updated_games.update(globals.new_updated_games)
+                first = list(globals.new_updated_games.keys())[0]
+                globals.new_updated_games.clear()
+            else:
+                first = list(globals.updated_games.keys())[0]
+            globals.updated_games_sorted_ids = sorted(globals.updated_games.keys(), key=lambda id: globals.games[id].type.category.value)
+            if globals.gui.hidden or not globals.gui.focused:
+                image = list(filter(lambda f: f.suffix != ".aastc", globals.images_path.glob(f"{first}.*")))
+                if image:
+                    image = desktop_notifier.Attachment(path=image[0])
+                else:
+                    image = None
+                count = len(globals.updated_games)
+                globals.gui.tray.notify(
+                    title="Updates",
+                    msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates!",
+                    attachment=image,
+                )
         # Continues after this only if the task was not cancelled
         try:
             future.exception()

@@ -245,3 +245,5 @@ games: dict[int, Game] = None
 cookies: dict[str, str] = None
 popup_stack: list[partial] = []
 updated_games: dict[int, OldGame] = {}
+updated_games_sorted_ids: list[int] = []
+new_updated_games: dict[int, OldGame] = {}
