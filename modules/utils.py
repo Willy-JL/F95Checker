@@ -108,6 +108,10 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True, notify_new_
             else:
                 first = list(globals.updated_games.keys())[0]
             globals.updated_games_sorted_ids = sorted(globals.updated_games.keys(), key=lambda id: globals.games[id].type.category.value)
+            for popup in globals.popup_stack:
+                if popup.func is type(globals.gui).draw_updates_popup:
+                    globals.popup_stack.remove(popup)
+            push_popup(type(globals.gui).draw_updates_popup, globals.gui).uuid = "updates"
             if globals.gui.hidden or not globals.gui.focused:
                 image = list(filter(lambda f: f.suffix != ".aastc", globals.images_path.glob(f"{first}.*")))
                 if image:

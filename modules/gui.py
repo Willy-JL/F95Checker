@@ -999,12 +999,6 @@ class MainGUI():
                             if closed:
                                 globals.popup_stack.remove(popup)
                             open_popup_count += opened
-                        if globals.updated_games_sorted_ids:
-                            opened, closed = self.draw_updates_popup()
-                            if closed:
-                                globals.updated_games_sorted_ids.clear()
-                                globals.updated_games.clear()
-                            open_popup_count += opened
                         # Popups are closed all at the end to allow stacking
                         for _ in range(open_popup_count):
                             imgui.end_popup()
@@ -1909,7 +1903,7 @@ class MainGUI():
         imgui.spacing()
         imgui.spacing()
 
-    def draw_updates_popup(self):
+    def draw_updates_popup(self, popup_uuid: str = ""):
         def popup_content():
             indent = self.scaled(222)
             width = indent - 3 * imgui.style.item_spacing.x
@@ -2011,14 +2005,18 @@ class MainGUI():
                     imgui.text("\n")
             imgui.unindent(indent)
             imgui.pop_text_wrap_pos()
-        return utils.popup(
+        opened, closed = utils.popup(
             f"{len(globals.updated_games_sorted_ids)} update{'' if len(globals.updated_games_sorted_ids) == 1 else 's'}",
             popup_content,
             buttons=True,
             closable=True,
             outside=False,
-            popup_uuid="updates"
+            popup_uuid=popup_uuid
         )
+        if closed:
+            globals.updated_games_sorted_ids.clear()
+            globals.updated_games.clear()
+        return opened, closed
 
     def draw_game_image_missing_text(self, game: Game, text: str):
         self.draw_hover_text(
