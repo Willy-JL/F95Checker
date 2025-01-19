@@ -532,6 +532,35 @@ class Filter:
     def __post_init__(self):
         self.id = id(self)
 
+@dataclasses.dataclass(slots=True)
+class SearchLogic:
+    nodes: list["SearchLogic"]
+    token: str
+    logic: str
+    type: str
+    invert: bool
+    id: int = None
+
+    def __init__(self, token: str = None, logic: str = "&", invert: bool = False, type: str = "&", nodes: list["SearchLogic"] = None):
+        self.nodes = nodes if nodes else []
+        self.token = token
+        self.logic = logic
+        self.invert = invert
+        self.type = type
+
+    # Get similar node if exists, otherwise add node to self
+    def get(self, new_node: "SearchLogic", index: int) -> "SearchLogic":
+        for node in self.nodes[:index]:
+            if node.__eq__(new_node):
+                return node
+        self.nodes.insert(index, new_node)
+        return new_node
+    
+    def __eq__(self, node: "SearchLogic"):
+        return (node.logic == self.logic) & (node.type == self.type) & (node.token == self.token) & (node.invert == self.invert)
+
+    def __post_init__(self):
+        self.id = id(self)
 
 TimelineEventType = IntEnumHack("TimelineEventType", [
     ("GameAdded",        (1,  {"display": "Added",             "icon": "alert_decagram", "args_min": 0, "template": "Added to the library"})),

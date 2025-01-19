@@ -41,6 +41,7 @@ from common.structs import (
     MsgBox,
     Os,
     ProxyType,
+    SearchLogic,
     SortSpec,
     Status,
     Tab,
@@ -2989,10 +2990,8 @@ class MainGUI():
                     filtering = True
                 else:
                     search = self.add_box_text.lower()
-                    def key(id):
-                        game = globals.games[id]
-                        return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
-                    base_ids = filter(key, base_ids)
+                    query: SearchLogic = utils.parse_search(search)
+                    base_ids = utils.parse_query(query, list(base_ids))
                     filtering = True
             self.filtering = filtering
             # Finally consume the iterators (was lazy up until now)
