@@ -240,6 +240,20 @@ def extract_thread_matches(text: str) -> list[ThreadMatch]:
 
 def parse_search(search: str) -> SearchLogic:
     tokens: list[str] = []
+    replacements: dict = {
+        "\\": "bslash_",
+        "\"": "dquote_",
+        "\'": "squote_",
+        "_" : "uscore_",
+        "(" : "sparen_",
+        ")" : "eparen_"
+    }
+    index = 0
+    while index < len(search):
+        if search[index:index+1] == "\\" and index + 1 < len(search) and search[index+1:index+2] in replacements.keys():
+            search = search[0:index] + "_" + replacements[search[index+1:index+2]] + search[index+2:]
+            index += 7
+        index += 1
     start = 0
     index = 0
     while index < len(search):
@@ -279,6 +293,14 @@ def parse_search(search: str) -> SearchLogic:
     return flatten_query(create_query(tokens))
 
 def create_query(query: list[str]) -> SearchLogic:
+    replacements: dict = {
+        "\\": "bslash_",
+        "\"": "dquote_",
+        "\'": "squote_",
+        "_" : "uscore_",
+        "(" : "sparen_",
+        ")" : "eparen_"
+    }
     head = SearchLogic()
     invert: bool = False
     while len(query) > 0:
@@ -303,6 +325,12 @@ def create_query(query: list[str]) -> SearchLogic:
                     token = None
                 elif (token.startswith("\"") and token.endswith("\"")):
                     token = token[1:-1]
+                index = 0
+                if token != None:
+                    while index < len(token) and token.count("_") > 1:
+                        if token[index:index+1] == "_" and index + 7 < len(token) and token[index+1:index+8] in replacements.values():
+                            token = token[0:index] + next((escaped for escaped, replace in replacements.items() if replace == token[index+1:index+8]), None) + token[index+8:]
+                        index += 1
                 new_query = SearchLogic(token, logic, invert, type)
                 invert = False
                 head.nodes.append(new_query)
