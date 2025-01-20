@@ -424,10 +424,28 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                         match node.token:
                             case "invalid":
                                 output = bool(game.executables) and not game.executables_valid
+                            case "valid":
+                                output = bool(game.executables) and game.executables_valid
                             case "selected":
                                 output = bool(game.executables)
                             case "unset":
                                 output = not game.executables
+                        if output == (head.logic == "|"):
+                            return output
+                    return output
+            case "image":
+                def key(game: Game, f: SearchLogic):
+                    output: bool = head.logic == "&"
+                    for node in f.nodes:
+                        match node.token:
+                            case "invalid":
+                                output = game.image.invalid
+                            case "valid":
+                                output = not game.image.invalid and not game.image.missing
+                            case "selected":
+                                output = not game.image.invalid
+                            case "missing":
+                                output = game.image.missing
                         if output == (head.logic == "|"):
                             return output
                     return output
@@ -490,6 +508,14 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                             node.token = type
                             break
                 key = lambda game, f: (and_or(game.type is node.token for node in f.nodes))
+            case "name":
+                key = lambda game, f: (and_or(node.token in game.name.lower() for node in f.nodes))
+            case "dev":
+                key = lambda game, f: (and_or(node.token in game.developer.lower() for node in f.nodes))
+            case "version":
+                key = lambda game, f: (and_or(node.token in game.version.lower() for node in f.nodes))
+            case "note" | "notes":
+                key = lambda game, f: (and_or(node.token in game.notes.lower() for node in f.nodes))
             case _:
                 key = None
         if key is not None:
