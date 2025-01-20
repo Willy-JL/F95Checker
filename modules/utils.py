@@ -503,7 +503,7 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                             break
                 key = lambda game, f: (and_or(game.status is node.token for node in f.nodes))
             case "tag":
-                key = lambda game, f: (and_or((node.token not in Tag.__members__) or (Tag[node.token] in game.tags) for node in f.nodes))
+                key = lambda game, f: (and_or((node.token in Tag.__members__) and (Tag[node.token] in game.tags) or (node.token in game.unknown_tags) for node in f.nodes))
             case "type":
                 for node in head.nodes:
                     for type in Type:
@@ -535,13 +535,14 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
             case ">=":
                 compare = lambda l, r: (l >= r)
         if head.token in ["added", "updated", "launched", "finished", "installed"]:
-            for node in head.nodes:
-                try:
-                    date = dt.datetime.strptime(node.token, globals.settings.datestamp_format)
-                    if head.type in ["<=", ">"]:
-                        date += dt.timedelta(days=1)
-                    node.token = str(date.timestamp())
-                except Exception: return base_ids
+            try:
+                date = dt.datetime.strptime(head.nodes[0].token, globals.settings.datestamp_format)
+                if head.type in ["<=", ">"]:
+                    date += dt.timedelta(days=1)
+                head.nodes[0].token = str(date.timestamp())
+            except Exception: 
+                pass
+                # return base_ids
         match head.token:
             case "added":
                 key = lambda game, f: (compare(game.added_on.value,      float(f.nodes[0].token)))
