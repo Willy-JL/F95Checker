@@ -276,7 +276,7 @@ def parse_search(search: str) -> SearchLogic:
         index += 1
     if index > start:
         tokens.append(search[start:index])
-    return create_query(tokens)
+    return flatten_query(create_query(tokens))
 
 def create_query(query: list[str]) -> SearchLogic:
     head = SearchLogic()
@@ -356,7 +356,7 @@ def create_query(query: list[str]) -> SearchLogic:
         else:
             head.nodes.insert(i, token)
             i += 1
-    return flatten_query(head)
+    return head
 
 def flatten_query(head: SearchLogic) -> SearchLogic:
     if (head.type == "?") or (len(head.nodes) == 0):
@@ -381,18 +381,21 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
     i = 0
     while i < len(head.nodes):
         node = head.nodes.pop(i)
-        if head.type == ":":
-            if node.type in ["|", "&"]:
-                node.type = ":"
-                node.token = head.token
+        if (head.type == ":") and (node.type in ["|", "&", ":"]):
+            node.type = ":"
+            node.token = head.token
+            node = flatten_query(node)
+            if (node.logic != head.logic) or (node.invert != head.invert):
                 new_node = SearchLogic(logic=head.logic, invert=head.invert, type=head.logic)
+                head.invert = False
                 new_node.nodes.append(head)
                 new_node.nodes.append(node)
                 head = flatten_query(new_node)
                 break
-        node = flatten_query(node)
+        else:
+            node = flatten_query(node)
         if node == head:
-            head.nodes.__add__(node.nodes)
+            head.nodes.extend(node.nodes)
         else:
             head.nodes.insert(i, node)
             i += 1
