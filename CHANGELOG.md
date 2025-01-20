@@ -3,6 +3,7 @@
 
 ### Updated:
 - DDL can extract 7zip and RAR archives too (by @Willy-JL)
+- App icons are now rounded, and MacOS icon has an empty border to fit design guidelines (by @rakleed & @Willy-JL)
 
 ### Fixed:
 - Simplify some error handling, correctly handles connection issues in some edge cases (by @Willy-JL)

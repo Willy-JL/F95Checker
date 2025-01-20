@@ -403,9 +403,7 @@ class MainGUI():
         self.screen_pos = glfw.get_window_pos(self.window)
         if globals.settings.start_in_background:
             self.hide()
-        self.icon_path = globals.self_path / "resources/icons/icon.png"
-        self.icon_texture = imagehelper.ImageHelper(self.icon_path)
-        glfw.set_window_icon(self.window, 1, Image.open(self.icon_path))
+        glfw.set_window_icon(self.window, 1, Image.open(globals.self_path / "resources/icons/icon.png"))
 
         # Window callbacks
         glfw.set_char_callback(self.window, self.char_callback)
@@ -416,6 +414,7 @@ class MainGUI():
         glfw.set_drop_callback(self.window, self.drop_callback)
         glfw.swap_interval(globals.settings.vsync_ratio)
 
+        self.logo_texture = imagehelper.ImageHelper(globals.self_path / "resources/icons/logo.png")
         self.refresh_fonts()
         self.load_filters()
         self.load_styles_from_toml()
@@ -2651,7 +2650,7 @@ class MainGUI():
             imgui.begin_group()
             imgui.dummy(_60, _230)
             imgui.same_line()
-            self.icon_texture.render(_230, _230, rounding=self.scaled(globals.settings.style_corner_radius))
+            self.logo_texture.render(_230, _230, rounding=self.scaled(globals.settings.style_corner_radius))
             imgui.same_line()
             imgui.begin_group()
             imgui.push_font(imgui.fonts.big)
@@ -5084,7 +5083,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             QtWidgets.QSystemTrayIcon.ActivationReason.Trigger
         ]
         self.main_gui = main_gui
-        self.idle_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/icon.png'))
+        self.idle_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/logo.png'))
         self.paused_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/paused.png'))
         self.msg_queue: list[TrayMsg] = []
         super().__init__(self.idle_icon)
