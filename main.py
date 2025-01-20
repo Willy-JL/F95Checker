@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import asyncio
 import contextlib
 import os
 import pathlib
@@ -27,10 +28,15 @@ def main():
 
     from common.structs import Os
     try:
-        # Install uvloop on MacOS and Linux, non essential so ignore errors
-        if globals.os is not Os.Windows:
+        # Install uvloop on Linux and Rubicon-ObjC on MacOS, non essential so ignore errors
+        if globals.os is Os.Linux:
+            # Faster eventloop
             import uvloop
-            uvloop.install()
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        elif globals.os is Os.MacOS:
+            # Needed for desktop-notifier
+            import rubicon.objc.eventloop as crloop
+            asyncio.set_event_loop_policy(crloop.EventLoopPolicy())
     except Exception:
         pass
 
