@@ -1,5 +1,6 @@
 import asyncio
 import concurrent
+import datetime as dt
 import functools
 import io
 import math
@@ -20,6 +21,8 @@ from common.structs import (
     Popup,
     Status,
     Tag,
+    TimelineEvent,
+    TimelineEventType,
     Type,
     ThreadMatch,
     SearchLogic,
@@ -260,10 +263,15 @@ def parse_search(search: str) -> SearchLogic:
                     index = quote_end + 1
                     start = index
             # turn colons and parentheses into their own tokens even if they don't have a space separating them
-            case ":" | ")" | "(":
+            case ":" | ")" | "(" | ">" | "<":
                 if index > start:
                     tokens.append(search[start:index])
-                tokens.append(search[index:index+1])
+                if search[index+1:index+2] == "=":
+                    if c in [">", "<"]: tokens.append(search[index:index+2])
+                    else: tokens.append(search[index:index+1])
+                    index += 1
+                else:
+                    tokens.append(search[index:index+1])
                 start = index + 1
         index += 1
     if index > start:
@@ -289,9 +297,9 @@ def create_query(query: list[str]) -> SearchLogic:
                 new_query: SearchLogic = None
                 logic: str = None
                 type: str = "?"
-                if token in ["or", "||", "|", ":"]:
+                if token in ["or", "||", "|", ":", "<", "<=", ">", ">="]:
                     logic = "|"
-                    type = ":" if token == ":" else "|"
+                    type = token if token not in ["or", "||"] else "|"
                     token = None
                 elif (token.startswith("\"") and token.endswith("\"")):
                     token = token[1:-1]
@@ -302,27 +310,29 @@ def create_query(query: list[str]) -> SearchLogic:
     # Check data logic
     while i < len(head.nodes):
         token = head.nodes.pop(i)
-        if (token.type in [":", ","]) & (i > 0) & (i < len(head.nodes)):
+        if (token.type in [":", "<", "<=", ">", ">="]) & (i > 0) & (i < len(head.nodes)):
             last_query: SearchLogic = head.nodes[i - 1]
             # Only if first node
             if len(last_query.nodes) == 0:
-                i -= 1
-                head.nodes.pop(i)
+                head.nodes.pop(i - 1)
                 token.token = last_query.token
                 # Tag and Label default to AND
                 if token.token in ["tag", "label"]: token.logic = "&"
                 token.invert = last_query.invert != token.invert
-                found: SearchLogic = None
-                # Check if there is another similar data query already
-                for node in head.nodes[:i]:
-                    if node.__eq__(token):
-                        found = node
-                        break
-                if not found:
-                    found = token
-                    head.nodes.insert(i, token)
-                    i += 1
-                last_query = found
+                if token.type in ["<", "<=", ">", ">="]:
+                    last_query = token
+                    head.nodes.insert(i - 1, token)
+                else:
+                    found: SearchLogic = None
+                    # Check if there is another similar data query already
+                    for node in head.nodes[:i-1]:
+                        if node.__eq__(token):
+                            found = node
+                            break
+                    if not found:
+                        found = token
+                        head.nodes.insert(i - 1, token)
+                    last_query = found
             if i < len(head.nodes):
                 new_node = head.nodes.pop(i)
                 match new_node.token:
@@ -366,6 +376,8 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
                 node.logic = head.logic
             node.invert = (node.invert != head.invert)
             return flatten_query(node)
+        else:
+            head.nodes.append(node)
     i = 0
     while i < len(head.nodes):
         node = head.nodes.pop(i)
@@ -483,7 +495,62 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
         if key is not None:
             base_ids = list(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
             return base_ids
-        pass
+    elif head.type in ["<", "<=", ">", ">="]:
+        match head.type:
+            case "<":
+                compare = lambda l, r: (l < r)
+            case "<=":
+                compare = lambda l, r: (l <= r)
+            case ">":
+                compare = lambda l, r: (l > r)
+            case ">=":
+                compare = lambda l, r: (l >= r)
+        if head.token in ["added", "updated", "launched", "finished", "installed"]:
+            for node in head.nodes:
+                try:
+                    date = dt.datetime.strptime(node.token, globals.settings.datestamp_format)
+                    if head.type in ["<=", ">"]:
+                        date += dt.timedelta(days=1)
+                    node.token = str(date.timestamp())
+                except Exception: return base_ids
+        match head.token:
+            case "added":
+                key = lambda game, f: (compare(game.added_on.value,      float(f.nodes[0].token)))
+            case "updated":
+                key = lambda game, f: (compare(game.last_updated.value,  float(f.nodes[0].token)))
+            case "launched":
+                key = lambda game, f: (compare(game.last_launched.value, float(f.nodes[0].token)))
+            # case "finished" | "installed":
+            #     def key(game: Game, f: SearchLogic):
+            #         for event in game.timeline_events:
+            #             if event.type.display.lower() == head.token:
+            #                 return compare(event.timestamp.value, float(f.nodes[0].token))
+            #         return False
+            case "finished":
+                def key(game: Game, f: SearchLogic):
+                    for event in game.timeline_events:
+                        if event.type == TimelineEventType.GameFinished:
+                            return compare(event.timestamp.value, float(f.nodes[0].token))
+                    return False
+            case "installed":
+                def key(game: Game, f: SearchLogic):
+                    for event in game.timeline_events:
+                        if event.type == TimelineEventType.GameInstalled:
+                            return compare(event.timestamp.value, float(f.nodes[0].token))
+                    return False
+            # case "rating" | "score" | "votes":
+            #     key = lambda game, f: (compare(getattr(game, head.token), float(f.nodes[0].token)))
+            case "rating":
+                key = lambda game, f: (compare(game.rating, float(f.nodes[0].token)))
+            case "score":
+                key = lambda game, f: (compare(game.score,  float(f.nodes[0].token)))
+            case "votes":
+                key = lambda game, f: (compare(game.votes,  float(f.nodes[0].token)))
+            case _:
+                key = None
+        if key is not None:
+            base_ids = list(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
+            return base_ids
     elif head.token:
         def key(id):
             game = globals.games[id]
