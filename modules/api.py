@@ -170,9 +170,12 @@ def setup():
         ca_paths = None
     elif globals.os is Os.Linux:
         ca_paths = (
-            "/etc/ssl/certs/ca-certificates.crt",  # Ubuntu / Common
-            "/etc/pki/tls/certs/ca-bundle.crt",  # Fedora
-            "/etc/ssl/cert.pem",  # Alias
+            "/etc/ssl/certs/ca-certificates.crt",                 # Debian/Ubuntu/Gentoo etc.
+            "/etc/pki/tls/certs/ca-bundle.crt",                   # Fedora/RHEL 6
+            "/etc/ssl/ca-bundle.pem",                             # OpenSUSE
+            "/etc/pki/tls/cacert.pem",                            # OpenELEC
+            "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  # CentOS/RHEL 7
+            "/etc/ssl/cert.pem",                                  # Alpine Linux
         )
     elif globals.os is Os.MacOS:
         ca_paths = (
