@@ -105,7 +105,7 @@ def create_kwargs():
         debug=globals.debug,
         software=globals.settings.software_webview,
         private=globals.settings.browser_private,
-        icon=str(globals.gui.icon_path),
+        icon=str(globals.self_path / "resources/icons/icon.png"),
         icon_font=str(icons.font_path),
         extension=str(globals.self_path / "browser/integrated.js"),
         style_bg=colors.rgba_0_1_to_hex(globals.settings.style_bg)[:-2],
