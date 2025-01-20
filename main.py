@@ -3,6 +3,7 @@ import asyncio
 import contextlib
 import os
 import pathlib
+import subprocess
 import sys
 
 version = "11.1"
@@ -33,6 +34,8 @@ def main():
             # Faster eventloop
             import uvloop
             asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+            # Disable coredumps, desktop-notifier with uvloop segfaults at app exit
+            subprocess.Popen(["prlimit", "--core=0", "--pid", str(os.getpid())])
         elif globals.os is Os.MacOS:
             # Needed for desktop-notifier
             import rubicon.objc.eventloop as crloop
