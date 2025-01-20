@@ -12,6 +12,7 @@ from common.structs import (
     Game,
     OldGame,
     Os,
+    Popup,
     Settings,
 )
 
@@ -243,7 +244,7 @@ settings: Settings = None
 refresh_task: Future = None
 games: dict[int, Game] = None
 cookies: dict[str, str] = None
-popup_stack: list[partial] = []
+popup_stack: list[Popup] = []
 updated_games: dict[int, OldGame] = {}
 updated_games_sorted_ids: list[int] = []
 new_updated_games: dict[int, OldGame] = {}
