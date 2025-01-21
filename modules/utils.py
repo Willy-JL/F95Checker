@@ -259,7 +259,7 @@ def parse_search(search: str) -> SearchLogic:
     while index < len(search):
         c = search[index:index+1]
         # create new token ending with the previous character
-        if c in [" ", "\"", "\'", ":", "(", ")", "<", ">"] and index > start:
+        if c in [" ", "\"", "\'", "(", ")", ":", "<", "=", ">"] and index > start:
             tokens.append(search[start:index])
         match c:
             case " ":
@@ -271,9 +271,14 @@ def parse_search(search: str) -> SearchLogic:
                     tokens.append(search[index:quote_end+1])
                     index = quote_end
                 start = index + 1
+            case "-":
+                # split minus if it starts query
+                if start == index:
+                    tokens.append(c)
+                    start = index + 1
             # turn these into their own tokens
-            case "(" | ")" | ":" | "<" | ">":
-                if search[index+1:index+2] == "=" and c in ["<", ">"]:
+            case "(" | ")" | ":" | "<" | "=" | ">":
+                if search[index+1:index+2] in ["<", "=", ">"] and c in ["<", "=", ">"]:
                     tokens.append(search[index:index+2])
                     index += 1
                 else:
@@ -311,7 +316,7 @@ def create_query(query: list[str]) -> SearchLogic:
                 new_query: SearchLogic = None
                 logic: str = None
                 type: str = "?"
-                if token in ["or", "||", "|", ":", "<", "<=", ">", ">="]:
+                if token in ["or", "||", "|", ":", "<", "<=", "=<", "=", "==", ">", ">=", "=>"]:
                     logic = "|"
                     type = token if token not in ["or", "||"] else "|"
                     token = None
@@ -330,7 +335,7 @@ def create_query(query: list[str]) -> SearchLogic:
     # Check data logic
     while i < len(head.nodes):
         token = head.nodes.pop(i)
-        if (token.type in [":", "<", "<=", ">", ">="]) & (i > 0) & (i < len(head.nodes)):
+        if (token.type[0] in [":", "<", "=", ">"]) & (i > 0) & (i < len(head.nodes)):
             last_query: SearchLogic = head.nodes[i - 1]
             # Only if first node
             if len(last_query.nodes) == 0:
@@ -339,20 +344,16 @@ def create_query(query: list[str]) -> SearchLogic:
                 # Tag and Label default to AND
                 if token.token in ["tag", "label"]: token.logic = "&"
                 token.invert = last_query.invert != token.invert
-                if token.type in ["<", "<=", ">", ">="]:
-                    last_query = token
-                    head.nodes.insert(i - 1, token)
-                else:
-                    found: SearchLogic = None
+                found: SearchLogic = None
+                if token.type == ":":
                     # Check if there is another similar data query already
                     for node in head.nodes[:i-1]:
                         if node.__eq__(token):
-                            found = node
+                            token = found = node
                             break
-                    if not found:
-                        found = token
-                        head.nodes.insert(i - 1, token)
-                    last_query = found
+                if not found:
+                    head.nodes.insert(i - 1, token)
+                last_query = token
             if i < len(head.nodes):
                 new_node = head.nodes.pop(i)
                 match new_node.token:
@@ -544,25 +545,32 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
         if key is not None:
             base_ids = list(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
             return base_ids
-    elif head.type in ["<", "<=", ">", ">="]:
+    elif head.type[0] in ["<", "=", ">"]:
         match head.type:
             case "<":
                 compare = lambda l, r: (l < r)
-            case "<=":
+            case "<=" | "=<":
                 compare = lambda l, r: (l <= r)
             case ">":
                 compare = lambda l, r: (l > r)
-            case ">=":
+            case ">=" | "=>":
                 compare = lambda l, r: (l >= r)
+            case "=" | "==":
+                compare = lambda l, r: (l == r)
         if head.token in ["added", "updated", "launched", "finished", "installed"]:
             try:
                 date = dt.datetime.strptime(head.nodes[0].token, globals.settings.datestamp_format)
                 if head.type in ["<=", ">"]:
                     date += dt.timedelta(days=1)
                 head.nodes[0].token = str(date.timestamp())
+                if head.type in ["=", "=="]:
+                    # 86400 is one day in seconds, same as dt.timedelta(days=1)
+                    compare = lambda l, r: (r <= l < r + 86400)
             except Exception: 
-                pass
-                # return base_ids
+                try:
+                    float(head.nodes[0].token)
+                except Exception: 
+                    return base_ids
         match head.token:
             case "added":
                 key = lambda game, f: (compare(game.added_on.value,      float(f.nodes[0].token)))
