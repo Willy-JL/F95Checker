@@ -175,7 +175,7 @@ const updateIcons = async (tabId) => {
                         }
                     }
 
-                    if (!isImage && elem.children.length > 0 && whitespaces.length > 0) {
+                    if (!isImage && elem.children.length > 0) {
                         // Search page
                         container.style.fontSize = '1.2em';
                         container.style.verticalAlign = '-2px';
