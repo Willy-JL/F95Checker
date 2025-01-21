@@ -442,15 +442,17 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
     elif head.type == ":":
         and_or = any if head.logic == "|" else all
         match head.token:
+            # Boolean matches
             case "archived":
                 key = lambda game, f: (str(game.archived) == f.nodes[0].token)
             case "custom":
                 key = lambda game, f: (str(game.custom) == f.nodes[0].token)
             case "updated":
                 key = lambda game, f: (str(game.updated) == f.nodes[0].token)
+            # Custom matches
             case "exe":
                 def key(game: Game, f: SearchLogic):
-                    output: bool = head.logic == "&"
+                    output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
                             case "invalid":
@@ -461,12 +463,12 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                                 output = bool(game.executables)
                             case "unset":
                                 output = not game.executables
-                        if output == (head.logic == "|"):
+                        if output == (f.logic == "|"):
                             return output
                     return output
             case "image":
                 def key(game: Game, f: SearchLogic):
-                    output: bool = head.logic == "&"
+                    output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
                             case "invalid":
@@ -477,12 +479,12 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                                 output = not game.image.invalid
                             case "missing":
                                 output = game.image.missing
-                        if output == (head.logic == "|"):
+                        if output == (f.logic == "|"):
                             return output
                     return output
             case "finished":
                 def key(game: Game, f: SearchLogic):
-                    output: bool = head.logic == "&"
+                    output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
                             case "True":
@@ -493,12 +495,12 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                                 output = (game.finished != "") & (game.finished != (game.installed or game.version))
                             case "any":
                                 output = bool(game.finished)
-                        if output == (head.logic == "|"):
+                        if output == (f.logic == "|"):
                             return output
                     return output
             case "installed":
                 def key(game: Game, f: SearchLogic):
-                    output: bool = head.logic == "&"
+                    output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
                             case "True":
@@ -509,9 +511,17 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                                 output = (game.installed != "") & (game.installed != game.version)
                             case "any":
                                 output = bool(game.installed)
-                        if output == (head.logic == "|"):
+                        if output == (f.logic == "|"):
                             return output
                     return output
+            # Number matches
+            case "rating":
+                key = lambda game, f: (and_or(game.rating == int(node.token) for node in f.nodes))
+            case "score":
+                key = lambda game, f: (and_or(game.score >= int(node.token) for node in f.nodes))
+            # Enum matches
+            case "tag":
+                key = lambda game, f: (and_or((node.token in Tag.__members__) and (Tag[node.token] in game.tags) or (node.token in game.unknown_tags) for node in f.nodes))
             case "label":
                 for node in head.nodes:
                     for label in Label.instances:
@@ -519,10 +529,6 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                             node.token = label
                             break
                 key = lambda game, f: (and_or(node.token in game.labels for node in f.nodes))
-            case "rating":
-                key = lambda game, f: (and_or(game.rating == int(node.token) for node in f.nodes))
-            case "score":
-                key = lambda game, f: (and_or(game.score >= int(node.token) for node in f.nodes))
             case "status":
                 for node in head.nodes:
                     for status in Status:
@@ -530,8 +536,6 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                             node.token = status
                             break
                 key = lambda game, f: (and_or(game.status is node.token for node in f.nodes))
-            case "tag":
-                key = lambda game, f: (and_or((node.token in Tag.__members__) and (Tag[node.token] in game.tags) or (node.token in game.unknown_tags) for node in f.nodes))
             case "type":
                 for node in head.nodes:
                     for type in Type:
@@ -539,6 +543,7 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                             node.token = type
                             break
                 key = lambda game, f: (and_or(game.type is node.token for node in f.nodes))
+            # String matches
             case "name" | "title":
                 key = lambda game, f: (and_or(re.match(regexp(node.token), game.name.lower()) for node in f.nodes))
             case "dev" | "developer":
