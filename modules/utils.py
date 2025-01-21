@@ -246,7 +246,8 @@ def parse_search(search: str) -> SearchLogic:
         "\'": "squote_",
         "_" : "uscore_",
         "(" : "sparen_",
-        ")" : "eparen_"
+        ")" : "eparen_",
+        "*" : "wlcard_"
     }
     index = 0
     while index < len(search):
@@ -296,7 +297,8 @@ def create_query(query: list[str]) -> SearchLogic:
         "\'": "squote_",
         "_" : "uscore_",
         "(" : "sparen_",
-        ")" : "eparen_"
+        ")" : "eparen_",
+        "*" : "wlcard_"
     }
     head = SearchLogic()
     invert: bool = False
@@ -424,6 +426,11 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
     
 
 def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
+    def regexp(token: str) -> str:
+        regex = ".*"
+        for part in token.split("*"):
+            regex += re.escape(part) + ".*"
+        return regex
     if head.type == "|":
         or_queries: list[int] = []
         for node in head.nodes:
@@ -532,14 +539,14 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
                             node.token = type
                             break
                 key = lambda game, f: (and_or(game.type is node.token for node in f.nodes))
-            case "name":
-                key = lambda game, f: (and_or(node.token in game.name.lower() for node in f.nodes))
-            case "dev":
-                key = lambda game, f: (and_or(node.token in game.developer.lower() for node in f.nodes))
-            case "version":
-                key = lambda game, f: (and_or(node.token in game.version.lower() for node in f.nodes))
+            case "name" | "title":
+                key = lambda game, f: (and_or(re.match(regexp(node.token), game.name.lower()) for node in f.nodes))
+            case "dev" | "developer":
+                key = lambda game, f: (and_or(re.match(regexp(node.token), game.developer.lower()) for node in f.nodes))
+            case "ver" | "version":
+                key = lambda game, f: (and_or(re.match(regexp(node.token), game.version.lower()) for node in f.nodes))
             case "note" | "notes":
-                key = lambda game, f: (and_or(node.token in game.notes.lower() for node in f.nodes))
+                key = lambda game, f: (and_or(re.match(regexp(node.token), game.notes.lower()) for node in f.nodes))
             case _:
                 key = None
         if key is not None:
@@ -610,9 +617,10 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
             base_ids = list(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
             return base_ids
     elif head.token:
+        regex = regexp(head.token)
         def key(id):
             game = globals.games[id]
-            return head.token in game.version.lower() or head.token in game.developer.lower() or head.token in game.name.lower() or head.token in game.notes.lower()
+            return head.invert != bool(list(filter(re.compile(regex).match, [game.version.lower(), game.developer.lower(), game.name.lower(), game.notes.lower()])))
     else:
         and_queries: list[int] = base_ids
         for node in head.nodes:
