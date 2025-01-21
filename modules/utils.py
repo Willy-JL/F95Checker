@@ -258,34 +258,26 @@ def parse_search(search: str) -> SearchLogic:
     index = 0
     while index < len(search):
         c = search[index:index+1]
+        # create new token ending with the previous character
+        if c in [" ", "\"", "\'", ":", "(", ")", "<", ">"] and index > start:
+            tokens.append(search[start:index])
         match c:
             case " ":
-                # if query starts with a space, skip it
-                if index != start:
-                    tokens.append(search[start:index])
                 start = index + 1
             case "\"" | "\'":
                 quote_end: int = search.find(c, index + 1)
-                # if quote starts in the middle of a word, cut it off and add it as a token
-                if index > start:
-                    tokens.append(search[start:index])
-                # if there is a closing quote, add quoted text as token and skip to end of quote
                 if quote_end > start:
-                    # tokens.append(search[index + 1:quote_end])
                     # keep quotes in until logic is parsed to protect quoted logic
-                    tokens.append(search[index:quote_end + 1])
-                    index = quote_end + 1
-                    start = index
-            # turn colons and parentheses into their own tokens even if they don't have a space separating them
-            case ":" | ")" | "(" | ">" | "<":
-                if index > start:
-                    tokens.append(search[start:index])
-                if search[index+1:index+2] == "=":
-                    if c in [">", "<"]: tokens.append(search[index:index+2])
-                    else: tokens.append(search[index:index+1])
+                    tokens.append(search[index:quote_end+1])
+                    index = quote_end
+                start = index + 1
+            # turn these into their own tokens
+            case "(" | ")" | ":" | "<" | ">":
+                if search[index+1:index+2] == "=" and c in ["<", ">"]:
+                    tokens.append(search[index:index+2])
                     index += 1
                 else:
-                    tokens.append(search[index:index+1])
+                    tokens.append(c)
                 start = index + 1
         index += 1
     if index > start:
