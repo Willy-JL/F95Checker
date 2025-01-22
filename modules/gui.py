@@ -4976,6 +4976,9 @@ class MainGUI():
             for name, download in api.downloads.items():
                 if not download:
                     continue
+                if download.state == download.State.Removed:
+                    to_remove.append(name)
+                    continue
                 imgui.spacing()
                 imgui.spacing()
                 imgui.spacing()
@@ -5058,10 +5061,7 @@ class MainGUI():
                         to_remove.append(name)
                     imgui.same_line()
                     if imgui.button(icons.trash_can_outline):
-                        download.path.unlink(missing_ok=True)
-                        if download.extracted:
-                            shutil.rmtree(download.extracted, ignore_errors=True)
-                        to_remove.append(name)
+                        async_thread.run(download.delete())
             for name in to_remove:
                 del api.downloads[name]
 
