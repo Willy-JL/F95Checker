@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import pathlib
+import shutil
 import time
 import typing
 import weakref
@@ -240,12 +241,26 @@ class FileDownload:
         Verifying = enum.auto()
         Extracting = enum.auto()
         Stopped = enum.auto()
+        Deleting = enum.auto()
+        Removed = enum.auto()
 
     cancel: bool = False
     state: State = State.Preparing
     extracted: pathlib.Path = None
     error: str = None
     traceback: str = None
+
+    async def delete(self):
+        assert self.state == self.State.Stopped
+        self.state = self.State.Deleting
+        try:
+            loop = asyncio.get_event_loop()
+            if self.extracted:
+                await loop.run_in_executor(None, functools.partial(shutil.rmtree, self.extracted, ignore_errors=True))
+            await loop.run_in_executor(None, functools.partial(self.path.unlink, missing_ok=True))
+        except Exception:
+            pass
+        self.state = self.State.Removed
 
 
 @dataclasses.dataclass(slots=True)
