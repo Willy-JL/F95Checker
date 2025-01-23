@@ -431,15 +431,7 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
         for part in token.split("*"):
             regex += re.escape(part) + ".*"
         return regex
-    if head.type == "|":
-        or_queries: list[int] = []
-        for node in head.nodes:
-            new_query = parse_query(node, base_ids)
-            or_queries = list(set(or_queries + new_query))
-        def key(id):
-            if id in or_queries: return not head.invert
-            return head.invert
-    elif head.type == ":":
+    if head.type == ":":
         and_or = any if head.logic == "|" else all
         match head.token:
             # Boolean matches
@@ -626,14 +618,14 @@ def parse_query(head: SearchLogic, base_ids: list[int]) -> list[int]:
         def key(id):
             game = globals.games[id]
             return head.invert != bool(list(filter(re.compile(regex).match, [game.version.lower(), game.developer.lower(), game.name.lower(), game.notes.lower()])))
-    else:
-        and_queries: list[int] = base_ids
+    elif head.type in ["|", "&"]:
+        queries: set[int] = [] if head.type == "|" else base_ids
         for node in head.nodes:
             new_query = parse_query(node, base_ids)
-            and_queries = [id for id in and_queries if id in new_query]
-        def key(id):
-            if id in and_queries: return not head.invert
-            return head.invert
+            queries = queries.union(new_query) if head.type == "|" else queries.intersection(new_query)
+        key = lambda id: (head.invert != (id in queries))
+    else:
+        key = lambda : (False)
     base_ids = list(filter(key, base_ids))
     return base_ids
 
