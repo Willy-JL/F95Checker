@@ -1,5 +1,5 @@
 ### Added:
-- Nothing
+- Table header visible in all view modes setting, allows changing sorting and shown elements in grid/kanban view(by @Willy-JL)
 
 ### Updated:
 - DDL can extract 7zip and RAR archives too (by @Willy-JL)
