@@ -785,6 +785,7 @@ class Settings:
     style_corner_radius         : int
     style_text                  : tuple[float]
     style_text_dim              : tuple[float]
+    table_header_outside_list   : bool
     tags_highlights             : dict[Tag, TagHighlight]
     timestamp_format            : str
     unload_offscreen_images     : bool

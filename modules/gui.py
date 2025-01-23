@@ -3126,12 +3126,12 @@ class MainGUI():
         return f"###game_list{tab_id if globals.settings.independent_tab_views else ''}"
 
     def draw_games_list(self):
+        table_id = self.games_table_id()
         # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
         # by starting the table render before the content region.
         ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
-        table_id = self.games_table_id()
         if imgui.begin_table(
             table_id,
             column=cols.count,
@@ -3286,25 +3286,44 @@ class MainGUI():
 
     def tick_list_columns(self):
         # Hack: get sort and column specs for list mode in grid and kanban mode
-        pos = imgui.get_cursor_pos_y()
         table_id = self.games_table_id()
+        # Hack: custom toggles in table header right click menu by adding tiny empty "ghost" columns and hiding them
+        # by starting the table render before the content region.
+        ghost_column_size = (imgui.style.frame_padding.x + imgui.style.cell_padding.x * 2)
+        offset = ghost_column_size * self.ghost_columns_enabled_count
+        imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
+        pos_y = imgui.get_cursor_pos_y()
+        header_h = imgui.get_text_line_height_with_spacing() if globals.settings.table_header_outside_list else 0
         if imgui.begin_table(
             table_id,
             column=cols.count,
             flags=self.game_list_table_flags,
-            outer_size_height=1
+            outer_size_height=header_h
         ):
+            # Setup columns
+            self.ghost_columns_enabled_count = 0
             can_sort = 0
             for column in cols.items:
-                imgui.table_setup_column("", column.flags | (can_sort * column.sortable))
+                imgui.table_setup_column(column.name, column.flags | (can_sort * column.sortable) | imgui.TABLE_COLUMN_NO_REORDER)
                 # Enabled columns
                 column.enabled = bool(imgui.table_get_column_flags(column.index) & imgui.TABLE_COLUMN_IS_ENABLED)
+                # Ghosts count
+                if column.ghost and column.enabled:
+                    self.ghost_columns_enabled_count += 1
                 # Set sorting condition
                 if column is cols.manual_sort:
                     can_sort = imgui.TABLE_COLUMN_NO_SORT * cols.manual_sort.enabled
             self.calculate_ids(table_id, imgui.table_get_sort_specs())
+
+            if globals.settings.table_header_outside_list:
+                # Column headers
+                imgui.table_next_row(imgui.TABLE_ROW_HEADERS)
+                for column in cols.items:
+                    imgui.table_set_column_index(column.index)
+                    imgui.table_header(column.header)
+
             imgui.end_table()
-        imgui.set_cursor_pos_y(pos)
+        imgui.set_cursor_pos_y(pos_y + header_h)
 
     def get_game_cell_config(self):
         side_indent = imgui.style.item_spacing.x * 2
@@ -4333,6 +4352,12 @@ class MainGUI():
                 "When closing the window F95Checker will instead switch to background mode. Quit the app via the tray icon."
             )
             draw_settings_checkbox("background_on_close")
+
+            draw_settings_label(
+                "Table header ouside list:",
+                "Shows the table header in all view modes, allowing to change sorting and shown elements ouside of list mode."
+            )
+            draw_settings_checkbox("table_header_outside_list")
 
             draw_settings_label(
                 "Grid columns:",

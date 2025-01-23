@@ -1,4 +1,5 @@
 ### Added:
+- Table header visible in all view modes setting, allows changing sorting and shown elements in grid/kanban view(by @Willy-JL)
 - ASTC Image Compression option:
   - Compresses images for instantaneous load times (after first compression which is slower)
   - Potentially less VRAM usage, overall slightly less disk usage on average (if ASTC Replace is also enabled, otherwise files are duplicated)

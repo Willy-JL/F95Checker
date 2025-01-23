@@ -235,6 +235,7 @@ async def connect():
             "style_corner_radius":         f'INTEGER DEFAULT {DefaultStyle.corner_radius}',
             "style_text":                  f'TEXT    DEFAULT "{DefaultStyle.text}"',
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
+            "table_header_outside_list":   f'INTEGER DEFAULT {int(True)}',
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
             "unload_offscreen_images":     f'INTEGER DEFAULT {int(False)}',
