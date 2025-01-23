@@ -2990,8 +2990,10 @@ class MainGUI():
                 else:
                     search = self.add_box_text.lower()
                     query: SearchLogic = utils.parse_search(search)
-                    base_ids = utils.parse_query(query, list(base_ids))
-                    filtering = True
+                    base_ids = set(base_ids)
+                    start_count = len(base_ids)
+                    base_ids = utils.parse_query(query, base_ids)
+                    filtering = len(base_ids) < start_count
             self.filtering = filtering
             # Finally consume the iterators (was lazy up until now)
             base_ids = list(base_ids)
