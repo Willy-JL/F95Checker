@@ -431,23 +431,21 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
         match token:
             # Boolean matches
             case "archived":
-                return str(game.archived)
+                return game.archived
             case "custom":
-                return str(game.custom)
+                return game.custom
             case "updated":
-                return str(game.updated)
-            case "exe":
-                return bool(game.executables), game.executables_valid
-            case "image":
-                return not game.image.missing and not game.image.invalid
+                return game.updated
             # Number matches
+            case "id":
+                return game.id
             case "rating":
                 return game.rating
             case "score":
                 return game.score
             case "votes":
                 return game.votes
-            case "wscore" | "weight" | "scoreweight":
+            case "wscore" | "weight" | "scoreweight" | "weightedscore":
                 return bayesian_average(game.score, game.votes)
             # Enum matches
             case "tab":
@@ -470,6 +468,8 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 return game.notes.lower()
             case "url":
                 return game.url.lower()
+            case "desc" | "description":
+                return game.description.lower()
             # Date matches
             case "added":
                 return game.added_on.value
@@ -479,11 +479,22 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 return game.last_launched.value
             # Timeline matches
             case "finished":
-                if game: return game.finished, (game.installed or game.version)
+                if game: return game.finished
                 return TimelineEventType.GameFinished
             case "installed":
-                if game: return game.installed, game.version
+                if game: return game.installed
                 return TimelineEventType.GameInstalled
+            # List matches
+            case "exes" | "executables":
+                return game.executables
+            case "tags":
+                return game.tags
+            case "labels":
+                return game.labels
+            case "downloads":
+                return set([mirror.lower() for name, mirrors in game.downloads for mirror, link in mirrors])
+            case _:
+                return False
     def enum_match(enums):
         for node in head.nodes:
             enum_matches = []
@@ -505,12 +516,17 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
         and_or = any if head.logic == "|" else all
         match head.token:
             # Boolean matches
+            case "is":
+                key = lambda game, f: (and_or(attr_for(node.token, game) for node in f.nodes))
             case "archived" | "custom" | "updated":
-                key = lambda game, f: (attr_for(head.token, game) == f.nodes[0].token)
+                key = lambda game, f: (str(attr_for(head.token, game)) == f.nodes[0].token)
             # Custom matches
             case "exe" | "image":
                 def key(game: Game, f: SearchLogic):
-                    exists, valid = attr_for(head.token, game)
+                    if head.token == "exe":
+                        exists, valid = bool(game.executables), game.executables_valid
+                    else:
+                        exists, valid = not game.image.missing,  not game.image.invalid
                     output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
@@ -527,7 +543,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                     return output
             case "finished" | "installed":
                 def key(game: Game, f: SearchLogic):
-                    a, b = attr_for(head.token, game)
+                    if head.token == "finished":
+                        a, b = game.finished, (game.installed or game.version)
+                    else:
+                        a, b = game.installed, game.version
                     output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
@@ -543,8 +562,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                             return output
                     return output
             # Number matches
-            case "rating" | "score" | "votes" | "wscore" | "weight" | "scoreweight":
+            case "score" | "wscore" | "weight" | "scoreweight" | "weightedscore":
                 key = lambda game, f: (and_or(attr_for(f.token, game) >= float(node.token) for node in f.nodes))
+            case "rating" | "votes" | "id":
+                key = lambda game, f: (and_or(attr_for(f.token, game) == float(node.token) for node in f.nodes))
             # Tag matches
             case "tag":
                 enum_match(Tag)
@@ -557,8 +578,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 enum_match(attr_for(head.token))
                 key = lambda game, f: (and_or(attr_for(f.token, game) in node.token for node in f.nodes))
             # String matches
-            case "name" | "title" | "dev" | "developer" | "ver" | "version" | "note" | "notes" | "url":
+            case "name" | "title" | "dev" | "developer" | "ver" | "version" | "note" | "notes" | "url" | "description" | "desc":
                 key = lambda game, f: (and_or(re.match(regexp(node.token), attr_for(head.token, game)) for node in f.nodes))
+            case "downloads":
+                key = lambda game, f: (and_or(bool(set(filter(re.compile(regexp(node.token)).match, attr_for(head.token, game)))) for node in f.nodes))
             case _:
                 key = None
         if key is not None:
@@ -576,7 +599,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 compare = lambda l, r: (l >= r)
             case "=" | "==":
                 compare = lambda l, r: (l == r)
-        if head.token in ["added", "updated", "launched", "finished", "installed"]:
+        if head.token in ["added", "updated", "launched", "finished", "installed"].__add__(TimelineEventType._member_names_):
             try:
                 date = dt.datetime.strptime(head.nodes[0].token, globals.settings.datestamp_format)
                 if head.type in ["<=", ">"]:
@@ -591,16 +614,21 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 except Exception: 
                     return base_ids
         match head.token:
-            case "added" | "updated" | "launched" | "rating" | "score" | "votes" | "wscore" | "weight" | "scoreweight":
+            case "added" | "updated" | "launched" | "rating" | "score" | "votes" | "wscore" | "weight" | "scoreweight" | "weightedscore" | "id":
                 key = lambda game, f: (compare(attr_for(f.token, game), float(f.nodes[0].token)))
-            # Timeline matches
-            case "finished" | "installed":
-                query_type = attr_for(head.token)
-                def key(game: Game, f: SearchLogic):
-                    event = next((e for e in game.timeline_events if e.type == query_type), None)
-                    return bool(event) & compare(event.timestamp.value, float(f.nodes[0].token))
+            # List matches
+            case "exes" | "executables" | "tags" | "labels":
+                key = lambda game, f: (compare(len(attr_for(f.token, game)), float(f.nodes[0].token)))
+                pass
             case _:
-                key = None
+                # Timeline matches
+                if head.token in TimelineEventType._member_names_.__add__(["finished", "installed"]):
+                    query_type = attr_for(head.token) | TimelineEventType[head.token]
+                    def key(game: Game, f: SearchLogic):
+                        event = next((e for e in game.timeline_events if e.type == query_type), None)
+                        return bool(event) & compare(event.timestamp.value, float(f.nodes[0].token))
+                else:
+                    key = None
         if key is not None:
             base_ids = set(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
             return base_ids
