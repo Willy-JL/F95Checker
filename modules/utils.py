@@ -280,11 +280,19 @@ def parse_search(search: str) -> SearchLogic:
                     start = index + 1
             # turn these into their own tokens
             case "(" | ")" | ":" | "<" | "=" | ">":
-                if search[index+1:index+2] in ["<", "=", ">"] and c in ["<", "=", ">"]:
-                    tokens.append(search[index:index+2])
+                if search[index+1:index+2] in [":", "<", "=", ">"] and c in [":", "<", "=", ">"]:
+                    c = search[index:index+2]
+                    if c[:1] == ":":
+                        c = c[1:]
+                    match c:
+                        case "==" | "=:" | ":":
+                            c = "="
+                        case "=>" | "=<" | "><":
+                            c = c[1:] + c[:1]
+                        case "<<" | "<:" | ">>" | ">:":
+                            c = c[:1]
                     index += 1
-                else:
-                    tokens.append(c)
+                tokens.append(c)
                 start = index + 1
         index += 1
     if index > start:
@@ -313,13 +321,13 @@ def create_query(query: list[str]) -> SearchLogic:
                 break
             case "and" | "&&" | "&" | "+":
                 continue
-            case "not" | "!" | "-" | "~":
+            case "<>" | "not" | "!" | "-" | "~":
                 invert = not invert
             case _:
                 new_query: SearchLogic = None
                 logic: str = None
                 type: str = "?"
-                if token in ["or", "||", "|", ":", "<", "<=", "=<", "=", "==", ">", ">=", "=>"]:
+                if token in ["or", "||", "|", "<", "<=", "=", ">", ">="]:
                     logic = "|"
                     type = token if token not in ["or", "||"] else "|"
                     token = None
@@ -345,7 +353,7 @@ def create_query(query: list[str]) -> SearchLogic:
                 head.nodes.pop(i - 1)
                 token.token = last_query.token
                 # Tag and Label default to AND
-                if token.token in ["tag", "label"]: token.logic = "&"
+                if token.token in ["tag", "label", "is", "all"]: token.logic = "&"
                 token.invert = last_query.invert != token.invert
                 found: SearchLogic = None
                 if token.type == ":":
@@ -436,6 +444,12 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 return game.custom
             case "updated":
                 return game.updated
+            case "outdated":
+                return game.installed not in ["", game.version]
+            case "exe":
+                return bool(game.executables), game.executables_valid
+            case "image":
+                return not game.image.missing,  not game.image.invalid
             # Number matches
             case "id":
                 return game.id
@@ -481,9 +495,13 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             case "finished":
                 if game: return game.finished
                 return TimelineEventType.GameFinished
+            case "isfinished":
+                return game.finished, (game.installed or game.version)
             case "installed":
                 if game: return game.installed
                 return TimelineEventType.GameInstalled
+            case "isinstalled":
+                return game.installed, game.version
             # List matches
             case "exes" | "executables":
                 return game.executables
@@ -512,60 +530,63 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
         for part in token.split("*"):
             regex += re.escape(part) + ".*"
         return regex
-    if head.type == ":":
+    if head.type[0] in ["<", "=", ">"]:
         and_or = any if head.logic == "|" else all
+        match head.type:
+            case "<":  compare = lambda l, r: (l <  r)
+            case "<=": compare = lambda l, r: (l <= r)
+            case "=":  compare = lambda l, r: (l == r)
+            case ">":  compare = lambda l, r: (l >  r)
+            case ">=": compare = lambda l, r: (l >= r)
+        if head.token in ["added", "updated", "launched", "finished", "installed"].__add__(TimelineEventType._member_names_):
+            try:
+                date = dt.datetime.strptime(head.nodes[0].token, globals.settings.datestamp_format)
+                if head.type in ["<=", ">"]:
+                    date += dt.timedelta(days=1)
+                head.nodes[0].token = str(date.timestamp())
+                if head.type == "=":
+                    # 86400 is one day in seconds, same as dt.timedelta(days=1)
+                    compare = lambda l, r: (r <= l < r + 86400)
+            except ValueError:
+                try:
+                    float(head.nodes[0].token)
+                except Exception: 
+                    head.token = "is" + head.token
         match head.token:
+            case "added" | "updated" | "launched" | "rating" | "score" | "votes" | "wscore" | "weight" | "scoreweight" | "weightedscore" | "id":
+                key = lambda game, f: (compare(attr_for(f.token, game), float(f.nodes[0].token)))
             # Boolean matches
-            case "is":
+            case "is" | "any" | "all":
                 key = lambda game, f: (and_or(attr_for(node.token, game) for node in f.nodes))
             case "archived" | "custom" | "updated":
                 key = lambda game, f: (str(attr_for(head.token, game)) == f.nodes[0].token)
             # Custom matches
             case "exe" | "image":
                 def key(game: Game, f: SearchLogic):
-                    if head.token == "exe":
-                        exists, valid = bool(game.executables), game.executables_valid
-                    else:
-                        exists, valid = not game.image.missing,  not game.image.invalid
+                    exists, valid = attr_for(f.token, game)
                     output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
-                            case "invalid":
-                                output = exists and not valid
-                            case "valid":
-                                output = exists and valid
-                            case "selected":
-                                output = exists
-                            case "unset":
-                                output = not exists
+                            case "invalid":     output = exists and not valid
+                            case "valid":       output = exists and valid
+                            case "selected":    output = exists
+                            case "unset":       output = not exists
                         if output == (f.logic == "|"):
                             return output
                     return output
-            case "finished" | "installed":
+            case "isfinished" | "isinstalled":
                 def key(game: Game, f: SearchLogic):
-                    if head.token == "finished":
-                        a, b = game.finished, (game.installed or game.version)
-                    else:
-                        a, b = game.installed, game.version
+                    exists, valid = attr_for(head.token, game)
                     output: bool = f.logic == "&"
                     for node in f.nodes:
                         match node.token:
-                            case "True":
-                                output = a == b
-                            case "False":
-                                output = a == ""
-                            case "old_version":
-                                output = a not in ["", b]
-                            case "any":
-                                output = bool(a)
+                            case "True":        output = exists == valid
+                            case "False":       output = exists == ""
+                            case "old_version": output = exists not in ["", valid]
+                            case "any":         output = bool(exists)
                         if output == (f.logic == "|"):
                             return output
                     return output
-            # Number matches
-            case "score" | "wscore" | "weight" | "scoreweight" | "weightedscore":
-                key = lambda game, f: (and_or(attr_for(f.token, game) >= float(node.token) for node in f.nodes))
-            case "rating" | "votes" | "id":
-                key = lambda game, f: (and_or(attr_for(f.token, game) == float(node.token) for node in f.nodes))
             # Tag matches
             case "tag":
                 enum_match(Tag)
@@ -582,44 +603,9 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 key = lambda game, f: (and_or(re.match(regexp(node.token), attr_for(head.token, game)) for node in f.nodes))
             case "downloads":
                 key = lambda game, f: (and_or(bool(set(filter(re.compile(regexp(node.token)).match, attr_for(head.token, game)))) for node in f.nodes))
-            case _:
-                key = None
-        if key is not None:
-            base_ids = set(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
-            return base_ids
-    elif head.type[0] in ["<", "=", ">"]:
-        match head.type:
-            case "<":
-                compare = lambda l, r: (l < r)
-            case "<=" | "=<":
-                compare = lambda l, r: (l <= r)
-            case ">":
-                compare = lambda l, r: (l > r)
-            case ">=" | "=>":
-                compare = lambda l, r: (l >= r)
-            case "=" | "==":
-                compare = lambda l, r: (l == r)
-        if head.token in ["added", "updated", "launched", "finished", "installed"].__add__(TimelineEventType._member_names_):
-            try:
-                date = dt.datetime.strptime(head.nodes[0].token, globals.settings.datestamp_format)
-                if head.type in ["<=", ">"]:
-                    date += dt.timedelta(days=1)
-                head.nodes[0].token = str(date.timestamp())
-                if head.type in ["=", "=="]:
-                    # 86400 is one day in seconds, same as dt.timedelta(days=1)
-                    compare = lambda l, r: (r <= l < r + 86400)
-            except Exception: 
-                try:
-                    float(head.nodes[0].token)
-                except Exception: 
-                    return base_ids
-        match head.token:
-            case "added" | "updated" | "launched" | "rating" | "score" | "votes" | "wscore" | "weight" | "scoreweight" | "weightedscore" | "id":
-                key = lambda game, f: (compare(attr_for(f.token, game), float(f.nodes[0].token)))
             # List matches
             case "exes" | "executables" | "tags" | "labels":
                 key = lambda game, f: (compare(len(attr_for(f.token, game)), float(f.nodes[0].token)))
-                pass
             case _:
                 # Timeline matches
                 if head.token in TimelineEventType._member_names_.__add__(["finished", "installed"]):
