@@ -5,7 +5,7 @@
 - Nothing
 
 ### Fixed:
-- Nothing
+- Fix GUI redraws not pausing when unfocused, hovered and not moving mouse (by @Willy-JL)
 
 ### Removed:
 - Nothing
