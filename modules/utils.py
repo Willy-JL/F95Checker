@@ -240,75 +240,12 @@ def extract_thread_matches(text: str) -> list[ThreadMatch]:
     return matches
 
 def parse_search(search: str) -> SearchLogic:
-    tokens: list[str] = []
-    replacements: dict = {
-        "\\": "bslash_",
-        "\"": "dquote_",
-        "\'": "squote_",
-        "_" : "uscore_",
-        "(" : "sparen_",
-        ")" : "eparen_",
-        "*" : "wlcard_"
-    }
-    index = 0
-    while index < len(search):
-        if search[index:index+1] == "\\" and index + 1 < len(search) and search[index+1:index+2] in replacements.keys():
-            search = search[0:index] + "_" + replacements[search[index+1:index+2]] + search[index+2:]
-            index += 7
-        index += 1
-    start = 0
-    index = 0
-    while index < len(search):
-        c = search[index:index+1]
-        # create new token ending with the previous character
-        if c in [" ", "\"", "\'", "(", ")", ":", "<", "=", ">"] and index > start:
-            tokens.append(search[start:index])
-        match c:
-            case " ":
-                start = index + 1
-            case "\"" | "\'":
-                quote_end: int = search.find(c, index + 1)
-                if quote_end > start:
-                    # keep quotes in until logic is parsed to protect quoted logic
-                    tokens.append(search[index:quote_end+1])
-                    index = quote_end
-                start = index + 1
-            case "-":
-                # split minus if it starts query
-                if start == index:
-                    tokens.append(c)
-                    start = index + 1
-            # turn these into their own tokens
-            case "(" | ")" | ":" | "<" | "=" | ">":
-                if search[index+1:index+2] in [":", "<", "=", ">"] and c in [":", "<", "=", ">"]:
-                    c = search[index:index+2]
-                    if c[:1] == ":":
-                        c = c[1:]
-                    match c:
-                        case "==" | "=:" | ":":
-                            c = "="
-                        case "=>" | "=<" | "><":
-                            c = c[1:] + c[:1]
-                        case "<<" | "<:" | ">>" | ">:":
-                            c = c[:1]
-                    index += 1
-                tokens.append(c)
-                start = index + 1
-        index += 1
-    if index > start:
-        tokens.append(search[start:index])
+    delims = r"((?<!\\)\".*?[^\\]\"|(?<!\\)[\(\)]|[:<=>]+)| "
+    search = re.sub(r"=(?=[<=>])", "", re.sub(r":", r"=", search))
+    tokens = [s for s in re.split(delims, search) if s]
     return flatten_query(create_query(tokens))
 
 def create_query(query: list[str]) -> SearchLogic:
-    replacements: dict = {
-        "\\": "bslash_",
-        "\"": "dquote_",
-        "\'": "squote_",
-        "_" : "uscore_",
-        "(" : "sparen_",
-        ")" : "eparen_",
-        "*" : "wlcard_"
-    }
     head = SearchLogic()
     invert: bool = False
     while len(query) > 0:
@@ -333,12 +270,6 @@ def create_query(query: list[str]) -> SearchLogic:
                     token = None
                 elif (token.startswith("\"") and token.endswith("\"")):
                     token = token[1:-1]
-                index = 0
-                if token != None:
-                    while index < len(token) and token.count("_") > 1:
-                        if token[index:index+1] == "_" and index + 7 < len(token) and token[index+1:index+8] in replacements.values():
-                            token = token[0:index] + next((escaped for escaped, replace in replacements.items() if replace == token[index+1:index+8]), None) + token[index+8:]
-                        index += 1
                 new_query = SearchLogic(token, logic, invert, type)
                 invert = False
                 head.nodes.append(new_query)
@@ -346,7 +277,7 @@ def create_query(query: list[str]) -> SearchLogic:
     # Check data logic
     while i < len(head.nodes):
         token = head.nodes.pop(i)
-        if (token.type[0] in [":", "<", "=", ">"]) & (i > 0) & (i < len(head.nodes)):
+        if (token.type[0] in ["<", "=", ">"]) & (i > 0) & (i < len(head.nodes)):
             last_query: SearchLogic = head.nodes[i - 1]
             # Only if first node
             if len(last_query.nodes) == 0:
@@ -356,7 +287,7 @@ def create_query(query: list[str]) -> SearchLogic:
                 if token.token in ["tag", "label", "is", "all"]: token.logic = "&"
                 token.invert = last_query.invert != token.invert
                 found: SearchLogic = None
-                if token.type == ":":
+                if token.type == "=":
                     # Check if there is another similar data query already
                     for node in head.nodes[:i-1]:
                         if node.__eq__(token):
@@ -395,16 +326,16 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
         return head
     if len(head.nodes) == 1:
         node = head.nodes.pop()
-        if head.type == ":":
+        if head.type == "=":
             if node.type == "?":
                 head.nodes.append(node)
                 return head
             node.token = head.token
             node.invert = (node.invert != head.invert)
-            node.type = ":"
+            node.type = "="
             return flatten_query(node)
         elif head.type in ["|", "&"]:
-            if node.type == ":":
+            if node.type == "=":
                 node.logic = head.logic
             node.invert = (node.invert != head.invert)
             return flatten_query(node)
@@ -413,8 +344,8 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
     i = 0
     while i < len(head.nodes):
         node = head.nodes.pop(i)
-        if (head.type == ":") and (node.type in ["|", "&", ":"]):
-            node.type = ":"
+        if (head.type == "=") and (node.type in ["|", "&", "="]):
+            node.type = "="
             node.token = head.token
             node = flatten_query(node)
             if (node.logic != head.logic) or (node.invert != head.invert) or (head.token != node.token):
