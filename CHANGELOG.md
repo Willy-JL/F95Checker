@@ -1,3 +1,5 @@
+### Jump to patch changelog: [11.0](https://github.com/Willy-JL/F95Checker/releases/tag/11.0), [11.0.1](https://github.com/Willy-JL/F95Checker/releases/tag/11.0.1), [11.0.2](https://github.com/Willy-JL/F95Checker/releases/tag/11.0.2)
+
 ### Added:
 - Table header visible in all view modes setting, allows changing sorting and shown elements in grid/kanban view(by @Willy-JL)
 
