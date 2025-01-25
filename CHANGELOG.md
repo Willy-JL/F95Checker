@@ -14,6 +14,7 @@
 - Nothing
 
 ### Fixed:
+- Fix GUI redraws not pausing when unfocused, hovered and not moving mouse (by @Willy-JL)
 - Apply images more efficiently, reduce stutters while scrolling (#212 by @Willy-JL)
 - Improve images error handling and display (#212 by @Willy-JL)
 

@@ -15,7 +15,6 @@ import threading
 import time
 import tomllib
 
-from imgui.integrations.glfw import GlfwRenderer
 from PIL import Image
 from PyQt6 import (
     QtCore,
@@ -57,6 +56,7 @@ from external import (
     error,
     filepicker,
     imagehelper,
+    imgui_glfw,
     ratingwidget,
 )
 from modules import (
@@ -395,7 +395,7 @@ class MainGUI():
             glfw.terminate()
             sys.exit(1)
         glfw.make_context_current(self.window)
-        self.impl = GlfwRenderer(self.window)
+        self.impl = imgui_glfw.GlfwRenderer(self.window)
 
         # Window position and icon
         if all(type(x) is int for x in pos) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
@@ -871,9 +871,6 @@ class MainGUI():
                 cursor = imgui.get_mouse_cursor()
                 any_hovered = imgui.is_any_item_hovered()
                 win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
-                if not self.focused and win_hovered:
-                    # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
-                    imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
                 if not self.hidden and not self.minimized and (self.focused or globals.settings.render_when_unfocused):
 
                     # Scroll modifiers (must be before new_frame())
