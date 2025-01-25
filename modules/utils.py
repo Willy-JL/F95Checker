@@ -417,13 +417,12 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
             node.type = ":"
             node.token = head.token
             node = flatten_query(node)
-            if (node.logic != head.logic) or (node.invert != head.invert):
+            if (node.logic != head.logic) or (node.invert != head.invert) or (head.token != node.token):
                 new_node = SearchLogic(logic=head.logic, invert=head.invert, type=head.logic)
                 head.invert = False
                 new_node.nodes.append(head)
                 new_node.nodes.append(node)
-                head = flatten_query(new_node)
-                break
+                return flatten_query(new_node)
         else:
             node = flatten_query(node)
         if node == head:
@@ -624,7 +623,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             game = globals.games[id]
             return head.invert != bool(set(filter(re.compile(regex).match, [game.version.lower(), game.developer.lower(), game.name.lower(), game.notes.lower()])))
     elif head.type in ["|", "&"]:
-        queries: set[int] = [] if head.type == "|" else base_ids
+        queries: set[int] = set() if head.type == "|" else base_ids
         for node in head.nodes:
             new_query = parse_query(node, base_ids)
             queries = queries.union(new_query) if head.type == "|" else queries.intersection(new_query)
