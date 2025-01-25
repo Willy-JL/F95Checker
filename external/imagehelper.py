@@ -361,6 +361,8 @@ class ImageHelper:
                 if duration < 1:
                     duration = 100
                 self.durations.append(duration / 1000)
+                if not globals.settings.play_gifs:
+                    break
             self.animated = len(self.textures) > 1
 
             if self.glob and globals.settings.astc_compression and globals.settings.astc_replace:
@@ -398,6 +400,8 @@ class ImageHelper:
                 if (duration := frame.info.get("duration", 0)) < 1:
                     duration = 100
                 self.durations.append(duration / 1000)
+                if not globals.settings.play_gifs:
+                    break
             self.animated = len(self.textures) > 1
 
         self.loaded = True
@@ -457,7 +461,7 @@ class ImageHelper:
         if not self.applied:
             return dummy_texture_id()
 
-        if self.animated:
+        if self.animated and globals.settings.play_gifs and (globals.gui.focused or globals.settings.play_gifs_unfocused):
             if self.prev_time != (new_time := imgui.get_time()):
                 self.prev_time = new_time
                 self.elapsed += imgui.get_io().delta_time

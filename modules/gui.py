@@ -896,6 +896,7 @@ class MainGUI():
                     # Redraw only when needed
                     draw = (
                         (api.downloads and any(dl.state in (dl.State.Verifying, dl.State.Extracting) for dl in api.downloads.values()))
+                        or (imagehelper.redraw and globals.settings.play_gifs and (self.focused or globals.settings.play_gifs_unfocused))
                         or imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
                         or prev_scaling != globals.settings.interface_scaling
@@ -906,7 +907,6 @@ class MainGUI():
                         or prev_hidden != self.hidden
                         or size != self.prev_size
                         or self.recalculate_ids
-                        or imagehelper.redraw
                         or self.new_styles
                         or api.updating
                     )
@@ -4297,6 +4297,18 @@ class MainGUI():
                 async_thread.run(db.update_settings("zoom_times"))
 
             if not set.zoom_enabled:
+                imgui.pop_disabled()
+
+            draw_settings_label("Play GIFs:")
+            if draw_settings_checkbox("play_gifs"):
+                for image in imagehelper.ImageHelper.instances:
+                    image.loaded = False
+
+            if not set.play_gifs:
+                imgui.push_disabled()
+            draw_settings_label("Play GIFs unfocused:")
+            draw_settings_checkbox("play_gifs_unfocused")
+            if not set.play_gifs:
                 imgui.pop_disabled()
 
             draw_settings_label(

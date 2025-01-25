@@ -206,6 +206,8 @@ async def connect():
             "mark_installed_after_add":    f'INTEGER DEFAULT {int(False)}',
             "max_connections":             f'INTEGER DEFAULT 10',
             "max_retries":                 f'INTEGER DEFAULT 2',
+            "play_gifs":                   f'INTEGER DEFAULT {int(True)}',
+            "play_gifs_unfocused":         f'INTEGER DEFAULT {int(False)}',
             "proxy_type":                  f'INTEGER DEFAULT {ProxyType.Disabled}',
             "proxy_host":                  f'TEXT    DEFAULT ""',
             "proxy_port":                  f'INTEGER DEFAULT 8080',
