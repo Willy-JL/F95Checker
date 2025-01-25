@@ -45,7 +45,8 @@ def _():
             if process.is_file():
                 _os.environ["QTWEBENGINEPROCESS_PATH"] = str(process)
 
-    # Fix PIL image loading
+    # Pillow image loading
+    import pillow_avif
     from PIL import ImageFile, PngImagePlugin
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     PngImagePlugin.MAX_TEXT_CHUNK *= 10
