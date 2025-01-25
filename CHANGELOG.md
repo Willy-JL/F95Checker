@@ -6,6 +6,7 @@
 - App icons are now rounded, and MacOS icon has an empty border to fit design guidelines (by @rakleed & @Willy-JL)
 
 ### Fixed:
+- Added support for AVIF images, supports new F95zone attachment server conversion (by @Willy-JL)
 - DDL files are deleted asynchronously now, avoids stutters on slow drives (by @Willy-JL)
 - Simplify some error handling, correctly handles connection issues in some edge cases (by @Willy-JL)
 - Fix some link icons not being recognized by the extension and missing the library icon (by @Willy-JL)
