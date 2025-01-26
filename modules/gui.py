@@ -15,7 +15,6 @@ import threading
 import time
 import tomllib
 
-from imgui.integrations.glfw import GlfwRenderer
 from PIL import Image
 from PyQt6 import (
     QtCore,
@@ -58,6 +57,7 @@ from external import (
     error,
     filepicker,
     imagehelper,
+    imgui_glfw,
     ratingwidget,
 )
 from modules import (
@@ -396,7 +396,7 @@ class MainGUI():
             glfw.terminate()
             sys.exit(1)
         glfw.make_context_current(self.window)
-        self.impl = GlfwRenderer(self.window)
+        self.impl = imgui_glfw.GlfwRenderer(self.window)
 
         # Window position and icon
         if all(type(x) is int for x in pos) and len(pos) == 2 and utils.validate_geometry(*pos, *size):
@@ -873,9 +873,6 @@ class MainGUI():
                 cursor = imgui.get_mouse_cursor()
                 any_hovered = imgui.is_any_item_hovered()
                 win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
-                if not self.focused and win_hovered:
-                    # GlfwRenderer (self.impl) resets cursor pos if not focused, making it unresponsive
-                    imgui.io.mouse_pos = glfw.get_cursor_pos(self.window)
                 if not self.hidden and not self.minimized and (self.focused or globals.settings.render_when_unfocused):
 
                     # Scroll modifiers (must be before new_frame())
@@ -3285,7 +3282,7 @@ class MainGUI():
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         pos_y = imgui.get_cursor_pos_y()
-        header_h = imgui.get_text_line_height_with_spacing() if globals.settings.table_header_outside_list else 0
+        header_h = imgui.get_text_line_height_with_spacing() if globals.settings.table_header_outside_list else 1
         if imgui.begin_table(
             table_id,
             column=cols.count,
@@ -3315,7 +3312,8 @@ class MainGUI():
                     imgui.table_header(column.header)
 
             imgui.end_table()
-        imgui.set_cursor_pos_y(pos_y + header_h)
+        if not globals.settings.table_header_outside_list:
+            imgui.set_cursor_pos_y(pos_y + header_h)
 
     def get_game_cell_config(self):
         side_indent = imgui.style.item_spacing.x * 2
