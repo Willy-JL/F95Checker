@@ -5,6 +5,7 @@
 - Nothing
 
 ### Fixed:
+- Fix switching view modes with "Table header outside list" disabled (by @Willy-JL)
 - Fix GUI redraws not pausing when unfocused, hovered and not moving mouse (by @Willy-JL)
 
 ### Removed:

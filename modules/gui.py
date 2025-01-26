@@ -3281,7 +3281,7 @@ class MainGUI():
         offset = ghost_column_size * self.ghost_columns_enabled_count
         imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() - offset)
         pos_y = imgui.get_cursor_pos_y()
-        header_h = imgui.get_text_line_height_with_spacing() if globals.settings.table_header_outside_list else 0
+        header_h = imgui.get_text_line_height_with_spacing() if globals.settings.table_header_outside_list else 1
         if imgui.begin_table(
             table_id,
             column=cols.count,
@@ -3311,7 +3311,8 @@ class MainGUI():
                     imgui.table_header(column.header)
 
             imgui.end_table()
-        imgui.set_cursor_pos_y(pos_y + header_h)
+        if not globals.settings.table_header_outside_list:
+            imgui.set_cursor_pos_y(pos_y + header_h)
 
     def get_game_cell_config(self):
         side_indent = imgui.style.item_spacing.x * 2
