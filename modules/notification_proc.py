@@ -7,7 +7,12 @@ import typing
 
 import desktop_notifier
 
-pipe: "structs.DaemonPipe" = None
+from common.structs import (
+    ChildPipe,
+    DaemonPipe,
+)
+
+pipe: ChildPipe | DaemonPipe = None
 server: asyncio.Future = None
 callbacks: dict[int, typing.Callable] = {}
 
@@ -106,7 +111,7 @@ def notify(
 
 
 def _callback(callback: int):
-    print(json.dumps(("callback", [callback], {})), flush=True)
+    pipe.put(("callback", [callback], {}))
 
 
 async def _notify(
@@ -139,10 +144,8 @@ async def _notify(
 
 
 async def _daemon(icon_uri: str):
-    loop = asyncio.get_event_loop()
-
-    stdin_full = asyncio.Event()
-    loop.add_reader(sys.stdin.fileno(), stdin_full.set)
+    global pipe
+    pipe = ChildPipe()
 
     notifier = desktop_notifier.DesktopNotifier(
         app_name="F95Checker",
@@ -150,13 +153,9 @@ async def _daemon(icon_uri: str):
     )
 
     while True:
-        await stdin_full.wait()
-        stdin_full.clear()
-        line = await loop.run_in_executor(None, sys.stdin.readline)
+        data = await pipe.get_async()
 
         try:
-            data = json.loads(line)
-
             event, args, kwargs = data
             if event == "notify":
                 await _notify(notifier, *args, **kwargs)

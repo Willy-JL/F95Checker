@@ -16,6 +16,8 @@ from PyQt6 import (
 )
 from PyQt6.QtNetwork import QNetworkProxy
 
+from common.structs import ChildPipe
+
 # Qt WebEngine doesn't like running alongside other OpenGL
 # applications so we need to run a dedicated multiprocess
 
@@ -153,6 +155,7 @@ def create(
         QNetworkProxy.setApplicationProxy(proxy)
 
     app = QtWidgets.QApplication(sys.argv)
+    app.pipe = ChildPipe()
     icon_font = QtGui.QFontDatabase.applicationFontFamilies(QtGui.QFontDatabase.addApplicationFont(icon_font))[0]
     app.window = QtWidgets.QWidget()
     icon = QtGui.QIcon(icon)
@@ -409,7 +412,7 @@ def cookies(url: str, *, minimal=True, **kwargs):
     def on_cookie_add(cookie: QtNetwork.QNetworkCookie):
         name = cookie.name().data().decode('utf-8')
         value = cookie.value().data().decode('utf-8')
-        print(json.dumps([name, value]), flush=True)
+        app.pipe.put((name, value))
     app.window.webview.cookieStore.cookieAdded.connect(on_cookie_add)
     app.window.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
     app.window.webview.setUrl(url)
@@ -432,7 +435,7 @@ def css_redirect(url: str, css_selector: str = None, *, minimal=True, cookies: d
             app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     def url_changed(new: QtCore.QUrl):
         if new.host() != url.host():
-            print(json.dumps(new.url()), flush=True)
+            app.pipe.put(new.url())
             nonlocal css_selector
             if css_selector:
                 css_selector = None
@@ -468,7 +471,7 @@ def xpath_redirect(url: str, xpath_expression: str = None, *, minimal=True, cook
             app.window.webview.cookieStore.setCookie(QtNetwork.QNetworkCookie(QtCore.QByteArray(key.encode()), QtCore.QByteArray(value.encode())), cookies_domain)
     def url_changed(new: QtCore.QUrl):
         if new.host() != url.host():
-            print(json.dumps(new.url()), flush=True)
+            app.pipe.put(new.url())
             nonlocal xpath_expression
             if xpath_expression:
                 xpath_expression = None
