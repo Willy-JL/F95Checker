@@ -32,7 +32,7 @@ constants = []
 bin_includes = []
 bin_excludes = []
 platform_libs = {
-    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor"],
+    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor", "bz2"],
     "darwin": ["intl"]
 }
 include_files = [
