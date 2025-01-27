@@ -3,7 +3,6 @@ import asyncio
 import contextlib
 import os
 import pathlib
-import subprocess
 import sys
 
 version = "11.1"
@@ -28,20 +27,13 @@ def main():
     from modules import globals
 
     from common.structs import Os
-    try:
-        # Install uvloop on Linux and Rubicon-ObjC on MacOS, non essential so ignore errors
-        if globals.os is Os.Linux:
-            # Faster eventloop
+    if globals.os is not Os.Windows:
+        # Faster eventloop, non essential so ignore errors
+        try:
             import uvloop
             asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-            # Disable coredumps, desktop-notifier with uvloop segfaults at app exit
-            subprocess.Popen(["prlimit", "--core=0", "--pid", str(os.getpid())])
-        elif globals.os is Os.MacOS:
-            # Needed for desktop-notifier
-            import rubicon.objc.eventloop as crloop
-            asyncio.set_event_loop_policy(crloop.EventLoopPolicy())
-    except Exception:
-        pass
+        except Exception:
+            pass
 
     from external import async_thread, sync_thread
     async_thread.setup()

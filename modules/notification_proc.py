@@ -161,4 +161,16 @@ async def _daemon(icon_uri: str):
 
 
 def daemon(*args, **kwargs):
+    if sys.platform.startswith("linux"):
+        # Faster eventloop, non essential so ignore errors
+        try:
+            import uvloop
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        except Exception:
+            pass
+    elif sys.platform.startswith("darwin"):
+        # Needed for desktop-notifier on MacOS
+        import rubicon.objc.eventloop as cfloop
+        asyncio.set_event_loop_policy(cfloop.EventLoopPolicy())
+
     asyncio.run(_daemon(*args, **kwargs))
