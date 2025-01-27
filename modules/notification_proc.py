@@ -86,10 +86,12 @@ def notify(
     attachment: desktop_notifier.Attachment = None,
     timeout=5,
 ):
-    button_callbacks = {"View": 0}
+    button_callbacks = []
     for button in buttons:
-        button_callbacks[button.title] = hash(button.on_pressed)
+        button_callbacks.append((button.title, hash(button.on_pressed)))
         callbacks[hash(button.on_pressed)] = button.on_pressed
+    button_callbacks.append(("View", 0))
+
     kwargs = dict(
         title=title,
         msg=msg,
@@ -113,7 +115,7 @@ async def _notify(
     msg: str,
     urgency: str,
     icon: str | None,
-    button_callbacks: dict[str, int],
+    button_callbacks: list[tuple[str, int]],
     on_clicked_callback: int,
     attachment: str | None,
     timeout: int,
@@ -128,7 +130,7 @@ async def _notify(
                 title=button,
                 on_pressed=functools.partial(_callback, callback),
             )
-            for button, callback in button_callbacks.items()
+            for button, callback in button_callbacks
         ],
         on_clicked=functools.partial(_callback, on_clicked_callback),
         attachment=desktop_notifier.Attachment(uri=attachment) if attachment else None,
