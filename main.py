@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import asyncio
 import contextlib
 import os
 import pathlib
@@ -26,13 +27,13 @@ def main():
     from modules import globals
 
     from common.structs import Os
-    try:
-        # Install uvloop on MacOS and Linux, non essential so ignore errors
-        if globals.os is not Os.Windows:
+    if globals.os is not Os.Windows:
+        # Faster eventloop, non essential so ignore errors
+        try:
             import uvloop
-            uvloop.install()
-    except Exception:
-        pass
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        except Exception:
+            pass
 
     from external import async_thread, sync_thread
     async_thread.setup()
@@ -44,8 +45,8 @@ def main():
         from modules import gui
         globals.gui = gui.MainGUI()
 
-        from modules import rpc_thread
-        with rpc_thread.setup():
+        from modules import notification_proc, rpc_thread
+        with notification_proc.setup(), rpc_thread.setup():
 
             globals.gui.main_loop()
 
@@ -71,20 +72,31 @@ def lock_singleton():
                 pass
 
 
+def get_subprocess_args(subprocess_type: str):
+    import json
+    i = sys.argv.index(subprocess_type)
+    args = json.loads(sys.argv[i + 1])
+    kwargs = json.loads(sys.argv[i + 2])
+    return args, kwargs
+
+
 if __name__ == "__main__":
     if "-c" in sys.argv:
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
 
-    elif "webview" in sys.argv:
+    elif "webview-daemon" in sys.argv:
         # Run webviews as subprocesses since Qt doesn't like threading
-        import json
+        args, kwargs = get_subprocess_args("webview-daemon")
         from modules import webview
-        i = sys.argv.index("webview")
-        cb = getattr(webview, sys.argv[i + 1])
-        args = json.loads(sys.argv[i + 2])
-        kwargs = json.loads(sys.argv[i + 3])
-        cb(*args, **kwargs)
+        webview_action = getattr(webview, args.pop(0))
+        webview_action(*args, **kwargs)
+
+    elif "notification-daemon" in sys.argv:
+        # Run notifications as subprocesses since desktop-notifier doesn't like threading
+        args, kwargs = get_subprocess_args("notification-daemon")
+        from modules import notification_proc
+        notification_proc.daemon(*args, **kwargs)
 
     else:
         try:

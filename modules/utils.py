@@ -2,14 +2,13 @@ import asyncio
 import concurrent
 import functools
 import io
-import math
 import random
 import re
 import time
 import typing
 
 from PIL import Image
-from PyQt6.QtWidgets import QSystemTrayIcon
+import desktop_notifier
 import glfw
 import imgui
 
@@ -25,6 +24,7 @@ from modules import (
     globals,
     icons,
     msgbox,
+    notification_proc,
 )
 
 
@@ -83,7 +83,7 @@ def is_refreshing():
     return False
 
 
-def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
+def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True, notify_new_games=True):
     if is_refreshing():
         return
     if reset_bg_timers:
@@ -101,13 +101,30 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True):
         globals.refresh_task = None
         globals.gui.tray.update_status()
         globals.gui.recalculate_ids = True
-        if (globals.gui.hidden or not globals.gui.focused) and (count := len(globals.updated_games)) > 0:
-            globals.gui.tray.push_msg(
-                title="Updates",
-                msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates, "
-                    f"click here to view {'it' if count == 1 else 'them'}.",
-                icon=QSystemTrayIcon.MessageIcon.Information
-            )
+        if notify_new_games and (globals.new_updated_games or globals.updated_games):
+            if globals.new_updated_games:
+                globals.updated_games.update(globals.new_updated_games)
+                first = list(globals.new_updated_games.keys())[0]
+                globals.new_updated_games.clear()
+            else:
+                first = list(globals.updated_games.keys())[0]
+            globals.updated_games_sorted_ids = sorted(globals.updated_games.keys(), key=lambda id: globals.games[id].type.category.value)
+            for popup in globals.popup_stack:
+                if popup.func is type(globals.gui).draw_updates_popup:
+                    globals.popup_stack.remove(popup)
+            push_popup(type(globals.gui).draw_updates_popup, globals.gui).uuid = "updates"
+            if globals.gui.hidden or not globals.gui.focused:
+                image = list(filter(lambda f: f.suffix != ".aastc", globals.images_path.glob(f"{first}.*")))
+                if image:
+                    image = desktop_notifier.Attachment(path=image[0])
+                else:
+                    image = None
+                count = len(globals.updated_games)
+                notification_proc.notify(
+                    title="Updates",
+                    msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates!",
+                    attachment=image,
+                )
         # Continues after this only if the task was not cancelled
         try:
             future.exception()
@@ -297,10 +314,10 @@ def push_popup(*args, bottom=False, **kwargs):
                 "Server downtime",
             ):
                 return
-            globals.gui.tray.push_msg(
+            notification_proc.notify(
                 title="Oops",
-                msg="Something went wrong, click here to view the error.",
-                icon=QSystemTrayIcon.MessageIcon.Critical
+                msg="Something went wrong! Click to view the error.",
+                icon=desktop_notifier.Icon(globals.self_path / "resources/icons/error.png")
             )
     if bottom:
         globals.popup_stack.insert(0, popup)
