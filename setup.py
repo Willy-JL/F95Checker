@@ -27,12 +27,23 @@ except ModuleNotFoundError:
 # Build configuration
 includes = []
 excludes = ["tkinter"]
-packages = ["OpenGL"]
+packages = [
+    "dbus_fast",
+    "OpenGL",
+]
 constants = []
 bin_includes = []
 bin_excludes = []
 platform_libs = {
-    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor", "bz2", "!EGL"],
+    "linux": [
+        "!EGL",
+        "bz2",
+        "crypto",
+        "ffi",
+        "sqlite3",
+        "ssl",
+        "xcb-cursor",
+    ],
     "darwin": ["intl"]
 }
 include_files = [
@@ -46,14 +57,15 @@ platform_qt_plugins = {
     "linux": [
         "wayland-decoration-client",
         "wayland-graphics-integration-client",
-        "wayland-shell-integration"
+        "wayland-shell-integration",
     ],
 }
 zip_include_files = []
 zip_include_packages = "*"
 zip_exclude_packages = [
-    "glfw",
     "bencode2",
+    "desktop_notifier",
+    "glfw",
 ] + (["PyQt6"] if sys.platform.startswith("win") else [])
 optimize = 2
 silent_level = 0
