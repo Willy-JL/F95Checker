@@ -8,6 +8,7 @@ import json
 import os
 import pathlib
 import shutil
+import sys
 import time
 import typing
 import weakref
@@ -84,7 +85,18 @@ class DaemonProcess:
         self.finalize()
 
 
-class DaemonPipe:
+class AbstractPipe:
+    def __init__(self):
+        raise NotImplementedError()
+
+    async def get_async(self):
+        raise NotImplementedError()
+
+    def put(self, data: dict | list | str):
+        raise NotImplementedError()
+
+
+class DaemonPipe(AbstractPipe):
     __slots__ = ("proc", "daemon",)
 
     class DaemonPipeExit(Exception):
@@ -95,12 +107,21 @@ class DaemonPipe:
         self.daemon = DaemonProcess(proc)
 
     async def get_async(self):
+        assert self.proc.stdout
         while self.proc.returncode is None and not self.proc.stdout.at_eof():
+            line = await self.proc.stdout.readline()
             try:
-                return json.loads(await self.proc.stdout.readline())
+                return json.loads(line)
             except json.JSONDecodeError:
                 pass
             await asyncio.sleep(0)
+        raise self.DaemonPipeExit()
+
+    def put(self, data: dict | list | str):
+        assert self.proc.stdin
+        if self.proc.returncode is None:
+            self.proc.stdin.write(json.dumps(data).encode() + b"\n")
+            return
         raise self.DaemonPipeExit()
 
     def __enter__(self):
@@ -111,6 +132,49 @@ class DaemonPipe:
         self.daemon.__exit__()
         if exc_type is self.DaemonPipeExit:
             return True
+
+    def kill(self):
+        self.daemon.__exit__()
+
+
+class ChildPipe(AbstractPipe):
+    __slots__ = ("loop", "stdin_full")
+
+    def __init__(self):
+        try:
+            self.loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.loop = None
+
+        if self.loop and sys.stdin:
+            self.stdin_full = asyncio.Event()
+            self.loop.add_reader(sys.stdin, self.stdin_full.set)
+
+    async def get(self):
+        assert sys.stdin
+        while True:
+            line = sys.stdin.readline()
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                pass
+
+    async def get_async(self):
+        assert sys.stdin
+        assert self.loop
+        while True:
+            await self.stdin_full.wait()
+            self.stdin_full.clear()
+            line = await self.loop.run_in_executor(None, sys.stdin.readline)
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                pass
+            await asyncio.sleep(0)
+
+    def put(self, data: dict | list | str):
+        assert sys.stdout
+        print(json.dumps(data), flush=True)
 
 
 class Timestamp:
@@ -267,21 +331,6 @@ class FileDownload:
 class SortSpec:
     index: int
     reverse: bool
-
-
-@dataclasses.dataclass(slots=True)
-class TrayMsg:
-    title: str
-    msg: str
-    icon: "PyQt6.QtWidgets.QSystemTrayIcon.MessageIcon"
-
-    def __post_init__(self):
-        # KDE Plasma for some reason doesn't dispatch clicks if the icon is not critical
-        if os.environ.get("DESKTOP_SESSION") == "plasma" or \
-        os.environ.get("XDG_SESSION_DESKTOP") == "KDE" or \
-        os.environ.get("XDG_CURRENT_DESKTOP") == "KDE":
-            from PyQt6.QtWidgets import QSystemTrayIcon
-            self.icon = QSystemTrayIcon.MessageIcon.Critical
 
 
 class IntEnumHack(enum.IntEnum):

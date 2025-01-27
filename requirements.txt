@@ -4,12 +4,15 @@ glfw==2.8.0
 
 # Interface stuff
 imgui==2.0.0
+desktop-notifier==6.0.0
 PyQt6-WebEngine==6.7.0 ; sys_platform != "darwin"
 PyQt6==6.7.1 ; sys_platform != "darwin"
 PyQt6-WebEngine==6.4.0 ; sys_platform == "darwin"
 PyQt6==6.4.2 ; sys_platform == "darwin"
 
 # Async goodness
+uvloop==0.21.0 ; sys_platform != "win32"
+rubicon-objc==0.5.0 ; sys_platform == "darwin"
 aiolimiter==1.2.0
 aiosqlite==0.20.0
 aiofiles==24.1.0
@@ -26,7 +29,6 @@ lxml==5.3.0
 
 # Misc
 pywin32==308 ; sys_platform == "win32"
-uvloop==0.21.0 ; sys_platform != "win32"
 bencode2==0.3.17
 pillow==11.0.0
 pillow-avif-plugin==1.4.6
