@@ -27,10 +27,10 @@ except ModuleNotFoundError:
 # Build configuration
 includes = []
 excludes = ["tkinter"]
-packages = [
-    "dbus_fast",
-    "OpenGL",
-]
+packages = ["OpenGL"]
+platform_packages = {
+    "linux": ["dbus_fast"],
+}
 constants = []
 bin_includes = []
 bin_excludes = []
@@ -44,14 +44,14 @@ platform_libs = {
         "ssl",
         "xcb-cursor",
     ],
-    "darwin": ["intl"]
+    "darwin": ["intl"],
 }
 include_files = [
     (path / "browser/chrome.zip",    "browser/chrome.zip"),
     (path / "browser/firefox.zip",   "browser/firefox.zip"),
     (path / "browser/integrated.js", "browser/integrated.js"),
     (path / "resources/",            "resources/"),
-    (path / "LICENSE",               "LICENSE")
+    (path / "LICENSE",               "LICENSE"),
 ]
 platform_qt_plugins = {
     "linux": [
@@ -79,6 +79,13 @@ elif sys.platform.startswith("darwin"):
     icon = f"{icon}.icns"
 else:
     icon = f"{icon}.png"
+
+
+# Bundle packages
+for platform, pkgs in platform_packages.items():
+    if sys.platform.startswith(platform):
+        for pkg in pkgs:
+            packages.append(pkg)
 
 
 # Bundle system libraries
