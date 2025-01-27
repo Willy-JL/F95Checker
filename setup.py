@@ -32,7 +32,7 @@ constants = []
 bin_includes = []
 bin_excludes = []
 platform_libs = {
-    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor", "bz2"],
+    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor", "bz2", "!EGL"],
     "darwin": ["intl"]
 }
 include_files = [
@@ -73,8 +73,13 @@ else:
 for platform, libs in platform_libs.items():
     if sys.platform.startswith(platform):
         for lib in libs:
+            if lib.startswith("!"):
+                lib = lib.removeprefix("!")
+                bin_list = bin_excludes
+            else:
+                bin_list = bin_includes
             if lib_path := find_library(lib):
-                bin_includes.append(lib_path)
+                bin_list.append(lib_path)
 
 
 # Bundle Qt plugins

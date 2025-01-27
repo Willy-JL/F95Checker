@@ -11,7 +11,7 @@
 - Fix missing libbz2.so on linux binary bundles (#222 by @Willy-JL)
 
 ### Removed:
-- Nothing
+- Excluded `libEGL.so` on linux binary bundles, fixes "Cannot find EGLConfig, returning null config" (by @Willy-JL)
 
 ### Known Issues:
 - MacOS webview in frozen binaries remains blank, run from source instead
