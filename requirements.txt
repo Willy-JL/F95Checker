@@ -11,7 +11,7 @@ PyQt6-WebEngine==6.4.0 ; sys_platform == "darwin"
 PyQt6==6.4.2 ; sys_platform == "darwin"
 
 # Async goodness
-uvloop==0.21.0 ; sys_platform == "linux"
+uvloop==0.21.0 ; sys_platform != "win32"
 rubicon-objc==0.5.0 ; sys_platform == "darwin"
 aiolimiter==1.2.0
 aiosqlite==0.20.0
