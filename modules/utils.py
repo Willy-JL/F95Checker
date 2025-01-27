@@ -24,6 +24,7 @@ from modules import (
     globals,
     icons,
     msgbox,
+    notification_proc,
 )
 
 
@@ -119,7 +120,7 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True, notify_new_
                 else:
                     image = None
                 count = len(globals.updated_games)
-                globals.gui.tray.notify(
+                notification_proc.notify(
                     title="Updates",
                     msg=f"{count} item{'' if count == 1 else 's'} in your library {'has' if count == 1 else 'have'} received updates!",
                     attachment=image,
@@ -313,7 +314,7 @@ def push_popup(*args, bottom=False, **kwargs):
                 "Server downtime",
             ):
                 return
-            globals.gui.tray.notify(
+            notification_proc.notify(
                 title="Oops",
                 msg="Something went wrong! Click to view the error.",
                 icon=desktop_notifier.Icon(globals.self_path / "resources/icons/error.png")

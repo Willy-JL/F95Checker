@@ -51,6 +51,7 @@ from modules import (
     globals,
     icons,
     msgbox,
+    notification_proc,
     utils,
     webview,
 )
@@ -997,7 +998,7 @@ async def check_notifs(standalone=True, retry=False):
         MsgBox.info, buttons
     )
     if globals.gui.hidden or not globals.gui.focused:
-        globals.gui.tray.notify(
+        notification_proc.notify(
             title="Notifications",
             msg=msg,
             buttons=[
@@ -1235,7 +1236,7 @@ async def check_updates():
         bottom=True
     )
     if globals.gui.hidden or not globals.gui.focused:
-        globals.gui.tray.notify(
+        notification_proc.notify(
             title="F95Checker update",
             msg="F95Checker has received an update!",
         )

@@ -9,7 +9,6 @@ import itertools
 import pathlib
 import pickle
 import platform
-import shutil
 import sys
 import threading
 import time
@@ -22,7 +21,6 @@ from PyQt6 import (
     QtWidgets,
 )
 import aiohttp
-import desktop_notifier
 import glfw
 import imgui
 import OpenGL
@@ -5104,10 +5102,6 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.main_gui = main_gui
         self.idle_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/logo.png'))
         self.paused_icon = QtGui.QIcon(str(globals.self_path / 'resources/icons/paused.png'))
-        self._notify = desktop_notifier.DesktopNotifier(
-            app_name="F95Checker",
-            app_icon=desktop_notifier.Icon(globals.self_path / "resources/icons/icon.png"),
-        )
         super().__init__(self.idle_icon)
 
         self.watermark = QtGui.QAction(f"F95Checker {globals.version_name}")
@@ -5213,29 +5207,3 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
     def activated_filter(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason):
         if reason in self.show_gui_events:
             self.main_gui.show()
-
-    def notify(
-        self,
-        title: str,
-        msg: str,
-        urgency=desktop_notifier.Urgency.Normal,
-        icon: desktop_notifier.Icon = None,
-        buttons: list[desktop_notifier.Button] = [],
-        attachment: desktop_notifier.Attachment = None,
-        timeout=5,
-    ):
-        async_thread.run(self._notify.send(
-            title=title,
-            message=msg,
-            urgency=urgency,
-            icon=icon,
-            buttons=buttons + [
-                desktop_notifier.Button(
-                    title="View",
-                    on_pressed=self.main_gui.show,
-                ),
-            ],
-            on_clicked=self.main_gui.show,
-            attachment=attachment,
-            timeout=timeout,
-        ))

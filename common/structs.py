@@ -95,12 +95,21 @@ class DaemonPipe:
         self.daemon = DaemonProcess(proc)
 
     async def get_async(self):
+        assert self.proc.stdout
         while self.proc.returncode is None and not self.proc.stdout.at_eof():
             try:
-                return json.loads(await self.proc.stdout.readline())
+                line = await self.proc.stdout.readline()
+                return json.loads(line)
             except json.JSONDecodeError:
                 pass
             await asyncio.sleep(0)
+        raise self.DaemonPipeExit()
+
+    def put(self, data: dict | list | str):
+        assert self.proc.stdin
+        if self.proc.returncode is None:
+            self.proc.stdin.write(json.dumps(data).encode() + b"\n")
+            return
         raise self.DaemonPipeExit()
 
     def __enter__(self):
@@ -111,6 +120,9 @@ class DaemonPipe:
         self.daemon.__exit__()
         if exc_type is self.DaemonPipeExit:
             return True
+
+    def kill(self):
+        self.daemon.__exit__()
 
 
 class Timestamp:

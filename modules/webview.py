@@ -1,10 +1,8 @@
-import asyncio
 import base64
 import json
 import os
 import pathlib
 import re
-import shlex
 import sys
 
 from PyQt6 import (
@@ -23,8 +21,10 @@ from PyQt6.QtNetwork import QNetworkProxy
 
 
 async def start(action: str, *args, centered=True, use_f95_cookies=True, pipe=False, **kwargs):
-    import subprocess
+    import asyncio
     import imgui
+    import shlex
+    import subprocess
     from common.structs import (
         DaemonPipe,
         DaemonProcess,
@@ -44,11 +44,14 @@ async def start(action: str, *args, centered=True, use_f95_cookies=True, pipe=Fa
             int(globals.gui.screen_pos[1] + (imgui.io.display_size.y / 2) - size[1] / 2),
         )
 
+    args = [action, *args]
+    kwargs = create_kwargs() | kwargs
+
     proc = await asyncio.create_subprocess_exec(
         *shlex.split(globals.start_cmd),
-        "webview", action,
+        "webview-daemon",
         json.dumps(args),
-        json.dumps(create_kwargs() | kwargs),
+        json.dumps(kwargs),
         stdout=(subprocess.PIPE if pipe else None),
     )
 
