@@ -57,10 +57,14 @@ def stop():
 
 
 async def _server():
+    from common import structs
     from modules import globals
 
     while True:
-        data = await pipe.get_async()
+        try:
+            data = await pipe.get_async()
+        except structs.DaemonPipe.DaemonPipeExit:
+            return
 
         try:
             event, args, kwargs = data
@@ -173,4 +177,7 @@ def daemon(*args, **kwargs):
         import rubicon.objc.eventloop as cfloop
         asyncio.set_event_loop_policy(cfloop.EventLoopPolicy())
 
-    asyncio.run(_daemon(*args, **kwargs))
+    try:
+        asyncio.run(_daemon(*args, **kwargs))
+    except KeyboardInterrupt:
+        pass
