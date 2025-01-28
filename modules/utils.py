@@ -440,14 +440,8 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 return game.last_launched.value
             # Timeline matches
             case "finished":
-                if game: return game.finished
-                return TimelineEventType.GameFinished
-            case "isfinished":
                 return game.finished, (game.installed or game.version)
             case "installed":
-                if game: return game.installed
-                return TimelineEventType.GameInstalled
-            case "isinstalled":
                 return game.installed, game.version
             # List matches
             case "exes" | "executables":
@@ -495,13 +489,13 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                     # 86400 is one day in seconds, same as dt.timedelta(days=1)
                     compare = lambda l, r: (r <= l < r + 86400)
             except ValueError:
-                try:
-                    float(head.nodes[0].token)
-                except Exception: 
-                    head.token = "is" + head.token
+                pass
         match head.token:
             case "added" | "updated" | "launched" | "rating" | "score" | "votes" | "wscore" | "weight" | "scoreweight" | "weightedscore" | "id":
-                key = lambda game, f: (compare(attr_for(f.token, game), float(f.nodes[0].token)))
+                try:
+                    key = lambda game, f: (compare(attr_for(f.token, game), float(f.nodes[0].token)))
+                except ValueError:
+                    key = None
             # Boolean matches
             case "is" | "any" | "all":
                 key = lambda game, f: (and_or(attr_for(node.token, game) for node in f.nodes))
@@ -518,19 +512,6 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                             case "valid":       output = exists and valid
                             case "selected":    output = exists
                             case "unset":       output = not exists
-                        if output == (f.logic == "|"):
-                            return output
-                    return output
-            case "isfinished" | "isinstalled":
-                def key(game: Game, f: SearchLogic):
-                    exists, valid = attr_for(head.token, game)
-                    output: bool = f.logic == "&"
-                    for node in f.nodes:
-                        match node.token:
-                            case "True":        output = exists == valid
-                            case "False":       output = exists == ""
-                            case "old_version": output = exists not in ["", valid]
-                            case "any":         output = bool(exists)
                         if output == (f.logic == "|"):
                             return output
                     return output
@@ -552,16 +533,41 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 key = lambda game, f: (and_or(bool(set(filter(re.compile(regexp(node.token)).match, attr_for(head.token, game)))) for node in f.nodes))
             # List matches
             case "exes" | "executables" | "tags" | "labels":
-                key = lambda game, f: (compare(len(attr_for(f.token, game)), float(f.nodes[0].token)))
-            case _:
-                # Timeline matches
-                if head.token in TimelineEventType._member_names_.__add__(["finished", "installed"]):
-                    query_type = attr_for(head.token) | TimelineEventType[head.token]
-                    def key(game: Game, f: SearchLogic):
+                try:
+                    key = lambda game, f: (compare(len(attr_for(f.token, game)), float(f.nodes[0].token)))
+                except ValueError:
+                    key = None
+            # Timeline matches
+            case "gameadded" | "gamelaunched" | "gamefinished" | "finished" | "gameinstalled" | "installed" | "changedname" | "changedstatus" | "changedversion" | "changeddeveloper" | "changedtype" | "tagsadded" | "tagsremoved" | "scoreincreased" | "scoredecreased" | "recheckexpired" | "recheckuserreq":
+                match = r"game|changed|tags|score|recheck"
+                prefix = re.match(match, head.token)
+                prefix = prefix.group() if prefix else "game"
+                suffix = re.match(f"(?:{match}|^)(.*)", head.token)
+                if suffix: suffix = suffix.group(1)
+                if suffix == "userreq": suffix = "UserReq"
+                query_type = TimelineEventType[prefix.capitalize() + suffix.capitalize()]
+                def key(game: Game, f: SearchLogic):
+                    exists, valid = attr_for(head.token, game) if head.token in ["finished", "launched"] else True, True
+                    output: bool = f.logic == "&"
+                    do_timeline = any(event.type == query_type for event in game.timeline_events)
+                    try:
                         event = next((e for e in game.timeline_events if e.type == query_type), None)
                         return bool(event) & compare(event.timestamp.value, float(f.nodes[0].token))
-                else:
-                    key = None
+                    except Exception:
+                        for node in f.nodes:
+                            match node.token:
+                                case "True":                            output = exists == valid
+                                case "False":                           output = exists == ""
+                                case "oldversion" | "outdated" | "old": output = exists not in ["", valid]
+                                case "any":                             output = bool(exists)
+                                case _:
+                                    args = set(arg for event in game.timeline_events for arg in event.arguments if event.type == query_type)
+                                    output = do_timeline & bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, args)))
+                            if output == (f.logic == "|"):
+                                break
+                    return output
+            case _:
+                key = None
         if key is not None:
             base_ids = set(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
             return base_ids
