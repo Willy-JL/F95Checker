@@ -139,7 +139,7 @@ class DaemonPipe(AbstractPipe):
 
 
 class ChildPipe(AbstractPipe):
-    __slots__ = ("loop", "stdin_full")
+    __slots__ = ("loop", "stdin_event")
 
     def __init__(self):
         try:
@@ -148,8 +148,11 @@ class ChildPipe(AbstractPipe):
             self.loop = None
 
         if self.loop and sys.stdin:
-            self.stdin_full = asyncio.Event()
-            self.loop.add_reader(sys.stdin, self.stdin_full.set)
+            self.stdin_event = asyncio.Event()
+            try:
+                self.loop.add_reader(sys.stdin, self.stdin_event.set)
+            except NotImplementedError:
+                self.stdin_event = None
 
     async def get(self):
         assert sys.stdin
@@ -164,8 +167,9 @@ class ChildPipe(AbstractPipe):
         assert sys.stdin
         assert self.loop
         while True:
-            await self.stdin_full.wait()
-            self.stdin_full.clear()
+            if self.stdin_event:
+                await self.stdin_event.wait()
+                self.stdin_event.clear()
             line = await self.loop.run_in_executor(None, sys.stdin.readline)
             try:
                 return json.loads(line)
