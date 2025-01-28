@@ -28,32 +28,44 @@ except ModuleNotFoundError:
 includes = []
 excludes = ["tkinter"]
 packages = ["OpenGL"]
+platform_packages = {
+    "linux": ["dbus_fast"],
+}
 constants = []
 bin_includes = []
 bin_excludes = []
 platform_libs = {
-    "linux": ["ffi", "ssl", "crypto", "sqlite3", "xcb-cursor"],
-    "darwin": ["intl"]
+    "linux": [
+        "!EGL",
+        "bz2",
+        "crypto",
+        "ffi",
+        "sqlite3",
+        "ssl",
+        "xcb-cursor",
+    ],
+    "darwin": ["intl"],
 }
 include_files = [
     (path / "browser/chrome.zip",    "browser/chrome.zip"),
     (path / "browser/firefox.zip",   "browser/firefox.zip"),
     (path / "browser/integrated.js", "browser/integrated.js"),
     (path / "resources/",            "resources/"),
-    (path / "LICENSE",               "LICENSE")
+    (path / "LICENSE",               "LICENSE"),
 ]
 platform_qt_plugins = {
     "linux": [
         "wayland-decoration-client",
         "wayland-graphics-integration-client",
-        "wayland-shell-integration"
+        "wayland-shell-integration",
     ],
 }
 zip_include_files = []
 zip_include_packages = "*"
 zip_exclude_packages = [
-    "glfw",
     "bencode2",
+    "desktop_notifier",
+    "glfw",
 ] + (["PyQt6"] if sys.platform.startswith("win") else [])
 optimize = 2
 silent_level = 0
@@ -69,12 +81,24 @@ else:
     icon = f"{icon}.png"
 
 
+# Bundle packages
+for platform, pkgs in platform_packages.items():
+    if sys.platform.startswith(platform):
+        for pkg in pkgs:
+            packages.append(pkg)
+
+
 # Bundle system libraries
 for platform, libs in platform_libs.items():
     if sys.platform.startswith(platform):
         for lib in libs:
+            if lib.startswith("!"):
+                lib = lib.removeprefix("!")
+                bin_list = bin_excludes
+            else:
+                bin_list = bin_includes
             if lib_path := find_library(lib):
-                bin_includes.append(lib_path)
+                bin_list.append(lib_path)
 
 
 # Bundle Qt plugins
