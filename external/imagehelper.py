@@ -17,6 +17,7 @@ from OpenGL.GL.KHR import texture_compression_astc_ldr as gl_astc
 from OpenGL.GL.ARB import texture_compression_bptc as gl_bptc
 import OpenGL.GL as gl
 import imgui
+import zstd
 
 from common.structs import (
     Os,
@@ -38,6 +39,8 @@ _dummy_texture_id = None
 ktx_durations = b"durationsms\0"
 ktx_endianness = 0x04030201
 ktx_magic = b"\xABKTX 11\xBB\r\n\x1A\n"
+zstd_level = 3
+zstd_magic = b"\x28\xB5\x2F\xFD"
 
 aastc_magic = b"\xA3\xAB\xA1\x5C"
 astc_block = "6x6"
@@ -222,19 +225,19 @@ class ImageHelper:
                 return
             if globals.settings.tex_compress is TexCompress.ASTC:
                 # Prefer ASTC (including .aastc for migration), then .gif, then anything else, then other compression
-                sorting = lambda path: 1 if path.name.endswith((".astc.ktx", ".aastc")) else 2 if path.suffix == ".gif" else 3 if not path.name.endswith(".bc7.ktx") else 4
+                sorting = lambda path: 1 if path.name.endswith((".astc.ktx.zst", ".aastc")) else 2 if path.suffix == ".gif" else 3 if not path.name.endswith(".bc7.ktx.zst") else 4
             elif globals.settings.tex_compress is TexCompress.BC7:
                 # Prefer BC7, then .gif, then anything else, then other compression
-                sorting = lambda path: 1 if path.name.endswith(".bc7.ktx") else 2 if path.suffix == ".gif" else 3 if not path.name.endswith((".astc.ktx", ".aastc")) else 4
+                sorting = lambda path: 1 if path.name.endswith(".bc7.ktx.zst") else 2 if path.suffix == ".gif" else 3 if not path.name.endswith((".astc.ktx.zst", ".aastc")) else 4
             else:
                 # Prefer .gif files, avoid compressed files unless nothing else available
-                sorting = lambda path: 1 if path.suffix == ".gif" else 2 if path.suffix not in (".ktx", ".aastc") else 3
+                sorting = lambda path: 1 if path.suffix == ".gif" else 2 if path.suffix not in (".zst", ".aastc") else 3
             paths.sort(key=sorting)
             self.resolved_path = paths[0]
 
         # Choose compressed file by same name if not already using it
-        if globals.settings.tex_compress is not TexCompress.Disabled and self.resolved_path.suffix != ".ktx":
-            ktx_path = self.resolved_path.with_suffix(f".{globals.settings.tex_compress.name.lower()}.ktx")
+        if globals.settings.tex_compress is not TexCompress.Disabled and self.resolved_path.suffix != ".zst":
+            ktx_path = self.resolved_path.with_suffix(f".{globals.settings.tex_compress.name.lower()}.ktx.zst")
             if ktx_path.is_file():
                 self.resolved_path = ktx_path
             elif globals.settings.tex_compress is TexCompress.ASTC and self.resolved_path.suffix != ".aastc":
@@ -304,7 +307,7 @@ class ImageHelper:
 
         if self.resolved_path.suffix == ".aastc":
             # ASTC file but with multiple payloads and durations, for animated textures
-            # Only for backwards compatibility, gets migrated to .ktx
+            # Only for backwards compatibility, gets migrated to KTX
             aastc = self.resolved_path.read_bytes()
             magic = aastc[0:4]
             if magic != aastc_magic:
@@ -344,7 +347,8 @@ class ImageHelper:
                 frames.append((texture, duration))
 
             ktx = build_ktx(astc_format, astc_pixfmt, dim_x, dim_y, frames)
-            ktx_path = self.resolved_path.with_suffix(".astc.ktx")
+            ktx = zstd.compress(ktx, zstd_level)
+            ktx_path = self.resolved_path.with_suffix(".astc.ktx.zst")
             ktx_path.write_bytes(ktx)
             try:
                 self.resolved_path.unlink(missing_ok=True)
@@ -352,9 +356,9 @@ class ImageHelper:
                 pass
             self.resolved_path = ktx_path
 
-        if globals.settings.tex_compress is TexCompress.ASTC and not self.resolved_path.name.endswith(".astc.ktx"):
+        if globals.settings.tex_compress is TexCompress.ASTC and not self.resolved_path.name.endswith(".astc.ktx.zst"):
             # Compress to ASTC
-            if self.resolved_path.suffix == ".ktx":
+            if self.resolved_path.suffix == ".zst":
                 set_invalid(
                     "No source image available to compress to ASTC!\n"
                     "Reset image in order to re-compress it"
@@ -449,13 +453,14 @@ class ImageHelper:
                 image.close()
 
             if ktx:
-                ktx_path = self.resolved_path.with_suffix(".astc.ktx")
+                ktx = zstd.compress(ktx, zstd_level)
+                ktx_path = self.resolved_path.with_suffix(".astc.ktx.zst")
                 ktx_path.write_bytes(ktx)
                 self.resolved_path = ktx_path
 
-        if globals.settings.tex_compress is TexCompress.BC7 and not self.resolved_path.name.endswith(".bc7.ktx"):
+        if globals.settings.tex_compress is TexCompress.BC7 and not self.resolved_path.name.endswith(".bc7.ktx.zst"):
             # Compress to BC7
-            if self.resolved_path.suffix == ".ktx":
+            if self.resolved_path.suffix == ".zst":
                 set_invalid(
                     "No source image available to compress to BC7!\n"
                     "Reset image in order to re-compress it"
@@ -555,22 +560,29 @@ class ImageHelper:
                 image.close()
 
             if ktx:
-                ktx_path = self.resolved_path.with_suffix(".bc7.ktx")
+                ktx = zstd.compress(ktx, zstd_level)
+                ktx_path = self.resolved_path.with_suffix(".bc7.ktx.zst")
                 ktx_path.write_bytes(ktx)
                 self.resolved_path = ktx_path
 
-        if self.resolved_path.suffix == ".ktx":
+        if self.resolved_path.suffix == ".zst":
             # Load compressed KTX
-            if not self.resolved_path.name.endswith((".astc.ktx", ".bc7.ktx")):
+            if not self.resolved_path.name.endswith((".astc.ktx.zst", ".bc7.ktx.zst")):
                 set_invalid(
                     "Unknown KTX texture format!\n"
                     "Reset image in order to re-compress it"
                 )
                 return
+
             ktx = self.resolved_path.read_bytes()
+            magic = ktx[0:4]
+            if magic != zstd_magic:
+                set_invalid(f"KTX malformed:\nWrong ZSTD magic, {magic} != {zstd_magic}")
+            ktx = zstd.decompress(ktx)
+
             magic = ktx[0:12]
             if magic != ktx_magic:
-                set_invalid(f"KTX malformed:\nWrong magic, {magic} != {ktx_magic}")
+                set_invalid(f"KTX malformed:\nWrong KTX magic, {magic} != {ktx_magic}")
                 return
             fmt = ">I" if struct.unpack("<I", ktx[12:16]) == ktx_endianness else "<I"
 
