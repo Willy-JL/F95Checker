@@ -379,7 +379,7 @@ def from_basic_filters(filters: list[Filter]) -> SearchLogic:
         head.nodes.append(node)
         match flt.mode:
             case FilterMode.Archived | FilterMode.Custom | FilterMode.Updated:
-                node.nodes[0].token = str(bool(flt.match)).lower()
+                node.nodes[0].token = "true"
             case FilterMode.Finished | FilterMode.Installed:
                 node.nodes[0].token = "any" if flt.match else "true"
             case FilterMode.Score:
@@ -506,7 +506,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                     try:
                         token = float(token)
                     except ValueError:
-                        attr = str(attr)
+                        attr = str(attr).lower()
                     return compare(attr, token)
             # Boolean matches
             case "is" | "any" | "all":
@@ -518,7 +518,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                         matches.append(token)
                     return and_or(matches)
             case "archived" | "custom":
-                key = lambda game, f: (str(attr_for(f.token, game)) == f.nodes[0].token)
+                key = lambda game, f: (str(attr_for(f.token, game)).lower() == f.nodes[0].token)
             # Custom matches
             case "exe" | "image":
                 def key(game: Game, f: SearchLogic):
