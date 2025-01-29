@@ -408,17 +408,17 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 return Type
             # String matches
             case "name" | "title":
-                return game.name.lower()
-            case "dev" | "developer":
-                return game.developer.lower()
-            case "ver" | "version":
-                return game.version.lower()
+                return game.name
+            case "dev"  | "developer":
+                return game.developer
+            case "ver"  | "version":
+                return game.version
             case "note" | "notes":
-                return game.notes.lower()
-            case "url":
-                return game.url.lower()
+                return game.notes
             case "desc" | "description":
-                return game.description.lower()
+                return game.description
+            case "site" | "url":
+                return game.url
             # Date matches
             case "added":
                 return game.added_on.value
@@ -439,7 +439,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             case "labels":
                 return game.labels
             case "downloads":
-                return set([mirror.lower() for name, mirrors in game.downloads for mirror, link in mirrors])
+                return set([mirror for name, mirrors in game.downloads for mirror, link in mirrors])
             case _:
                 return False
     def enum_match(enums):
@@ -515,12 +515,12 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 enum_match(attr_for(head.token))
                 key = lambda game, f: (and_or(attr_for(f.token, game) in node.token for node in f.nodes))
             # String matches
-            case "name" | "title" | "dev" | "developer" | "ver" | "version" | "note" | "notes" | "url" | "description" | "desc":
-                key = lambda game, f: (and_or(re.match(regexp(node.token), attr_for(head.token, game)) for node in f.nodes))
+            case "name" | "title" | "developer" | "dev" | "version" | "ver" | "note" | "notes" | "url" | "description" | "desc":
+                key = lambda game, f: (and_or(re.match(regexp(node.token), attr_for(head.token, game), re.IGNORECASE) for node in f.nodes))
             case "downloads":
-                key = lambda game, f: (and_or(bool(set(filter(re.compile(regexp(node.token)).match, attr_for(head.token, game)))) for node in f.nodes))
+                key = lambda game, f: (and_or(bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, attr_for(head.token, game)))) for node in f.nodes))
             # List matches
-            case "exes" | "executables" | "tags" | "labels":
+            case "executables" | "exes" | "tags" | "labels":
                 try:
                     key = lambda game, f: (compare(len(attr_for(f.token, game)), float(f.nodes[0].token)))
                 except ValueError:
@@ -544,8 +544,8 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                     except Exception:
                         for node in f.nodes:
                             match node.token:
-                                case "True":                            output = exists == valid
-                                case "False":                           output = exists == ""
+                                case "true" | "yes":                    output = exists == valid
+                                case "false" | "no":                    output = exists == ""
                                 case "oldversion" | "outdated" | "old": output = exists not in ["", valid]
                                 case "any":                             output = bool(exists)
                                 case _:
@@ -560,10 +560,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             base_ids = set(filter(functools.partial(lambda f, k, id: f.invert != k(globals.games[id], f), head, key), base_ids))
             return base_ids
     elif head.token:
-        regex = regexp(head.token)
+        regex = re.compile(regexp(head.token), re.IGNORECASE).match
         def key(id):
             game = globals.games[id]
-            return head.invert != bool(set(filter(re.compile(regex).match, [game.version.lower(), game.developer.lower(), game.name.lower(), game.notes.lower()])))
+            return head.invert != bool(set(filter(regex, [game.version, game.developer, game.name, game.notes])))
     elif head.type in ["|", "&"]:
         queries: set[int] = set() if head.type == "|" else base_ids
         for node in head.nodes:
