@@ -480,15 +480,19 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 pass
         match head.token:
             case "added" | "updated" | "launched" | "rating" | "score" | "votes" | "wscore" | "weight" | "scoreweight" | "weightedscore" | "id":
-                try:
-                    key = lambda game, f: (compare(attr_for(f.token, game), float(f.nodes[0].token)))
-                except ValueError:
-                    key = None
+                def key(game: Game, f: SearchLogic):
+                    attr = attr_for(f.token, game)
+                    token = f.nodes[0].token
+                    try:
+                        token = float(token)
+                    except ValueError:
+                        attr = str(attr)
+                    return compare(attr, token)
             # Boolean matches
             case "is" | "any" | "all":
                 key = lambda game, f: (and_or(attr_for(node.token, game) for node in f.nodes))
-            case "archived" | "custom" | "updated":
-                key = lambda game, f: (str(attr_for(head.token, game)) == f.nodes[0].token)
+            case "archived" | "custom":
+                key = lambda game, f: (str(attr_for(f.token, game)) == f.nodes[0].token)
             # Custom matches
             case "exe" | "image":
                 def key(game: Game, f: SearchLogic):
@@ -521,10 +525,14 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 key = lambda game, f: (and_or(bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, attr_for(head.token, game)))) for node in f.nodes))
             # List matches
             case "executables" | "exes" | "tags" | "labels":
-                try:
-                    key = lambda game, f: (compare(len(attr_for(f.token, game)), float(f.nodes[0].token)))
-                except ValueError:
-                    key = None
+                def key(game: Game, f: SearchLogic):
+                    attr = len(attr_for(f.token, game))
+                    token = f.nodes[0].token
+                    try:
+                        token = float(token)
+                    except ValueError:
+                        pass
+                    return compare(attr, token)
             # Timeline matches
             case "gameadded" | "gamelaunched" | "gamefinished" | "finished" | "gameinstalled" | "installed" | "changedname" | "changedstatus" | "changedversion" | "changeddeveloper" | "changedtype" | "tagsadded" | "tagsremoved" | "scoreincreased" | "scoredecreased" | "recheckexpired" | "recheckuserreq":
                 match = r"game|changed|tags|score|recheck"
