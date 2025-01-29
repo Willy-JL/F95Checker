@@ -1,11 +1,11 @@
 ### Added:
-- ASTC Image Compression option (#212 by @Willy-JL):
+- Image Texture Compression (`(ASTC or BC7) + ZSTD`) option (#212 by @Willy-JL):
   - Compresses images for instantaneous load times (after first compression which is slower)
-  - Potentially less VRAM usage, overall slightly less disk usage on average (if ASTC Replace is also enabled, otherwise files are duplicated)
-  - Some GPUs may not be compatible, some others may render images less efficiently like this
+  - Less VRAM usage, and potentially less disk usage, depending on configuration and GPU support
+  - Check the hover info in settings section for details on trade-offs
 - Unload Images Off-screen option (#212 by @Willy-JL):
   - Saves a lot of VRAM usage by unloading images not currently shown
-  - Only recommended together with ASTC Image Compression, otherwise it is very slow
+  - Works best together with Tex Compress, so image load times are less noticeable
 - Play GIFs and Play GIFs Unfocused options (#212 by @Willy-JL):
   - Saves a lot of VRAM if completely disabled, no GIFs play and only first frame is loaded
   - Saves CPU/GPU usage by redrawing less if disabled when unfocused, but still uses same VRAM
