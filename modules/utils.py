@@ -303,24 +303,10 @@ def create_query(query: list[str]) -> SearchLogic:
                 # Tag and Label default to AND
                 if token.token in ["tag", "label", "is", "all"]: token.logic = "&"
                 token.invert = last_query.invert != token.invert
-                found: SearchLogic = None
-                if token.type == "=":
-                    # Check if there is another similar data query already
-                    for node in head.nodes[:i-1]:
-                        if node.__eq__(token):
-                            token = found = node
-                            break
-                if not found:
-                    head.nodes.insert(i - 1, token)
+                head.nodes.insert(i - 1, token)
                 last_query = token
             if i < len(head.nodes):
-                new_node = head.nodes.pop(i)
-                match new_node.token:
-                    case "true" | "yes":
-                        new_node.token = "True"
-                    case "false" | "no":
-                        new_node.token = "False"
-                last_query.nodes.append(new_node)
+                last_query.nodes.append(head.nodes.pop(i))
         else:
             head.nodes.insert(i, token)
             i += 1
@@ -329,10 +315,13 @@ def create_query(query: list[str]) -> SearchLogic:
     while i < len(head.nodes):
         token = head.nodes.pop(i)
         if (token.type == "|") & (i > 0):
-            or_query: SearchLogic = head.get(token, i)
-            if len(or_query.nodes) == 0: or_query.nodes.append(head.nodes.pop(i - 1))
-            if i < len(head.nodes):
-                or_query.nodes.append(head.nodes.pop(i))
+            if head.nodes[i - 1] != token:
+                or_query = token
+                head.nodes.insert(i, or_query)
+                or_query.nodes.append(head.nodes.pop(i - 1))
+            else:
+                or_query = head.nodes[i - 1]
+            or_query.nodes.append(head.nodes.pop(i))
         else:
             head.nodes.insert(i, token)
             i += 1
@@ -342,41 +331,40 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
     if (head.type == "?") or (len(head.nodes) == 0):
         return head
     if len(head.nodes) == 1:
-        node = head.nodes.pop()
-        if head.type == "=":
-            if node.type == "?":
-                head.nodes.append(node)
-                return head
+        node = head.nodes[0]
+        if head.type[0] in ["<", "=", ">"]:
+            if node.type == "?": return head
             node.token = head.token
-            node.invert = (node.invert != head.invert)
-            node.type = "="
-            return flatten_query(node)
-        elif head.type in ["|", "&"]:
-            if node.type == "=":
-                node.logic = head.logic
-            node.invert = (node.invert != head.invert)
-            return flatten_query(node)
-        else:
-            head.nodes.append(node)
+            node.type = head.type
+        node.invert = (node.invert != head.invert)
+        return flatten_query(node)
     i = 0
     while i < len(head.nodes):
         node = head.nodes.pop(i)
-        if (head.type == "=") and (node.type in ["|", "&", "="]):
-            node.type = "="
-            node.token = head.token
-            node = flatten_query(node)
-            if (node.logic != head.logic) or (node.invert != head.invert) or (head.token != node.token):
-                new_node = SearchLogic(logic=head.logic, invert=head.invert, type=head.logic)
-                head.invert = False
-                new_node.nodes.append(head)
-                new_node.nodes.append(node)
-                return flatten_query(new_node)
-        else:
-            node = flatten_query(node)
         if node == head:
             head.nodes.extend(node.nodes)
-        else:
-            head.nodes.insert(i, node)
+            continue
+        if head.type in ["|", "&"] and node.type == "=" and (len(node.nodes) == 1 or node.logic == head.logic):
+            node.logic = head.logic
+            j = 0
+            while j < i:
+                if node == head.nodes[j]:
+                    head.nodes[j].nodes.extend(node.nodes)
+                    node = None
+                    break
+                j += 1
+        elif head.type[0] in ["<", "=", ">"] and node.type in ["|", "&", "<", "=", ">"]:
+            node.type = head.type
+            node.token = head.token
+            node = flatten_query(node)
+            if node != head:
+                new_node = SearchLogic(logic=head.logic, invert=head.invert, type=head.logic)
+                head.invert = False
+                new_node.nodes.append(flatten_query(head))
+                new_node.nodes.append(node)
+                return new_node
+        if bool(node):
+            head.nodes.insert(i, flatten_query(node))
             i += 1
     return head
     
