@@ -510,7 +510,13 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                     return compare(attr, token)
             # Boolean matches
             case "is" | "any" | "all":
-                key = lambda game, f: (and_or(attr_for(node.token, game) for node in f.nodes))
+                def key(game: Game, f: SearchLogic):
+                    matches = []
+                    for node in f.nodes:
+                        token = attr_for(node.token, game)
+                        if node.token in ["finished", "installed"]: token = token[0]
+                        matches.append(token)
+                    return and_or(matches)
             case "archived" | "custom":
                 key = lambda game, f: (str(attr_for(f.token, game)) == f.nodes[0].token)
             # Custom matches
@@ -563,7 +569,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 if suffix == "userreq": suffix = "UserReq"
                 query_type = TimelineEventType[prefix.capitalize() + suffix.capitalize()]
                 def key(game: Game, f: SearchLogic):
-                    exists, valid = attr_for(head.token, game) if head.token in ["finished", "launched"] else True, True
+                    exists, valid = attr_for(f.token, game) if head.token in ["finished", "installed"] else tuple(True, True)
                     output: bool = f.logic == "&"
                     do_timeline = any(event.type == query_type for event in game.timeline_events)
                     try:
