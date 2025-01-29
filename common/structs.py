@@ -591,6 +591,13 @@ ProxyType = IntEnumHack("ProxyType", [
 ])
 
 
+TexCompress = IntEnumHack("TexCompress", [
+    ("Disabled", 1),
+    ("ASTC",     2),
+    ("BC7",      3),
+])
+
+
 @dataclasses.dataclass(slots=True)
 class Filter:
     mode: FilterMode
@@ -770,8 +777,6 @@ Browser.add("Custom", -1)
 
 @dataclasses.dataclass(slots=True)
 class Settings:
-    astc_compression            : bool
-    astc_replace                : bool
     background_on_close         : bool
     bg_notifs_interval          : int
     bg_refresh_interval         : int
@@ -842,6 +847,8 @@ class Settings:
     style_text_dim              : tuple[float]
     table_header_outside_list   : bool
     tags_highlights             : dict[Tag, TagHighlight]
+    tex_compress                : TexCompress
+    tex_compress_replace        : bool
     timestamp_format            : str
     unload_offscreen_images     : bool
     vsync_ratio                 : int

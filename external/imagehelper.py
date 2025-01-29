@@ -14,10 +14,14 @@ from PIL import (
     UnidentifiedImageError
 )
 from OpenGL.GL.KHR import texture_compression_astc_ldr as gl_astc
+from OpenGL.GL.ARB import texture_compression_bptc as gl_bptc
 import OpenGL.GL as gl
 import imgui
 
-from common.structs import Os
+from common.structs import (
+    Os,
+    TexCompress,
+)
 from external import (
     error,
     sync_thread,
@@ -27,15 +31,82 @@ from modules.api import temp_prefix
 from modules import globals
 
 redraw = False
+compress_counter = 0
 apply_texture_queue = []
 _dummy_texture_id = None
 
-astcenc = None
-astcenc_counter = 0
+ktx_durations = b"durationsms\0"
+ktx_endianness = 0x04030201
+ktx_magic = b"\xABKTX 11\xBB\r\n\x1A\n"
+
 aastc_magic = b"\xA3\xAB\xA1\x5C"
-aastc_block = "6x6"
-aastc_format = gl_astc.GL_COMPRESSED_RGBA_ASTC_6x6_KHR
-aastc_quality = "80"
+astc_block = "6x6"
+astc_format = gl_astc.GL_COMPRESSED_RGBA_ASTC_6x6_KHR
+astc_pixfmt = gl.GL_RGBA
+astc_quality = "80"
+astcenc = None
+
+bc7_format = gl_bptc.GL_COMPRESSED_RGBA_BPTC_UNORM_ARB
+bc7_pixfmt = gl.GL_RGBA
+compressonator_encoder = "HPC"
+compressonator = None
+
+
+def _find_astcenc():
+    global astcenc
+    if astcenc is None:
+        # Windows: F95Checker/lib/astcenc/astcenc-(avx2|sse2|neon).exe
+        # Linux: F95Checker/lib/astcenc/astcenc-(avx2|sse2)
+        # MacOS: F95Checker/lib/astcenc/astcenc
+        _astcenc = globals.self_path / "lib/astcenc"
+        if globals.os is Os.MacOS:
+            _astcenc /= "astcenc"
+        elif globals.os is Os.Windows and platform.machine().startswith("ARM"):
+            _astcenc /= "astcenc-neon.exe"
+        else:
+            from external import cpuinfo
+            flags = cpuinfo.get_cpu_info().get("flags", ())
+            if all(flag in flags for flag in ("avx2", "sse4_2", "popcnt", "f16c")):
+                _astcenc /= "astcenc-avx2"
+            else:
+                _astcenc /= "astcenc-sse2"
+            if globals.os is Os.Windows:
+                _astcenc = _astcenc.with_suffix(".exe")
+        if not _astcenc.is_file():
+            # Not bundled, look in PATH for astcenc-(avx2|sse2)[.exe] and astcenc[.exe]
+            _astcenc = shutil.which(_astcenc.name) or shutil.which(_astcenc.with_stem("astcenc").name)
+            if _astcenc:
+                _astcenc = pathlib.Path(_astcenc)
+            else:
+                _astcenc = False
+        if _astcenc:
+            _astcenc = _astcenc.absolute()
+        astcenc = _astcenc
+    return astcenc
+
+
+def _find_compressonator():
+    global compressonator
+    if compressonator is None:
+        # Windows: F95Checker/lib/compressonator/compressonatorcli.exe
+        # Linux: F95Checker/lib/compressonator/compressonatorcli
+        # MacOS: Not supported
+        _compressonator = globals.self_path / "lib/compressonator"
+        if globals.os is Os.Windows:
+            _compressonator /= "compressonatorcli.exe"
+        else:
+            _compressonator /= "compressonatorcli"
+        if not _compressonator.is_file():
+            # Not bundled, look in PATH for compressonatorcli[.exe]
+            _compressonator = shutil.which(_compressonator.name)
+            if _compressonator:
+                _compressonator = pathlib.Path(_compressonator)
+            else:
+                _compressonator = False
+        if _compressonator:
+            _compressonator = _compressonator.absolute()
+        compressonator = _compressonator
+    return compressonator
 
 
 def post_draw():
@@ -149,20 +220,27 @@ class ImageHelper:
             if not paths:
                 self._missing = True
                 return
-            if globals.settings.astc_compression:
-                # Prefer .aastc files, then .gif, then anything else
-                sorting = lambda path: 1 if path.suffix == ".aastc" else 2 if path.suffix == ".gif" else 3
+            if globals.settings.tex_compress is TexCompress.ASTC:
+                # Prefer ASTC (including .aastc for migration), then .gif, then anything else, then other compression
+                sorting = lambda path: 1 if path.name.endswith((".astc.ktx", ".aastc")) else 2 if path.suffix == ".gif" else 3 if not path.name.endswith(".bc7.ktx") else 4
+            elif globals.settings.tex_compress is TexCompress.BC7:
+                # Prefer BC7, then .gif, then anything else, then other compression
+                sorting = lambda path: 1 if path.name.endswith(".bc7.ktx") else 2 if path.suffix == ".gif" else 3 if not path.name.endswith((".astc.ktx", ".aastc")) else 4
             else:
-                # Prefer .gif files, avoid .aastc files unless nothing else available
-                sorting = lambda path: 1 if path.suffix == ".gif" else 2 if path.suffix != ".aastc" else 3
+                # Prefer .gif files, avoid compressed files unless nothing else available
+                sorting = lambda path: 1 if path.suffix == ".gif" else 2 if path.suffix not in (".ktx", ".aastc") else 3
             paths.sort(key=sorting)
             self.resolved_path = paths[0]
 
-        # Choose .aastc file by same name if not already using it
-        if globals.settings.astc_compression and self.resolved_path.suffix != ".aastc":
-            aastc_path = self.resolved_path.with_suffix(".aastc")
-            if aastc_path.is_file():
-                self.resolved_path = aastc_path
+        # Choose compressed file by same name if not already using it
+        if globals.settings.tex_compress is not TexCompress.Disabled and self.resolved_path.suffix != ".ktx":
+            ktx_path = self.resolved_path.with_suffix(f".{globals.settings.tex_compress.name.lower()}.ktx")
+            if ktx_path.is_file():
+                self.resolved_path = ktx_path
+            elif globals.settings.tex_compress is TexCompress.ASTC and self.resolved_path.suffix != ".aastc":
+                aastc_path = self.resolved_path.with_suffix(".aastc")
+                if aastc_path.is_file():
+                    self.resolved_path = aastc_path
 
         self._missing = not self.resolved_path.is_file()
 
@@ -189,38 +267,100 @@ class ImageHelper:
             set_invalid("Image file missing")
             return
 
-        if globals.settings.astc_compression and self.resolved_path.suffix != ".aastc":
+        def build_ktx(tex_format: int, tex_pixfmt: int, width: int, height: int, frames: list[tuple[bytes, int]]):
+            ktx = ktx_magic  # identifier
+            ktx += struct.pack("<I", ktx_endianness)  # endianness
+            ktx += struct.pack("<I", 0)  # glType
+            ktx += struct.pack("<I", 1)  # glTypeSize
+            ktx += struct.pack("<I", 0)  # glFormat
+            ktx += struct.pack("<I", tex_format)  # glInternalFormat
+            ktx += struct.pack("<I", tex_pixfmt)  # glBaseInternalFormat
+            ktx += struct.pack("<I", width)  # pixelWidth
+            ktx += struct.pack("<I", height)  # pixelHeight
+            ktx += struct.pack("<I", 0)  # pixelDepth
+            if len(frames) > 1:
+                ktx += struct.pack("<I", len(frames))  # numberOfArrayElements
+            else:
+                ktx += struct.pack("<I", 0)  # numberOfArrayElements
+            ktx += struct.pack("<I", 1)  # numberOfFaces
+            ktx += struct.pack("<I", 1)  # numberOfMipmapLevels
+
+            if len(frames) > 1:
+                ktx += struct.pack("<I", 16 + 4 * len(frames))  # bytesOfKeyValueData
+                ktx += struct.pack("<I", 12 + 4 * len(frames))  # keyAndValueByteSize
+                ktx += ktx_durations  # key
+                for _, duration in frames:  # value
+                    ktx += struct.pack("<I", duration)
+            else:
+                ktx += struct.pack("<I", 0)  # bytesOfKeyValueData
+
+            for texture, _ in frames:
+                ktx += struct.pack("<I", len(texture))  # imageSize
+                ktx += texture  # data
+
+            return ktx
+
+        global compress_counter
+
+        if self.resolved_path.suffix == ".aastc":
+            # ASTC file but with multiple payloads and durations, for animated textures
+            # Only for backwards compatibility, gets migrated to .ktx
+            aastc = self.resolved_path.read_bytes()
+            magic = aastc[0:4]
+            if magic != aastc_magic:
+                set_invalid(f"AASTC malformed:\nWrong magic, {magic} != {aastc_magic}")
+                return
+
+            block_x = aastc[4]
+            block_y = aastc[5]
+            block_z = aastc[6]
+            block = f"{block_x}x{block_y}"
+            if block_z != 1:
+                set_invalid(f"AASTC malformed:\n3D texture, only 2D supported")
+                return
+            if block != astc_block:
+                set_invalid(f"AASTC malformed:\nWrong block size, {block} != {astc_block}")
+                return
+
+            dim_x = struct.unpack("<I", aastc[7:10] + b"\0")[0]
+            dim_y = struct.unpack("<I", aastc[10:13] + b"\0")[0]
+            dim_z = struct.unpack("<I", aastc[13:16] + b"\0")[0]
+            if dim_z != 1:
+                set_invalid(f"AASTC malformed:\n3D texture, only 2D supported")
+                return
+
+            frames = []
+            frames_data = aastc[16:]
+            data_pos = 0
+            while data_pos < len(frames_data):
+                texture_len = struct.unpack("<Q", frames_data[data_pos:data_pos + 8])[0]
+                data_pos += 8
+                duration = struct.unpack("<I", frames_data[data_pos:data_pos + 4])[0]
+                data_pos += 4
+                texture = frames_data[data_pos:data_pos + texture_len]
+                data_pos += texture_len
+                if duration < 1:
+                    duration = 100
+                frames.append((texture, duration))
+
+            ktx = build_ktx(astc_format, astc_pixfmt, dim_x, dim_y, frames)
+            ktx_path = self.resolved_path.with_suffix(".astc.ktx")
+            ktx_path.write_bytes(ktx)
+            try:
+                self.resolved_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            self.resolved_path = ktx_path
+
+        if globals.settings.tex_compress is TexCompress.ASTC and not self.resolved_path.name.endswith(".astc.ktx"):
             # Compress to ASTC
-            global astcenc
-            if astcenc is None:
-                # Windows: F95Checker/lib/astcenc/astcenc-(avx2|sse2|neon).exe
-                # Linux: F95Checker/lib/astcenc/astcenc-(avx2|sse2)
-                # MacOS: F95Checker/lib/astcenc/astcenc
-                _astcenc = globals.self_path / "lib/astcenc"
-                if globals.os is Os.MacOS:
-                    _astcenc /= "astcenc"
-                elif globals.os is Os.Windows and platform.machine().startswith("ARM"):
-                    _astcenc /= "astcenc-neon.exe"
-                else:
-                    from external import cpuinfo
-                    flags = cpuinfo.get_cpu_info().get("flags", ())
-                    if all(flag in flags for flag in ("avx2", "sse4_2", "popcnt", "f16c")):
-                        _astcenc /= "astcenc-avx2"
-                    else:
-                        _astcenc /= "astcenc-sse2"
-                    if globals.os is Os.Windows:
-                        _astcenc = _astcenc.with_suffix(".exe")
-                if not _astcenc.is_file():
-                    # Not bundled, look in PATH for astcenc-(avx2|sse2)[.exe] and astcenc[.exe]
-                    _astcenc = shutil.which(_astcenc.name) or shutil.which(_astcenc.with_stem("astcenc").name)
-                    if _astcenc:
-                        _astcenc = pathlib.Path(_astcenc)
-                    else:
-                        _astcenc = False
-                if _astcenc:
-                    _astcenc = _astcenc.absolute()
-                astcenc = _astcenc
-            if not astcenc:
+            if self.resolved_path.suffix == ".ktx":
+                set_invalid(
+                    "No source image available to compress to ASTC!\n"
+                    "Reset image in order to re-compress it"
+                )
+                return
+            if not _find_astcenc():
                 set_invalid(
                     f"ASTC-Encoder not found!\n" + (
                         "Was it deleted?"
@@ -230,7 +370,7 @@ class ImageHelper:
                     )
                 )
                 return
-            aastc = None
+            ktx = None
             astc_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".astc"))
             def astc_compress_one(src_path: pathlib.Path):
                 try:
@@ -242,7 +382,7 @@ class ImageHelper:
                     else:
                         kwargs = dict()
                     subprocess.check_output(
-                        [astcenc, "-cl", src_path, astc_path, aastc_block, aastc_quality, "-perceptual", "-silent"],
+                        [astcenc, "-cl", src_path, astc_path, astc_block, astc_quality, "-perceptual", "-silent"],
                         stderr=subprocess.STDOUT,
                         **kwargs,
                     )
@@ -261,111 +401,250 @@ class ImageHelper:
                 set_invalid(f"Pillow does not recognize this image format!")
                 return
 
-            global astcenc_counter
             frame_remaining = getattr(image, "n_frames", 1)
-            astcenc_counter += frame_remaining
+            compress_counter += frame_remaining
             try:
 
                 if image.format in ("PNG", "JPEG", "BMP") and not getattr(image, "is_animated", False):
                     # Image may be compressable by astcenc, try it
                     astc, err = astc_compress_one(self.resolved_path)
                     if astc:
-                        # Compressed with astcenc, just convert to aastc
-                        aastc = b"".join((
-                            aastc_magic,  # Magic
-                            astc[4:16],  # Header
-                            struct.pack("<Q", len(astc) - 16),  # Texture length
-                            struct.pack("<I", 0),  # Frame duration
-                            astc[16:],  # Texture data
-                        ))
+                        # Compressed with astcenc, just convert to ktx
+                        dim_x = struct.unpack("<I", astc[7:10] + b"\0")[0]
+                        dim_y = struct.unpack("<I", astc[10:13] + b"\0")[0]
+                        frames = [(astc[16:], 0)]
+                        ktx = build_ktx(astc_format, astc_pixfmt, dim_x, dim_y, frames)
                     else:
                         if b"unknown image type" not in err:
                             # Something else went wrong, bail
                             set_invalid(f"ASTC-Encoder failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
                             return
-                        # Image format not supported by astcenc, use intermediary PNGs
+                        # Image format not supported by astcenc, use intermediary BMPs
 
-                if not aastc:
-                    # Can't compress with astcenc, convert each frame to PNG then compress
-                    png_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".png"))
+                if not ktx:
+                    # Can't compress with astcenc, convert each frame to BMP then compress
+                    bmp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".bmp"))
                     try:
-                        aastc = aastc_magic  # Magic
+                        frames = []
                         for i, frame in enumerate(ImageSequence.Iterator(image)):
-                            frame.save(png_path, "PNG")
-                            astc, err = astc_compress_one(png_path)
+                            frame.save(bmp_path, "BMP")
+                            astc, err = astc_compress_one(bmp_path)
                             if not astc:
                                 set_invalid(f"ASTC-Encoder failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
                                 return
                             if i == 0:
-                                aastc += astc[4:16]  # Header
-                            aastc += b"".join((
-                                struct.pack("<Q", len(astc) - 16),  # Texture length
-                                struct.pack("<I", int(frame.info.get("duration", 0))),  # Frame duration
-                                astc[16:],  # Texture data
-                            ))
+                                dim_x = struct.unpack("<I", astc[7:10] + b"\0")[0]
+                                dim_y = struct.unpack("<I", astc[10:13] + b"\0")[0]
+                            frames.append((astc[16:], int(frame.info.get("duration", 0))))
                             frame_remaining -= 1
-                            astcenc_counter -= 1
+                            compress_counter -= 1
+                        ktx = build_ktx(astc_format, astc_pixfmt, dim_x, dim_y, frames)
                     except Exception:
                         set_invalid(f"Failed ASTC-Encoder intermediary step:\n{error.text()}")
                         return
                     finally:
-                        png_path.unlink(missing_ok=True)
+                        bmp_path.unlink(missing_ok=True)
             finally:
-                astcenc_counter -= frame_remaining
+                compress_counter -= frame_remaining
                 image.close()
 
-            if aastc:
-                aastc_path = self.resolved_path.with_suffix(".aastc")
-                aastc_path.write_bytes(aastc)
-                self.resolved_path = aastc_path
+            if ktx:
+                ktx_path = self.resolved_path.with_suffix(".astc.ktx")
+                ktx_path.write_bytes(ktx)
+                self.resolved_path = ktx_path
 
-        if self.resolved_path.suffix == ".aastc":
-            # ASTC file but with multiple payloads and durations, for animated textures
-            aastc = self.resolved_path.read_bytes()
-            head = aastc[0:16]
-            magic = head[0:4]
-            if magic != aastc_magic:
-                set_invalid(f"AASTC malformed:\nWrong magic, {magic} != {aastc_magic}")
+        if globals.settings.tex_compress is TexCompress.BC7 and not self.resolved_path.name.endswith(".bc7.ktx"):
+            # Compress to BC7
+            if self.resolved_path.suffix == ".ktx":
+                set_invalid(
+                    "No source image available to compress to BC7!\n"
+                    "Reset image in order to re-compress it"
+                )
+                return
+            if not _find_compressonator():
+                set_invalid(
+                    "BC7 compression isn't supported on MacOS!\n"
+                    "Compressornator doesn't exist yet for MacOS"
+                    if globals.os is Os.MacOS else
+                    f"Compressonator not found!\n" + (
+                        "Was it deleted?"
+                        if globals.frozen and (globals.release or globals.build_number) else
+                        "Download it and place it in PATH:\n"
+                        "https://github.com/GPUOpen-Tools/compressonator/releases/tag/V4.5.52"
+                    )
+                )
+                return
+            ktx = None
+            bc7_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".ktx"))
+            def bc7_compress_one(src_path: pathlib.Path):
+                try:
+                    if globals.os is Os.Windows:
+                        kwargs = dict(
+                            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
+                            startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW),
+                        )
+                    else:
+                        kwargs = dict()
+                    subprocess.check_output(
+                        [compressonator, "-fd", "BC7", "-EncodeWith", compressonator_encoder, src_path, bc7_path],
+                        stderr=subprocess.STDOUT,
+                        **kwargs,
+                    )
+                    bc7 = bc7_path.read_bytes()
+                    return bc7, b""
+                except subprocess.CalledProcessError as exc:
+                    err = exc.stdout or b"Unknown error"
+                    return b"", err
+                finally:
+                    bc7_path.unlink(missing_ok=True)
+
+            try:
+                # Identify image format
+                image = Image.open(self.resolved_path)
+            except UnidentifiedImageError:
+                set_invalid(f"Pillow does not recognize this image format!")
                 return
 
-            block_x = head[4]
-            block_y = head[5]
-            block_z = head[6]
-            block = f"{block_x}x{block_y}"
-            if block_z != 1:
-                set_invalid(f"AASTC malformed:\n3D texture, only 2D supported")
+            frame_remaining = getattr(image, "n_frames", 1)
+            compress_counter += frame_remaining
+            try:
+
+                if image.format in ("PNG", "JPEG", "BMP") and not getattr(image, "is_animated", False):
+                    # Image may be compressable by compressonator, try it
+                    bc7, err = bc7_compress_one(self.resolved_path)
+                    if bc7:
+                        # Compressed with compressonator, just keep the ktx
+                        ktx = bc7
+                    else:
+                        if b"Could not load source file" not in err:
+                            # Something else went wrong, bail
+                            set_invalid(f"Compressonator failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
+                            return
+                        # Image format not supported by compressonator, use intermediary BMPs
+
+                if not ktx:
+                    # Can't compress with compressonator, convert each frame to BMP then compress
+                    bmp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".bmp"))
+                    try:
+                        frames = []
+                        for i, frame in enumerate(ImageSequence.Iterator(image)):
+                            frame.save(bmp_path, "BMP")
+                            bc7, err = bc7_compress_one(bmp_path)
+                            if not bc7:
+                                set_invalid(f"Compressonator failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
+                                return
+                            fmt = ">I" if struct.unpack("<I", bc7[12:16]) == ktx_endianness else "<I"
+                            if i == 0:
+                                pix_w = struct.unpack(fmt, bc7[36:40])[0]
+                                pix_h = struct.unpack(fmt, bc7[40:44])[0]
+                            kv_len = struct.unpack(fmt, bc7[60:64])[0]
+                            bc7_pos = 64 + kv_len
+                            bc7_len = struct.unpack(fmt, bc7[bc7_pos:bc7_pos + 4])[0]
+                            bc7_pos += 4
+                            frames.append((bc7[bc7_pos:bc7_pos + bc7_len], int(frame.info.get("duration", 0))))
+                            frame_remaining -= 1
+                            compress_counter -= 1
+                        ktx = build_ktx(bc7_format, bc7_pixfmt, pix_w, pix_h, frames)
+                    except Exception:
+                        set_invalid(f"Failed Compressonator intermediary step:\n{error.text()}")
+                        return
+                    finally:
+                        bmp_path.unlink(missing_ok=True)
+            finally:
+                compress_counter -= frame_remaining
+                image.close()
+
+            if ktx:
+                ktx_path = self.resolved_path.with_suffix(".bc7.ktx")
+                ktx_path.write_bytes(ktx)
+                self.resolved_path = ktx_path
+
+        if self.resolved_path.suffix == ".ktx":
+            # Load compressed KTX
+            if not self.resolved_path.name.endswith((".astc.ktx", ".bc7.ktx")):
+                set_invalid(
+                    "Unknown KTX texture format!\n"
+                    "Reset image in order to re-compress it"
+                )
                 return
-            if block != aastc_block:
-                set_invalid(f"AASTC malformed:\nWrong block size, {block} != {aastc_block}")
+            ktx = self.resolved_path.read_bytes()
+            magic = ktx[0:12]
+            if magic != ktx_magic:
+                set_invalid(f"KTX malformed:\nWrong magic, {magic} != {ktx_magic}")
+                return
+            fmt = ">I" if struct.unpack("<I", ktx[12:16]) == ktx_endianness else "<I"
+
+            gl_type = struct.unpack(fmt, ktx[16:20])[0]
+            gl_type_size = struct.unpack(fmt, ktx[20:24])[0]
+            gl_format = struct.unpack(fmt, ktx[24:28])[0]
+            gl_internal_format = struct.unpack(fmt, ktx[28:32])[0]
+            gl_internal_pixfmt = struct.unpack(fmt, ktx[32:36])[0]
+            if gl_type != 0 or gl_type_size != 1 or gl_format != 0:
+                set_invalid(f"KTX malformed:\nUncompressed texture, only ASTC (6x6) and BC7 supported")
+                return
+            if gl_internal_format not in (astc_format, bc7_format):
+                set_invalid(f"KTX malformed:\nUnknown format, only ASTC (6x6) and BC7 supported")
+                return
+            if gl_internal_format == astc_format:
+                pixfmt = astc_pixfmt
+            elif gl_internal_format == bc7_format:
+                pixfmt = bc7_pixfmt
+            if gl_internal_pixfmt != pixfmt:
+                set_invalid(f"KTX malformed:\nWrong pixel format for compression type")
                 return
 
-            dim_x = struct.unpack("<I", head[7:10] + b"\0")[0]
-            dim_y = struct.unpack("<I", head[10:13] + b"\0")[0]
-            dim_z = struct.unpack("<I", head[13:16] + b"\0")[0]
-            if dim_z != 1:
-                set_invalid(f"AASTC malformed:\n3D texture, only 2D supported")
+            pix_w = struct.unpack(fmt, ktx[36:40])[0]
+            pix_h = struct.unpack(fmt, ktx[40:44])[0]
+            pix_d = struct.unpack(fmt, ktx[44:48])[0]
+            if pix_d != 0:
+                set_invalid(f"KTX malformed:\n3D texture, only 2D supported")
                 return
-            self.width = dim_x
-            self.height = dim_y
+            self.width = pix_w
+            self.height = pix_h
 
-            frames_data = aastc[16:]
+            array_len = struct.unpack(fmt, ktx[48:52])[0] or 1
+
+            faces_count = struct.unpack(fmt, ktx[52:56])[0]
+            mipmap_count = struct.unpack(fmt, ktx[56:60])[0]
+            if faces_count != 1:
+                set_invalid(f"KTX malformed:\nCubemap texture, only 2D supported")
+                return
+            if mipmap_count != 1:
+                set_invalid(f"KTX malformed:\nMipmapped texture, only non-mipmapped supported")
+                return
+
+            durations = []
+            kv_len = struct.unpack(fmt, ktx[60:64])[0]
+            if kv_len:
+                kv = ktx[64:64 + kv_len]
+                while kv:
+                    kv_pair_len = struct.unpack(fmt, kv[0:4])[0]
+                    if kv[4:4 + kv_pair_len].startswith(ktx_durations):
+                        durationsms = kv[4 + len(ktx_durations):4 + kv_pair_len]
+                        while len(durationsms) >= 4:
+                            durations.append(struct.unpack(fmt, durationsms[0:4])[0])
+                            durationsms = durationsms[4:]
+                        break
+                    kv = kv[4 + kv_pair_len:]
+
+            frames_data = ktx[64 + kv_len:]
             data_pos = 0
-            while data_pos < len(frames_data):
-                texture_len = struct.unpack("<Q", frames_data[data_pos:data_pos + 8])[0]
-                data_pos += 8
-                duration = struct.unpack("<I", frames_data[data_pos:data_pos + 4])[0]
+            while len(self.textures) < array_len and data_pos < len(frames_data):
+                texture_len = struct.unpack(fmt, frames_data[data_pos:data_pos + 4])[0]
                 data_pos += 4
                 texture = frames_data[data_pos:data_pos + texture_len]
                 data_pos += texture_len
-                self.textures.append((texture, aastc_format))
-                if duration < 1:
+                self.textures.append((texture, gl_internal_format))
+                if len(durations) < len(self.textures):
                     duration = 100
+                else:
+                    duration = durations[len(self.textures) - 1]
                 self.durations.append(duration / 1000)
                 if not globals.settings.play_gifs:
                     break
             self.animated = len(self.textures) > 1
 
-            if self.glob and globals.settings.astc_compression and globals.settings.astc_replace:
+            if self.glob and globals.settings.tex_compress is not TexCompress.Disabled and globals.settings.tex_compress_replace:
                 paths = list(self.path.glob(self.glob))
                 if len(paths) > 1:
                     try:
@@ -420,10 +699,14 @@ class ImageHelper:
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
-            if texture_format == aastc_format:
-                gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, texture_format, self.width, self.height, 0, texture)
-            elif texture_format == gl.GL_RGBA:
-                gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, texture_format, self.width, self.height, 0, texture_format, gl.GL_UNSIGNED_BYTE, texture)
+            try:
+                if texture_format == gl.GL_RGBA:
+                    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, texture_format, self.width, self.height, 0, texture_format, gl.GL_UNSIGNED_BYTE, texture)
+                else:
+                    gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, texture_format, self.width, self.height, 0, texture)
+            except gl.GLError:
+                self._error = "Error applying texture:\n" + error.text()
+                break
         self.textures.clear()
         self.applied = True
         gc.collect()

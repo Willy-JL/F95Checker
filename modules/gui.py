@@ -44,6 +44,7 @@ from common.structs import (
     Tab,
     Tag,
     TagHighlight,
+    TexCompress,
     TimelineEventType,
     Timestamp,
     Type,
@@ -961,7 +962,7 @@ class MainGUI():
                             text = f"Validating {count} cached item{'s' if count > 1 else ''}..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
-                        elif (count := imagehelper.astcenc_counter) > 0:
+                        elif (count := imagehelper.compress_counter) > 0:
                             text = "Compressing images..." if count == 1 else f"Compressing {count} frames..."
                         elif api.f95_ratelimit._waiters or api.f95_ratelimit_sleeping.count:
                             text = f"Waiting for F95zone ratelimit..."
@@ -4304,40 +4305,58 @@ class MainGUI():
                 imgui.pop_disabled()
 
             draw_settings_label(
-                "ASTC compression:",
-                "Compress images using ASTC 6x6/80. Results in dramatically faster image loading and smaller filesize on disk, "
-                "with no perceptible loss in visual quality. Depending on GPU model it might also decrease VRAM usage, or in "
-                "other cases it might not work at all (need more research and feedback on this).\n"
+                "Tex compress:",
+                "Compress textures using ASTC (6x6/80) or BC7. If supported by GPU, results in dramatically faster image loading "
+                "with no perceptible loss in visual quality. Depending on GPU model and drivers it might also decrease VRAM "
+                "usage. Disk usage should be roughly the same (some images compress better than others, it averages out).\n\n"
+                "ASTC:\n"
+                "+ when supported takes 9x less VRAM\n"
+                "+ takes less space than BC7\n"
+                "+ compresses slightly faster than BC7\n"
+                "- very limited GPU support, may not work at all\n"
+                "- when unsupported may use same VRAM as uncompressed (decompressed on-the-fly)\n"
+                "- may heavily stutter when loading (due to decompressing on-the-fly)\n"
+                "BC7:\n"
+                "+ when supported takes 4x less VRAM\n"
+                "+ supported by most GPUs\n"
+                "+ more likely to decrease VRAM usage than ASTC\n"
+                "- takes more space than ASTC\n"
+                "- compresses slightly slower than ASTC\n"
+                "- not supported on MacOS\n"
+                "Visual quality tends to be equivalent.\n\n"
                 "Images are compressed when first shown, and it takes some time, especially so for GIFs. After compressing, the "
                 "result is saved to file, and next loads will be instantaneous.\n"
                 "If you're looking to compare VRAM usage, make sure to restart the tool (fully quit and reopen) between "
                 "measurements. This is because the GPU does not release VRAM until something else needs it, it's just marked "
                 "as unused, which would give the same VRAM usage number between compressed and not.\n"
-                "If only an ASTC image is found it will be used even if this open is disabled (for example, if you enabled "
-                "ASTC replace, the images that have been replaced will continue use the ASTC file even if this setting is off)."
+                "If only a compressed image is found it will be used even if this option is disabled (for example, if you enabled "
+                "Compress replace, the replaced images will continue to use the compressed file even if this setting is off)."
             )
-            if draw_settings_checkbox("astc_compression"):
+            changed, value = imgui.combo("###tex_compress", set.tex_compress._index_, TexCompress._member_names_)
+            if changed:
+                set.tex_compress = TexCompress[TexCompress._member_names_[value]]
+                async_thread.run(db.update_settings("tex_compress"))
                 for image in imagehelper.ImageHelper.instances:
                     image.loaded = False
 
-            if not set.astc_compression:
+            if set.tex_compress is TexCompress.Disabled:
                 imgui.push_disabled()
             draw_settings_label(
-                "ASTC replace:",
-                "Remove original images after ASTC compression. Enabling this is retro-active: it will delete source images for "
-                "ones already compressed as ASTC. Not enabling this option means roughly double disk space usage due to "
-                "duplicate images files."
+                "Compress replace:",
+                "Remove original images after texture compression. Enabling this is retro-active: it will delete source images for "
+                "ones already compressed. Not enabling this option means roughly double disk space usage due to duplicate "
+                "images files."
             )
-            if draw_settings_checkbox("astc_replace"):
+            if draw_settings_checkbox("tex_compress_replace"):
                 for image in imagehelper.ImageHelper.instances:
                     image.loaded = False
-            if not set.astc_compression:
+            if set.tex_compress is TexCompress.Disabled:
                 imgui.pop_disabled()
 
             draw_settings_label(
                 "Unload off-screen:",
-                "Unloads images from VRAM when they are not visible. Will be loaded again when next visible. Only recommended "
-                "to use this together with ASTC compression, otherwise loading images is very slow."
+                "Unloads images from VRAM when they are not visible. Will be loaded again when next visible. Works best "
+                "together with Tex compress, so image load times are less noticeable."
             )
             draw_settings_checkbox("unload_offscreen_images")
 
