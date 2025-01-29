@@ -616,14 +616,22 @@ class SearchLogic:
         self.invert = invert
         self.type = type
 
-    # Get similar node if exists, otherwise add node to self
-    def get(self, new_node: "SearchLogic", index: int) -> "SearchLogic":
-        for node in self.nodes[:index]:
-            if node.__eq__(new_node):
-                return node
-        self.nodes.insert(index, new_node)
-        return new_node
-    
+    def __repr__(self):
+        return f"{{token={self.token}, logic={self.logic}, type={self.type}, invert={self.invert}, nodes={self.nodes}}}"
+
+    def __str__(self):
+        output = ""
+        if self.invert: output += "not "
+        if self.token: output += self.token 
+        if self.type in ["<", "<=", "=", ">=", ">"]: output += self.type
+        if self.nodes:
+            node_delim = " or " if self.logic == "|" else " and "
+            if len(self.nodes) > 1: output += "("
+            for node in self.nodes: output += str(node) + node_delim
+            output = output[:-len(node_delim)]
+            if len(self.nodes) > 1: output += ")"
+        return output
+
     def __eq__(self, node: "SearchLogic"):
         return (node.logic == self.logic) & (node.type == self.type) & (node.token == self.token) & (node.invert == self.invert)
 

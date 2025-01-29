@@ -14,6 +14,8 @@ import glfw
 import imgui
 
 from common.structs import (
+    Filter,
+    FilterMode,
     Game,
     Label,
     MsgBox,
@@ -367,7 +369,25 @@ def flatten_query(head: SearchLogic) -> SearchLogic:
             head.nodes.insert(i, flatten_query(node))
             i += 1
     return head
-    
+
+
+def from_basic_filters(filters: list[Filter]) -> SearchLogic:
+    head: SearchLogic = SearchLogic()
+    for flt in filters:
+        node: SearchLogic = SearchLogic(token=flt.mode.name.split(" ")[0].lower(), invert=flt.invert, type="=")
+        node.nodes.append(SearchLogic(token=str(flt.match).lower(), logic=None, type="?"))
+        head.nodes.append(node)
+        match flt.mode:
+            case FilterMode.Archived | FilterMode.Custom | FilterMode.Updated:
+                node.nodes[0].token = str(bool(flt.match)).lower()
+            case FilterMode.Finished | FilterMode.Installed:
+                node.nodes[0].token = "any" if flt.match else "true"
+            case FilterMode.Score:
+                node.type = ">="
+            case FilterMode.Exe_State | FilterMode.Label | FilterMode.Status | FilterMode.Tag | FilterMode.Type:
+                node.nodes[0].token = flt.match.name.lower()
+    return flatten_query(head)
+
 
 def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
     def attr_for(token: str, game: Game = None):

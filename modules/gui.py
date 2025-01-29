@@ -3964,6 +3964,14 @@ class MainGUI():
                         flt.match = Type[Type._member_names_[0]]
                 self.filters.append(flt)
 
+            if self.filters:
+                text_width = imgui.calc_text_size("Convert to Complex").x
+                buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
+                if imgui.button("Convert to Complex", width=frame_height + text_width):
+                    self.add_box_text = str(utils.from_basic_filters(self.filters)) + " " + self.add_box_text
+                    self.filters.clear()
+
             text_width = imgui.calc_text_size("Invrt ").x
             buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
             for flt in self.filters:
