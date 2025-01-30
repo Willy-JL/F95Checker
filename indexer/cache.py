@@ -83,8 +83,7 @@ async def last_change(id: int) -> int:
     name = NAME_FORMAT.format(id=id)
     logger.debug(f"Last change {name}")
 
-    async with lock(id):
-        await _maybe_update_thread_cache(id, name)
+    await _maybe_update_thread_cache(id, name)
 
     last_change = await redis.hget(name, LAST_CHANGE) or 0
     return int(last_change)
@@ -95,8 +94,7 @@ async def get_thread(id: int) -> dict[str, str]:
     name = NAME_FORMAT.format(id=id)
     logger.debug(f"Get {name}")
 
-    async with lock(id):
-        await _maybe_update_thread_cache(id, name)
+    await _maybe_update_thread_cache(id, name)
 
     thread = await redis.hgetall(name)
 
@@ -111,18 +109,28 @@ async def get_thread(id: int) -> dict[str, str]:
     return thread
 
 
-async def _maybe_update_thread_cache(id: int, name: str) -> None:
+async def _is_thread_cache_outdated(id: int, name: str) -> bool:
     last_cached, cached_with, expire_time = await redis.hmget(
         name, (LAST_CACHED, CACHED_WITH, EXPIRE_TIME)
     )
     if last_cached and not expire_time:
         expire_time = int(last_cached) + CACHE_TTL
-    if (
+    return (
         not last_cached  # Never cached
         or time.time() >= int(expire_time)  # Cache expired
         # or cached_with != version  # Cached on different version
-    ):
-        await _update_thread_cache(id, name)
+    )
+
+
+async def _maybe_update_thread_cache(id: int, name: str) -> None:
+    # Check without lock first to avoid bottlenecks
+    if not await _is_thread_cache_outdated(id, name):
+        return
+
+    # If it might be outdated, check with lock to avoid multiple updates
+    async with lock(id):
+        if await _is_thread_cache_outdated(id, name):
+            await _update_thread_cache(id, name)
 
 
 async def _update_thread_cache(id: int, name: str) -> None:
