@@ -2290,10 +2290,29 @@ class MainGUI():
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((
-                    icons.information_outline if game.description else
+                    icons.information_outline if game.description or game.tags else
                     icons.information_off_outline
-                ) + " Description###description")[0]:
+                ) + " More Info###more_info")[0]:
                     imgui.spacing()
+                    imgui.align_text_to_frame_padding()
+                    imgui.text_disabled("Tags:")
+                    imgui.same_line()
+                    if game.tags:
+                        self.draw_game_tags_widget(game)
+                    else:
+                        imgui.text_disabled("This game has no tags!")
+                    if utags := game.unknown_tags:
+                        imgui.spacing()
+                        if imgui.tree_node(f"Unknown tags ({len(utags)})"):
+                            if imgui.button(f"{icons.tag_multiple_outline} Copy"):
+                                callbacks.clipboard_copy(", ".join(utags))
+                            for tag in utags:
+                                imgui.text(f"- {tag}")
+                            imgui.tree_pop()
+                    imgui.spacing()
+                    imgui.spacing()
+                    imgui.spacing()
+                    imgui.text_disabled("Description:")
                     if game.description:
                         imgui.text(game.description)
                     else:
@@ -2397,26 +2416,6 @@ class MainGUI():
                 ) + " Notes###notes")[0]:
                     imgui.spacing()
                     self.draw_game_notes_widget(game)
-                    imgui.end_tab_item()
-
-                if imgui.begin_tab_item((
-                    icons.tag_multiple_outline if len(game.tags) > 1 else
-                    icons.tag_outline if len(game.tags) == 1 else
-                    icons.tag_off_outline
-                ) + " Tags###tags")[0]:
-                    imgui.spacing()
-                    if game.tags:
-                        self.draw_game_tags_widget(game)
-                    else:
-                        imgui.text_disabled("This game has no tags!")
-                    if utags := game.unknown_tags:
-                        imgui.spacing()
-                        if imgui.tree_node(f"Unknown tags ({len(utags)})"):
-                            if imgui.button(f"{icons.tag_multiple_outline} Copy"):
-                                callbacks.clipboard_copy(", ".join(utags))
-                            for tag in utags:
-                                imgui.text(f"- {tag}")
-                            imgui.tree_pop()
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item(icons.timeline_clock_outline + " Timeline###timeline")[0]:
