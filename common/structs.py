@@ -968,7 +968,7 @@ class Game:
 
     def refresh_image(self):
         self.image.glob = f"{self.id}.*"
-        self.image.loaded = False
+        self.image.reload()
 
     async def set_image_async(self, data: bytes):
         from modules import globals, utils

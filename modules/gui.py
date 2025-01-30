@@ -894,9 +894,9 @@ class MainGUI():
                         or (imagehelper.redraw and globals.settings.play_gifs and (self.focused or globals.settings.play_gifs_unfocused))
                         or imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
+                        or imagehelper.apply_queue or imagehelper.unload_queue
                         or prev_scaling != globals.settings.interface_scaling
                         or prev_minimized != self.minimized
-                        or imagehelper.apply_texture_queue
                         or api.session.connector._acquired
                         or prev_focused != self.focused
                         or prev_hidden != self.hidden
@@ -4295,7 +4295,7 @@ class MainGUI():
             draw_settings_label("Play GIFs:")
             if draw_settings_checkbox("play_gifs"):
                 for image in imagehelper.ImageHelper.instances:
-                    image.loaded = False
+                    image.reload()
 
             if not set.play_gifs:
                 imgui.push_disabled()
@@ -4337,7 +4337,7 @@ class MainGUI():
                 set.tex_compress = TexCompress[TexCompress._member_names_[value]]
                 async_thread.run(db.update_settings("tex_compress"))
                 for image in imagehelper.ImageHelper.instances:
-                    image.loaded = False
+                    image.reload()
 
             if set.tex_compress is TexCompress.Disabled:
                 imgui.push_disabled()
@@ -4349,7 +4349,7 @@ class MainGUI():
             )
             if draw_settings_checkbox("tex_compress_replace"):
                 for image in imagehelper.ImageHelper.instances:
-                    image.loaded = False
+                    image.reload()
             if set.tex_compress is TexCompress.Disabled:
                 imgui.pop_disabled()
 

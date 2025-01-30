@@ -33,7 +33,8 @@ from modules import globals
 
 redraw = False
 compress_counter = 0
-apply_texture_queue = []
+apply_queue = []
+unload_queue = []
 _dummy_texture_id = None
 
 ktx_durations = b"durationsms\0"
@@ -118,12 +119,15 @@ def post_draw():
         hidden = globals.gui.minimized or globals.gui.hidden
         for image in ImageHelper.instances:
             if hidden or not image.shown:
-                image.unload()
+                unload_queue.append(image)
             else:
                 image.shown = False
+    for image in reversed(unload_queue):
+        image.unload()
+        unload_queue.remove(image)
     # Max 1 apply per frame, mitigates stutters
-    if apply_texture_queue:
-        apply_texture_queue.pop(0).apply()
+    if apply_queue:
+        apply_queue.pop(0).apply()
 
 
 def dummy_texture_id():
@@ -247,7 +251,7 @@ class ImageHelper:
 
         self._missing = not self.resolved_path.is_file()
 
-    def reload(self):
+    def load(self):
         self.loaded = False
         self.loading = True
         self.applied = False
@@ -668,7 +672,7 @@ class ImageHelper:
 
             self.loaded = True
             self.loading = False
-            apply_texture_queue.append(self)
+            apply_queue.append(self)
             return
 
         # Fallback to RGBA loading
@@ -697,7 +701,7 @@ class ImageHelper:
 
         self.loaded = True
         self.loading = False
-        apply_texture_queue.append(self)
+        apply_queue.append(self)
 
     def apply(self):
         if self.texture_ids:
@@ -729,10 +733,15 @@ class ImageHelper:
                 gl.glDeleteTextures([self.texture_ids])
                 self.texture_ids.clear()
             if self.textures:
-                apply_texture_queue.remove(self)
+                apply_queue.remove(self)
                 self.textures.clear()
                 gc.collect()
             self.loaded = False
+
+    def reload(self):
+        self._missing = None
+        self._error = None
+        unload_queue.append(self)
 
     @property
     def texture_id(self):
@@ -742,12 +751,12 @@ class ImageHelper:
             if not self.loading:
                 self.loading = True
                 self.applied = False
-                # This next self.reload() actually loads the image and does all the conversion. It takes time and resources!
-                # self.reload()  # changed
-                # You can (and maybe should) run this in a thread! threading.Thread(target=self.reload, daemon=True).start()
+                # This next self.load() actually loads the image and does all the conversion. It takes time and resources!
+                # self.load()  # changed
+                # You can (and maybe should) run this in a thread! threading.Thread(target=self.load, daemon=True).start()
                 # Or maybe setup an image thread and queue images to load one by one?
                 # You could do this with https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44 like so:
-                sync_thread.queue(self.reload)  # changed
+                sync_thread.queue(self.load)  # changed
             return dummy_texture_id()
 
         if self._missing or self._error:
