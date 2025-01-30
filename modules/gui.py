@@ -2240,29 +2240,37 @@ class MainGUI():
 
                 imgui.table_next_row()
 
-                imgui.table_next_column()
+                # Draw labels on right first, so executables on left can then overflow below to right
+                imgui.table_set_column_index(1)
+                imgui.begin_group()
                 imgui.align_text_to_frame_padding()
-                if len(game.executables) <= 1:
-                    imgui.text_disabled("Executable:")
-                    imgui.same_line()
-                    if game.executables:
-                        imgui.text(game.executables[0])
-                    else:
-                        imgui.text("Not set")
+                imgui.text_disabled("Labels:")
+                imgui.same_line()
+                if game.labels:
+                    self.draw_game_labels_widget(game)
                 else:
-                    imgui.text_disabled("Executables:")
+                    imgui.button("Right click to add")
+                imgui.end_group()
+                labels_end_y = imgui.get_cursor_pos_y()
+                if imgui.begin_popup_context_item(f"###{game.id}_context_labels"):
+                    self.draw_game_labels_select_widget(game)
+                    imgui.end_popup()
 
-                imgui.table_next_column()
-                self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add Exe")
+                imgui.table_set_column_index(0)
+                imgui.align_text_to_frame_padding()
+                imgui.text_disabled("Executables:")
+                imgui.same_line()
+                self.draw_game_add_exe_button(game, f"{icons.folder_edit_outline} Add")
                 imgui.same_line()
                 self.draw_game_open_folder_button(game, f"{icons.folder_open_outline} Open Folder")
                 imgui.same_line()
-                self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear Exes")
-
-                imgui.end_table()
-
-            if len(game.executables) > 1:
+                self.draw_game_clear_exes_button(game, f"{icons.folder_remove_outline} Clear")
+                ended_table = False
                 for executable in game.executables:
+                    if not ended_table and (pos_y := imgui.get_cursor_pos_y()) >= labels_end_y:
+                        imgui.end_table()
+                        ended_table = True
+                        imgui.set_cursor_pos_y(pos_y)
                     self.draw_game_play_button(game, icons.play, executable=executable)
                     imgui.same_line()
                     self.draw_game_open_folder_button(game, icons.folder_open_outline, executable=executable)
@@ -2274,6 +2282,12 @@ class MainGUI():
                     ig_space = "　"
                     imgui.text(executable.replace("/", f"/{ig_space}").replace("\\", f"\\{ig_space}"))
 
+                if not ended_table:
+                    pos_y = max(imgui.get_cursor_pos_y(), labels_end_y)
+                    imgui.end_table()
+                    imgui.set_cursor_pos_y(pos_y)
+
+            imgui.spacing()
             imgui.spacing()
 
             if imgui.begin_tab_bar("Details"):
@@ -2372,23 +2386,6 @@ class MainGUI():
                                 can_add_spacing = False
                     else:
                         imgui.text_disabled("Either this game doesn't have regular downloads, or the thread is not formatted properly!")
-                    imgui.end_tab_item()
-
-                if imgui.begin_tab_item((
-                    icons.label_multiple_outline if len(game.labels) > 1 else
-                    icons.label_outline if len(game.labels) == 1 else
-                    icons.label_off_outline
-                ) + " Labels###labels")[0]:
-                    imgui.spacing()
-                    imgui.button("Right click to edit")
-                    if imgui.begin_popup_context_item(f"###{game.id}_context_labels"):
-                        self.draw_game_labels_select_widget(game)
-                        imgui.end_popup()
-                    imgui.same_line(spacing=2 * imgui.style.item_spacing.x)
-                    if game.labels:
-                        self.draw_game_labels_widget(game)
-                    else:
-                        imgui.text_disabled("This game has no labels!")
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((
