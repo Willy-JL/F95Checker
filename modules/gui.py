@@ -670,16 +670,19 @@ class MainGUI():
         meslo_path  = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
         noto_path   = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
         mdi_path    = str(icons.font_path)
+        mixin_path  = str(next(globals.self_path.glob("resources/fonts/custom-mixin.ttf")))
         merge = dict(merge_mode=True)
         oversample = dict(oversample_h=2, oversample_v=2)
         karla_config = imgui.core.FontConfig(         glyph_offset_y=-0.5, **oversample)
         meslo_config = imgui.core.FontConfig(                              **oversample)
         noto_config  = imgui.core.FontConfig(**merge, glyph_offset_y=-0.5, **oversample)
         mdi_config   = imgui.core.FontConfig(**merge, glyph_offset_y=+1.0)
+        mixin_config = imgui.core.FontConfig(**merge)
         karla_range = imgui.core.GlyphRanges([0x1,            0x25ca,         0])
         meslo_range = imgui.core.GlyphRanges([0x1,            0x2e2e,         0])
         noto_range  = imgui.core.GlyphRanges([0x1,            0xfffd,         0])
         mdi_range   = imgui.core.GlyphRanges([icons.min_char, icons.max_char, 0])
+        mixin_range = imgui.core.GlyphRanges([0x3000,         0x3000,         0])
         msgbox_range_values = []
         for icon in [icons.information, icons.alert_rhombus, icons.alert_octagon]:
             msgbox_range_values += [ord(icon), ord(icon)]
@@ -700,6 +703,7 @@ class MainGUI():
         fonts.default = add_font(karlar_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_18, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                mdi_path,    size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
+        add_font(                mixin_path,  size_18, font_config=mixin_config, glyph_ranges=mixin_range)
         # Bold font + more glyphs + icons
         fonts.bold    = add_font(karlab_path, size_22, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_22, font_config=noto_config,  glyph_ranges=noto_range)
@@ -1957,7 +1961,7 @@ class MainGUI():
                         imgui.spacing()
                         imgui.text_disabled(f"{attr.title()}: ")
                         imgui.same_line()
-                        # Workaround to get fast line wrapping in ImGui but draw arrow in other color:
+                        # Hack: get fast line wrapping in ImGui but draw arrow in other color:
                         # Save position, draw full text with arrow in dimmed color, restore position,
                         # and draw full text in normal color like an overlay, with an Em Space instead
                         # of the arrow. This seems to be the only character that is whitespace but
@@ -2276,7 +2280,9 @@ class MainGUI():
                     if imgui.button(icons.folder_remove_outline):
                         game.remove_executable(executable)
                     imgui.same_line()
-                    imgui.text(executable)
+                    # Hack: make ImGui wrap arbitrarily by using an idegraphic space (U+3000) with 0-width font
+                    ig_space = "　"
+                    imgui.text(executable.replace("/", f"/{ig_space}").replace("\\", f"\\{ig_space}"))
 
             imgui.spacing()
 
