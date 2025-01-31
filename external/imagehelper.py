@@ -8,6 +8,7 @@ import shutil
 import struct
 import subprocess
 import tempfile
+import typing
 
 from PIL import (
     Image,
@@ -315,7 +316,117 @@ class ImageHelper:
 
             return ktx
 
-        global compress_counter
+        def ktx_compress(
+            cli: typing.Callable[[str, str], list[str]],
+            compressor_name: str,
+            supported_formats: tuple[str],
+            unsupported_msg: bytes,
+            intermediary_format: str,
+            texture_format: int,
+            texture_pixfmt: int,
+            format_name: str,
+        ):
+            if self.resolved_path.suffix == ".zst":
+                set_invalid(
+                    f"No source image available to compress to {format_name}!\n"
+                    "Reset image in order to re-compress it"
+                )
+                return False
+
+            global compress_counter
+            ktx = None
+
+            ktx_temp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".ktx"))
+            def _ktx_compress_one(src_path: pathlib.Path):
+                try:
+                    if globals.os is Os.Windows:
+                        kwargs = dict(
+                            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
+                            startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW),
+                        )
+                    else:
+                        kwargs = dict()
+                    subprocess.check_output(
+                        cli(src_path, ktx_temp_path),
+                        stderr=subprocess.STDOUT,
+                        **kwargs,
+                    )
+                    ktx_temp = ktx_temp_path.read_bytes()
+                    return ktx_temp, b""
+                except subprocess.CalledProcessError as exc:
+                    err = f"Process returned code {exc.returncode}\n".encode()
+                    err += exc.stdout or b"No console output"
+                    return b"", err
+                finally:
+                    ktx_temp_path.unlink(missing_ok=True)
+
+            try:
+                # Identify image format
+                image = Image.open(self.resolved_path)
+            except UnidentifiedImageError:
+                set_invalid(f"Pillow does not recognize this image format!")
+                return False
+
+            frames_remaining = getattr(image, "n_frames", 1)
+            compress_counter += frames_remaining
+            try:
+
+                if image.format in supported_formats and not getattr(image, "is_animated", False):
+                    # Image may be compressable as is, try it
+                    ktx_temp, err = _ktx_compress_one(self.resolved_path)
+                    if ktx_temp:
+                        # Compressed as is, just keep the ktx
+                        ktx = ktx_temp
+                    else:
+                        if unsupported_msg not in err:
+                            # Something else went wrong, bail
+                            set_invalid(f"{compressor_name} failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
+                            return False
+                        # Image format not supported as is, use intermediary files
+
+                if not ktx:
+                    # Can't compress as is, convert each frame to intermediary then compress
+                    intermediary_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=intermediary_format))
+                    try:
+                        frames = []
+                        for i, frame in enumerate(ImageSequence.Iterator(image)):
+                            frame.save(intermediary_path)
+                            ktx_temp, err = _ktx_compress_one(intermediary_path)
+                            if not ktx_temp:
+                                set_invalid(f"{compressor_name} failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
+                                return False
+                            magic = ktx_temp[0:12]
+                            if magic != ktx_magic:
+                                set_invalid(f"{compressor_name} returned an invalid KTX file:\nWrong KTX magic, {magic} != {ktx_magic}")
+                                return False
+                            fmt = "<I" if struct.unpack("<I", ktx_temp[12:16])[0] == ktx_endianness else ">I"
+                            if i == 0:
+                                pix_w = struct.unpack(fmt, ktx_temp[36:40])[0]
+                                pix_h = struct.unpack(fmt, ktx_temp[40:44])[0]
+                            kv_len = struct.unpack(fmt, ktx_temp[60:64])[0]
+                            tex_pos = 64 + kv_len
+                            tex_len = struct.unpack(fmt, ktx_temp[tex_pos:tex_pos + 4])[0]
+                            tex_pos += 4
+                            frames.append((ktx_temp[tex_pos:tex_pos + tex_len], int(frame.info.get("duration", 0))))
+                            frames_remaining -= 1
+                            compress_counter -= 1
+                        ktx = build_ktx(texture_format, texture_pixfmt, pix_w, pix_h, frames)
+                    except Exception:
+                        set_invalid(f"Failed {compressor_name} intermediary step:\n{error.text()}")
+                        return False
+                    finally:
+                        intermediary_path.unlink(missing_ok=True)
+            finally:
+                compress_counter -= frames_remaining
+                image.close()
+
+            if not ktx:
+                return False
+            ktx = zstd.compress(ktx, zstd_level)
+            ktx_path = self.resolved_path.with_suffix(f".{format_name.lower()}.ktx.zst")
+            ktx_path.write_bytes(ktx)
+            self.resolved_path = ktx_path
+            return True
 
         if self.resolved_path.suffix == ".aastc":
             # ASTC file but with multiple payloads and durations, for animated textures
@@ -370,12 +481,6 @@ class ImageHelper:
 
         if globals.settings.tex_compress is TexCompress.ASTC and not self.resolved_path.name.endswith(".astc.ktx.zst"):
             # Compress to ASTC
-            if self.resolved_path.suffix == ".zst":
-                set_invalid(
-                    "No source image available to compress to ASTC!\n"
-                    "Reset image in order to re-compress it"
-                )
-                return
             if not _find_astcenc():
                 set_invalid(
                     f"ASTC-Encoder not found!\n" + (
@@ -386,99 +491,20 @@ class ImageHelper:
                     )
                 )
                 return
-            ktx = None
-            astc_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".astc"))
-            def astc_compress_one(src_path: pathlib.Path):
-                try:
-                    if globals.os is Os.Windows:
-                        kwargs = dict(
-                            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
-                            startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW),
-                        )
-                    else:
-                        kwargs = dict()
-                    subprocess.check_output(
-                        [astcenc, "-cl", src_path, astc_path, astc_block, astc_quality, "-perceptual", "-silent"],
-                        stderr=subprocess.STDOUT,
-                        **kwargs,
-                    )
-                    astc = astc_path.read_bytes()
-                    return astc, b""
-                except subprocess.CalledProcessError as exc:
-                    err = f"Process returned code {exc.returncode}\n".encode()
-                    err += exc.stdout or b"No console output"
-                    return b"", err
-                finally:
-                    astc_path.unlink(missing_ok=True)
-
-            try:
-                # Identify image format
-                image = Image.open(self.resolved_path)
-            except UnidentifiedImageError:
-                set_invalid(f"Pillow does not recognize this image format!")
+            if not ktx_compress(
+                cli=lambda src, dst: [astcenc, "-cl", src, dst, astc_block, astc_quality, "-perceptual", "-silent"],
+                compressor_name="ASTC-Encoder",
+                supported_formats=("PNG", "JPEG", "BMP"),
+                unsupported_msg=b"unknown image type",
+                intermediary_format=".bmp",
+                texture_format=astc_format,
+                texture_pixfmt=astc_pixfmt,
+                format_name="ASTC",
+            ):
                 return
-
-            frame_remaining = getattr(image, "n_frames", 1)
-            compress_counter += frame_remaining
-            try:
-
-                if image.format in ("PNG", "JPEG", "BMP") and not getattr(image, "is_animated", False):
-                    # Image may be compressable by astcenc, try it
-                    astc, err = astc_compress_one(self.resolved_path)
-                    if astc:
-                        # Compressed with astcenc, just convert to ktx
-                        dim_x = struct.unpack("<I", astc[7:10] + b"\0")[0]
-                        dim_y = struct.unpack("<I", astc[10:13] + b"\0")[0]
-                        frames = [(astc[16:], 0)]
-                        ktx = build_ktx(astc_format, astc_pixfmt, dim_x, dim_y, frames)
-                    else:
-                        if b"unknown image type" not in err:
-                            # Something else went wrong, bail
-                            set_invalid(f"ASTC-Encoder failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
-                            return
-                        # Image format not supported by astcenc, use intermediary BMPs
-
-                if not ktx:
-                    # Can't compress with astcenc, convert each frame to BMP then compress
-                    bmp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".bmp"))
-                    try:
-                        frames = []
-                        for i, frame in enumerate(ImageSequence.Iterator(image)):
-                            frame.save(bmp_path, "BMP")
-                            astc, err = astc_compress_one(bmp_path)
-                            if not astc:
-                                set_invalid(f"ASTC-Encoder failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
-                                return
-                            if i == 0:
-                                dim_x = struct.unpack("<I", astc[7:10] + b"\0")[0]
-                                dim_y = struct.unpack("<I", astc[10:13] + b"\0")[0]
-                            frames.append((astc[16:], int(frame.info.get("duration", 0))))
-                            frame_remaining -= 1
-                            compress_counter -= 1
-                        ktx = build_ktx(astc_format, astc_pixfmt, dim_x, dim_y, frames)
-                    except Exception:
-                        set_invalid(f"Failed ASTC-Encoder intermediary step:\n{error.text()}")
-                        return
-                    finally:
-                        bmp_path.unlink(missing_ok=True)
-            finally:
-                compress_counter -= frame_remaining
-                image.close()
-
-            if ktx:
-                ktx = zstd.compress(ktx, zstd_level)
-                ktx_path = self.resolved_path.with_suffix(".astc.ktx.zst")
-                ktx_path.write_bytes(ktx)
-                self.resolved_path = ktx_path
 
         if globals.settings.tex_compress is TexCompress.BC7 and not self.resolved_path.name.endswith(".bc7.ktx.zst"):
             # Compress to BC7
-            if self.resolved_path.suffix == ".zst":
-                set_invalid(
-                    "No source image available to compress to BC7!\n"
-                    "Reset image in order to re-compress it"
-                )
-                return
             if not _find_compressonator():
                 set_invalid(
                     "BC7 compression isn't supported on MacOS!\n"
@@ -492,92 +518,17 @@ class ImageHelper:
                     )
                 )
                 return
-            ktx = None
-            bc7_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".ktx"))
-            def bc7_compress_one(src_path: pathlib.Path):
-                try:
-                    if globals.os is Os.Windows:
-                        kwargs = dict(
-                            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
-                            startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW),
-                        )
-                    else:
-                        kwargs = dict()
-                    subprocess.check_output(
-                        [compressonator, "-fd", "BC7", "-EncodeWith", compressonator_encoder, "-NumThreads", str(os.cpu_count()), src_path, bc7_path],
-                        stderr=subprocess.STDOUT,
-                        **kwargs,
-                    )
-                    bc7 = bc7_path.read_bytes()
-                    return bc7, b""
-                except subprocess.CalledProcessError as exc:
-                    err = f"Process returned code {exc.returncode}\n".encode()
-                    err += exc.stdout or b"No console output"
-                    return b"", err
-                finally:
-                    bc7_path.unlink(missing_ok=True)
-
-            try:
-                # Identify image format
-                image = Image.open(self.resolved_path)
-            except UnidentifiedImageError:
-                set_invalid(f"Pillow does not recognize this image format!")
+            if not ktx_compress(
+                cli=lambda src, dst: [compressonator, "-fd", "BC7", "-EncodeWith", compressonator_encoder, "-NumThreads", str(os.cpu_count()), src, dst],
+                compressor_name="Compressonator",
+                supported_formats=("PNG", "JPEG", "BMP"),
+                unsupported_msg=b"Could not load source file",
+                intermediary_format=".bmp",
+                texture_format=bc7_format,
+                texture_pixfmt=bc7_pixfmt,
+                format_name="BC7",
+            ):
                 return
-
-            frame_remaining = getattr(image, "n_frames", 1)
-            compress_counter += frame_remaining
-            try:
-
-                if image.format in ("PNG", "JPEG", "BMP") and not getattr(image, "is_animated", False):
-                    # Image may be compressable by compressonator, try it
-                    bc7, err = bc7_compress_one(self.resolved_path)
-                    if bc7:
-                        # Compressed with compressonator, just keep the ktx
-                        ktx = bc7
-                    else:
-                        if b"Could not load source file" not in err:
-                            # Something else went wrong, bail
-                            set_invalid(f"Compressonator failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
-                            return
-                        # Image format not supported by compressonator, use intermediary BMPs
-
-                if not ktx:
-                    # Can't compress with compressonator, convert each frame to BMP then compress
-                    bmp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".bmp"))
-                    try:
-                        frames = []
-                        for i, frame in enumerate(ImageSequence.Iterator(image)):
-                            frame.save(bmp_path, "BMP")
-                            bc7, err = bc7_compress_one(bmp_path)
-                            if not bc7:
-                                set_invalid(f"Compressonator failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
-                                return
-                            fmt = "<I" if struct.unpack("<I", bc7[12:16])[0] == ktx_endianness else ">I"
-                            if i == 0:
-                                pix_w = struct.unpack(fmt, bc7[36:40])[0]
-                                pix_h = struct.unpack(fmt, bc7[40:44])[0]
-                            kv_len = struct.unpack(fmt, bc7[60:64])[0]
-                            bc7_pos = 64 + kv_len
-                            bc7_len = struct.unpack(fmt, bc7[bc7_pos:bc7_pos + 4])[0]
-                            bc7_pos += 4
-                            frames.append((bc7[bc7_pos:bc7_pos + bc7_len], int(frame.info.get("duration", 0))))
-                            frame_remaining -= 1
-                            compress_counter -= 1
-                        ktx = build_ktx(bc7_format, bc7_pixfmt, pix_w, pix_h, frames)
-                    except Exception:
-                        set_invalid(f"Failed Compressonator intermediary step:\n{error.text()}")
-                        return
-                    finally:
-                        bmp_path.unlink(missing_ok=True)
-            finally:
-                compress_counter -= frame_remaining
-                image.close()
-
-            if ktx:
-                ktx = zstd.compress(ktx, zstd_level)
-                ktx_path = self.resolved_path.with_suffix(".bc7.ktx.zst")
-                ktx_path.write_bytes(ktx)
-                self.resolved_path = ktx_path
 
         if self.resolved_path.suffix == ".zst":
             # Load compressed KTX
