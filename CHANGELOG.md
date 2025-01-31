@@ -8,6 +8,7 @@
 
 ### Fixed:
 - Fix switching view modes with "Table header outside list" disabled (by @Willy-JL)
+- Fix flashbang while interface is loading (#221 by @sodamouse)
 - Fix GUI redraws not pausing when unfocused, hovered and not moving mouse (by @Willy-JL)
 - Fix missing `libbz2.so` on linux binary bundles (#222 by @Willy-JL)
 
