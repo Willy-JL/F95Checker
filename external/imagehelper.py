@@ -1,6 +1,7 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
 import functools
 import gc
+import os
 import pathlib
 import platform
 import shutil
@@ -495,7 +496,7 @@ class ImageHelper:
                     else:
                         kwargs = dict()
                     subprocess.check_output(
-                        [compressonator, "-fd", "BC7", "-EncodeWith", compressonator_encoder, src_path, bc7_path],
+                        [compressonator, "-fd", "BC7", "-EncodeWith", compressonator_encoder, "-NumThreads", str(os.cpu_count()), src_path, bc7_path],
                         stderr=subprocess.STDOUT,
                         **kwargs,
                     )
