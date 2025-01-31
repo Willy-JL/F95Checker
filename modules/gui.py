@@ -386,6 +386,7 @@ class MainGUI():
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)  # OS X supports only forward-compatible core profiles from 3.2
+        glfw.window_hint(glfw.VISIBLE, False)
 
         # Create a windowed mode window and its OpenGL context
         self.window: glfw._GLFWwindow = glfw.create_window(*size, "F95Checker", None, None)
@@ -842,6 +843,7 @@ class MainGUI():
         draw_next = 5.0
         size = (0, 0)
         cursor = -1
+        first_frame = True
         try:
             # While window is open
             while not glfw.window_should_close(self.window):
@@ -1018,6 +1020,9 @@ class MainGUI():
                         imagehelper.post_draw()
                     # Wait idle time
                         glfw.swap_buffers(self.window)
+                        if first_frame:
+                            glfw.show_window(self.window)
+                            first_frame = False
                     else:
                         time.sleep(1 / 15)
                 else:
