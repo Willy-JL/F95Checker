@@ -806,6 +806,7 @@ class Settings:
     mark_installed_after_add    : bool
     max_connections             : int
     max_retries                 : int
+    notifs_show_update_banner   : bool
     proxy_type                  : ProxyType
     proxy_host                  : str
     proxy_port                  : int

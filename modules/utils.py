@@ -114,11 +114,11 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True, notify_new_
                     globals.popup_stack.remove(popup)
             push_popup(type(globals.gui).draw_updates_popup, globals.gui).uuid = "updates"
             if globals.gui.hidden or not globals.gui.focused:
-                image = list(filter(lambda f: f.suffix != ".aastc", globals.images_path.glob(f"{first}.*")))
-                if image:
-                    image = desktop_notifier.Attachment(path=image[0])
-                else:
-                    image = None
+                image = None
+                if globals.settings.notifs_show_update_banner:
+                    image_paths = list(filter(lambda f: f.suffix != ".aastc", globals.images_path.glob(f"{first}.*")))
+                    if image_paths:
+                        image = desktop_notifier.Attachment(path=image_paths[0])
                 count = len(globals.updated_games)
                 notification_proc.notify(
                     title="Updates",

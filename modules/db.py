@@ -204,6 +204,7 @@ async def connect():
             "mark_installed_after_add":    f'INTEGER DEFAULT {int(False)}',
             "max_connections":             f'INTEGER DEFAULT 10',
             "max_retries":                 f'INTEGER DEFAULT 2',
+            "notifs_show_update_banner":   f'INTEGER DEFAULT {int(True)}',
             "proxy_type":                  f'INTEGER DEFAULT {ProxyType.Disabled}',
             "proxy_host":                  f'TEXT    DEFAULT ""',
             "proxy_port":                  f'INTEGER DEFAULT 8080',
