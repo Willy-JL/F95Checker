@@ -53,8 +53,13 @@ astcenc = None
 
 bc7_format = gl_bptc.GL_COMPRESSED_RGBA_BPTC_UNORM_ARB
 bc7_pixfmt = gl.GL_RGBA
-compressonator_encoder = "HPC"
+compressonator_encoder = None
 compressonator = None
+
+def _cpu_supports_hpc():
+    from external import cpuinfo
+    flags = cpuinfo.get_cpu_info().get("flags", ())
+    return all(flag in flags for flag in ("avx2", "sse4_2", "popcnt", "f16c"))
 
 
 def _find_astcenc():
@@ -69,9 +74,7 @@ def _find_astcenc():
         elif globals.os is Os.Windows and platform.machine().startswith("ARM"):
             _astcenc /= "astcenc-neon.exe"
         else:
-            from external import cpuinfo
-            flags = cpuinfo.get_cpu_info().get("flags", ())
-            if all(flag in flags for flag in ("avx2", "sse4_2", "popcnt", "f16c")):
+            if _cpu_supports_hpc():
                 _astcenc /= "astcenc-avx2"
             else:
                 _astcenc /= "astcenc-sse2"
@@ -91,7 +94,7 @@ def _find_astcenc():
 
 
 def _find_compressonator():
-    global compressonator
+    global compressonator, compressonator_encoder
     if compressonator is None:
         # Windows: F95Checker/lib/compressonator/compressonatorcli.exe
         # Linux: F95Checker/lib/compressonator/compressonatorcli
@@ -110,6 +113,10 @@ def _find_compressonator():
                 _compressonator = False
         if _compressonator:
             _compressonator = _compressonator.absolute()
+            if _cpu_supports_hpc():
+                compressonator_encoder = "HPC"
+            else:
+                compressonator_encoder = "CPU"
         compressonator = _compressonator
     return compressonator
 
