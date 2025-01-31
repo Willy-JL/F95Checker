@@ -398,7 +398,8 @@ class ImageHelper:
                     astc = astc_path.read_bytes()
                     return astc, b""
                 except subprocess.CalledProcessError as exc:
-                    err = exc.stdout or b"Unknown error"
+                    err = f"Process returned code {exc.returncode}\n".encode()
+                    err += exc.stdout or b"No console output"
                     return b"", err
                 finally:
                     astc_path.unlink(missing_ok=True)
@@ -503,7 +504,8 @@ class ImageHelper:
                     bc7 = bc7_path.read_bytes()
                     return bc7, b""
                 except subprocess.CalledProcessError as exc:
-                    err = exc.stdout or b"Unknown error"
+                    err = f"Process returned code {exc.returncode}\n".encode()
+                    err += exc.stdout or b"No console output"
                     return b"", err
                 finally:
                     bc7_path.unlink(missing_ok=True)
