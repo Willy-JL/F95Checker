@@ -814,6 +814,7 @@ class Settings:
     mark_installed_after_add    : bool
     max_connections             : int
     max_retries                 : int
+    notifs_show_update_banner   : bool
     play_gifs                   : bool
     play_gifs_unfocused         : bool
     proxy_type                  : ProxyType

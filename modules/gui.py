@@ -4862,6 +4862,12 @@ class MainGUI():
             draw_settings_label("Check alerts and inbox:")
             draw_settings_checkbox("check_notifs")
 
+            draw_settings_label(
+                "Banners in update notifs:",
+                "Whether to include a banner image when sending desktop notifications for updates."
+            )
+            draw_settings_checkbox("notifs_show_update_banner")
+
             draw_settings_label("Refresh if archived:")
             draw_settings_checkbox("refresh_archived_games")
 

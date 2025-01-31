@@ -11,7 +11,7 @@
   - Saves CPU/GPU usage by redrawing less if disabled when unfocused, but still uses same VRAM
 
 ### Updated:
-- New notification system with buttons and better platform support (#220 by @Willy-JL)
+- New notification system with buttons and better platform support, option to include banner image in update notifs (#220 by @Willy-JL)
 - Updates popup is now cumulative, new updates get grouped with any previous popups and moved to top (#220 by @Willy-JL)
 - Executable paths in More Info popup wrap after `/` and `\` characters for easier readability (by @Willy-JL)
 
