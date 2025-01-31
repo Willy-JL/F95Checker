@@ -542,7 +542,7 @@ class ImageHelper:
                             if not bc7:
                                 set_invalid(f"Compressonator failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
                                 return
-                            fmt = ">I" if struct.unpack("<I", bc7[12:16]) == ktx_endianness else "<I"
+                            fmt = "<I" if struct.unpack("<I", bc7[12:16])[0] == ktx_endianness else ">I"
                             if i == 0:
                                 pix_w = struct.unpack(fmt, bc7[36:40])[0]
                                 pix_h = struct.unpack(fmt, bc7[40:44])[0]
@@ -588,7 +588,7 @@ class ImageHelper:
             if magic != ktx_magic:
                 set_invalid(f"KTX malformed:\nWrong KTX magic, {magic} != {ktx_magic}")
                 return
-            fmt = ">I" if struct.unpack("<I", ktx[12:16]) == ktx_endianness else "<I"
+            fmt = "<I" if struct.unpack("<I", ktx[12:16])[0] == ktx_endianness else ">I"
 
             gl_type = struct.unpack(fmt, ktx[16:20])[0]
             gl_type_size = struct.unpack(fmt, ktx[20:24])[0]
