@@ -933,6 +933,8 @@ class Game:
     image_url          : str
     previews_urls      : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
+    reviews_total      : int
+    reviews            : list[dict]
     selected           : bool = False
     image              : "imagehelper.ImageHelper" = None
     executables_valids : list[bool] = None

@@ -301,6 +301,8 @@ async def connect():
             "image_url":                   f'TEXT    DEFAULT ""',
             "previews_urls":               f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
+            "reviews_total":               f'INTEGER DEFAULT 0',
+            "reviews":                     f'TEXT    DEFAULT "[]"',
         },
         renames=[
             ("executable",           "executables"),
