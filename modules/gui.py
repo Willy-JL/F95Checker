@@ -1919,15 +1919,11 @@ class MainGUI():
             message = type.template.format(*args, *["?" for _ in range(type.args_min - len(args))])
             # Short timeline variant
             if globals.settings.compact_timeline:
-                imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
                 imgui.push_font(imgui.fonts.mono)
-                imgui.text(date.strftime(globals.settings.timestamp_format))
+                imgui.text_disabled(date.strftime(globals.settings.timestamp_format))
                 imgui.pop_font()
-                imgui.pop_style_color()
                 imgui.same_line()
-                imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
-                imgui.text(icon)
-                imgui.pop_style_color()
+                imgui.text_colored(icon, *globals.settings.style_accent)
                 imgui.same_line()
                 imgui.text(message)
                 return
@@ -1935,17 +1931,13 @@ class MainGUI():
             imgui.dummy(0, 0)
             imgui.same_line()
             cur = imgui.get_cursor_screen_pos()
-            imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_accent)
-            imgui.text(icon)
-            imgui.pop_style_color()
+            imgui.text_colored(icon, *globals.settings.style_accent)
             icon_size = imgui.get_item_rect_size()
             icon_coordinates.append((cur.x, cur.y, cur.x + icon_size.x, cur.y + icon_size.y))
             # Draw timestamp
             imgui.same_line(spacing=self.scaled(15))
             timestamp_pos = imgui.get_cursor_screen_pos()
-            imgui.push_style_color(imgui.COLOR_TEXT, *globals.settings.style_text_dim)
-            imgui.text(date.strftime(globals.settings.datestamp_format))
-            imgui.pop_style_color()
+            imgui.text_disabled(date.strftime(globals.settings.datestamp_format))
             timestamp_size = imgui.get_item_rect_size()
             self.draw_hover_text(date.strftime(globals.settings.timestamp_format), text=None)
             # Draw message
@@ -1965,7 +1957,7 @@ class MainGUI():
         if TimelineEventType.GameAdded not in globals.settings.hidden_timeline_events:
             draw_event(game.added_on.value, TimelineEventType.GameAdded, [], spacing=False)
 
-        thickness = 2
+        thickness = imgui.style.frame_border_size
         prev_rect = None
         padding = self.scaled(3)
         dl = imgui.get_window_draw_list()
