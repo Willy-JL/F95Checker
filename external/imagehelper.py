@@ -34,9 +34,9 @@ from modules.api import temp_prefix
 from modules import globals
 
 redraw = False
-compress_counter = 0
 apply_queue = []
 unload_queue = []
+compress_counter = 0
 _dummy_texture_id = None
 
 ktx_durations = b"durationsms\0"
