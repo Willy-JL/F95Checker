@@ -1770,6 +1770,93 @@ class MainGUI():
                 utils.text_context(type("_", (), dict(_=first_line))(), "_", setter_extra)
                 imgui.end_popup()
 
+    def draw_game_reviews_widget(self, game: Game):
+        icon_coordinates: list[tuple[x1, y1, x2, y2]] = []
+        text_coordinates: list[tuple[x1, y1, x2, y2]] = []
+        line_coordinates: list[tuple[x1, y1, x2, y2]] = []
+
+        imgui.dummy(0, self.scaled(6))
+
+        for review in game.reviews:
+            if review.score > 3:
+                icon = icons.thumb_up
+            elif review.score == 3:
+                icon = icons.approximately_equal
+            else:
+                icon = icons.thumb_down
+            date = dt.datetime.fromtimestamp(review.timestamp)
+            # Draw icon
+            imgui.dummy(0, 0)
+            imgui.same_line()
+            cur = imgui.get_cursor_screen_pos()
+            imgui.text_colored(icon, *globals.settings.style_accent)
+            icon_size = imgui.get_item_rect_size()
+            icon_coordinates.append((cur.x, cur.y, cur.x + icon_size.x, cur.y + icon_size.y))
+            # Draw header
+            imgui.same_line(spacing=self.scaled(15))
+            pos_x, header_pos_y = imgui.get_cursor_screen_pos()
+            imgui.push_font(imgui.fonts.bold)
+            imgui.text_colored(review.user, *globals.settings.style_accent)
+            imgui.pop_font()
+            imgui.same_line()
+            imgui.push_y(self.scaled(3.5))
+            imgui.text_disabled(date.strftime(globals.settings.datestamp_format))
+            self.draw_hover_text(date.strftime(globals.settings.timestamp_format), text=None)
+            imgui.same_line()
+            imgui.push_no_interaction()
+            ratingwidget.ratingwidget("", review.score)
+            imgui.pop_no_interaction()
+            imgui.pop_y()
+            imgui.spacing()
+            # Draw message
+            message_pos_y = imgui.get_cursor_screen_pos().y
+            imgui.set_cursor_screen_pos((pos_x, message_pos_y))
+            imgui.text(review.message)
+            # Draw footer
+            if review.likes:
+                footer_pos_y = imgui.get_cursor_screen_pos().y
+                imgui.set_cursor_screen_pos((pos_x, footer_pos_y))
+                imgui.text_disabled(f"Liked by {review.likes} user{'' if review.likes == 1 else 's'}")
+            final_pos_x = imgui.get_cursor_screen_pos().x + imgui.get_content_region_available_width() - self.scaled(2)
+            final_pos_y = imgui.get_cursor_screen_pos().y - self.scaled(2)
+            text_coordinates.append((pos_x, header_pos_y, final_pos_x, final_pos_y))
+            line_coordinates.append((pos_x, message_pos_y, final_pos_x, message_pos_y))
+            imgui.dummy(0, self.scaled(16))
+
+        if len(game.reviews) < game.reviews_total:
+            imgui.dummy(0, 0)
+            imgui.same_line()
+            cur = imgui.get_cursor_screen_pos()
+            imgui.begin_group()
+            imgui.text_colored(icons.open_in_new, *globals.settings.style_accent)
+            imgui.same_line(spacing=self.scaled(10))
+            imgui.text(f"Read {game.reviews_total - len(game.reviews)} more reviews in forum thread ")
+            imgui.end_group()
+            button_size = imgui.get_item_rect_size()
+            if imgui.is_item_clicked():
+                callbacks.open_webpage(game.url + "/page-2/br-reviews")
+            icon_coordinates.append((cur.x, cur.y, cur.x + button_size.x, cur.y + button_size.y))
+            imgui.set_cursor_screen_pos(cur)
+            imgui.invisible_button("", *button_size)
+
+        thickness = imgui.style.frame_border_size
+        prev_rect = None
+        padding = self.scaled(3)
+        dl = imgui.get_window_draw_list()
+        color = imgui.get_color_u32_rgba(*globals.settings.style_border)
+
+        # Draw timeline primitives
+        rounding = self.scaled(globals.settings.style_corner_radius)
+        for x1, y1, x2, y2 in icon_coordinates:
+            dl.add_rect(x1 - padding, y1 - padding, x2 + padding, y2 + padding, color, rounding=rounding, thickness=thickness)
+            if prev_rect:
+                dl.add_line((prev_rect[0] + prev_rect[2]) / 2, prev_rect[3] + padding, (prev_rect[0] + prev_rect[2]) / 2, y1 - padding, color, thickness=thickness)
+            prev_rect = (x1, y1, x2, y2)
+        for x1, y1, x2, y2 in text_coordinates:
+            dl.add_rect(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 + padding, color, rounding=rounding, thickness=thickness)
+        for x1, y1, x2, y2 in line_coordinates:
+            dl.add_line(x1 - padding - self.scaled(2), y1 - padding, x2 + padding + self.scaled(2), y2 - padding, color, thickness=thickness)
+
     def draw_game_tags_widget(self, game: Game):
         pad = 2 * imgui.style.frame_padding.x + imgui.style.item_spacing.x
         for tag in game.tags:
@@ -2409,6 +2496,17 @@ class MainGUI():
                 ) + " Notes###notes")[0]:
                     imgui.spacing()
                     self.draw_game_notes_widget(game)
+                    imgui.end_tab_item()
+
+                if not game.custom and imgui.begin_tab_item((
+                    icons.star_outline if game.reviews else
+                    icons.star_off_outline
+                ) + " Reviews###reviews")[0]:
+                    imgui.spacing()
+                    if game.reviews:
+                        self.draw_game_reviews_widget(game)
+                    else:
+                        imgui.text_disabled("This game doesn't have any reviews yet!")
                     imgui.end_tab_item()
 
                 if imgui.begin_tab_item((
