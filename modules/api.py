@@ -34,6 +34,7 @@ from common.structs import (
     OldGame,
     Os,
     ProxyType,
+    Review,
     SearchResult,
     Status,
     Tag,
@@ -776,6 +777,7 @@ async def full_check(game: Game, last_changed: int):
         thread["downloads"] = tuple(thread["downloads"])
         thread["reviews_total"] = int(thread.get("reviews_total", "0"))
         thread["reviews"] = json.loads(thread.get("reviews", "[]"))
+        thread["reviews"] = [Review(**review) for review in thread["reviews"]]
 
         old_name = game.name
         old_version = game.version
