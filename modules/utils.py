@@ -116,7 +116,7 @@ def start_refresh_task(coro: typing.Coroutine, reset_bg_timers=True, notify_new_
             if globals.gui.hidden or not globals.gui.focused:
                 image = None
                 if globals.settings.notifs_show_update_banner:
-                    image_paths = list(filter(lambda f: f.suffix != ".aastc", globals.images_path.glob(f"{first}.*")))
+                    image_paths = list(filter(lambda f: f.suffix not in (".zst", ".aastc"), globals.images_path.glob(f"{first}.*")))
                     if image_paths:
                         image = desktop_notifier.Attachment(path=image_paths[0])
                 count = len(globals.updated_games)

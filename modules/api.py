@@ -710,7 +710,7 @@ async def fast_check(games: list[Game], full=False):
         this_full = full or (
             game.status is Status.Unchecked or
             last_changed > game.last_full_check or
-            (game.image.missing and game.image_url.startswith("http")) or
+            (game.image.missing and (game.image_url.startswith("http") or not game.image_url)) or
             last_check_before("10.1.1", game.last_check_version)  # Switch away from HEAD requests, new version parsing
         )
         if not this_full:
@@ -1247,10 +1247,11 @@ async def refresh(*games: list[Game], full=False, notifs=True, force_archived=Fa
     for game in (games or globals.games.values()):
         if game.custom:
             continue
-        if not games and game.archived and not globals.settings.refresh_archived_games and not force_archived:
-            continue
-        if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games and not force_completed:
-            continue
+        if not game.image.missing:
+            if not games and game.archived and not globals.settings.refresh_archived_games and not force_archived:
+                continue
+            if not games and game.status is Status.Completed and not globals.settings.refresh_completed_games and not force_completed:
+                continue
         if len(fast_queue[-1]) == api_fast_check_max_ids:
             fast_queue.append([])
         fast_queue[-1].append(game)

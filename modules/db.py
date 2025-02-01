@@ -25,6 +25,7 @@ from common.structs import (
     Settings,
     Status,
     Tab,
+    TexCompress,
     ThreadMatch,
     TimelineEvent,
     TimelineEventType,
@@ -205,6 +206,8 @@ async def connect():
             "max_connections":             f'INTEGER DEFAULT 10',
             "max_retries":                 f'INTEGER DEFAULT 2',
             "notifs_show_update_banner":   f'INTEGER DEFAULT {int(True)}',
+            "play_gifs":                   f'INTEGER DEFAULT {int(True)}',
+            "play_gifs_unfocused":         f'INTEGER DEFAULT {int(False)}',
             "proxy_type":                  f'INTEGER DEFAULT {ProxyType.Disabled}',
             "proxy_host":                  f'TEXT    DEFAULT ""',
             "proxy_port":                  f'INTEGER DEFAULT 8080',
@@ -236,7 +239,10 @@ async def connect():
             "style_text_dim":              f'TEXT    DEFAULT "{DefaultStyle.text_dim}"',
             "table_header_outside_list":   f'INTEGER DEFAULT {int(True)}',
             "tags_highlights":             f'TEXT    DEFAULT "{{}}"',
+            "tex_compress":                f'INTEGER DEFAULT {TexCompress.Disabled}',
+            "tex_compress_replace":        f'INTEGER DEFAULT {int(False)}',
             "timestamp_format":            f'TEXT    DEFAULT "%d/%m/%Y %H:%M"',
+            "unload_offscreen_images":     f'INTEGER DEFAULT {int(False)}',
             "vsync_ratio":                 f'INTEGER DEFAULT 1',
             "weighted_score":              f'INTEGER DEFAULT {int(False)}',
             "zoom_area":                   f'INTEGER DEFAULT 50',
@@ -514,14 +520,11 @@ async def update_game_id(game: Game, new_id):
     for event in game.timeline_events:
         event.game_id = new_id
 
-    for i, img in enumerate(sorted(list(globals.images_path.glob(f"{game.id}.*")), key=lambda path: path.suffix != ".gif")):
-        if i == 0:
-            shutil.move(img, globals.images_path / f"{new_id}{img.suffix}")
-        else:
-            try:
-                img.unlink()
-            except Exception:
-                pass
+    for img in globals.images_path.glob(f"{game.id}.*"):
+        try:
+            shutil.move(img, img.with_name(f"{new_id}{''.join(img.suffixes)}"))
+        except Exception:
+            pass
     game.id = new_id
     game.refresh_image()
 
