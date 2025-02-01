@@ -159,16 +159,20 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     if index_error := f95zone.check_error(res, logger):
         return index_error
 
-    reviews = await loop.run_in_executor(None, parser.reviews, res)
-    if isinstance(reviews, parser.ParserError):
+    if not str(req.real_url).endswith("br-reviews"):
+        # Some threads have reviews disabled
+        reviews = parser.ParsedReviews(total=0, items=[])
+    else:
+        reviews = await loop.run_in_executor(None, parser.reviews, res)
+        if isinstance(reviews, parser.ParserError):
 
-        if reviews.message == "Thread structure missing" and req.status in (403, 404):
-            return f95zone.ERROR_THREAD_MISSING
+            if reviews.message == "Thread structure missing" and req.status in (403, 404):
+                return f95zone.ERROR_THREAD_MISSING
 
-        logger.error(f"Thread {id} reviews parsing failed: {reviews.message}\n{reviews.dump}")
-        return f95zone.ERROR_PARSING_FAILED
+            logger.error(f"Thread {id} reviews parsing failed: {reviews.message}\n{reviews.dump}")
+            return f95zone.ERROR_PARSING_FAILED
 
-    reviews.items = [dataclasses.asdict(review) for review in reviews.items]
+        reviews.items = [dataclasses.asdict(review) for review in reviews.items]
 
     # Prepare for redis, only strings allowed
     parsed = dataclasses.asdict(ret)
