@@ -1,27 +1,142 @@
 # https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
 import functools
 import gc
+import os
 import pathlib
+import platform
+import shutil
+import struct
+import subprocess
+import tempfile
+import typing
 
 from PIL import (
     Image,
     ImageSequence,
     UnidentifiedImageError
 )
+from OpenGL.GL.KHR import texture_compression_astc_ldr as gl_astc
+from OpenGL.GL.ARB import texture_compression_bptc as gl_bptc
 import OpenGL.GL as gl
 import imgui
+import zstd
 
-from external import sync_thread  # added
+from common.structs import (
+    Os,
+    TexCompress,
+)
+from external import (
+    error,
+    sync_thread,
+    weakerset,
+)
+from modules.api import temp_prefix
+from modules import globals
 
-redraw = False  # added
-_apply_texture_queue = []
+redraw = False
+apply_queue = []
+unload_queue = []
+compress_counter = 0
 _dummy_texture_id = None
 
+ktx_durations = b"durationsms\0"
+ktx_endianness = 0x04030201
+ktx_magic = b"\xABKTX 11\xBB\r\n\x1A\n"
+zstd_level = 3
+zstd_magic = b"\x28\xB5\x2F\xFD"
 
-def apply_textures():
-    for apply_texture in reversed(_apply_texture_queue):
-        apply_texture()
-        _apply_texture_queue.remove(apply_texture)
+aastc_magic = b"\xA3\xAB\xA1\x5C"
+astc_block = "6x6"
+astc_format = gl_astc.GL_COMPRESSED_RGBA_ASTC_6x6_KHR
+astc_pixfmt = gl.GL_RGBA
+astc_quality = "80"
+astcenc = None
+
+bc7_format = gl_bptc.GL_COMPRESSED_RGBA_BPTC_UNORM_ARB
+bc7_pixfmt = gl.GL_RGBA
+compressonator_encoder = None
+compressonator = None
+
+def _cpu_supports_hpc():
+    from external import cpuinfo
+    flags = cpuinfo.get_cpu_info().get("flags", ())
+    return all(flag in flags for flag in ("avx2", "sse4_2", "popcnt", "f16c"))
+
+
+def _find_astcenc():
+    global astcenc
+    if astcenc is None:
+        # Windows: F95Checker/lib/astcenc/astcenc-(avx2|sse2|neon).exe
+        # Linux: F95Checker/lib/astcenc/astcenc-(avx2|sse2)
+        # MacOS: F95Checker/lib/astcenc/astcenc
+        _astcenc = globals.self_path / "lib/astcenc"
+        if globals.os is Os.MacOS:
+            _astcenc /= "astcenc"
+        elif globals.os is Os.Windows and platform.machine().startswith("ARM"):
+            _astcenc /= "astcenc-neon.exe"
+        else:
+            if _cpu_supports_hpc():
+                _astcenc /= "astcenc-avx2"
+            else:
+                _astcenc /= "astcenc-sse2"
+            if globals.os is Os.Windows:
+                _astcenc = _astcenc.with_suffix(".exe")
+        if not _astcenc.is_file():
+            # Not bundled, look in PATH for astcenc-(avx2|sse2)[.exe] and astcenc[.exe]
+            _astcenc = shutil.which(_astcenc.name) or shutil.which(_astcenc.with_stem("astcenc").name)
+            if _astcenc:
+                _astcenc = pathlib.Path(_astcenc)
+            else:
+                _astcenc = False
+        if _astcenc:
+            _astcenc = _astcenc.absolute()
+        astcenc = _astcenc
+    return astcenc
+
+
+def _find_compressonator():
+    global compressonator, compressonator_encoder
+    if compressonator is None:
+        # Windows: F95Checker/lib/compressonator/compressonatorcli.exe
+        # Linux: F95Checker/lib/compressonator/compressonatorcli
+        # MacOS: Not supported
+        _compressonator = globals.self_path / "lib/compressonator"
+        if globals.os is Os.Windows:
+            _compressonator /= "compressonatorcli.exe"
+        else:
+            _compressonator /= "compressonatorcli"
+        if not _compressonator.is_file():
+            # Not bundled, look in PATH for compressonatorcli[.exe]
+            _compressonator = shutil.which(_compressonator.name)
+            if _compressonator:
+                _compressonator = pathlib.Path(_compressonator)
+            else:
+                _compressonator = False
+        if _compressonator:
+            _compressonator = _compressonator.absolute()
+            if _cpu_supports_hpc():
+                compressonator_encoder = "HPC"
+            else:
+                compressonator_encoder = "CPU"
+        compressonator = _compressonator
+    return compressonator
+
+
+def post_draw():
+    # Unload images if not visible
+    if globals.settings.unload_offscreen_images:
+        hidden = globals.gui.minimized or globals.gui.hidden
+        for image in ImageHelper.instances:
+            if hidden or not image.shown:
+                unload_queue.append(image)
+            else:
+                image.shown = False
+    for image in reversed(unload_queue):
+        image.unload()
+        unload_queue.remove(image)
+    # Max 1 apply per frame, mitigates stutters
+    if apply_queue:
+        apply_queue.pop(0).apply()
 
 
 def dummy_texture_id():
@@ -31,15 +146,6 @@ def dummy_texture_id():
         gl.glBindTexture(gl.GL_TEXTURE_2D, _dummy_texture_id)
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, 0, 0, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, b"\x00\x00\x00\xff")
     return _dummy_texture_id
-
-
-def get_rgba_pixels(image: Image.Image):
-    if image.mode == "RGB":
-        return image.tobytes("raw", "RGBX")
-    else:
-        if image.mode != "RGBA":
-            image = image.convert("RGBA")
-        return image.tobytes("raw", "RGBA")
 
 
 @functools.cache
@@ -67,6 +173,8 @@ def _crop_to_ratio(width, height, ratio: int | float, fit=False):
 
 
 class ImageHelper:
+    instances = weakerset.WeakerSet()
+
     __slots__ = (
         "width",
         "height",
@@ -76,15 +184,17 @@ class ImageHelper:
         "loaded",
         "loading",
         "applied",
-        "missing",
-        "invalid",
+        "_missing",
         "prev_time",
         "animated",
-        "frames",
+        "_error",
+        "textures",
         "durations",
         "texture_ids",
         "resolved_path",
         "path",
+        "shown",
+        "__weakref__",
     )
 
     def __init__(self, path: str | pathlib.Path, glob=""):
@@ -96,31 +206,61 @@ class ImageHelper:
         self.loaded = False
         self.loading = False
         self.applied = False
-        self.missing = False
-        self.invalid = False
+        self._missing = None
         self.prev_time = 0.0
         self.animated = False
-        self.frames: list[bytes] = []
+        self._error: str = None
+        self.textures: list[bytes] = []
         self.durations: list[float] = []
         self.texture_ids: list[int] = []
         self.resolved_path: pathlib.Path = None
         self.path: pathlib.Path = pathlib.Path(path)
-        self.resolve()
+        self.shown = False
+        type(self).instances.add(self)
+
+    @property
+    def missing(self):
+        if self._missing is None:
+            self.resolve()
+        return self._missing
+
+    @property
+    def error(self):
+        return self.loaded and self._error or None
 
     def resolve(self):
         self.resolved_path = self.path
+
         if self.glob:
             paths = list(self.resolved_path.glob(self.glob))
             if not paths:
-                self.missing = True
+                self._missing = True
                 return
-            # If you want you can setup preferred extensions like this:
-            paths.sort(key=lambda path: path.suffix != ".gif")  # changed
-            # This will prefer .gif files!
+            if globals.settings.tex_compress is TexCompress.ASTC:
+                # Prefer ASTC (including .aastc for migration), then .gif, then anything else, then other compression
+                sorting = lambda path: 1 if path.name.endswith((".astc.ktx.zst", ".aastc")) else 2 if path.suffix == ".gif" else 3 if not path.name.endswith(".bc7.ktx.zst") else 4
+            elif globals.settings.tex_compress is TexCompress.BC7:
+                # Prefer BC7, then .gif, then anything else, then other compression
+                sorting = lambda path: 1 if path.name.endswith(".bc7.ktx.zst") else 2 if path.suffix == ".gif" else 3 if not path.name.endswith((".astc.ktx.zst", ".aastc")) else 4
+            else:
+                # Prefer .gif files, avoid compressed files unless nothing else available
+                sorting = lambda path: 1 if path.suffix == ".gif" else 2 if path.suffix not in (".zst", ".aastc") else 3
+            paths.sort(key=sorting)
             self.resolved_path = paths[0]
-        self.missing = not self.resolved_path.is_file()
 
-    def reload(self):
+        # Choose compressed file by same name if not already using it
+        if globals.settings.tex_compress is not TexCompress.Disabled and self.resolved_path.suffix != ".zst":
+            ktx_path = self.resolved_path.with_suffix(f".{globals.settings.tex_compress.name.lower()}.ktx.zst")
+            if ktx_path.is_file():
+                self.resolved_path = ktx_path
+            elif globals.settings.tex_compress is TexCompress.ASTC and self.resolved_path.suffix != ".aastc":
+                aastc_path = self.resolved_path.with_suffix(".aastc")
+                if aastc_path.is_file():
+                    self.resolved_path = aastc_path
+
+        self._missing = not self.resolved_path.is_file()
+
+    def load(self):
         self.loaded = False
         self.loading = True
         self.applied = False
@@ -128,76 +268,465 @@ class ImageHelper:
 
         self.frame = -1
         self.elapsed = 0.0
-        self.frames.clear()
-        self.invalid = False
+        self.textures.clear()
+        self._error = None
         self.animated = False
         self.durations.clear()
         self.width, self.height = (1, 1)
 
-        if self.missing:
+        def set_invalid(err):
+            self._error = err
             self.loaded = True
             self.loading = False
+
+        if self._missing:
+            set_invalid("Image file missing")
             return
 
+        def build_ktx(tex_format: int, tex_pixfmt: int, width: int, height: int, frames: list[tuple[bytes, int]]):
+            ktx = ktx_magic  # identifier
+            ktx += struct.pack("<I", ktx_endianness)  # endianness
+            ktx += struct.pack("<I", 0)  # glType
+            ktx += struct.pack("<I", 1)  # glTypeSize
+            ktx += struct.pack("<I", 0)  # glFormat
+            ktx += struct.pack("<I", tex_format)  # glInternalFormat
+            ktx += struct.pack("<I", tex_pixfmt)  # glBaseInternalFormat
+            ktx += struct.pack("<I", width)  # pixelWidth
+            ktx += struct.pack("<I", height)  # pixelHeight
+            ktx += struct.pack("<I", 0)  # pixelDepth
+            if len(frames) > 1:
+                ktx += struct.pack("<I", len(frames))  # numberOfArrayElements
+            else:
+                ktx += struct.pack("<I", 0)  # numberOfArrayElements
+            ktx += struct.pack("<I", 1)  # numberOfFaces
+            ktx += struct.pack("<I", 1)  # numberOfMipmapLevels
+
+            if len(frames) > 1:
+                ktx += struct.pack("<I", 16 + 4 * len(frames))  # bytesOfKeyValueData
+                ktx += struct.pack("<I", 12 + 4 * len(frames))  # keyAndValueByteSize
+                ktx += ktx_durations  # key
+                for _, duration in frames:  # value
+                    ktx += struct.pack("<I", duration)
+            else:
+                ktx += struct.pack("<I", 0)  # bytesOfKeyValueData
+
+            for texture, _ in frames:
+                ktx += struct.pack("<I", len(texture))  # imageSize
+                ktx += texture  # data
+
+            return ktx
+
+        def ktx_compress(
+            cli: typing.Callable[[str, str], list[str]],
+            compressor_name: str,
+            supported_formats: tuple[str],
+            unsupported_msg: bytes,
+            intermediary_format: str,
+            texture_format: int,
+            texture_pixfmt: int,
+            format_name: str,
+        ):
+            if self.resolved_path.suffix == ".zst":
+                set_invalid(
+                    f"No source image available to compress to {format_name}!\n"
+                    "Reset image in order to re-compress it"
+                )
+                return False
+
+            global compress_counter
+            ktx = None
+
+            ktx_temp_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=".ktx"))
+            def _ktx_compress_one(src_path: pathlib.Path):
+                try:
+                    if globals.os is Os.Windows:
+                        kwargs = dict(
+                            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW,
+                            startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW),
+                        )
+                    else:
+                        kwargs = dict()
+                    subprocess.check_output(
+                        cli(src_path, ktx_temp_path),
+                        stderr=subprocess.STDOUT,
+                        **kwargs,
+                    )
+                    ktx_temp = ktx_temp_path.read_bytes()
+                    return ktx_temp, b""
+                except subprocess.CalledProcessError as exc:
+                    err = f"Process returned code {exc.returncode}\n".encode()
+                    err += exc.stdout or b"No console output"
+                    return b"", err
+                finally:
+                    ktx_temp_path.unlink(missing_ok=True)
+
+            try:
+                # Identify image format
+                image = Image.open(self.resolved_path)
+            except UnidentifiedImageError:
+                set_invalid(f"Pillow does not recognize this image format!")
+                return False
+
+            frames_remaining = getattr(image, "n_frames", 1)
+            compress_counter += frames_remaining
+            try:
+
+                if image.format in supported_formats and not getattr(image, "is_animated", False):
+                    # Image may be compressable as is, try it
+                    ktx_temp, err = _ktx_compress_one(self.resolved_path)
+                    if ktx_temp:
+                        # Compressed as is, just keep the ktx
+                        ktx = ktx_temp
+                    else:
+                        if unsupported_msg not in err:
+                            # Something else went wrong, bail
+                            set_invalid(f"{compressor_name} failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
+                            return False
+                        # Image format not supported as is, use intermediary files
+
+                if not ktx:
+                    # Can't compress as is, convert each frame to intermediary then compress
+                    intermediary_path = pathlib.Path(tempfile.mktemp(prefix=temp_prefix, suffix=intermediary_format))
+                    try:
+                        frames = []
+                        for i, frame in enumerate(ImageSequence.Iterator(image)):
+                            frame.save(intermediary_path)
+                            ktx_temp, err = _ktx_compress_one(intermediary_path)
+                            if not ktx_temp:
+                                set_invalid(f"{compressor_name} failed to compress this image:\n{err.decode('utf-8', errors='replace')}")
+                                return False
+                            magic = ktx_temp[0:12]
+                            if magic != ktx_magic:
+                                set_invalid(f"{compressor_name} returned an invalid KTX file:\nWrong KTX magic, {magic} != {ktx_magic}")
+                                return False
+                            fmt = "<I" if struct.unpack("<I", ktx_temp[12:16])[0] == ktx_endianness else ">I"
+                            if i == 0:
+                                pix_w = struct.unpack(fmt, ktx_temp[36:40])[0]
+                                pix_h = struct.unpack(fmt, ktx_temp[40:44])[0]
+                            kv_len = struct.unpack(fmt, ktx_temp[60:64])[0]
+                            tex_pos = 64 + kv_len
+                            tex_len = struct.unpack(fmt, ktx_temp[tex_pos:tex_pos + 4])[0]
+                            tex_pos += 4
+                            frames.append((ktx_temp[tex_pos:tex_pos + tex_len], int(frame.info.get("duration", 0))))
+                            frames_remaining -= 1
+                            compress_counter -= 1
+                        ktx = build_ktx(texture_format, texture_pixfmt, pix_w, pix_h, frames)
+                    except Exception:
+                        set_invalid(f"Failed {compressor_name} intermediary step:\n{error.text()}")
+                        return False
+                    finally:
+                        intermediary_path.unlink(missing_ok=True)
+            finally:
+                compress_counter -= frames_remaining
+                image.close()
+
+            if not ktx:
+                return False
+            ktx = zstd.compress(ktx, zstd_level)
+            ktx_path = self.resolved_path.with_suffix(f".{format_name.lower()}.ktx.zst")
+            ktx_path.write_bytes(ktx)
+            self.resolved_path = ktx_path
+            return True
+
+        if self.resolved_path.suffix == ".aastc":
+            # ASTC file but with multiple payloads and durations, for animated textures
+            # Only for backwards compatibility, gets migrated to KTX
+            aastc = self.resolved_path.read_bytes()
+            magic = aastc[0:4]
+            if magic != aastc_magic:
+                set_invalid(f"AASTC malformed:\nWrong magic, {magic} != {aastc_magic}")
+                return
+
+            block_x = aastc[4]
+            block_y = aastc[5]
+            block_z = aastc[6]
+            block = f"{block_x}x{block_y}"
+            if block_z != 1:
+                set_invalid(f"AASTC malformed:\n3D texture, only 2D supported")
+                return
+            if block != astc_block:
+                set_invalid(f"AASTC malformed:\nWrong block size, {block} != {astc_block}")
+                return
+
+            dim_x = struct.unpack("<I", aastc[7:10] + b"\0")[0]
+            dim_y = struct.unpack("<I", aastc[10:13] + b"\0")[0]
+            dim_z = struct.unpack("<I", aastc[13:16] + b"\0")[0]
+            if dim_z != 1:
+                set_invalid(f"AASTC malformed:\n3D texture, only 2D supported")
+                return
+
+            frames = []
+            frames_data = aastc[16:]
+            data_pos = 0
+            while data_pos < len(frames_data):
+                texture_len = struct.unpack("<Q", frames_data[data_pos:data_pos + 8])[0]
+                data_pos += 8
+                duration = struct.unpack("<I", frames_data[data_pos:data_pos + 4])[0]
+                data_pos += 4
+                texture = frames_data[data_pos:data_pos + texture_len]
+                data_pos += texture_len
+                if duration < 1:
+                    duration = 100
+                frames.append((texture, duration))
+
+            ktx = build_ktx(astc_format, astc_pixfmt, dim_x, dim_y, frames)
+            ktx = zstd.compress(ktx, zstd_level)
+            ktx_path = self.resolved_path.with_suffix(".astc.ktx.zst")
+            ktx_path.write_bytes(ktx)
+            try:
+                self.resolved_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            self.resolved_path = ktx_path
+
+        if globals.settings.tex_compress is TexCompress.ASTC and not self.resolved_path.name.endswith(".astc.ktx.zst"):
+            # Compress to ASTC
+            if not _find_astcenc():
+                set_invalid(
+                    f"ASTC-Encoder not found!\n" + (
+                        "Was it deleted?"
+                        if globals.frozen and (globals.release or globals.build_number) else
+                        "Download it and place it in PATH:\n"
+                        "https://github.com/ARM-software/astc-encoder/releases/tag/5.1.0"
+                    )
+                )
+                return
+            if not ktx_compress(
+                cli=lambda src, dst: [astcenc, "-cl", src, dst, astc_block, astc_quality, "-perceptual", "-silent"],
+                compressor_name="ASTC-Encoder",
+                supported_formats=("PNG", "JPEG", "BMP"),
+                unsupported_msg=b"unknown image type",
+                intermediary_format=".bmp",
+                texture_format=astc_format,
+                texture_pixfmt=astc_pixfmt,
+                format_name="ASTC",
+            ):
+                return
+
+        if globals.settings.tex_compress is TexCompress.BC7 and not self.resolved_path.name.endswith(".bc7.ktx.zst"):
+            # Compress to BC7
+            if not _find_compressonator():
+                set_invalid(
+                    "BC7 compression isn't supported on MacOS!\n"
+                    "Compressornator doesn't exist yet for MacOS"
+                    if globals.os is Os.MacOS else
+                    f"Compressonator not found!\n" + (
+                        "Was it deleted?"
+                        if globals.frozen and (globals.release or globals.build_number) else
+                        "Download it and place it in PATH:\n"
+                        "https://github.com/GPUOpen-Tools/compressonator/releases/tag/V4.5.52"
+                    )
+                )
+                return
+            if not ktx_compress(
+                cli=lambda src, dst: [compressonator, "-fd", "BC7", "-EncodeWith", compressonator_encoder, "-NumThreads", str(os.cpu_count()), src, dst],
+                compressor_name="Compressonator",
+                supported_formats=("PNG", "JPEG", "BMP"),
+                unsupported_msg=b"Could not load source file",
+                intermediary_format=".bmp",
+                texture_format=bc7_format,
+                texture_pixfmt=bc7_pixfmt,
+                format_name="BC7",
+            ):
+                return
+
+        if self.resolved_path.suffix == ".zst":
+            # Load compressed KTX
+            if not self.resolved_path.name.endswith((".astc.ktx.zst", ".bc7.ktx.zst")):
+                set_invalid(
+                    "Unknown KTX texture format!\n"
+                    "Reset image in order to re-compress it"
+                )
+                return
+
+            ktx = self.resolved_path.read_bytes()
+            magic = ktx[0:4]
+            if magic != zstd_magic:
+                set_invalid(f"KTX malformed:\nWrong ZSTD magic, {magic} != {zstd_magic}")
+            ktx = zstd.decompress(ktx)
+
+            magic = ktx[0:12]
+            if magic != ktx_magic:
+                set_invalid(f"KTX malformed:\nWrong KTX magic, {magic} != {ktx_magic}")
+                return
+            fmt = "<I" if struct.unpack("<I", ktx[12:16])[0] == ktx_endianness else ">I"
+
+            gl_type = struct.unpack(fmt, ktx[16:20])[0]
+            gl_type_size = struct.unpack(fmt, ktx[20:24])[0]
+            gl_format = struct.unpack(fmt, ktx[24:28])[0]
+            gl_internal_format = struct.unpack(fmt, ktx[28:32])[0]
+            gl_internal_pixfmt = struct.unpack(fmt, ktx[32:36])[0]
+            if gl_type != 0 or gl_type_size != 1 or gl_format != 0:
+                set_invalid(f"KTX malformed:\nUncompressed texture, only ASTC (6x6) and BC7 supported")
+                return
+            if gl_internal_format not in (astc_format, bc7_format):
+                set_invalid(f"KTX malformed:\nUnknown format, only ASTC (6x6) and BC7 supported")
+                return
+            if gl_internal_format == astc_format:
+                pixfmt = astc_pixfmt
+            elif gl_internal_format == bc7_format:
+                pixfmt = bc7_pixfmt
+            if gl_internal_pixfmt != pixfmt:
+                set_invalid(f"KTX malformed:\nWrong pixel format for compression type")
+                return
+
+            pix_w = struct.unpack(fmt, ktx[36:40])[0]
+            pix_h = struct.unpack(fmt, ktx[40:44])[0]
+            pix_d = struct.unpack(fmt, ktx[44:48])[0]
+            if pix_d != 0:
+                set_invalid(f"KTX malformed:\n3D texture, only 2D supported")
+                return
+            self.width = pix_w
+            self.height = pix_h
+
+            array_len = struct.unpack(fmt, ktx[48:52])[0] or 1
+
+            faces_count = struct.unpack(fmt, ktx[52:56])[0]
+            mipmap_count = struct.unpack(fmt, ktx[56:60])[0]
+            if faces_count != 1:
+                set_invalid(f"KTX malformed:\nCubemap texture, only 2D supported")
+                return
+            if mipmap_count != 1:
+                set_invalid(f"KTX malformed:\nMipmapped texture, only non-mipmapped supported")
+                return
+
+            durations = []
+            kv_len = struct.unpack(fmt, ktx[60:64])[0]
+            if kv_len:
+                kv = ktx[64:64 + kv_len]
+                while kv:
+                    kv_pair_len = struct.unpack(fmt, kv[0:4])[0]
+                    if kv[4:4 + kv_pair_len].startswith(ktx_durations):
+                        durationsms = kv[4 + len(ktx_durations):4 + kv_pair_len]
+                        while len(durationsms) >= 4:
+                            durations.append(struct.unpack(fmt, durationsms[0:4])[0])
+                            durationsms = durationsms[4:]
+                        break
+                    kv = kv[4 + kv_pair_len:]
+
+            frames_data = ktx[64 + kv_len:]
+            data_pos = 0
+            while len(self.textures) < array_len and data_pos < len(frames_data):
+                texture_len = struct.unpack(fmt, frames_data[data_pos:data_pos + 4])[0]
+                data_pos += 4
+                texture = frames_data[data_pos:data_pos + texture_len]
+                data_pos += texture_len
+                self.textures.append((texture, gl_internal_format))
+                if len(durations) < len(self.textures):
+                    duration = 100
+                else:
+                    duration = durations[len(self.textures) - 1]
+                self.durations.append(duration / 1000)
+                if not globals.settings.play_gifs:
+                    break
+            self.animated = len(self.textures) > 1
+
+            if self.glob and globals.settings.tex_compress is not TexCompress.Disabled and globals.settings.tex_compress_replace:
+                paths = list(self.path.glob(self.glob))
+                if len(paths) > 1:
+                    try:
+                        for path in paths:
+                            if path != self.resolved_path:
+                                path.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+
+            self.loaded = True
+            self.loading = False
+            apply_queue.append(self)
+            return
+
+        # Fallback to RGBA loading
         try:
             image = Image.open(self.resolved_path)
         except UnidentifiedImageError:
-            self.invalid = True
-            self.loaded = True
-            self.loading = False
+            set_invalid(f"Pillow does not recognize this image format!")
             return
 
-        self.width, self.height = image.size
-        for frame in ImageSequence.Iterator(image):
-            self.frames.append(get_rgba_pixels(frame))
-            if (duration := frame.info.get("duration", 0)) < 1:
-                duration = 100
-            self.durations.append(duration / 1000)
-        self.animated = len(self.durations) > 1
+        with image:
+            self.width, self.height = image.size
+            for frame in ImageSequence.Iterator(image):
+                if frame.mode == "RGB":
+                    texture = frame.tobytes("raw", "RGBX")
+                elif frame.mode == "RGBA":
+                    texture = frame.tobytes("raw", "RGBA")
+                else:
+                    texture = frame.convert("RGBA").tobytes("raw", "RGBA")
+                self.textures.append((texture, gl.GL_RGBA))
+                if (duration := frame.info.get("duration", 0)) < 1:
+                    duration = 100
+                self.durations.append(duration / 1000)
+                if not globals.settings.play_gifs:
+                    break
+            self.animated = len(self.textures) > 1
 
-        image.close()
         self.loaded = True
         self.loading = False
-        _apply_texture_queue.append(self.apply)
+        apply_queue.append(self)
 
     def apply(self):
         if self.texture_ids:
             gl.glDeleteTextures([self.texture_ids])
             self.texture_ids.clear()
-        texture_gen = gl.glGenTextures(len(self.frames))
-        self.texture_ids.extend([texture_gen] if len(self.frames) == 1 else texture_gen)
-        for frame, texture_id in zip(self.frames, self.texture_ids):
+        texture_gen = gl.glGenTextures(len(self.textures))
+        self.texture_ids.extend([texture_gen] if len(self.textures) == 1 else texture_gen)
+        for (texture, texture_format), texture_id in zip(self.textures, self.texture_ids):
             gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_BORDER)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_BORDER)
-            gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.width, self.height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, frame)
-        self.frames.clear()
+            try:
+                if texture_format == gl.GL_RGBA:
+                    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, texture_format, self.width, self.height, 0, texture_format, gl.GL_UNSIGNED_BYTE, texture)
+                else:
+                    gl.glCompressedTexImage2D(gl.GL_TEXTURE_2D, 0, texture_format, self.width, self.height, 0, texture)
+            except gl.GLError:
+                self._error = "Error applying texture:\n" + error.text()
+                break
+        self.textures.clear()
         self.applied = True
         gc.collect()
 
+    def unload(self):
+        if self.loaded and not self._missing and not self._error:
+            if self.texture_ids:
+                gl.glDeleteTextures([self.texture_ids])
+                self.texture_ids.clear()
+            if self.textures:
+                apply_queue.remove(self)
+                self.textures.clear()
+                gc.collect()
+            self.loaded = False
+
+    def reload(self):
+        self._missing = None
+        self._error = None
+        unload_queue.append(self)
+
     @property
     def texture_id(self):
+        self.shown = True
+
         if not self.loaded:
             if not self.loading:
                 self.loading = True
                 self.applied = False
-                # This next self.reload() actually loads the image and does all the conversion. It takes time and resources!
-                # self.reload()  # changed
-                # You can (and maybe should) run this in a thread! threading.Thread(target=self.reload, daemon=True).start()
+                # This next self.load() actually loads the image and does all the conversion. It takes time and resources!
+                # self.load()  # changed
+                # You can (and maybe should) run this in a thread! threading.Thread(target=self.load, daemon=True).start()
                 # Or maybe setup an image thread and queue images to load one by one?
                 # You could do this with https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44 like so:
-                sync_thread.queue(self.reload)  # changed
+                sync_thread.queue(self.load)  # changed
             return dummy_texture_id()
 
-        if self.missing or self.invalid:
+        if self._missing or self._error:
             return dummy_texture_id()
 
         if not self.applied:
             return dummy_texture_id()
 
-        if self.animated:
+        if self.animated and globals.settings.play_gifs and (globals.gui.focused or globals.settings.play_gifs_unfocused):
             if self.prev_time != (new_time := imgui.get_time()):
                 self.prev_time = new_time
                 self.elapsed += imgui.get_io().delta_time
@@ -211,9 +740,9 @@ class ImageHelper:
 
     def render(self, width: int, height: int, *args, **kwargs):
         if imgui.is_rect_visible(width, height):
-            if self.animated or self.loading:  # added
-                global redraw  # added
-                redraw = True  # added
+            if self.animated or self.loading:
+                global redraw
+                redraw = True
             if "rounding" in kwargs:
                 flags = kwargs.pop("flags", None)
                 if flags is None:

@@ -45,6 +45,7 @@ from common.structs import (
     Tab,
     Tag,
     TagHighlight,
+    TexCompress,
     TimelineEventType,
     Timestamp,
     Type,
@@ -386,6 +387,7 @@ class MainGUI():
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, gl.GL_TRUE)  # OS X supports only forward-compatible core profiles from 3.2
+        glfw.window_hint(glfw.VISIBLE, False)
 
         # Create a windowed mode window and its OpenGL context
         self.window: glfw._GLFWwindow = glfw.create_window(*size, "F95Checker", None, None)
@@ -670,16 +672,19 @@ class MainGUI():
         meslo_path  = str(next(globals.self_path.glob("resources/fonts/MesloLGS-Regular.*.ttf")))
         noto_path   = str(next(globals.self_path.glob("resources/fonts/NotoSans-Regular.*.ttf")))
         mdi_path    = str(icons.font_path)
+        mixin_path  = str(next(globals.self_path.glob("resources/fonts/custom-mixin.ttf")))
         merge = dict(merge_mode=True)
         oversample = dict(oversample_h=2, oversample_v=2)
         karla_config = imgui.core.FontConfig(         glyph_offset_y=-0.5, **oversample)
         meslo_config = imgui.core.FontConfig(                              **oversample)
         noto_config  = imgui.core.FontConfig(**merge, glyph_offset_y=-0.5, **oversample)
         mdi_config   = imgui.core.FontConfig(**merge, glyph_offset_y=+1.0)
+        mixin_config = imgui.core.FontConfig(**merge)
         karla_range = imgui.core.GlyphRanges([0x1,            0x25ca,         0])
         meslo_range = imgui.core.GlyphRanges([0x1,            0x2e2e,         0])
         noto_range  = imgui.core.GlyphRanges([0x1,            0xfffd,         0])
         mdi_range   = imgui.core.GlyphRanges([icons.min_char, icons.max_char, 0])
+        mixin_range = imgui.core.GlyphRanges([0x3000,         0x3000,         0])
         msgbox_range_values = []
         for icon in [icons.information, icons.alert_rhombus, icons.alert_octagon]:
             msgbox_range_values += [ord(icon), ord(icon)]
@@ -700,6 +705,7 @@ class MainGUI():
         fonts.default = add_font(karlar_path, size_18, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_18, font_config=noto_config,  glyph_ranges=noto_range)
         add_font(                mdi_path,    size_18, font_config=mdi_config,   glyph_ranges=mdi_range)
+        add_font(                mixin_path,  size_18, font_config=mixin_config, glyph_ranges=mixin_range)
         # Bold font + more glyphs + icons
         fonts.bold    = add_font(karlab_path, size_22, font_config=karla_config, glyph_ranges=karla_range)
         add_font(                noto_path,   size_22, font_config=noto_config,  glyph_ranges=noto_range)
@@ -838,6 +844,7 @@ class MainGUI():
         draw_next = 5.0
         size = (0, 0)
         cursor = -1
+        first_frame = True
         try:
             # While window is open
             while not glfw.window_should_close(self.window):
@@ -860,7 +867,6 @@ class MainGUI():
                 glfw.poll_events()
                 self.input_chars, self.poll_chars = self.poll_chars, self.input_chars
                 self.impl.process_inputs()
-                imagehelper.apply_textures()
                 if self.call_soon:
                     while self.call_soon and (call_soon := self.call_soon.pop(0)):
                         call_soon()
@@ -892,8 +898,10 @@ class MainGUI():
                     # Redraw only when needed
                     draw = (
                         (api.downloads and any(dl.state in (dl.State.Verifying, dl.State.Extracting) for dl in api.downloads.values()))
+                        or (imagehelper.redraw and globals.settings.play_gifs and (self.focused or globals.settings.play_gifs_unfocused))
                         or imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
+                        or imagehelper.apply_queue or imagehelper.unload_queue
                         or prev_scaling != globals.settings.interface_scaling
                         or prev_minimized != self.minimized
                         or api.session.connector._acquired
@@ -901,7 +909,6 @@ class MainGUI():
                         or prev_hidden != self.hidden
                         or size != self.prev_size
                         or self.recalculate_ids
-                        or imagehelper.redraw
                         or self.new_styles
                         or api.updating
                     )
@@ -960,10 +967,12 @@ class MainGUI():
                             text = f"Fetching {count} full thread{'s' if count > 1 else ''}..."
                         elif (count := api.fast_checks_counter) > 0:
                             text = f"Validating {count} cached item{'s' if count > 1 else ''}..."
-                        elif api.f95_ratelimit._waiters or api.f95_ratelimit_sleeping.count:
-                            text = f"Waiting for F95zone ratelimit..."
                         elif globals.last_update_check is None:
                             text = "Checking for updates..."
+                        elif (count := imagehelper.compress_counter) > 0:
+                            text = "Compressing images..." if count == 1 else f"Compressing {count} frames..."
+                        elif api.f95_ratelimit._waiters or api.f95_ratelimit_sleeping.count:
+                            text = f"Waiting for F95zone ratelimit..."
                         else:
                             text = self.watermark_text
                         _3 = self.scaled(3)
@@ -1009,8 +1018,12 @@ class MainGUI():
                             self.refresh_fonts()
                             self.refresh_styles()
                             async_thread.run(db.update_settings("interface_scaling"))
+                        imagehelper.post_draw()
                     # Wait idle time
                         glfw.swap_buffers(self.window)
+                        if first_frame:
+                            glfw.show_window(self.window)
+                            first_frame = False
                     else:
                         time.sleep(1 / 15)
                 else:
@@ -1954,7 +1967,7 @@ class MainGUI():
                         imgui.spacing()
                         imgui.text_disabled(f"{attr.title()}: ")
                         imgui.same_line()
-                        # Workaround to get fast line wrapping in ImGui but draw arrow in other color:
+                        # Hack: get fast line wrapping in ImGui but draw arrow in other color:
                         # Save position, draw full text with arrow in dimmed color, restore position,
                         # and draw full text in normal color like an overlay, with an Em Space instead
                         # of the arrow. This seems to be the only character that is whitespace but
@@ -2013,16 +2026,33 @@ class MainGUI():
             globals.updated_games.clear()
         return opened, closed
 
-    def draw_game_image_missing_text(self, game: Game, text: str):
-        self.draw_hover_text(
-            text=text,
-            hover_text=(
-                "This image link blocks us! You can blame Imgur." if game.image_url == "blocked" else
-                "This thread does not seem to have an image!" if game.image_url == "missing" else
-                "This image link cannot be reached anymore!" if game.image_url == "dead" else
-                "Run a full refresh to try downloading it again!"
-            )
-        )
+    def draw_game_image_error(self, game: Game, width: float, height: float):
+        if game.image.error == "Image file missing":
+            text = "Image missing!"
+            if game.custom:
+                hover_text = "Right click in More Info popup to add an image."
+            else:
+                hover_text = (
+                    "This image link blocks us! You can blame Imgur." if game.image_url == "blocked" else
+                    "This thread does not seem to have an image!" if game.image_url == "missing" else
+                    "This image link cannot be reached anymore!" if game.image_url == "dead" else
+                    "Run a refresh/recheck to try downloading it again!"
+                )
+        else:
+            text = "Image error!"
+            hover_text = game.image.error or "Unknown error"
+
+        text_size = imgui.calc_text_size(text)
+        if text_size.x >= width:
+            hover_text = f"{text}\n{hover_text}"
+            text = "( ! )"
+            text_size = imgui.calc_text_size(text)
+
+        pos = imgui.get_cursor_pos()
+        imgui.set_cursor_pos((pos.x + (width - text_size.x) / 2, pos.y + (height - text_size.y) / 2))
+        self.draw_hover_text(text=text, hover_text=hover_text)
+        imgui.set_cursor_pos(pos)
+        imgui.dummy(width, height)
 
     def draw_game_info_popup(self, game: Game, carousel_ids: list = None, popup_uuid: str = ""):
         def popup_content():
@@ -2034,23 +2064,12 @@ class MainGUI():
                 avail = avail._replace(x=avail.x + imgui.style.scrollbar_size)
             close_image = False
             zoom_popup = False
-            if image.missing:
-                text = "Image missing!"
-                width = imgui.calc_text_size(text).x
-                imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_game_image_missing_text(game, text)
-            elif image.invalid:
-                text = "Invalid image!"
-                width = imgui.calc_text_size(text).x
-                imgui.set_cursor_pos_x((avail.x - width + imgui.style.scrollbar_size) / 2)
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
-                )
+            out_height = (min(avail.y, self.scaled(690)) * self.scaled(0.4)) or 1
+            out_width = avail.x or 1
+            if image.error:
+                self.draw_game_image_error(game, out_width, out_height)
             else:
                 aspect_ratio = image.height / image.width
-                out_height = (min(avail.y, self.scaled(690)) * self.scaled(0.4)) or 1
-                out_width = avail.x or 1
                 if aspect_ratio > (out_height / out_width):
                     height = out_height
                     width = height * (1 / aspect_ratio)
@@ -2267,7 +2286,9 @@ class MainGUI():
                     if imgui.button(icons.folder_remove_outline):
                         game.remove_executable(executable)
                     imgui.same_line()
-                    imgui.text(executable)
+                    # Hack: make ImGui wrap arbitrarily by using an idegraphic space (U+3000) with 0-width font
+                    ig_space = "　"
+                    imgui.text(executable.replace("/", f"/{ig_space}").replace("\\", f"\\{ig_space}"))
 
             imgui.spacing()
 
@@ -3375,27 +3396,9 @@ class MainGUI():
         rounding = self.scaled(globals.settings.style_corner_radius)
         imgui.begin_group()
         # Image
-        if game.image.missing:
-            text = "Image missing!"
-            text_size = imgui.calc_text_size(text)
+        if game.image.error:
             showed_img = imgui.is_rect_visible(cell_width, img_height)
-            if text_size.x < cell_width:
-                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_game_image_missing_text(game, text)
-                imgui.set_cursor_pos(pos)
-            imgui.dummy(cell_width, img_height)
-        elif game.image.invalid:
-            text = "Invalid image!"
-            text_size = imgui.calc_text_size(text)
-            showed_img = imgui.is_rect_visible(cell_width, img_height)
-            if text_size.x < cell_width:
-                imgui.set_cursor_pos((pos.x + (cell_width - text_size.x) / 2, pos.y + img_height / 2))
-                self.draw_hover_text(
-                    text=text,
-                    hover_text="This thread's image has an unrecognised format and couldn't be loaded!"
-                )
-                imgui.set_cursor_pos(pos)
-            imgui.dummy(cell_width, img_height)
+            self.draw_game_image_error(game, cell_width, img_height)
         else:
             crop = game.image.crop_to_ratio(globals.settings.cell_image_ratio, fit=globals.settings.fit_images)
             showed_img = game.image.render(cell_width, img_height, *crop, rounding=rounding, flags=imgui.DRAW_ROUND_CORNERS_TOP)
@@ -3850,10 +3853,12 @@ class MainGUI():
         elif self.hovered_game:
             # Hover = show image
             game = self.hovered_game
-            if game.image.missing:
-                imgui.button("Image missing!", width=width, height=height)
-            elif game.image.invalid:
-                imgui.button("Invalid image!", width=width, height=height)
+            if game.image.error:
+                if game.image.error == "Image file missing":
+                    text = "Image missing!"
+                else:
+                    text = "Invalid image!"
+                imgui.button(text, width=width, height=height)
             else:
                 crop = game.image.crop_to_ratio(width / height, fit=globals.settings.fit_images)
                 game.image.render(width, height, *crop, rounding=self.scaled(globals.settings.style_corner_radius))
@@ -4306,6 +4311,74 @@ class MainGUI():
 
             if not set.zoom_enabled:
                 imgui.pop_disabled()
+
+            draw_settings_label("Play GIFs:")
+            if draw_settings_checkbox("play_gifs"):
+                for image in imagehelper.ImageHelper.instances:
+                    image.reload()
+
+            if not set.play_gifs:
+                imgui.push_disabled()
+            draw_settings_label("Play GIFs unfocused:")
+            draw_settings_checkbox("play_gifs_unfocused")
+            if not set.play_gifs:
+                imgui.pop_disabled()
+
+            draw_settings_label(
+                "Tex compress:",
+                "Compress textures using ASTC (6x6/80) or BC7. If supported by GPU, results in dramatically faster image loading "
+                "with no perceptible loss in visual quality. Depending on GPU model and drivers it might also decrease VRAM "
+                "usage. Disk usage should be roughly the same (some images compress better than others, it averages out).\n\n"
+                "ASTC:\n"
+                "+ when supported takes 9x less VRAM\n"
+                "+ takes 20%% less disk space than original images\n"
+                "+ compresses slightly faster than BC7\n"
+                "- very limited GPU support, may not work at all\n"
+                "- when unsupported may use same VRAM as uncompressed (decompressed on-the-fly)\n"
+                "- may heavily stutter when loading (due to decompressing on-the-fly)\n"
+                "BC7:\n"
+                "+ when supported takes 4x less VRAM\n"
+                "+ supported by most GPUs\n"
+                "+ more likely to decrease VRAM usage than ASTC\n"
+                "- takes 60%% more disk space than original images\n"
+                "- compresses slightly slower than ASTC\n"
+                "- not supported on MacOS\n"
+                "Visual quality tends to be equivalent.\n\n"
+                "Images are compressed when first shown, and it takes some time, especially so for GIFs. After compressing, the "
+                "result is saved to file, and next loads will be instantaneous.\n"
+                "If you're looking to compare VRAM usage, make sure to restart the tool (fully quit and reopen) between "
+                "measurements. This is because the GPU does not release VRAM until something else needs it, it's just marked "
+                "as unused, which would give the same VRAM usage number between compressed and not.\n"
+                "If only a compressed image is found it will be used even if this option is disabled (for example, if you enabled "
+                "Compress replace, the replaced images will continue to use the compressed file even if this setting is off)."
+            )
+            changed, value = imgui.combo("###tex_compress", set.tex_compress._index_, TexCompress._member_names_)
+            if changed:
+                set.tex_compress = TexCompress[TexCompress._member_names_[value]]
+                async_thread.run(db.update_settings("tex_compress"))
+                for image in imagehelper.ImageHelper.instances:
+                    image.reload()
+
+            if set.tex_compress is TexCompress.Disabled:
+                imgui.push_disabled()
+            draw_settings_label(
+                "Compress replace:",
+                "Remove original images after texture compression. Enabling this is retro-active: it will delete source images for "
+                "ones already compressed. Not enabling this option means roughly double disk space usage due to duplicate "
+                "images files."
+            )
+            if draw_settings_checkbox("tex_compress_replace"):
+                for image in imagehelper.ImageHelper.instances:
+                    image.reload()
+            if set.tex_compress is TexCompress.Disabled:
+                imgui.pop_disabled()
+
+            draw_settings_label(
+                "Unload off-screen:",
+                "Unloads images from VRAM when they are not visible. Will be loaded again when next visible. Works best "
+                "together with Tex compress, so image load times are less noticeable."
+            )
+            draw_settings_checkbox("unload_offscreen_images")
 
             imgui.end_table()
             imgui.spacing()
@@ -4802,6 +4875,12 @@ class MainGUI():
         if draw_settings_section("Refresh"):
             draw_settings_label("Check alerts and inbox:")
             draw_settings_checkbox("check_notifs")
+
+            draw_settings_label(
+                "Banners in update notifs:",
+                "Whether to include a banner image when sending desktop notifications for updates."
+            )
+            draw_settings_checkbox("notifs_show_update_banner")
 
             draw_settings_label("Refresh if archived:")
             draw_settings_checkbox("refresh_archived_games")

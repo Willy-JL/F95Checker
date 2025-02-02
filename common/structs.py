@@ -13,6 +13,7 @@ import time
 import typing
 import weakref
 
+from external import weakerset
 from modules import colors
 
 
@@ -182,7 +183,7 @@ class ChildPipe(AbstractPipe):
 
 
 class Timestamp:
-    instances = weakref.WeakSet()
+    instances = weakerset.WeakerSet()
 
     __slots__ = ("value", "_display", "__weakref__",)
 
@@ -214,7 +215,7 @@ class Timestamp:
 
 
 class Datestamp(Timestamp):
-    instances = weakref.WeakSet()
+    instances = weakerset.WeakerSet()
 
     __slots__ = ()
 
@@ -590,6 +591,13 @@ ProxyType = IntEnumHack("ProxyType", [
 ])
 
 
+TexCompress = IntEnumHack("TexCompress", [
+    ("Disabled", 1),
+    ("ASTC",     2),
+    ("BC7",      3),
+])
+
+
 @dataclasses.dataclass(slots=True)
 class Filter:
     mode: FilterMode
@@ -843,6 +851,9 @@ class Settings:
     mark_installed_after_add    : bool
     max_connections             : int
     max_retries                 : int
+    notifs_show_update_banner   : bool
+    play_gifs                   : bool
+    play_gifs_unfocused         : bool
     proxy_type                  : ProxyType
     proxy_host                  : str
     proxy_port                  : int
@@ -874,7 +885,10 @@ class Settings:
     style_text_dim              : tuple[float]
     table_header_outside_list   : bool
     tags_highlights             : dict[Tag, TagHighlight]
+    tex_compress                : TexCompress
+    tex_compress_replace        : bool
     timestamp_format            : str
+    unload_offscreen_images     : bool
     vsync_ratio                 : int
     weighted_score              : bool
     zoom_area                   : int
@@ -992,8 +1006,7 @@ class Game:
 
     def refresh_image(self):
         self.image.glob = f"{self.id}.*"
-        self.image.loaded = False
-        self.image.resolve()
+        self.image.reload()
 
     async def set_image_async(self, data: bytes):
         from modules import globals, utils
