@@ -507,7 +507,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                         token = float(token)
                     except ValueError:
                         attr = str(attr).lower()
-                    return compare(attr, token)
+                    return f.nodes[0].invert != compare(attr, token)
             # Boolean matches
             case "is" | "any" | "all":
                 def key(game: Game, f: SearchLogic):
@@ -515,10 +515,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                     for node in f.nodes:
                         token = attr_for(node.token, game)
                         if node.token in ["finished", "installed"]: token = token[0]
-                        matches.append(token)
+                        matches.append(node.invert != bool(token))
                     return and_or(matches)
             case "archived" | "custom":
-                key = lambda game, f: (str(attr_for(f.token, game)).lower() == f.nodes[0].token)
+                key = lambda game, f: (f.nodes[0].invert != (str(attr_for(f.token, game)).lower() == f.nodes[0].token))
             # Custom matches
             case "exe" | "image":
                 def key(game: Game, f: SearchLogic):
@@ -530,25 +530,26 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                             case "valid":       output = exists and valid
                             case "selected":    output = exists
                             case "unset":       output = not exists
+                        output = node.invert != output
                         if output == (f.logic == "|"):
                             return output
                     return output
             # Tag matches
             case "tag":
                 enum_match(Tag)
-                key = lambda game, f: (and_or(any(tag in game.tags for tag in node.token) or (node.token in game.unknown_tags) for node in f.nodes))
+                key = lambda game, f: (and_or(node.invert != (any(tag in game.tags for tag in node.token) or (node.token in game.unknown_tags)) for node in f.nodes))
             # Enum matches
             case "label":
                 enum_match(Label.instances)
-                key = lambda game, f: (and_or(any(label in game.labels for label in node.token) for node in f.nodes))
+                key = lambda game, f: (and_or(node.invert != any(label in game.labels for label in node.token) for node in f.nodes))
             case "tab" | "status" | "type":
                 enum_match(attr_for(head.token))
-                key = lambda game, f: (and_or((str(node.token) != node.token) and (attr_for(f.token, game) in node.token) for node in f.nodes))
+                key = lambda game, f: (and_or(node.invert != ((str(node.token) != node.token) and (attr_for(f.token, game) in node.token)) for node in f.nodes))
             # String matches
             case "name" | "title" | "developer" | "dev" | "version" | "ver" | "note" | "notes" | "url" | "description" | "desc":
-                key = lambda game, f: (and_or(re.match(regexp(node.token), attr_for(head.token, game), re.IGNORECASE) for node in f.nodes))
+                key = lambda game, f: (and_or(node.invert != re.match(regexp(node.token), attr_for(head.token, game), re.IGNORECASE) for node in f.nodes))
             case "downloads":
-                key = lambda game, f: (and_or(bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, attr_for(head.token, game)))) for node in f.nodes))
+                key = lambda game, f: (and_or(node.invert != bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, attr_for(head.token, game)))) for node in f.nodes))
             # List matches
             case "executables" | "exes" | "tags" | "labels":
                 def key(game: Game, f: SearchLogic):
@@ -558,7 +559,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                         token = float(token)
                     except ValueError:
                         pass
-                    return compare(attr, token)
+                    return f.nodes[0].invert != compare(attr, token)
             # Timeline matches
             case "gameadded" | "gamelaunched" | "gamefinished" | "finished" | "gameinstalled" | "installed" | "changedname" | "changedstatus" | "changedversion" | "changeddeveloper" | "changedtype" | "tagsadded" | "tagsremoved" | "scoreincreased" | "scoredecreased" | "recheckexpired" | "recheckuserreq":
                 match = r"game|changed|tags|score|recheck"
@@ -574,7 +575,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                     do_timeline = any(event.type == query_type for event in game.timeline_events)
                     try:
                         event = next((e for e in game.timeline_events if e.type == query_type), None)
-                        return bool(event) & compare(event.timestamp.value, float(f.nodes[0].token))
+                        return f.nodes[0].invert != (bool(event) & compare(event.timestamp.value, float(f.nodes[0].token)))
                     except Exception:
                         for node in f.nodes:
                             match node.token:
@@ -585,6 +586,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                                 case _:
                                     args = set(arg for event in game.timeline_events for arg in event.arguments if event.type == query_type)
                                     output = do_timeline & bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, args)))
+                            output = node.invert != output
                             if output == (f.logic == "|"):
                                 break
                     return output
