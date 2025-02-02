@@ -487,7 +487,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             case "=":  compare = lambda l, r: (l == r)
             case ">":  compare = lambda l, r: (l >  r)
             case ">=": compare = lambda l, r: (l >= r)
-        if head.token in ["added", "updated", "launched", "finished", "installed"].__add__(TimelineEventType._member_names_):
+        if head.token in ["added", "updated", "launched", "finished", "installed"].__add__([enum.lower() for enum in TimelineEventType._member_names_]):
             try:
                 date = dt.datetime.strptime(head.nodes[0].token, globals.settings.datestamp_format)
                 if head.type in ["<=", ">"]:
@@ -543,7 +543,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 key = lambda game, f: (and_or(any(label in game.labels for label in node.token) for node in f.nodes))
             case "tab" | "status" | "type":
                 enum_match(attr_for(head.token))
-                key = lambda game, f: (and_or(attr_for(f.token, game) in node.token for node in f.nodes))
+                key = lambda game, f: (and_or((str(node.token) != node.token) and (attr_for(f.token, game) in node.token) for node in f.nodes))
             # String matches
             case "name" | "title" | "developer" | "dev" | "version" | "ver" | "note" | "notes" | "url" | "description" | "desc":
                 key = lambda game, f: (and_or(re.match(regexp(node.token), attr_for(head.token, game), re.IGNORECASE) for node in f.nodes))
@@ -569,7 +569,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 if suffix == "userreq": suffix = "UserReq"
                 query_type = TimelineEventType[prefix.capitalize() + suffix.capitalize()]
                 def key(game: Game, f: SearchLogic):
-                    exists, valid = attr_for(f.token, game) if head.token in ["finished", "installed"] else tuple(True, True)
+                    exists, valid = attr_for(f.token, game) if head.token in ["finished", "installed"] else (True, True)
                     output: bool = f.logic == "&"
                     do_timeline = any(event.type == query_type for event in game.timeline_events)
                     try:
