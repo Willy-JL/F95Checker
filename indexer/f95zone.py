@@ -10,7 +10,7 @@ import aiohttp
 import aiolimiter
 
 RATELIMIT = aiolimiter.AsyncLimiter(max_rate=1, time_period=0.5)
-TIMEOUT = aiohttp.ClientTimeout(total=30)
+TIMEOUT = aiohttp.ClientTimeout(total=30, connect=30, sock_read=30, sock_connect=30)
 LOGIN_ERROR_MESSAGES = (
     b'<a href="/login/" data-xf-click="overlay">Log in or register now.</a>',
     b"<title>Log in | F95zone</title>",

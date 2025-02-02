@@ -35,6 +35,19 @@ class ParsedThread:
     previews_urls: list[str]
     downloads: list[tuple[str, list[tuple[str, str]]]]
 
+@dataclasses.dataclass(slots=True)
+class ParsedReview:
+    user: str
+    score: int
+    message: str
+    likes: int
+    timestamp: int
+
+@dataclasses.dataclass(slots=True)
+class ParsedReviews:
+    total: int
+    items: list[ParsedReview]
+
 f95_host = "https://f95zone.to/"
 
 # [^\S\r\n] = whitespace but not newlines
@@ -507,3 +520,55 @@ developer_remove_patterns = [
     r" enty",
     r"https?://\S*",
 ]
+
+
+def reviews(res: bytes) -> ParsedReviews | ParserError:
+    try:
+        html = _html(res)
+        body = html.find(is_class("p-body-pageContent"))
+        if body is None:
+            logo = html.select_one(".p-header-logo img")
+            if logo and logo.attrs.get("alt") == "F95zone":
+                e = ParserError(
+                    message="Thread structure missing",
+                    dump=res,
+                )
+            else:
+                e = ParserError(
+                    message="Not an F95zone payload",
+                    dump=res,
+                )
+            return e
+        parsed_reviews = []
+        for review in body.find_all(is_class("block-row")):
+            user = review.get("data-author")
+            score = int(review.find(is_class("ratingStars")).get("title")[0])
+            message = review.find(is_class("bbWrapper")).get_text()
+            likes_bar = review.find(is_class("likesBar")).find("a")
+            if not likes_bar:
+                likes = 0
+            else:
+                likes = len(likes_bar.find_all("bdi"))
+                if likes_match := re.search(r"and (\d+) other", likes_bar.get_text().replace(",", "")):
+                    likes += int(likes_match.group(1))
+            timestamp = int(review.find(is_class("u-dt")).get("data-time"))
+            parsed_review = ParsedReview(
+                user=user,
+                score=score,
+                message=message,
+                likes=likes,
+                timestamp=timestamp,
+            )
+            parsed_reviews.append(parsed_review)
+        total = int(body.find(is_class("js-displayTotals")).get("data-total"))
+    except Exception:
+        e = ParserError(
+            message=f"Unhandled exception: {error.text()}",
+            dump=error.traceback()
+        )
+        return e
+    ret = ParsedReviews(
+        total=total,
+        items=parsed_reviews,
+    )
+    return ret

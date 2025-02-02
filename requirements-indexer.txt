@@ -4,7 +4,7 @@ redis[hiredis]==5.2.0
 uvicorn[standard]==0.32.1
 
 # Async goodness
-aiohttp==3.11.7
+aiohttp==3.11.11
 aiolimiter==1.1.0
 
 # BeautifulSoup
