@@ -323,7 +323,8 @@ def create_query(query: list[str]) -> SearchLogic:
                 or_query.nodes.append(head.nodes.pop(i - 1))
             else:
                 or_query = head.nodes[i - 1]
-            or_query.nodes.append(head.nodes.pop(i))
+            if i < len(head.nodes):
+                or_query.nodes.append(head.nodes.pop(i))
         else:
             head.nodes.insert(i, token)
             i += 1
@@ -439,6 +440,8 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 return game.description
             case "site" | "url":
                 return game.url
+            case "imageurl":
+                return game.image_url
             # Date matches
             case "added":
                 return game.added_on.value
@@ -530,6 +533,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                             case "valid":       output = exists and valid
                             case "selected":    output = exists
                             case "unset":       output = not exists
+                            case _:             output = game.image_url == node.token if f.token == "image" else False
                         output = node.invert != output
                         if output == (f.logic == "|"):
                             return output
@@ -546,7 +550,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 enum_match(attr_for(head.token))
                 key = lambda game, f: (and_or(node.invert != ((str(node.token) != node.token) and (attr_for(f.token, game) in node.token)) for node in f.nodes))
             # String matches
-            case "name" | "title" | "developer" | "dev" | "version" | "ver" | "note" | "notes" | "url" | "description" | "desc":
+            case "name" | "title" | "developer" | "dev" | "version" | "ver" | "note" | "notes" | "url" | "description" | "desc" | "imageurl":
                 key = lambda game, f: (and_or(node.invert != re.match(regexp(node.token), attr_for(head.token, game), re.IGNORECASE) for node in f.nodes))
             case "downloads":
                 key = lambda game, f: (and_or(node.invert != bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, attr_for(head.token, game)))) for node in f.nodes))
