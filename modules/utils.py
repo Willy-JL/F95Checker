@@ -483,7 +483,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             regex += re.escape(part) + ".*"
         return regex
     if head.type[0] in ["<", "=", ">"]:
-        and_or = any if head.logic == "|" else all
+        and_or = any if (head.logic == "|") != head.invert else all
         match head.type:
             case "<":  compare = lambda l, r: (l <  r)
             case "<=": compare = lambda l, r: (l <= r)
@@ -512,13 +512,13 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                         attr = str(attr).lower()
                     return f.nodes[0].invert != compare(attr, token)
             # Boolean matches
-            case "is" | "any" | "all":
+            case "is" | "any" | "all" | "has":
                 def key(game: Game, f: SearchLogic):
                     matches = []
                     for node in f.nodes:
                         token = attr_for(node.token, game)
                         if node.token in ["finished", "installed"]: token = token[0]
-                        matches.append(node.invert != bool(token))
+                        matches.append(bool(token))
                     return and_or(matches)
             case "archived" | "custom":
                 key = lambda game, f: (f.nodes[0].invert != (str(attr_for(f.token, game)).lower() == f.nodes[0].token))
@@ -605,10 +605,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             game = globals.games[id]
             return head.invert != bool(set(filter(regex, [game.version, game.developer, game.name, game.notes])))
     elif head.type in ["|", "&"]:
-        queries: set[int] = set() if head.type == "|" else base_ids
+        queries: set[int] = set() if (head.logic == "|") != head.invert else base_ids
         for node in head.nodes:
             new_query = parse_query(node, base_ids)
-            queries = queries.union(new_query) if head.type == "|" else queries.intersection(new_query)
+            queries = queries.union(new_query) if (head.logic == "|") != head.invert else queries.intersection(new_query)
         key = lambda id: (head.invert != (id in queries))
     else:
         return []
