@@ -1,4 +1,5 @@
 ### Added:
+- Reviews Tab in More Info Popup (#224 by @Willy-JL)
 - Image Texture Compression (`(ASTC or BC7) + ZSTD`) option (#212 by @Willy-JL):
   - Compresses images for instantaneous load times (after first compression which is slower)
   - Less VRAM usage, and potentially less disk usage, depending on configuration and GPU support
