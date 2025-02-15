@@ -2817,6 +2817,7 @@ class MainGUI():
                 "FaceCrap",
                 "WhiteVanDaycare",
                 "ascsd",
+                "GioBol",
                 "Jarulf",
                 "rozzic",
                 "Belfaier",
