@@ -4956,7 +4956,7 @@ class MainGUI():
             draw_settings_checkbox("check_notifs")
 
             draw_settings_label(
-                "Banners in update notifs:",
+                "Update notifs banners:",
                 "Whether to include a banner image when sending desktop notifications for updates."
             )
             draw_settings_checkbox("notifs_show_update_banner")
