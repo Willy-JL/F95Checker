@@ -231,8 +231,8 @@ Please note that this software is not ( yet ;) ) officially affiliated with the 
 Supporters:
 
 [FaceCrap](https://f95zone.to/members/2913051/) - [WhiteVanDaycare](https://f95zone.to/members/3509231/) - [ascsd](https://f95zone.to/members/3977760/) -
-[Jarulf](https://f95zone.to/members/2709937/) - [rozzic](https://f95zone.to/members/449099/) - [Belfaier](https://f95zone.to/members/7363156/) -
-[warez_gamez](https://f95zone.to/members/81517/) - [DeadMoan](https://f95zone.to/members/4392187/) - And 3 anons
+[GioBol](https://f95zone.to/members/3716618/) - [Jarulf](https://f95zone.to/members/2709937/) - [rozzic](https://f95zone.to/members/449099/) -
+[Belfaier](https://f95zone.to/members/7363156/) - [warez_gamez](https://f95zone.to/members/81517/) - [DeadMoan](https://f95zone.to/members/4392187/) - And 3 anons
 
 Contributors:
 
