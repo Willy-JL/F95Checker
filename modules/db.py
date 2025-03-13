@@ -1,6 +1,7 @@
 import asyncio
 import configparser
 import contextlib
+import dataclasses
 import enum
 import json
 import pathlib
@@ -301,6 +302,8 @@ async def connect():
             "image_url":                   f'TEXT    DEFAULT ""',
             "previews_urls":               f'TEXT    DEFAULT "[]"',
             "downloads":                   f'TEXT    DEFAULT "[]"',
+            "reviews_total":               f'INTEGER DEFAULT 0',
+            "reviews":                     f'TEXT    DEFAULT "[]"',
         },
         renames=[
             ("executable",           "executables"),
@@ -386,7 +389,10 @@ def sql_to_py(value: str | int | float, data_type: typing.Type):
                     value = data_type([value]) if value else data_type()
                 if args:
                     content_type = args[0]
-                    value = data_type(x for x in (content_type(x) for x in value) if x is not None)
+                    if hasattr(content_type, "__dataclass_fields__"):
+                        value = data_type(x for x in (content_type(**x) for x in value) if x is not None)
+                    else:
+                        value = data_type(x for x in (content_type(x) for x in value) if x is not None)
         case _:
             if isinstance(data_type, types.UnionType):
                 if (
@@ -490,12 +496,16 @@ def py_to_sql(value: enum.Enum | Timestamp | bool | list | tuple | typing.Any):
     elif isinstance(value, list):
         value = value.copy()
         value = [getattr(item, "value", getattr(item, "id", item)) for item in value]
+        if value and hasattr(value[0], "__dataclass_fields__"):
+            value = [dataclasses.asdict(item) for item in value]
         value = json.dumps(value)
     elif isinstance(value, tuple):
         if 3 <= len(value) <= 4 and all(type(item) in (float, int) for item in value):
             value = colors.rgba_0_1_to_hex(value)
         else:
             value = [getattr(item, "value", getattr(item, "id", item)) for item in value]
+            if value and hasattr(value[0], "__dataclass_fields__"):
+                value = [dataclasses.asdict(item) for item in value]
             value = json.dumps(value)
     return value
 

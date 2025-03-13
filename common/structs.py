@@ -674,6 +674,15 @@ class TimelineEvent:
 
 
 @dataclasses.dataclass(slots=True)
+class Review:
+    user: str
+    score: int
+    message: str
+    likes: int
+    timestamp: int
+
+
+@dataclasses.dataclass(slots=True)
 class Label:
     id: int
     name: str
@@ -970,6 +979,8 @@ class Game:
     image_url          : str
     previews_urls      : list[str]
     downloads          : tuple[tuple[str, list[tuple[str, str]]]]
+    reviews_total      : int
+    reviews            : list[Review]
     selected           : bool = False
     image              : "imagehelper.ImageHelper" = None
     executables_valids : list[bool] = None
@@ -1145,7 +1156,9 @@ class Game:
             "notes",
             "image_url",
             "previews_urls",
-            "downloads"
+            "downloads",
+            "reviews_total",
+            "reviews",
         ]:
             if isinstance(attr := getattr(self, name), Timestamp):
                 attr.update(value)
