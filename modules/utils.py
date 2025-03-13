@@ -478,10 +478,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             if enum_matches:
                 node.token = enum_matches
     def regexp(token: str) -> str:
-        regex = ".*"
+        regex = ""
         for part in token.split("*"):
             regex += re.escape(part) + ".*"
-        return regex
+        return regex[:-2]
     if head.type[0] in ["<", "=", ">"]:
         and_or = any if (head.logic == "|") != head.invert else all
         match head.type:
@@ -551,7 +551,7 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
                 key = lambda game, f: (and_or(node.invert != ((str(node.token) != node.token) and (attr_for(f.token, game) in node.token)) for node in f.nodes))
             # String matches
             case "name" | "title" | "developer" | "dev" | "version" | "ver" | "note" | "notes" | "url" | "description" | "desc" | "imageurl":
-                key = lambda game, f: (and_or(node.invert != re.match(regexp(node.token), attr_for(head.token, game), re.IGNORECASE) for node in f.nodes))
+                key = lambda game, f: (and_or(node.invert != bool(re.match(regexp(node.token), attr_for(head.token, game), re.IGNORECASE)) for node in f.nodes))
             case "downloads":
                 key = lambda game, f: (and_or(node.invert != bool(set(filter(re.compile(regexp(node.token), re.IGNORECASE).match, attr_for(head.token, game)))) for node in f.nodes))
             # List matches
