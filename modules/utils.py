@@ -478,10 +478,10 @@ def parse_query(head: SearchLogic, base_ids: set[int]) -> set[int]:
             if enum_matches:
                 node.token = enum_matches
     def regexp(token: str) -> str:
-        regex = ""
+        regex = ".*"
         for part in token.split("*"):
             regex += re.escape(part) + ".*"
-        return regex[:-2]
+        return regex
     if head.type[0] in ["<", "=", ">"]:
         and_or = any if (head.logic == "|") != head.invert else all
         match head.type:
