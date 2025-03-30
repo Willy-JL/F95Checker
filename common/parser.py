@@ -396,7 +396,7 @@ def thread(res: bytes) -> ParsedThread | ParserError:
                         unknown_tags.append(tag)
                     else:
                         tags.append(Tag[tag])
-        tags = tuple(sorted(tags))
+        tags = tuple(sorted(tags, key=lambda tag: tag.name))
 
         elem = post.find(is_class("bbWrapper")).find(lambda elem: elem.name == "img" and "data-src" in elem.attrs)
         if elem:

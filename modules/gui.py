@@ -1701,9 +1701,9 @@ class MainGUI():
             changed, value = imgui.checkbox(f"###{game.id}_tag_{tag.value}", tag in game.tags)
             if changed:
                 if value:
-                    game.tags = tuple(sorted(list(game.tags) + [tag]))
+                    game.tags = tuple(sorted(list(game.tags) + [tag], key=lambda tag: tag.name))
                 else:
-                    game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
+                    game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags), key=lambda tag: tag.name))
             imgui.same_line()
             self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
 
