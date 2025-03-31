@@ -8,6 +8,7 @@ import shutil
 import struct
 import subprocess
 import tempfile
+import time
 import typing
 
 from PIL import (
@@ -121,8 +122,7 @@ def _find_compressonator():
         compressonator = _compressonator
     return compressonator
 
-
-def post_draw():
+def post_draw(draw_time: float):
     # Unload images if not visible
     if globals.settings.unload_offscreen_images:
         hidden = globals.gui.minimized or globals.gui.hidden
@@ -134,9 +134,21 @@ def post_draw():
     for image in reversed(unload_queue):
         image.unload()
         unload_queue.remove(image)
-    # Max 1 apply per frame, mitigates stutters
+    # At least 1 apply per frame
+    # Apply more based on how much delta time and draw time we have
     if apply_queue:
-        apply_queue.pop(0).apply()
+        apply_time_max_total = max(0, imgui.get_io().delta_time - draw_time)
+        apply_stop = time.perf_counter() + apply_time_max_total
+        apply_parallel = len(apply_queue)
+        apply_time_max = apply_time_max_total / apply_parallel
+        apply_idx = 0
+        for _ in range(apply_parallel):
+            if apply_queue[apply_idx].apply(apply_time_max):
+                apply_queue.pop(apply_idx)
+            else:
+                apply_idx += 1
+            if time.perf_counter() > apply_stop:
+                break
 
 
 def dummy_texture_id():
@@ -200,7 +212,7 @@ class ImageHelper:
     def __init__(self, path: str | pathlib.Path, glob=""):
         self.width = 1
         self.height = 1
-        self.frame = -1
+        self.frame = 0
         self.glob = glob
         self.elapsed = 0.0
         self.loaded = False
@@ -266,7 +278,7 @@ class ImageHelper:
         self.applied = False
         self.resolve()
 
-        self.frame = -1
+        self.frame = 0
         self.elapsed = 0.0
         self.textures.clear()
         self._error = None
@@ -278,6 +290,7 @@ class ImageHelper:
             self._error = err
             self.loaded = True
             self.loading = False
+            unload_queue.append(self)
 
         if self._missing:
             set_invalid("Image file missing")
@@ -606,6 +619,7 @@ class ImageHelper:
 
             frames_data = ktx[64 + kv_len:]
             data_pos = 0
+            first_frame = True
             while len(self.textures) < array_len and data_pos < len(frames_data):
                 texture_len = struct.unpack(fmt, frames_data[data_pos:data_pos + 4])[0]
                 data_pos += 4
@@ -617,9 +631,13 @@ class ImageHelper:
                 else:
                     duration = durations[len(self.textures) - 1]
                 self.durations.append(duration / 1000)
+                if first_frame:
+                    apply_queue.append(self)
+                    first_frame = False
+                else:
+                    self.animated = True
                 if not globals.settings.play_gifs:
                     break
-            self.animated = len(self.textures) > 1
 
             if self.glob and globals.settings.tex_compress is not TexCompress.Disabled and globals.settings.tex_compress_replace:
                 paths = list(self.path.glob(self.glob))
@@ -633,7 +651,6 @@ class ImageHelper:
 
             self.loaded = True
             self.loading = False
-            apply_queue.append(self)
             return
 
         # Fallback to RGBA loading
@@ -645,6 +662,7 @@ class ImageHelper:
 
         with image:
             self.width, self.height = image.size
+            first_frame = True
             for frame in ImageSequence.Iterator(image):
                 if frame.mode == "RGB":
                     texture = frame.tobytes("raw", "RGBX")
@@ -656,21 +674,23 @@ class ImageHelper:
                 if (duration := frame.info.get("duration", 0)) < 1:
                     duration = 100
                 self.durations.append(duration / 1000)
+                if first_frame:
+                    apply_queue.append(self)
+                    first_frame = False
+                else:
+                    self.animated = True
                 if not globals.settings.play_gifs:
                     break
-            self.animated = len(self.textures) > 1
 
         self.loaded = True
         self.loading = False
-        apply_queue.append(self)
 
-    def apply(self):
-        if self.texture_ids:
-            gl.glDeleteTextures([self.texture_ids])
-            self.texture_ids.clear()
-        texture_gen = gl.glGenTextures(len(self.textures))
-        self.texture_ids.extend([texture_gen] if len(self.textures) == 1 else texture_gen)
-        for (texture, texture_format), texture_id in zip(self.textures, self.texture_ids):
+    def apply(self, apply_time_max: float):
+        apply_start = time.perf_counter()
+        for i in range(len(self.texture_ids), len(self.textures)):
+            (texture, texture_format) = self.textures[i]
+            texture_id = gl.glGenTextures(1)
+            self.texture_ids.extend([texture_id])
             gl.glBindTexture(gl.GL_TEXTURE_2D, texture_id)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
             gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
@@ -684,20 +704,25 @@ class ImageHelper:
             except gl.GLError:
                 self._error = "Error applying texture:\n" + error.text()
                 break
-        self.textures.clear()
-        self.applied = True
-        gc.collect()
+            if time.perf_counter() - apply_start > apply_time_max:
+                break
+        if not self.loading and len(self.texture_ids) == len(self.textures):
+            self.textures.clear()
+            self.applied = True
+            return True
+        else:
+            return False
 
     def unload(self):
-        if self.loaded and not self._missing and not self._error:
+        if self.loaded:
             if self.texture_ids:
                 gl.glDeleteTextures([self.texture_ids])
                 self.texture_ids.clear()
             if self.textures:
                 apply_queue.remove(self)
                 self.textures.clear()
-                gc.collect()
-            self.loaded = False
+            if not self._missing and not self._error:
+                self.loaded = False
 
     def reload(self):
         self._missing = None
@@ -718,19 +743,18 @@ class ImageHelper:
                 # Or maybe setup an image thread and queue images to load one by one?
                 # You could do this with https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44 like so:
                 sync_thread.queue(self.load)  # changed
-            return dummy_texture_id()
+        else:
+            if self._missing or self._error:
+                return dummy_texture_id()
 
-        if self._missing or self._error:
-            return dummy_texture_id()
-
-        if not self.applied:
+        if not self.texture_ids:
             return dummy_texture_id()
 
         if self.animated and globals.settings.play_gifs and (globals.gui.focused or globals.settings.play_gifs_unfocused):
             if self.prev_time != (new_time := imgui.get_time()):
                 self.prev_time = new_time
                 self.elapsed += imgui.get_io().delta_time
-                while (excess := self.elapsed - self.durations[max(self.frame, 0)]) > 0:
+                while self.frame < (len(self.texture_ids) - 1) and (excess := self.elapsed - self.durations[max(self.frame, 0)]) > 0:
                     self.elapsed = excess
                     self.frame += 1
                     if self.frame == len(self.durations) - 1:

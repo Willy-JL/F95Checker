@@ -915,6 +915,7 @@ class MainGUI():
                         draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
                     if draw_next > 0.0:
                         draw_next -= imgui.io.delta_time
+                        draw_start = time.perf_counter()
 
                         # Reactive mouse cursors
                         if cursor != prev_cursor or any_hovered != prev_any_hovered:
@@ -1017,7 +1018,7 @@ class MainGUI():
                             self.refresh_fonts()
                             self.refresh_styles()
                             async_thread.run(db.update_settings("interface_scaling"))
-                        imagehelper.post_draw()
+                        imagehelper.post_draw(time.perf_counter() - draw_start)
                     # Wait idle time
                         glfw.swap_buffers(self.window)
                         if first_frame:

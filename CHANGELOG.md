@@ -22,8 +22,9 @@
 - Fix flashbang while interface is loading (#221 by @sodamouse)
 - Fix GUI redraws not pausing when unfocused, hovered and not moving mouse (by @Willy-JL)
 - Fix missing `libbz2.so` on linux binary bundles (#222 by @Willy-JL)
-- Apply images more efficiently, reduce stutters while scrolling (#212 by @Willy-JL)
+- Apply images more efficiently, eliminate stutters while scrolling, start showing GIFs before all frames are loaded (by @Willy-JL)
 - Improve images error handling and display (#212 by @Willy-JL)
+- Tags now sort alphabetically as expected (by @Willy-JL)
 
 ### Removed:
 - Excluded `libEGL.so` on linux binary bundles, fixes "Cannot find EGLConfig, returning null config" (by @Willy-JL)
