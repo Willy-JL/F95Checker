@@ -209,6 +209,7 @@ async def connect():
             "notifs_show_update_banner":   f'INTEGER DEFAULT {int(True)}',
             "play_gifs":                   f'INTEGER DEFAULT {int(True)}',
             "play_gifs_unfocused":         f'INTEGER DEFAULT {int(False)}',
+            "preload_nearby_images":       f'INTEGER DEFAULT {int(False)}',
             "proxy_type":                  f'INTEGER DEFAULT {ProxyType.Disabled}',
             "proxy_host":                  f'TEXT    DEFAULT ""',
             "proxy_port":                  f'INTEGER DEFAULT 8080',

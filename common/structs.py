@@ -826,6 +826,7 @@ class Settings:
     notifs_show_update_banner   : bool
     play_gifs                   : bool
     play_gifs_unfocused         : bool
+    preload_nearby_images       : bool
     proxy_type                  : ProxyType
     proxy_host                  : str
     proxy_port                  : int

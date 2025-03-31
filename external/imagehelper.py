@@ -763,7 +763,15 @@ class ImageHelper:
         return self.texture_ids[self.frame]
 
     def render(self, width: int, height: int, *args, **kwargs):
-        if imgui.is_rect_visible(width, height):
+        if globals.settings.preload_nearby_images:
+            cur = imgui.get_cursor_pos()
+            size = imgui.get_io().display_size
+            imgui.set_cursor_pos((cur.x - size.x, cur.y - size.y))
+            should_draw = imgui.is_rect_visible(width + size.x * 2, height + size.y * 2)
+            imgui.set_cursor_pos(cur)
+        else:
+            should_draw = imgui.is_rect_visible(width, height)
+        if should_draw:
             if self.animated or self.loading:
                 global redraw
                 redraw = True

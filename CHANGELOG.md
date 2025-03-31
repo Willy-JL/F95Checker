@@ -8,6 +8,9 @@
 - Unload Images Off-screen option (#212 by @Willy-JL):
   - Saves a lot of VRAM usage by unloading images not currently shown
   - Works best together with Tex Compress, so image load times are less noticeable
+- Preload Nearby Images option (by @Willy-JL):
+  - Starts loading images that aren't visible yet but are less than a window width/height scroll away
+  - Works best together with Tex Compress, so image load times are completely unnoticeable
 - Play GIFs and Play GIFs Unfocused options (#212 by @Willy-JL):
   - Saves a lot of VRAM if completely disabled, no GIFs play and only first frame is loaded
   - Saves CPU/GPU usage by redrawing less if disabled when unfocused, but still uses same VRAM

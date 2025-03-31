@@ -4460,6 +4460,13 @@ class MainGUI():
             )
             draw_settings_checkbox("unload_offscreen_images")
 
+            draw_settings_label(
+                "Preload nearby images:",
+                "Starts loading images when they aren't yet visible but are less than a window width/height scroll away. Works "
+                "best together with Tex compress, so image load times are very short and completely unnoticeable due to preloading."
+            )
+            draw_settings_checkbox("preload_nearby_images")
+
             imgui.end_table()
             imgui.spacing()
 
