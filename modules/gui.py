@@ -916,6 +916,7 @@ class MainGUI():
                         draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
                     if draw_next > 0.0:
                         draw_next -= imgui.io.delta_time
+                        draw_start = time.perf_counter()
 
                         # Reactive mouse cursors
                         if cursor != prev_cursor or any_hovered != prev_any_hovered:
@@ -1018,7 +1019,7 @@ class MainGUI():
                             self.refresh_fonts()
                             self.refresh_styles()
                             async_thread.run(db.update_settings("interface_scaling"))
-                        imagehelper.post_draw()
+                        imagehelper.post_draw(time.perf_counter() - draw_start)
                     # Wait idle time
                         glfw.swap_buffers(self.window)
                         if first_frame:
@@ -1702,9 +1703,9 @@ class MainGUI():
             changed, value = imgui.checkbox(f"###{game.id}_tag_{tag.value}", tag in game.tags)
             if changed:
                 if value:
-                    game.tags = tuple(sorted(list(game.tags) + [tag]))
+                    game.tags = tuple(sorted(list(game.tags) + [tag], key=lambda tag: tag.name))
                 else:
-                    game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags)))
+                    game.tags = tuple(sorted(filter(lambda x: x is not tag, game.tags), key=lambda tag: tag.name))
             imgui.same_line()
             self.draw_tag_widget(tag, quick_filter=False, change_highlight=False)
 
@@ -4419,7 +4420,7 @@ class MainGUI():
                 "usage. Disk usage should be roughly the same (some images compress better than others, it averages out).\n\n"
                 "ASTC:\n"
                 "+ when supported takes 9x less VRAM\n"
-                "+ takes 20%% less disk space than original images\n"
+                "+ takes 20% less disk space than original images\n"
                 "+ compresses slightly faster than BC7\n"
                 "- very limited GPU support, may not work at all\n"
                 "- when unsupported may use same VRAM as uncompressed (decompressed on-the-fly)\n"
@@ -4428,7 +4429,7 @@ class MainGUI():
                 "+ when supported takes 4x less VRAM\n"
                 "+ supported by most GPUs\n"
                 "+ more likely to decrease VRAM usage than ASTC\n"
-                "- takes 60%% more disk space than original images\n"
+                "- takes 60% more disk space than original images\n"
                 "- compresses slightly slower than ASTC\n"
                 "- not supported on MacOS\n"
                 "Visual quality tends to be equivalent.\n\n"
@@ -4467,6 +4468,13 @@ class MainGUI():
                 "together with Tex compress, so image load times are less noticeable."
             )
             draw_settings_checkbox("unload_offscreen_images")
+
+            draw_settings_label(
+                "Preload nearby images:",
+                "Starts loading images when they aren't yet visible but are less than a window width/height scroll away. Works "
+                "best together with Tex compress, so image load times are very short and completely unnoticeable due to preloading."
+            )
+            draw_settings_checkbox("preload_nearby_images")
 
             imgui.end_table()
             imgui.spacing()
