@@ -1,9 +1,19 @@
 from common import meta
 
 def apply():
-    # Create dummy IO streams if missing
-    import os
+    # Force UTF-8
     import sys
+    sys.getfilesystemencoding = lambda: "utf-8"
+    import locale
+    locale.getpreferredencoding = lambda do_setlocale=True: "utf-8"
+    import io
+    io.text_encoding = lambda encoding, stacklevel=2: "utf-8"
+    import os
+    if not sys.platform.startswith("win"):
+        real_os_device_encoding = os.device_encoding
+        os.device_encoding = lambda fd: None if real_os_device_encoding(fd) is None else "utf-8"
+
+    # Create dummy IO streams if missing
     if not sys.stdout: sys.stdout = open(os.devnull, "w")
     if not sys.stderr: sys.stderr = open(os.devnull, "w")
 
