@@ -5,6 +5,20 @@ glfw==2.8.0
 # Interface stuff
 imgui==2.0.0
 desktop-notifier==6.0.0
+# https://github.com/samschott/desktop-notifier/issues/216
+# https://github.com/AuroraWright/owocr/issues/9
+winrt-runtime==2.3.0 ; sys_platform == "win32"
+winrt-Windows.ApplicationModel.Core==2.3.0 ; sys_platform == "win32"
+winrt-Windows.Data.Xml.Dom==2.3.0 ; sys_platform == "win32"
+winrt-Windows.Foundation==2.3.0 ; sys_platform == "win32"
+winrt-Windows.Foundation.Collections==2.3.0 ; sys_platform == "win32"
+winrt-Windows.Foundation.Interop==2.3.0 ; sys_platform == "win32"
+winrt-Windows.Globalization==2.3.0 ; sys_platform == "win32"
+winrt.Windows.Graphics.Imaging==2.3.0 ; sys_platform == "win32"
+winrt.Windows.Media.Ocr==2.3.0 ; sys_platform == "win32"
+winrt-Windows.Storage.Streams==2.3.0 ; sys_platform == "win32"
+winrt-Windows.UI.Notifications==2.3.0 ; sys_platform == "win32"
+# https://github.com/Willy-JL/F95Checker/pull/87
 PyQt6-WebEngine==6.7.0 ; sys_platform != "darwin"
 PyQt6==6.7.1 ; sys_platform != "darwin"
 PyQt6-WebEngine==6.4.0 ; sys_platform == "darwin"
