@@ -7,7 +7,8 @@ def apply():
     import locale
     locale.getpreferredencoding = lambda do_setlocale=True: "utf-8"
     import io
-    io.text_encoding = lambda encoding, stacklevel=2: "utf-8"
+    real_io_text_encoding = io.text_encoding
+    io.text_encoding = lambda encoding, stacklevel=2: "utf-8" if encoding is None else real_io_text_encoding(encoding)
     import os
     if not sys.platform.startswith("win"):
         real_os_device_encoding = os.device_encoding
