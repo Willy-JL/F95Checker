@@ -58,16 +58,16 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/release = False/release = True/g" ./main.py > ./main.py.new
-          rm ./main.py
-          mv ./main.py.new ./main.py
+          sed "s/release = False/release = True/g" ./common/meta.py > ./common/meta.py.new
+          rm ./common/meta.py
+          mv ./common/meta.py.new ./common/meta.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./main.py > ./main.py.new
-          rm ./main.py
-          mv ./main.py.new ./main.py
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./common/meta.py > ./common/meta.py.new
+          rm ./common/meta.py
+          mv ./common/meta.py.new ./common/meta.py
 
       - name: "Install dependencies (Linux)"
         if: "runner.os == 'Linux'"
@@ -191,16 +191,16 @@ jobs:
       - name: "Mark as release"
         if: "github.event_name == 'release'"
         run: |
-          sed "s/release = False/release = True/g" ./main.py > ./main.py.new
-          rm ./main.py
-          mv ./main.py.new ./main.py
+          sed "s/release = False/release = True/g" ./common/meta.py > ./common/meta.py.new
+          rm ./common/meta.py
+          mv ./common/meta.py.new ./common/meta.py
 
       - name: "Mark build number"
         if: "github.event_name != 'release'"
         run: |
-          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./main.py > ./main.py.new
-          rm ./main.py
-          mv ./main.py.new ./main.py
+          sed "s/build_number = 0/build_number = ${{ github.run_number }}/g" ./common/meta.py > ./common/meta.py.new
+          rm ./common/meta.py
+          mv ./common/meta.py.new ./common/meta.py
 
       - name: "Package"
         run: |

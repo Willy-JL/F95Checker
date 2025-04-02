@@ -1,20 +1,16 @@
 from ctypes.util import find_library
-import pathlib
-import re
 import setuptools
 import sys
 
-path = pathlib.Path(__file__).absolute().parent
-
+from common import meta
 
 # Main metadata
 name = "F95Checker"
+version = meta.version
 identifier = "io.github.willy-jl.f95checker"
-icon = path / "resources/icons/icon"
-script = path / "main.py"
-debug_script = path / "main-debug.py"
-version = str(re.search(rb'version = "(\S+)"', script.read_bytes()).group(1), encoding="utf-8")
-debug_script.write_bytes(re.sub(rb"debug = .*", rb"debug = True", script.read_bytes()))  # Generate debug script
+icon = meta.self_path / "resources/icons/icon"
+script = meta.self_path / "main.py"
+debug_script = meta.self_path / "main-debug.py"
 
 # Friendly reminder
 try:
@@ -47,11 +43,11 @@ platform_libs = {
     "darwin": ["intl"],
 }
 include_files = [
-    (path / "browser/chrome.zip",    "browser/chrome.zip"),
-    (path / "browser/firefox.zip",   "browser/firefox.zip"),
-    (path / "browser/integrated.js", "browser/integrated.js"),
-    (path / "resources/",            "resources/"),
-    (path / "LICENSE",               "LICENSE"),
+    (meta.self_path / "browser/chrome.zip",    "browser/chrome.zip"),
+    (meta.self_path / "browser/firefox.zip",   "browser/firefox.zip"),
+    (meta.self_path / "browser/integrated.js", "browser/integrated.js"),
+    (meta.self_path / "resources/",            "resources/"),
+    (meta.self_path / "LICENSE",               "LICENSE"),
 ]
 platform_qt_plugins = {
     "linux": [
@@ -123,8 +119,8 @@ class BrowserExtension(setuptools.Command):
 
     def run(self):
         from external import ziparch
-        browser = path / "browser"
-        mdi_webfont = next(path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")).read_bytes()
+        browser = meta.self_path / "browser"
+        mdi_webfont = next(meta.self_path.glob("resources/fonts/materialdesignicons-webfont.*.ttf")).read_bytes()
 
         chrome_src = browser / "chrome"
         (chrome_src / "fonts/mdi-webfont.ttf").write_bytes(mdi_webfont)

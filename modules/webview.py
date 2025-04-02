@@ -244,9 +244,9 @@ def create(
                     if not isinstance(body, str):
                         return {}
                     body = body.encode()
-                import main
+                from common import meta
                 async def _handle():
-                    async with self.session.request(method, main.rpc_url + path, data=body) as req:
+                    async with self.session.request(method, meta.rpc_url + path, data=body) as req:
                         return {"status": req.status, "body": base64.b64encode(await req.read()).decode()}
                 return async_thread.wait(_handle())
         app.window.webview.rpcproxy = RPCProxy()

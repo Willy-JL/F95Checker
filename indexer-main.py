@@ -20,14 +20,9 @@ logger = logging.getLogger()
 
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
-    path = pathlib.Path(__file__).absolute().parent
-    script = path / "main.py"
-    match = re.search(rb'version = "(\S+)"', script.read_bytes())
-    version = match.group(1).decode()
-
     async with (
-        cache.lifespan(version),
-        f95zone.lifespan(version),
+        cache.lifespan(),
+        f95zone.lifespan(),
         watcher.lifespan(),
     ):
         yield

@@ -1,5 +1,4 @@
 from concurrent.futures import Future
-from functools import partial
 import os as _os
 import pathlib
 import re
@@ -16,10 +15,7 @@ from common.structs import (
     Settings,
 )
 
-import py7zr
-import rarfile
-
-# Load version info, main globals, some workarounds and libraries
+# Copy version info and main globals
 version = None
 release = None
 build_number = None
@@ -31,53 +27,7 @@ self_path = None
 debug = None
 def _():
     global version, release, build_number, version_name, rpc_port, rpc_url, frozen, self_path, debug
-    from main import version, release, build_number, version_name, rpc_port, rpc_url, frozen, self_path, debug
-
-    # Fix frozen load paths
-    if frozen:
-        if sys.platform.startswith("linux"):
-            session_type = _os.environ.get('XDG_SESSION_TYPE')
-            if session_type in ("x11", "wayland"):
-                library = self_path / f"lib/glfw/{session_type}/libglfw.so"
-                if library.is_file():
-                    _os.environ["PYGLFW_LIBRARY"] = str(library)
-        elif sys.platform.startswith("darwin"):
-            process = self_path.parent / "Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
-            if process.is_file():
-                _os.environ["QTWEBENGINEPROCESS_PATH"] = str(process)
-
-    # Pillow image loading
-    import pillow_avif
-    from PIL import ImageFile, PngImagePlugin
-    ImageFile.LOAD_TRUNCATED_IMAGES = True
-    PngImagePlugin.MAX_TEXT_CHUNK *= 10
-
-    # Optimize OpenGL
-    import glfw
-    import OpenGL
-    glfw.ERROR_REPORTING = debug
-    for option in ("ERROR_LOGGING", "ERROR_CHECKING", "CONTEXT_CHECKING"):
-        setattr(OpenGL, option, debug)
-    if debug:
-        import logging
-        glfw.ERROR_REPORTING = {
-            65548: "ignore",  # Wayland: The platform does not support window position/icon
-            None: "raise",
-        }
-        logging.basicConfig()
-
-    # Archive formats
-    shutil.register_unpack_format("7zip", [".7z"], py7zr.unpack_7zarchive)
-    def unpack_rarfile(archive, path):
-        if not rarfile.is_rarfile(archive):
-            raise shutil.ReadError(f"{archive} is not a RAR file.")
-        with rarfile.RarFile(archive) as arc:
-            arc.extractall(path)
-    try:
-        if rarfile.tool_setup():
-            shutil.register_unpack_format("rar", [".rar"], unpack_rarfile)
-    except rarfile.RarCannotExec:
-        pass
+    from common.meta import version, release, build_number, version_name, rpc_port, rpc_url, frozen, self_path, debug
 _()
 
 # Done here to avoid circular import

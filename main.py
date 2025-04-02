@@ -1,29 +1,13 @@
 #!/usr/bin/env python
+from common import meta
+from modules import patches
+
 import asyncio
 import contextlib
-import os
-import pathlib
 import sys
-
-version = "11.1"
-release = False
-build_number = 0
-version_name = f"{version}{'' if release else ' beta'}{'' if release or not build_number else ' ' + str(build_number)}"
-rpc_port = 57095
-rpc_url = f"http://127.0.0.1:{rpc_port}"
-
-frozen = getattr(sys, "frozen", False)
-self_path = pathlib.Path(sys.executable if frozen else __file__).parent
-debug = not (frozen or release)
-
-if not sys.stdout: sys.stdout = open(os.devnull, "w")
-if not sys.stderr: sys.stderr = open(os.devnull, "w")
-if os.devnull in (sys.stdout.name, sys.stderr.name):
-    debug = False
 
 
 def main():
-    # Must import globals first to fix load paths when frozen
     from modules import globals
 
     from common.structs import Os
@@ -67,7 +51,7 @@ def lock_singleton():
         else:
             try:
                 from urllib import request
-                request.urlopen(request.Request(rpc_url + "/window/show", method="POST"))
+                request.urlopen(request.Request(meta.rpc_url + "/window/show", method="POST"))
             except Exception:
                 pass
 
@@ -80,7 +64,9 @@ def get_subprocess_args(subprocess_type: str):
     return args, kwargs
 
 
-if __name__ == "__main__":
+def _start():
+    patches.apply()
+
     if "-c" in sys.argv:
         # Mimic python's -c flag to evaluate code
         exec(sys.argv[sys.argv.index("-c") + 1])
@@ -106,7 +92,7 @@ if __name__ == "__main__":
                 try:
                     main()
                 except Exception:
-                    if debug and release:
+                    if meta.debug and meta.release:
                         try:
                             from external import error
                             print(error.traceback())
@@ -117,3 +103,7 @@ if __name__ == "__main__":
                         raise
         except KeyboardInterrupt:
             pass
+
+
+if __name__ == "__main__":
+    _start()

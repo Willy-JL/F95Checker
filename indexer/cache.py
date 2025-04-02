@@ -6,6 +6,7 @@ import time
 
 import redis.asyncio as aredis
 
+from common import meta
 from external import error
 from indexer import (
     f95zone,
@@ -36,7 +37,6 @@ logger = logging.getLogger(__name__)
 redis: aredis.Redis = None
 locks_lock = asyncio.Lock()
 locks: dict[asyncio.Lock] = {}
-version: str = None
 
 CACHE_KEYWORDS = (
     LAST_CACHED := "LAST_CACHED",
@@ -50,11 +50,10 @@ NAME_FORMAT = "thread:{id}"
 
 
 @contextlib.asynccontextmanager
-async def lifespan(_version: str):
-    global redis, version
+async def lifespan():
+    global redis
     redis = aredis.Redis(decode_responses=True)
     await redis.ping()
-    version = _version
 
     try:
         yield
@@ -62,7 +61,6 @@ async def lifespan(_version: str):
 
         await redis.aclose()
         redis = None
-        version = None
 
 
 # https://stackoverflow.com/a/67057328
@@ -118,7 +116,7 @@ async def _is_thread_cache_outdated(id: int, name: str) -> bool:
     return (
         not last_cached  # Never cached
         or time.time() >= int(expire_time)  # Cache expired
-        # or cached_with != version  # Cached on different version
+        # or cached_with != meta.version  # Cached on different version
     )
 
 
@@ -178,7 +176,7 @@ async def _update_thread_cache(id: int, name: str) -> None:
             logger.info(f"Data for {name} changed")
 
     new_fields[LAST_CACHED] = int(now)
-    new_fields[CACHED_WITH] = version
+    new_fields[CACHED_WITH] = meta.version
     if LAST_CHANGE not in old_fields and LAST_CHANGE not in new_fields:
         new_fields[LAST_CHANGE] = int(now)
     await redis.hmset(name, new_fields)

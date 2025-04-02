@@ -9,6 +9,8 @@ import sys
 import aiohttp
 import aiolimiter
 
+from common import meta
+
 RATELIMIT = aiolimiter.AsyncLimiter(max_rate=1, time_period=0.5)
 TIMEOUT = aiohttp.ClientTimeout(total=30, connect=30, sock_read=30, sock_connect=30)
 LOGIN_ERROR_MESSAGES = (
@@ -88,14 +90,14 @@ ERROR_INTERNAL_ERROR = IndexerError(
 
 
 @contextlib.asynccontextmanager
-async def lifespan(version: str):
+async def lifespan():
     global session, cookies
     session = aiohttp.ClientSession(
         cookie_jar=aiohttp.DummyCookieJar(),
         timeout=TIMEOUT,
         headers={
             "User-Agent": (
-                f"F95Indexer/{version} "
+                f"F95Indexer/{meta.version} "
                 f"Python/{sys.version.split(' ')[0]} "
                 f"aiohttp/{aiohttp.__version__}"
             ),
