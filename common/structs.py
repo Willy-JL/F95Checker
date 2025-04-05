@@ -684,6 +684,7 @@ class Tab:
     name: str
     icon: str
     color: tuple[float] | None
+    position: int
     instances: typing.ClassVar = []
 
     @classmethod
@@ -706,6 +707,17 @@ class Tab:
     def remove(cls, self):
         while self in cls.instances:
             cls.instances.remove(self)
+        cls.sort_instances()
+
+    @classmethod
+    def update_positions(cls):
+        for self_i, self in enumerate(cls.instances):
+            self.position = self_i
+
+    @classmethod
+    def sort_instances(cls):
+        cls.instances.sort(key=lambda self: self.position)
+        cls.update_positions()
 
     @classmethod
     def base_icon(cls):

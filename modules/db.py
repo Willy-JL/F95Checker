@@ -337,6 +337,7 @@ async def connect():
             "name":                        f'TEXT    DEFAULT ""',
             "icon":                        f'TEXT    DEFAULT "{Tab.base_icon()}"',
             "color":                       f'TEXT    DEFAULT NULL',
+            "position":                    f'INTEGER DEFAULT 0',
         }
     )
     await create_table(
@@ -446,6 +447,7 @@ async def load():
     """)
     for tab in await cursor.fetchall():
         Tab.add(row_to_cls(tab, Tab))
+    Tab.sort_instances()
 
     # Settings need Tabs to be loaded
     cursor = await connection.execute("""
@@ -684,6 +686,7 @@ async def create_tab():
     """)
     tab = row_to_cls(await cursor.fetchone(), Tab)
     Tab.add(tab)
+    Tab.update_positions()
     return tab
 
 

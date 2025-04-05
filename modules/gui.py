@@ -271,7 +271,8 @@ class MainGUI():
             imgui.WINDOW_NO_SCROLL_WITH_MOUSE
         )
         self.tabbar_flags: int = (
-            imgui.TAB_BAR_FITTING_POLICY_SCROLL
+            imgui.TAB_BAR_FITTING_POLICY_SCROLL |
+            imgui.TAB_BAR_REORDERABLE
         )
         self.game_list_table_flags: int = (
             imgui.TABLE_SCROLL_Y |
@@ -2914,10 +2915,14 @@ class MainGUI():
             if imgui.begin_tab_bar("###tabbar", flags=self.tabbar_flags):
                 hide = globals.settings.hide_empty_tabs
                 count = len(self.show_games_ids.get(None, ()))
-                if (count or not hide) and imgui.begin_tab_item(f"{Tab.first_tab_label()} ({count})###tab_-1")[0]:
+                if (count or not hide) and imgui.begin_tab_item(
+                    f"{Tab.first_tab_label()} ({count})###tab_-1",
+                    flags=imgui.TAB_ITEM_NO_REORDER
+                )[0]:
                     new_tab = None
                     imgui.end_tab_item()
-                for tab in Tab.instances:
+                swap = None
+                for tab_i, tab in enumerate(Tab.instances):
                     count = len(self.show_games_ids.get(tab, ()))
                     if hide and not count:
                         continue
@@ -2934,6 +2939,16 @@ class MainGUI():
                         imgui.end_tab_item()
                     if tab.color:
                         imgui.pop_style_color(4)
+                    if imgui.is_item_active():
+                        mouse_pos = imgui.get_mouse_pos()
+                        if tab_i > 0 and mouse_pos.x < imgui.get_item_rect_min().x:
+                            if imgui.get_mouse_drag_delta().x < 0:
+                                swap = (tab_i, tab_i - 1)
+                            imgui.reset_mouse_drag_delta()
+                        elif tab_i < len(Tab.instances) - 1 and mouse_pos.x > imgui.get_item_rect_max().x:
+                            if imgui.get_mouse_drag_delta().x > 0:
+                                swap = (tab_i, tab_i + 1)
+                            imgui.reset_mouse_drag_delta()
                     context_id = f"###tab_{tab.id}_context"
                     set_focus = not imgui.is_popup_open(context_id)
                     if imgui.begin_popup_context_item(context_id):
@@ -2998,6 +3013,13 @@ class MainGUI():
                                 close_callback()
                         imgui.end_popup()
                 imgui.end_tab_bar()
+                if swap:
+                    Tab.instances[swap[0]], Tab.instances[swap[1]] = Tab.instances[swap[1]], Tab.instances[swap[0]]
+                    Tab.update_positions()
+                    async def _update_tab_positions():
+                        for tab in Tab.instances:
+                            await db.update_tab(tab, "position")
+                    async_thread.run(_update_tab_positions())
         if new_tab is not self.current_tab and save_new_tab:
             for game in globals.games.values():
                 game.selected = False
