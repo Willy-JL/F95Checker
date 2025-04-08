@@ -437,6 +437,7 @@ async def load():
     cursor = await connection.execute("""
         SELECT *
         FROM labels
+        ORDER BY lower(name)
     """)
     for label in await cursor.fetchall():
         Label.add(row_to_cls(label, Label))
