@@ -136,7 +136,10 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     start_dir = globals.settings.default_exe_dir.get(globals.os)
     if start_dir:
         start_dir = pathlib.Path(start_dir)
-        for subdir in (game.type.name, game.developer, game.name.removesuffix(" Collection")):
+        try_subdirs = [game.type.name, game.developer, game.name]
+        if game.name.lower().endswith(" collection"):
+            try_subdirs.append(game.name[:-len(" collection")])
+        for subdir in try_subdirs:
             start_dir = _fuzzy_match_subdir(start_dir, subdir)
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
