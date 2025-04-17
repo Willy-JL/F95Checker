@@ -15,6 +15,7 @@ from indexer import (
 
 WATCH_UPDATES_INTERVAL = dt.timedelta(minutes=5).total_seconds()
 WATCH_UPDATES_CATEGORIES = f95zone.LATEST_CATEGORIES
+WATCH_UPDATES_PAGES = 4
 WATCH_VERSIONS_INTERVAL = dt.timedelta(hours=12).total_seconds()
 WATCH_VERSIONS_CHUNK_SIZE = 1000
 
@@ -51,88 +52,89 @@ async def watch_updates():
                 invalidate_cache = cache.redis.pipeline()
 
                 for category in WATCH_UPDATES_CATEGORIES:
-                    logger.info(f"Poll category {category}")
+                    for page in range(1, WATCH_UPDATES_PAGES + 1):
+                        logger.info(f"Poll category {category} page {page}")
 
-                    cached_data = cache.redis.pipeline()
+                        cached_data = cache.redis.pipeline()
 
-                    try:
-                        async with f95zone.session.get(
-                            f95zone.LATEST_URL.format(
-                                cmd="list",
-                                cat=category,
-                                page=1,
-                                sort="date",
-                                rows=90,
-                                ts=int(time.time()),
-                            ),
-                            cookies=f95zone.cookies,
-                        ) as req:
-                            res = await req.read()
-                    except Exception as exc:
-                        if index_error := f95zone.check_error(exc, logger):
+                        try:
+                            async with f95zone.session.get(
+                                f95zone.LATEST_URL.format(
+                                    cmd="list",
+                                    cat=category,
+                                    page=page,
+                                    sort="date",
+                                    rows=90,
+                                    ts=int(time.time()),
+                                ),
+                                cookies=f95zone.cookies,
+                            ) as req:
+                                res = await req.read()
+                        except Exception as exc:
+                            if index_error := f95zone.check_error(exc, logger):
+                                raise Exception(index_error)
+                            raise
+
+                        if index_error := f95zone.check_error(res, logger):
                             raise Exception(index_error)
-                        raise
 
-                    if index_error := f95zone.check_error(res, logger):
-                        raise Exception(index_error)
+                        try:
+                            updates = json.loads(res)
+                        except Exception:
+                            raise Exception(f"Latest updates returned invalid JSON: {res}")
+                        if index_error := f95zone.check_error(updates, logger):
+                            raise Exception(index_error)
 
-                    try:
-                        updates = json.loads(res)
-                    except Exception:
-                        raise Exception(f"Latest updates returned invalid JSON: {res}")
-                    if index_error := f95zone.check_error(updates, logger):
-                        raise Exception(index_error)
-
-                    # We compare version strings to detect updates
-                    # But also make a hash of other attributes to detect metadata changes
-                    # We don't save these values directly because we parse from thread content instead
-                    # But using this meta hash allows to discover metadata changes sooner
-                    names = []
-                    current_data = []
-                    for update in updates["msg"]["data"]:
-                        name = cache.NAME_FORMAT.format(id=update["thread_id"])
-                        names.append(name)
-                        cached_data.hmget(name, "version", cache.HASHED_META)
-                        version = update["version"]
-                        if version == "Unknown":
-                            version = None
-                        meta = (
-                            update["title"],
-                            update["creator"],
-                            update["prefixes"],
-                            update["tags"],
-                            round(update["rating"], 1),
-                            update["cover"],
-                            update["screens"],
-                            parser.datestamp(update["ts"]),
-                        )
-                        meta = hashlib.md5(json.dumps(meta).encode()).hexdigest()
-                        current_data.append((version, meta))
-
-                    cached_data = await cached_data.execute()
-
-                    assert len(names) == len(current_data) == len(cached_data)
-                    for name, (version, meta), (cached_version, cached_meta) in zip(
-                        names, current_data, cached_data
-                    ):
-                        if cached_version is None:
-                            continue
-
-                        version_outdated = version and version != cached_version
-                        meta_outdated = meta != cached_meta
-
-                        if version_outdated or meta_outdated:
-                            # Delete version too to avoid watch_versions() picking it up as mismatch
-                            invalidate_cache.hdel(name, cache.LAST_CACHED, "version")
-                            invalidate_cache.hset(name, cache.HASHED_META, meta)
-                            logger.info(
-                                f"Updates: Invalidating cache for {name}"
-                                + (
-                                    f" ({cached_version!r} -> {version!r})"
-                                    if version_outdated
-                                    else " (meta changed)"
-                                )
+                        # We compare version strings to detect updates
+                        # But also make a hash of other attributes to detect metadata changes
+                        # We don't save these values directly because we parse from thread content instead
+                        # But using this meta hash allows to discover metadata changes sooner
+                        names = []
+                        current_data = []
+                        for update in updates["msg"]["data"]:
+                            name = cache.NAME_FORMAT.format(id=update["thread_id"])
+                            names.append(name)
+                            cached_data.hmget(name, "version", cache.HASHED_META)
+                            version = update["version"]
+                            if version == "Unknown":
+                                version = None
+                            meta = (
+                                update["title"],
+                                update["creator"],
+                                update["prefixes"],
+                                update["tags"],
+                                round(update["rating"], 1),
+                                update["cover"],
+                                update["screens"],
+                                parser.datestamp(update["ts"]),
                             )
+                            meta = hashlib.md5(json.dumps(meta).encode()).hexdigest()
+                            current_data.append((version, meta))
+
+                        cached_data = await cached_data.execute()
+
+                        assert len(names) == len(current_data) == len(cached_data)
+                        for name, (version, meta), (cached_version, cached_meta) in zip(
+                            names, current_data, cached_data
+                        ):
+                            if cached_version is None:
+                                continue
+
+                            version_outdated = version and version != cached_version
+                            meta_outdated = meta != cached_meta
+
+                            if version_outdated or meta_outdated:
+                                # Delete version too to avoid watch_versions() picking it up as mismatch
+                                invalidate_cache.hdel(name, cache.LAST_CACHED, "version")
+                                invalidate_cache.hset(name, cache.HASHED_META, meta)
+                                logger.info(
+                                    f"Updates: Invalidating cache for {name}"
+                                    + (
+                                        f" ({cached_version!r} -> {version!r})"
+                                        if version_outdated
+                                        else " (meta changed)"
+                                    )
+                                )
 
                 if len(invalidate_cache):
                     result = await invalidate_cache.execute()
