@@ -19,14 +19,15 @@ callbacks: dict[int, typing.Callable] = {}
 
 @contextlib.contextmanager
 def setup():
-    start()
+    from external import async_thread
+    async_thread.wait(start())
     try:
         yield
     finally:
-        stop()
+        async_thread.wait(stop())
 
 
-def start():
+async def start():
     global pipe, server
 
     import shlex
@@ -40,21 +41,22 @@ def start():
         icon_uri=(globals.self_path / "resources/icons/icon.png").as_uri(),
     )
 
-    proc = async_thread.wait(asyncio.create_subprocess_exec(
+    proc = await asyncio.create_subprocess_exec(
         *shlex.split(globals.start_cmd),
         "notification-daemon",
         json.dumps(args),
         json.dumps(kwargs),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-    ))
+    )
     pipe = DaemonPipe(proc)
 
     server = async_thread.run(_server())
 
 
-def stop():
+async def stop():
     global pipe, server
+    callbacks.clear()
     server.cancel()
     server = None
     pipe.kill()
@@ -82,7 +84,7 @@ async def _server():
             pass
 
 
-def notify(
+async def notify_async(
     title: str,
     msg: str,
     urgency=desktop_notifier.Urgency.Normal,
@@ -91,6 +93,10 @@ def notify(
     attachment: desktop_notifier.Attachment = None,
     timeout=5,
 ):
+    if not await pipe.is_alive():
+        await stop()
+        await start()
+
     button_callbacks = []
     for button in buttons:
         button_callbacks.append((button.title, hash(button.on_pressed)))
@@ -108,6 +114,11 @@ def notify(
         timeout=timeout,
     )
     pipe.put(("notify", [], kwargs))
+
+
+def notify(*args, **kwargs):
+    from external import async_thread
+    async_thread.run(notify_async(*args, **kwargs))
 
 
 def _callback(callback: int):
@@ -166,14 +177,7 @@ async def _daemon(icon_uri: str):
 
 
 def daemon(*args, **kwargs):
-    if sys.platform.startswith("linux"):
-        # Faster eventloop, non essential so ignore errors
-        try:
-            import uvloop
-            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-        except Exception:
-            pass
-    elif sys.platform.startswith("darwin"):
+    if sys.platform.startswith("darwin"):
         # Needed for desktop-notifier on MacOS
         import rubicon.objc.eventloop as cfloop
         asyncio.set_event_loop_policy(cfloop.EventLoopPolicy())
