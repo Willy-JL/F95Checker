@@ -29,6 +29,7 @@
 - Apply images more efficiently, eliminate stutters while scrolling, start showing GIFs before all frames are loaded (by @Willy-JL)
 - Improve images error handling and display (#212 by @Willy-JL)
 - Tags now sort alphabetically as expected (by @Willy-JL)
+- UTF-8 encoding is now forced (#230 by @Willy-JL)
 
 ### Removed:
 - Excluded `libEGL.so` on linux binary bundles, fixes "Cannot find EGLConfig, returning null config" (by @Willy-JL)
