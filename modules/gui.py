@@ -877,7 +877,7 @@ class MainGUI():
                 cursor = imgui.get_mouse_cursor()
                 any_hovered = imgui.is_any_item_hovered()
                 win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
-                if first_frame or (not self.hidden and not self.minimized and (self.focused or globals.settings.render_when_unfocused)):
+                if first_frame or (not self.hidden and not self.minimized):  # Visible
 
                     # Scroll modifiers (must be before new_frame())
                     imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -902,6 +902,7 @@ class MainGUI():
                         or (imagehelper.redraw and globals.settings.play_gifs and (self.focused or globals.settings.play_gifs_unfocused))
                         or imgui.io.mouse_wheel or self.input_chars or any(imgui.io.mouse_down) or any(imgui.io.keys_down)
                         or (prev_mouse_pos != mouse_pos and (prev_win_hovered or win_hovered))
+                        or (self.focused or globals.settings.render_when_unfocused)
                         or imagehelper.apply_queue or imagehelper.unload_queue
                         or prev_scaling != globals.settings.interface_scaling
                         or prev_minimized != self.minimized
@@ -915,7 +916,7 @@ class MainGUI():
                     )
                     if draw:
                         draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
-                    if draw_next > 0.0:
+                    if draw_next > 0.0:  # Visible and drawing
                         if not first_frame:
                             draw_next -= imgui.io.delta_time
                         draw_start = time.perf_counter()
@@ -1028,9 +1029,11 @@ class MainGUI():
                             if not globals.settings.start_in_background:
                                 glfw.show_window(self.window)
                             first_frame = False
-                    else:
+                    else:  # Visible but not drawing
                         time.sleep(1 / 15)
-                else:
+                else:  # Not visible
+                    # Unload images if necessary
+                    imagehelper.post_draw(0)
                     # Tray bg mode and not paused
                     if self.hidden and not self.bg_mode_paused and not utils.is_refreshing():
                         if not self.bg_mode_timer:

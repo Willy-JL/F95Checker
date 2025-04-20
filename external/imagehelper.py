@@ -127,7 +127,7 @@ def post_draw(draw_time: float):
     if globals.settings.unload_offscreen_images:
         hidden = globals.gui.minimized or globals.gui.hidden
         for image in ImageHelper.instances:
-            if hidden or not image.shown:
+            if image.loaded and (hidden or not image.shown):
                 unload_queue.append(image)
             else:
                 image.shown = False
@@ -716,7 +716,7 @@ class ImageHelper:
     def unload(self):
         if self.loaded:
             if self.texture_ids:
-                gl.glDeleteTextures([self.texture_ids])
+                gl.glDeleteTextures(self.texture_ids)
                 self.texture_ids.clear()
             if self.textures:
                 apply_queue.remove(self)
