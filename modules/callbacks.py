@@ -149,9 +149,9 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     ).tick)
 
 
-async def default_open(what: str, cwd=None):
+async def default_open(what: str, cwd: str = None):
     if globals.os is Os.Windows:
-        os.startfile(what)
+        os.startfile(what, cwd=cwd or os.getcwd())
     else:
         if globals.os is Os.Linux:
             open_util = "xdg-open"
@@ -187,7 +187,7 @@ async def _launch_exe(executable: str):
 
     if globals.os is Os.Windows:
         # Open with default app
-        await default_open(str(exe))
+        await default_open(str(exe), cwd=str(exe.parent))
     else:
         mode = exe.stat().st_mode
         exe_flag = not (mode & stat.S_IEXEC < stat.S_IEXEC)
