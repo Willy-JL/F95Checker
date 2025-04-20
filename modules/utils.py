@@ -306,6 +306,7 @@ def popup(label: str, popup_content: typing.Callable, buttons: dict[str, typing.
 
 def push_popup(*args, bottom=False, **kwargs):
     popup = Popup(*args, **kwargs)
+    notify = False
     if globals.gui:
         if (globals.gui.hidden or not globals.gui.focused) and (len(args) > 3) and (args[0] is msgbox.msgbox) and (args[3] in (MsgBox.warn, MsgBox.error)):
             # Ignore some temporary errors in background mode, taken from modules/api.py
@@ -314,13 +315,15 @@ def push_popup(*args, bottom=False, **kwargs):
                 "Server downtime",
             ):
                 return
-            notification_proc.notify(
-                title="Oops",
-                msg="Something went wrong! Click to view the error.",
-                icon=desktop_notifier.Icon(globals.self_path / "resources/icons/error.png")
-            )
+            notify = True
     if bottom:
         globals.popup_stack.insert(0, popup)
     else:
         globals.popup_stack.append(popup)
+    if notify:
+        notification_proc.notify(
+            title="Oops",
+            msg="Something went wrong! Click to view the error.",
+            icon=desktop_notifier.Icon(globals.self_path / "resources/icons/error.png")
+        )
     return popup
