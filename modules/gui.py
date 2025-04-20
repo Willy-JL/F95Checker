@@ -309,7 +309,6 @@ class MainGUI():
         self.watermark_text = f"F95Checker {globals.version_name}{'' if not globals.release else ' by WillyJL'}"
 
         # Variables
-        self.hidden = False
         self.focused = True
         self.minimized = False
         self.filtering = False
@@ -801,12 +800,15 @@ class MainGUI():
                 elif path.suffix and path.suffix.lower() == ".url":
                     async_thread.run(api.import_url_shortcut(path))
 
+    @property
+    def hidden(self):
+        return not glfw.get_window_attrib(self.window, glfw.VISIBLE)
+
     def hide(self, *_, **__):
         if threading.current_thread() is not threading.main_thread():
             self.call_soon.append(self.hide)
         self.screen_pos = glfw.get_window_pos(self.window)
         glfw.hide_window(self.window)
-        self.hidden = True
         self.tray.update_status()
 
     def show(self, *_, **__):
@@ -814,13 +816,12 @@ class MainGUI():
             self.call_soon.append(self.show)
         self.bg_mode_timer = None
         self.bg_mode_notifs_timer = None
-        if not self.hidden:
-            glfw.hide_window(self.window)
+        # if not self.hidden:
+        #     glfw.hide_window(self.window)
         glfw.show_window(self.window)
         if utils.validate_geometry(*self.screen_pos, *self.prev_size):
             glfw.set_window_pos(self.window, *self.screen_pos)
         glfw.focus_window(self.window)
-        self.hidden = False
         self.tray.update_status()
 
     def scaled(self, size: int | float):
@@ -876,7 +877,7 @@ class MainGUI():
                 cursor = imgui.get_mouse_cursor()
                 any_hovered = imgui.is_any_item_hovered()
                 win_hovered = glfw.get_window_attrib(self.window, glfw.HOVERED)
-                if not self.hidden and not self.minimized and (self.focused or globals.settings.render_when_unfocused):
+                if first_frame or (not self.hidden and not self.minimized and (self.focused or globals.settings.render_when_unfocused)):
 
                     # Scroll modifiers (must be before new_frame())
                     imgui.io.mouse_wheel *= globals.settings.scroll_amount
@@ -915,7 +916,8 @@ class MainGUI():
                     if draw:
                         draw_next = max(draw_next, imgui.io.delta_time + 1.0)  # Draw for at least next half second
                     if draw_next > 0.0:
-                        draw_next -= imgui.io.delta_time
+                        if not first_frame:
+                            draw_next -= imgui.io.delta_time
                         draw_start = time.perf_counter()
 
                         # Reactive mouse cursors
@@ -1023,7 +1025,8 @@ class MainGUI():
                     # Wait idle time
                         glfw.swap_buffers(self.window)
                         if first_frame:
-                            glfw.show_window(self.window)
+                            if not globals.settings.start_in_background:
+                                glfw.show_window(self.window)
                             first_frame = False
                     else:
                         time.sleep(1 / 15)
