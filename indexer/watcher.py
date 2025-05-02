@@ -81,7 +81,9 @@ async def watch_updates():
                         try:
                             updates = json.loads(res)
                         except Exception:
-                            raise Exception(f"Latest updates returned invalid JSON: {res}")
+                            raise Exception(
+                                f"Latest updates returned invalid JSON: {res}"
+                            )
                         if index_error := f95zone.check_error(updates, logger):
                             raise Exception(index_error)
 
@@ -125,7 +127,9 @@ async def watch_updates():
 
                             if version_outdated or meta_outdated:
                                 # Delete version too to avoid watch_versions() picking it up as mismatch
-                                invalidate_cache.hdel(name, cache.LAST_CACHED, "version")
+                                invalidate_cache.hdel(
+                                    name, cache.LAST_CACHED, "version"
+                                )
                                 invalidate_cache.hset(name, cache.HASHED_META, meta)
                                 logger.info(
                                     f"Updates: Invalidating cache for {name}"
@@ -175,7 +179,9 @@ async def watch_versions():
             async with asyncio.timeout(f95zone.TIMEOUT.total):
                 logger.info("Poll versions start")
 
-                names = [n async for n in cache.redis.scan_iter("thread:*", 10000, "hash")]
+                names = [
+                    n async for n in cache.redis.scan_iter("thread:*", 10000, "hash")
+                ]
                 invalidate_cache = cache.redis.pipeline()
 
                 for names_chunk in chunks(names, WATCH_VERSIONS_CHUNK_SIZE):
@@ -210,7 +216,10 @@ async def watch_versions():
                         versions = json.loads(res)
                     except Exception:
                         raise Exception(f"Versions API returned invalid JSON: {res}")
-                    if versions.get("msg") in ("Missing threads data", "Thread not found"):
+                    if versions.get("msg") in (
+                        "Missing threads data",
+                        "Thread not found",
+                    ):
                         versions["status"] = "ok"
                         versions["msg"] = {}
                     if index_error := f95zone.check_error(versions, logger):
@@ -218,7 +227,9 @@ async def watch_versions():
                     versions = versions["msg"]
 
                     assert len(names_chunk) == len(ids) == len(cached_versions)
-                    for name, id, cached_version in zip(names_chunk, ids, cached_versions):
+                    for name, id, cached_version in zip(
+                        names_chunk, ids, cached_versions
+                    ):
                         if cached_version is None:
                             continue
                         version = versions.get(id)
@@ -236,7 +247,9 @@ async def watch_versions():
                 if len(invalidate_cache):
                     result = await invalidate_cache.execute()
                     invalidated = sum(ret != "0" for ret in result)
-                    logger.warning(f"Versions: Invalidated cache for {invalidated} threads")
+                    logger.warning(
+                        f"Versions: Invalidated cache for {invalidated} threads"
+                    )
 
                 logger.info("Poll versions done")
 

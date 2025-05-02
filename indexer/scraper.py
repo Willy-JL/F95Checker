@@ -166,10 +166,15 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
         reviews = await loop.run_in_executor(None, parser.reviews, res)
         if isinstance(reviews, parser.ParserError):
 
-            if reviews.message == "Thread structure missing" and req.status in (403, 404):
+            if reviews.message == "Thread structure missing" and req.status in (
+                403,
+                404,
+            ):
                 return f95zone.ERROR_THREAD_MISSING
 
-            logger.error(f"Thread {id} reviews parsing failed: {reviews.message}\n{reviews.dump}")
+            logger.error(
+                f"Thread {id} reviews parsing failed: {reviews.message}\n{reviews.dump}"
+            )
             return f95zone.ERROR_PARSING_FAILED
 
         reviews.items = [dataclasses.asdict(review) for review in reviews.items]
