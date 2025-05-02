@@ -110,10 +110,8 @@ async def _is_thread_cache_outdated(id: int, name: str) -> bool:
     last_cached, expire_time = await redis.hmget(name, (LAST_CACHED, EXPIRE_TIME))
     if last_cached and not expire_time:
         expire_time = int(last_cached) + CACHE_TTL
-    return (
-        not last_cached  # Never cached
-        or time.time() >= int(expire_time)  # Cache expired
-    )
+    # Never cached or cache expired
+    return not last_cached or time.time() >= int(expire_time)
 
 
 async def _maybe_update_thread_cache(id: int, name: str) -> None:
