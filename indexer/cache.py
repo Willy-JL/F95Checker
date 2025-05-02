@@ -17,7 +17,7 @@ CACHE_TTL = dt.timedelta(days=7).total_seconds()
 SHORT_TTL = dt.timedelta(days=2).total_seconds()
 LAST_CHANGE_ELIGIBLE_FIELDS = (
     "name",
-    "thread_version",
+    "version",
     "developer",
     "type",
     "status",
@@ -29,7 +29,10 @@ LAST_CHANGE_ELIGIBLE_FIELDS = (
     "tags",
     "unknown_tags",
     "image_url",
+    "previews_urls",
     "downloads",
+    "reviews_total",
+    "reviews",
     "INDEX_ERROR",
 )
 
