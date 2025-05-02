@@ -203,8 +203,8 @@ async def _launch_exe(executable: str):
             exe_flag = True
         if (exe.parent / "renpy").is_dir():
             # Make all needed renpy libs executable
-            for file in (exe.parent / "lib").glob("**/*"):
-                if file.is_file() and not file.suffix:
+            for file in (exe.parent / "lib").glob("py?-*/**/*"):
+                if file.is_file():
                     mode = file.stat().st_mode
                     if mode & stat.S_IEXEC < stat.S_IEXEC:
                         file.chmod(mode | stat.S_IEXEC)
