@@ -146,7 +146,7 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
         async with f95zone.RATELIMIT:
             try:
                 async with f95zone.session.get(
-                    thread_url + "/br-reviews",
+                    thread_url + "/br-reviews/",
                     cookies=f95zone.cookies,
                 ) as req:
                     if req.status == 429 and retries > 1:
@@ -164,7 +164,7 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     if index_error := f95zone.check_error(res, logger):
         return index_error
 
-    if not str(req.real_url).endswith("br-reviews"):
+    if not str(req.real_url).rstrip("/").endswith("br-reviews"):
         # Some threads have reviews disabled
         reviews = parser.ParsedReviews(total=0, items=[])
     else:
