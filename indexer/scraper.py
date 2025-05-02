@@ -127,7 +127,12 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
                         parser.attachment(preview_url)
                         for preview_url in update["screens"]
                     ] or ret.previews_urls
-                    ret.last_updated = parser.datestamp(update["ts"])
+                    last_promoted = parser.datestamp(update["ts"])
+                    if (
+                        ret.last_updated > time.time()  # Only if thread has a typo
+                        or last_promoted > ret.last_updated  # Or it's outdated
+                    ):
+                        ret.last_updated = last_promoted
                     break
             else:  # Didn't break
                 continue
@@ -141,7 +146,7 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
         async with f95zone.RATELIMIT:
             try:
                 async with f95zone.session.get(
-                    thread_url + "/br-reviews",
+                    thread_url + "/br-reviews/",
                     cookies=f95zone.cookies,
                 ) as req:
                     if req.status == 429 and retries > 1:
@@ -159,17 +164,22 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
     if index_error := f95zone.check_error(res, logger):
         return index_error
 
-    if not str(req.real_url).endswith("br-reviews"):
+    if not str(req.real_url).rstrip("/").endswith("br-reviews"):
         # Some threads have reviews disabled
         reviews = parser.ParsedReviews(total=0, items=[])
     else:
         reviews = await loop.run_in_executor(None, parser.reviews, res)
         if isinstance(reviews, parser.ParserError):
 
-            if reviews.message == "Thread structure missing" and req.status in (403, 404):
+            if reviews.message == "Thread structure missing" and req.status in (
+                403,
+                404,
+            ):
                 return f95zone.ERROR_THREAD_MISSING
 
-            logger.error(f"Thread {id} reviews parsing failed: {reviews.message}\n{reviews.dump}")
+            logger.error(
+                f"Thread {id} reviews parsing failed: {reviews.message}\n{reviews.dump}"
+            )
             return f95zone.ERROR_PARSING_FAILED
 
         reviews.items = [dataclasses.asdict(review) for review in reviews.items]

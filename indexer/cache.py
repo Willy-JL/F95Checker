@@ -17,7 +17,7 @@ CACHE_TTL = dt.timedelta(days=7).total_seconds()
 SHORT_TTL = dt.timedelta(days=2).total_seconds()
 LAST_CHANGE_ELIGIBLE_FIELDS = (
     "name",
-    "thread_version",
+    "version",
     "developer",
     "type",
     "status",
@@ -29,7 +29,10 @@ LAST_CHANGE_ELIGIBLE_FIELDS = (
     "tags",
     "unknown_tags",
     "image_url",
+    "previews_urls",
     "downloads",
+    "reviews_total",
+    "reviews",
     "INDEX_ERROR",
 )
 
@@ -38,13 +41,13 @@ redis: aredis.Redis = None
 locks_lock = asyncio.Lock()
 locks: dict[asyncio.Lock] = {}
 
-CACHE_KEYWORDS = (
-    LAST_CACHED := "LAST_CACHED",
+LAST_CACHED = "LAST_CACHED"
+EXPIRE_TIME = "EXPIRE_TIME"
+INDEX_ERROR = "INDEX_ERROR"
+INTERNAL_KEYWORDS = (
     CACHED_WITH := "CACHED_WITH",
     LAST_CHANGE := "LAST_CHANGE",
-    EXPIRE_TIME := "EXPIRE_TIME",
     HASHED_META := "HASHED_META",
-    INDEX_ERROR := "INDEX_ERROR",
 )
 NAME_FORMAT = "thread:{id}"
 
@@ -96,28 +99,19 @@ async def get_thread(id: int) -> dict[str, str]:
 
     thread = await redis.hgetall(name)
 
-    # Don't return thread data (there might be some) if an error flag is active
-    if thread.get(INDEX_ERROR):
-        return {INDEX_ERROR: thread[INDEX_ERROR]}
-
     # Remove internal fields from response
-    for key in CACHE_KEYWORDS:
+    for key in INTERNAL_KEYWORDS:
         if key in thread:
             del thread[key]
     return thread
 
 
 async def _is_thread_cache_outdated(id: int, name: str) -> bool:
-    last_cached, cached_with, expire_time = await redis.hmget(
-        name, (LAST_CACHED, CACHED_WITH, EXPIRE_TIME)
-    )
+    last_cached, expire_time = await redis.hmget(name, (LAST_CACHED, EXPIRE_TIME))
     if last_cached and not expire_time:
         expire_time = int(last_cached) + CACHE_TTL
-    return (
-        not last_cached  # Never cached
-        or time.time() >= int(expire_time)  # Cache expired
-        # or cached_with != meta.version  # Cached on different version
-    )
+    # Never cached or cache expired
+    return not last_cached or time.time() >= int(expire_time)
 
 
 async def _maybe_update_thread_cache(id: int, name: str) -> None:
@@ -148,11 +142,6 @@ async def _update_thread_cache(id: int, name: str) -> None:
             INDEX_ERROR: result.error_flag,
             EXPIRE_TIME: int(now + result.retry_delay),
         }
-        if result is f95zone.ERROR_THREAD_MISSING:
-            # F95zone responded but thread is missing, remove any previous cache
-            await redis.delete(name)
-            if last_change := old_fields.get(LAST_CHANGE):
-                new_fields[LAST_CHANGE] = last_change
         # Consider new error as a change
         if old_fields.get(INDEX_ERROR) != new_fields.get(INDEX_ERROR):
             new_fields[LAST_CHANGE] = int(now)
