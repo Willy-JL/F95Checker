@@ -6,7 +6,10 @@ import time
 
 import redis.asyncio as aredis
 
-from common import meta
+from common import (
+    meta,
+    parser,
+)
 from external import error
 from indexer import (
     f95zone,
@@ -156,6 +159,20 @@ async def _update_thread_cache(id: int, name: str) -> None:
         if "thread_version" in new_fields:
             del new_fields["thread_version"]
             new_fields[EXPIRE_TIME] = int(now + SHORT_TTL)
+        # Special treatment for the almighty sacred last updated date
+        if (
+            new_fields.get("version")
+            and old_fields.get("version")
+            and (new_fields["version"] != old_fields["version"])
+        ):
+            # Version changed, use today as last updated date
+            new_fields["last_updated"] = str(parser.datestamp(now))
+        elif old_fields.get("last_updated"):
+            # Was previously cached and version didn't change, keep previous date
+            new_fields["last_updated"] = old_fields["last_updated"]
+        else:
+            # Not previously cached, use date from thread / latest updates
+            pass
         # Track last time that some meaningful data changed to tell clients to full check it
         if any(
             new_fields.get(key) != old_fields.get(key)
