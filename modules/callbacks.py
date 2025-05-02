@@ -85,7 +85,7 @@ def update_start_with_system(toggle: bool):
         )
 
 
-def _fuzzy_match_subdir(where: pathlib.Path, match: str):
+def _fuzzy_match_subdir(where: pathlib.Path, match: str, best_partial_match: bool):
     clean_charset = string.ascii_letters + string.digits + " "
     clean_dir = "".join(char for char in match.replace("&", "and") if char in clean_charset)
     clean_dir = re.sub(r" +", r" ", clean_dir).strip()
@@ -95,7 +95,10 @@ def _fuzzy_match_subdir(where: pathlib.Path, match: str):
         try:
             dirs = [node.name for node in where.iterdir() if node.is_dir()]
             clean_dir_lower = clean_dir.lower()
-            match_dirs = [d for d in dirs if clean_dir_lower in d.lower()]
+            if best_partial_match:
+                match_dirs = [d for d in dirs if clean_dir_lower in d.lower()]
+            else:
+                match_dirs = []
             if len(match_dirs) == 1:
                 where /= match_dirs[0]
             else:
@@ -136,11 +139,11 @@ def add_game_exe(game: Game, callback: typing.Callable = None):
     start_dir = globals.settings.default_exe_dir.get(globals.os)
     if start_dir:
         start_dir = pathlib.Path(start_dir)
-        try_subdirs = [game.type.name, game.developer, game.name]
+        try_subdirs = [(game.type.name, False), (game.developer, False), (game.name, True)]
         if game.name.lower().endswith(" collection"):
-            try_subdirs.append(game.name[:-len(" collection")])
-        for subdir in try_subdirs:
-            start_dir = _fuzzy_match_subdir(start_dir, subdir)
+            try_subdirs.append((game.name[:-len(" collection")], True))
+        for subdir, best_partial_match in try_subdirs:
+            start_dir = _fuzzy_match_subdir(start_dir, subdir, best_partial_match)
     utils.push_popup(filepicker.FilePicker(
         title=f"Select or drop executable for {game.name}",
         start_dir=start_dir,
