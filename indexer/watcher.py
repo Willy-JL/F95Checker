@@ -96,7 +96,9 @@ async def watch_updates():
                         for update in updates["msg"]["data"]:
                             name = cache.NAME_FORMAT.format(id=update["thread_id"])
                             names.append(name)
-                            cached_data.hmget(name, "version", cache.HASHED_META)
+                            cached_data.hmget(
+                                name, "version", cache.HASHED_META, cache.LAST_CACHED
+                            )
                             version = update["version"]
                             if version == "Unknown":
                                 version = None
@@ -116,20 +118,19 @@ async def watch_updates():
                         cached_data = await cached_data.execute()
 
                         assert len(names) == len(current_data) == len(cached_data)
-                        for name, (version, meta), (cached_version, cached_meta) in zip(
-                            names, current_data, cached_data
-                        ):
-                            if cached_version is None:
+                        for (
+                            name,
+                            (version, meta),
+                            (cached_version, cached_meta, last_cached),
+                        ) in zip(names, current_data, cached_data):
+                            if cached_version is None or not last_cached:
                                 continue
 
                             version_outdated = version and version != cached_version
                             meta_outdated = meta != cached_meta
 
                             if version_outdated or meta_outdated:
-                                # Delete version too to avoid watch_versions() picking it up as mismatch
-                                invalidate_cache.hdel(
-                                    name, cache.LAST_CACHED, "version"
-                                )
+                                invalidate_cache.hdel(name, cache.LAST_CACHED)
                                 invalidate_cache.hset(name, cache.HASHED_META, meta)
                                 logger.info(
                                     f"Updates: Invalidating cache for {name}"
@@ -186,11 +187,11 @@ async def watch_versions():
 
                 for names_chunk in chunks(names, WATCH_VERSIONS_CHUNK_SIZE):
 
-                    cached_versions = cache.redis.pipeline()
+                    cached_data = cache.redis.pipeline()
                     csv = ""
                     ids = []
                     for name in names_chunk:
-                        cached_versions.hget(name, "version")
+                        cached_data.hmget(name, "version", cache.LAST_CACHED)
                         id = name.split(":")[1]
                         csv += f"{id},"
                         ids.append(id)
@@ -201,8 +202,8 @@ async def watch_versions():
                             f95zone.VERCHK_URL.format(threads=csv),
                         ) as req:
                             # Await together for efficiency
-                            res, cached_versions = await asyncio.gather(
-                                req.read(), cached_versions.execute()
+                            res, cached_data = await asyncio.gather(
+                                req.read(), cached_data.execute()
                             )
                     except Exception as exc:
                         if index_error := f95zone.check_error(exc, logger):
@@ -226,19 +227,18 @@ async def watch_versions():
                         raise Exception(index_error)
                     versions = versions["msg"]
 
-                    assert len(names_chunk) == len(ids) == len(cached_versions)
-                    for name, id, cached_version in zip(
-                        names_chunk, ids, cached_versions
+                    assert len(names_chunk) == len(ids) == len(cached_data)
+                    for name, id, (cached_version, last_cached) in zip(
+                        names_chunk, ids, cached_data
                     ):
-                        if cached_version is None:
+                        if cached_version is None or not last_cached:
                             continue
                         version = versions.get(id)
                         if not version or version == "Unknown":
                             continue
 
                         if version != cached_version:
-                            # Delete version too to avoid ending up here again
-                            invalidate_cache.hdel(name, cache.LAST_CACHED, "version")
+                            invalidate_cache.hdel(name, cache.LAST_CACHED)
                             logger.warning(
                                 f"Versions: Invalidating cache for {name}"
                                 f" ({cached_version!r} -> {version!r})"
