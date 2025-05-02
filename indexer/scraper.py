@@ -127,7 +127,12 @@ async def thread(id: int) -> dict[str, str] | f95zone.IndexerError | None:
                         parser.attachment(preview_url)
                         for preview_url in update["screens"]
                     ] or ret.previews_urls
-                    ret.last_updated = parser.datestamp(update["ts"])
+                    last_promoted = parser.datestamp(update["ts"])
+                    if (
+                        ret.last_updated > time.time()  # Only if thread has a typo
+                        or last_promoted > ret.last_updated  # Or it's outdated
+                    ):
+                        ret.last_updated = last_promoted
                     break
             else:  # Didn't break
                 continue
