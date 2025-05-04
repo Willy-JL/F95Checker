@@ -1100,15 +1100,16 @@ class MainGUI():
         else:
             imgui.push_no_interaction()
         imgui.push_style_color(imgui.COLOR_BUTTON, *color)
+        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color))
         imgui.push_style_var(imgui.STYLE_FRAME_BORDERSIZE, 0)
 
     def end_framed_text(self, interaction=True):
         imgui.pop_style_var()
         if interaction:
-            imgui.pop_style_color(3)
+            imgui.pop_style_color(4)
         else:
+            imgui.pop_style_color(2)
             imgui.pop_no_interaction()
-            imgui.pop_style_color()
 
     def get_type_label_width(self):
         if self.type_label_width is None:
@@ -1121,7 +1122,6 @@ class MainGUI():
     def draw_type_widget(self, type: Type, wide=True, align=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(type.color, interaction=quick_filter)
-        imgui.push_style_color(imgui.COLOR_TEXT, 1.0, 1.0, 1.0, 1.0)
         if wide:
             x_padding = 4
             backup_y_padding = imgui.style.frame_padding.y
@@ -1138,7 +1138,6 @@ class MainGUI():
             flt = Filter(FilterMode.Type)
             flt.match = type
             self.filters.append(flt)
-        imgui.pop_style_color()
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tag_widget(self, tag: Tag, quick_filter=True, change_highlight=True):
@@ -1168,7 +1167,6 @@ class MainGUI():
     def draw_label_widget(self, label: Label, short=False):
         quick_filter = globals.settings.quick_filters
         self.begin_framed_text(label.color, interaction=quick_filter)
-        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(label.color))
         if imgui.small_button(label.short_name if short else label.name) and quick_filter:
             flt = Filter(FilterMode.Label)
             flt.match = label
@@ -1179,18 +1177,15 @@ class MainGUI():
             self.draw_label_widget(label, short=False)
             imgui.pop_font()
             imgui.end_tooltip()
-        imgui.pop_style_color()
         self.end_framed_text(interaction=quick_filter)
 
     def draw_tab_widget(self, tab: Tab):
         color = (tab and tab.color) or globals.settings.style_accent
         self.begin_framed_text(color, interaction=False)
-        imgui.push_style_color(imgui.COLOR_TEXT, *colors.foreground_color(color))
         if (tab and tab.icon) and (tab and (tab.name or 'New Tab')):
             imgui.small_button(f"{tab.icon} {tab.name or 'New Tab'}")
         else:
             imgui.small_button(f"{Tab.first_tab_label()}")
-        imgui.pop_style_color()
         self.end_framed_text(interaction=False)
 
     def draw_status_widget(self, status: Status):

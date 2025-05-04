@@ -32,6 +32,7 @@
 - UTF-8 encoding is now forced (#230 by @Willy-JL)
 - Fix adding executables focusing the wrong folder if the game type is in only one of the folders (by @Willy-JL)
 - Fix marking as executable on Linux/MacOS with RenPy games including a dot in their name (by @Willy-JL)
+- Fix readability on some framed text with dark text (by @Willy-JL)
 
 ### Removed:
 - Excluded `libEGL.so` on linux binary bundles, fixes "Cannot find EGLConfig, returning null config" (by @Willy-JL)
