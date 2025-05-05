@@ -72,7 +72,7 @@ from modules import (
 )
 
 tool_page         = api.f95_threads_page + "44173/"
-github_page       = "https://github.com/Willy-JL/F95Checker"
+github_page       = "https://github.com/WillyJL/F95Checker"
 developer_page    = "https://linktr.ee/WillyJL"
 
 imgui.io = None

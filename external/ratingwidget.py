@@ -1,4 +1,4 @@
-# https://gist.github.com/Willy-JL/e9e9dac70b7970b6ee12fcf52b9b8f11
+# https://gist.github.com/WillyJL/e9e9dac70b7970b6ee12fcf52b9b8f11
 import imgui
 
 from modules import icons # added

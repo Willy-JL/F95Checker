@@ -5,7 +5,7 @@
     "author": "WillyJL",
     "version": "11.0.2.2",
     "description": "Integration between the F95zone forum and the F95Checker app",
-    "homepage_url": "https://github.com/Willy-JL/F95Checker",
+    "homepage_url": "https://github.com/WillyJL/F95Checker",
     "browser_action": {
         "default_icon": {
             "16": "icons/16.png",

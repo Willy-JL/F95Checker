@@ -1,4 +1,4 @@
-# https://gist.github.com/Willy-JL/82137493896d385a74d148534691b6e1
+# https://gist.github.com/WillyJL/82137493896d385a74d148534691b6e1
 import os
 import pathlib
 import string

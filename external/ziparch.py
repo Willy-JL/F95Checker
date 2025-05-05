@@ -1,4 +1,4 @@
-# https://gist.github.com/Willy-JL/9e3e6fac4fdbdb3d40fccdb329fe32f1
+# https://gist.github.com/WillyJL/9e3e6fac4fdbdb3d40fccdb329fe32f1
 import os
 import pathlib
 import zipfile

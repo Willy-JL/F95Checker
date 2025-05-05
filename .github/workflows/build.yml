@@ -266,7 +266,7 @@ jobs:
 
       - name: "Delete skipped workflow runs"
         if: "github.event_name == 'release'"
-        uses: "Willy-JL/delete-skipped-workflow-runs@main"
+        uses: "WillyJL/delete-skipped-workflow-runs@main"
         with:
           retain_days: 0
           keep_minimum_runs: 0

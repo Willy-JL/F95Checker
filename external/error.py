@@ -1,4 +1,4 @@
-# https://gist.github.com/Willy-JL/f733c960c6b0d2284bcbee0316f88878
+# https://gist.github.com/WillyJL/f733c960c6b0d2284bcbee0316f88878
 import sys
 import traceback as _traceback
 

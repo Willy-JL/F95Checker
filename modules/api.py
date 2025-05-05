@@ -104,7 +104,7 @@ api_fast_check_url = api_host + "/fast?ids={ids}"
 api_full_check_url = api_host + "/full/{id}?ts={ts}"
 api_fast_check_max_ids = 10
 
-app_update_endpoint     = "https://api.github.com/repos/Willy-JL/F95Checker/releases/latest"
+app_update_endpoint = "https://api.github.com/repos/WillyJL/F95Checker/releases/latest"
 
 insecure_ssl_allowed_hosts = (
     f95_attachments_rocks,  # Invalid SSL cert but still works and is ran by F95zone

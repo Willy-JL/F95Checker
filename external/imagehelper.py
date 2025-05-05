@@ -1,4 +1,4 @@
-# https://gist.github.com/Willy-JL/9c5116e5a11abd559c56f23aa1270de9
+# https://gist.github.com/WillyJL/9c5116e5a11abd559c56f23aa1270de9
 import functools
 import gc
 import os
@@ -741,7 +741,7 @@ class ImageHelper:
                 # self.load()  # changed
                 # You can (and maybe should) run this in a thread! threading.Thread(target=self.load, daemon=True).start()
                 # Or maybe setup an image thread and queue images to load one by one?
-                # You could do this with https://gist.github.com/Willy-JL/bb410bcc761f8bf5649180f22b7f3b44 like so:
+                # You could do this with https://gist.github.com/WillyJL/bb410bcc761f8bf5649180f22b7f3b44 like so:
                 sync_thread.queue(self.load)  # changed
         else:
             if self._missing or self._error:
