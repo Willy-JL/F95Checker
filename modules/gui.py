@@ -39,6 +39,7 @@ from common.structs import (
     MsgBox,
     Os,
     ProxyType,
+    SearchLogic,
     SortSpec,
     Status,
     Tab,
@@ -3123,11 +3124,11 @@ class MainGUI():
                     filtering = True
                 else:
                     search = self.add_box_text.lower()
-                    def key(id):
-                        game = globals.games[id]
-                        return search in game.version.lower() or search in game.developer.lower() or search in game.name.lower() or search in game.notes.lower()
-                    base_ids = filter(key, base_ids)
-                    filtering = True
+                    query: SearchLogic = utils.parse_search(search)
+                    base_ids = set(base_ids)
+                    start_count = len(base_ids)
+                    base_ids = utils.parse_query(query, base_ids)
+                    filtering = len(base_ids) < start_count
             self.filtering = filtering
             # Finally consume the iterators (was lazy up until now)
             base_ids = list(base_ids)
@@ -4090,6 +4091,14 @@ class MainGUI():
                     case FilterMode.Type.value:
                         flt.match = Type[Type._member_names_[0]]
                 self.filters.append(flt)
+
+            if self.filters:
+                text_width = imgui.calc_text_size("Convert to Complex").x
+                buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
+                imgui.set_cursor_pos_x(imgui.get_cursor_pos_x() + buttons_offset)
+                if imgui.button("Convert to Complex", width=frame_height + text_width):
+                    self.add_box_text = str(utils.from_basic_filters(self.filters)) + " " + self.add_box_text
+                    self.filters.clear()
 
             text_width = imgui.calc_text_size("Invrt ").x
             buttons_offset = right_width - (2 * frame_height + text_width + imgui.style.item_spacing.x)
