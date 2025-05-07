@@ -4686,7 +4686,14 @@ class MainGUI():
 
             draw_settings_label("New label:")
             if imgui.button("Add", width=right_width):
-                async_thread.run(db.create_label())
+                if len(Label.instances) == 63:
+                    utils.push_popup(
+                        msgbox.msgbox, "Alert!",
+                        "You have reached the maximum number (63) of labels.",
+                        MsgBox.warn
+                    )
+                else:
+                    async_thread.run(db.create_label())
 
             imgui.end_table()
             imgui.spacing()
